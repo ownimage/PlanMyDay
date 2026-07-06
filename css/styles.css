@@ -372,3 +372,19 @@ body.compact .editor-btn {
   color: var(--bs-body-color);
   opacity: 0.6;
 }
+
+.thread-drag-card {
+  cursor: default;
+  user-select: none;
+}
+.thread-drag-card.dragging {
+  opacity: 0.4;
+  outline: 2px dashed var(--bs-primary);
+}
+.thread-drag-card .drag-handle {
+  cursor: grab;
+  touch-action: none;
+}
+.thread-drag-card .drag-handle:active {
+  cursor: grabbing;
+}
