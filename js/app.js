@@ -273,48 +273,50 @@ function renderThreadsEditor() {
     list.appendChild(card);
   });
 
-  // drag and drop handlers
-  let dragSrcIndex = -1;
-  list.addEventListener("dragstart", e => {
-    const card = e.target.closest(".thread-drag-card");
-    if (!card) return;
-    dragSrcIndex = parseInt(card.dataset.index);
-    card.classList.add("dragging");
-    e.dataTransfer.effectAllowed = "move";
-  });
-  list.addEventListener("dragend", e => {
-    const card = e.target.closest(".thread-drag-card");
-    if (card) card.classList.remove("dragging");
-  });
-  list.addEventListener("dragover", e => {
-    e.preventDefault();
-    const target = e.target.closest(".thread-drag-card");
-    if (!target || dragSrcIndex < 0) return;
-    const targetIdx = parseInt(target.dataset.index);
-    if (targetIdx === dragSrcIndex) return;
-    const rect = target.getBoundingClientRect();
-    const mid = rect.top + rect.height / 2;
-    if (e.clientY < mid) {
-      list.insertBefore(document.querySelector(`.thread-drag-card[data-index="${dragSrcIndex}"]`), target);
-    } else {
-      list.insertBefore(document.querySelector(`.thread-drag-card[data-index="${dragSrcIndex}"]`), target.nextSibling);
-    }
-  });
-  list.addEventListener("drop", e => {
-    e.preventDefault();
-    const target = e.target.closest(".thread-drag-card");
-    if (!target || dragSrcIndex < 0) return;
-    const dropIndex = parseInt(target.dataset.index);
-    if (dropIndex === dragSrcIndex) return;
-    const threads = loadThreads();
-    const [moved] = threads.splice(dragSrcIndex, 1);
-    const newPos = threads.indexOf(threads.find(t => t === threads[dropIndex > dragSrcIndex ? dropIndex - 1 : dropIndex]));
-    threads.splice(dropIndex > dragSrcIndex ? dropIndex : dropIndex, 0, moved);
-    threads.forEach((t, i) => t.sequence = i + 1);
-    saveThreads(threads);
-    dragSrcIndex = -1;
-    renderThreadsEditor();
-  });
+    // drag and drop handlers
+    let dragSrcIndex = -1;
+    list.addEventListener("dragstart", e => {
+      const card = e.target.closest(".thread-drag-card");
+      if (!card) return;
+      dragSrcIndex = parseInt(card.dataset.index);
+      card.classList.add("dragging");
+      e.dataTransfer.effectAllowed = "move";
+    });
+    list.addEventListener("dragend", e => {
+      document.querySelectorAll(".thread-drag-card").forEach(c => c.classList.remove("dragging", "drag-over-top", "drag-over-bottom"));
+    });
+    list.addEventListener("dragover", e => {
+      e.preventDefault();
+      const target = e.target.closest(".thread-drag-card");
+      if (!target || dragSrcIndex < 0) return;
+      document.querySelectorAll(".thread-drag-card").forEach(c => c.classList.remove("drag-over-top", "drag-over-bottom"));
+      const rect = target.getBoundingClientRect();
+      target.classList.add(e.clientY < rect.top + rect.height / 2 ? "drag-over-top" : "drag-over-bottom");
+    });
+    list.addEventListener("drop", e => {
+      e.preventDefault();
+      document.querySelectorAll(".thread-drag-card").forEach(c => c.classList.remove("drag-over-top", "drag-over-bottom"));
+      const target = e.target.closest(".thread-drag-card");
+      if (!target || dragSrcIndex < 0) return;
+      const dropIndex = parseInt(target.dataset.index);
+      if (dropIndex === dragSrcIndex) { dragSrcIndex = -1; return; }
+      const threads = loadThreads();
+      const [moved] = threads.splice(dragSrcIndex, 1);
+      const rect = target.getBoundingClientRect();
+      const above = e.clientY < rect.top + rect.height / 2;
+      let insertAt;
+      if (dragSrcIndex < dropIndex) {
+        const actualDropIdx = dropIndex - 1;
+        insertAt = above ? actualDropIdx : actualDropIdx + 1;
+      } else {
+        insertAt = above ? dropIndex : dropIndex + 1;
+      }
+      threads.splice(insertAt, 0, moved);
+      threads.forEach((t, i) => t.sequence = i + 1);
+      saveThreads(threads);
+      dragSrcIndex = -1;
+      renderThreadsEditor();
+    });
 
   topTile.innerHTML = `
     <div class="d-flex gap-2">

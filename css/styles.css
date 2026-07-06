@@ -378,8 +378,13 @@ body.compact .editor-btn {
   user-select: none;
 }
 .thread-drag-card.dragging {
-  opacity: 0.4;
-  outline: 2px dashed var(--bs-primary);
+  opacity: 0.3;
+}
+.thread-drag-card.drag-over-top {
+  border-top: 3px solid var(--bs-primary) !important;
+}
+.thread-drag-card.drag-over-bottom {
+  border-bottom: 3px solid var(--bs-primary) !important;
 }
 .thread-drag-card .drag-handle {
   cursor: grab;
