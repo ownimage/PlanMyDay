@@ -346,6 +346,21 @@ body.auto-hide-menu #mainNav.nav-hidden ~ .container-fluid {
   padding-top: 20px;
 }
 
+#jobsEditor {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 56px);
+  padding-top: 20px;
+}
+#jobsEditorHeader {
+  flex-shrink: 0;
+}
+#jobsEditor #jobsList {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
+
 #threadsEditor .editor-title {
   font-weight: 800;
 }

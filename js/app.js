@@ -9,6 +9,7 @@ function saveThreads(threads) {
 function hideAllEditors() {
   document.getElementById("countdownContainer").classList.remove("d-none");
   document.getElementById("threadsEditor").classList.add("d-none");
+  document.getElementById("jobsEditor").classList.add("d-none");
   document.getElementById("settingsPage").classList.add("d-none");
 }
 
@@ -159,6 +160,7 @@ function renderThreadsEditor() {
   const filterEl = document.getElementById("threadEditorFilters");
   const singleEditor = document.getElementById("singleThreadEditor");
 
+  document.getElementById("jobsEditor").classList.add("d-none");
   list.innerHTML = ""; addTile.innerHTML = ""; topTile.innerHTML = ""; filterEl.innerHTML = ""; singleEditor.innerHTML = "";
 
   const threads = loadThreads();
@@ -266,6 +268,7 @@ function renderThreadsEditor() {
         </div>
         <div class="d-flex gap-2 flex-shrink-0">
           <button class="btn btn-primary editor-btn" onclick="editThread(${realIdx})">Edit</button>
+          <button class="btn btn-info editor-btn" onclick="openJobsEditor(${realIdx})">Jobs</button>
           <button class="btn btn-danger editor-btn" onclick="confirmDeleteThread(${realIdx})">Delete</button>
         </div>
       </div>
@@ -405,7 +408,7 @@ function confirmDeleteThread(index) {
 function addNewThread() {
   const threads = loadThreads();
   const seq = threads.length + 1;
-  const newThread = { title: "New Thread", sequence: seq, priority: "medium", scheduleType: "annual", scheduleDay: 1, scheduleMonth: 1, description: "" };
+  const newThread = { title: "New Thread", sequence: seq, priority: "medium", scheduleType: "annual", scheduleDay: 1, scheduleMonth: 1, description: "", jobs: [] };
   threads.push(newThread);
   saveThreads(threads);
   editBuffer = JSON.parse(JSON.stringify(newThread));
@@ -413,6 +416,205 @@ function addNewThread() {
   renderThreadsEditor();
   const el = document.getElementById("threadsEditor");
   if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+// JOBS EDITOR
+let jobsThreadIndex = -1;
+let jobsEditingIdx = -1;
+let jobsBuffer = null;
+let isNewJob = false;
+
+function openJobsEditor(threadIdx) {
+  jobsThreadIndex = threadIdx;
+  document.getElementById("threadEditorList").classList.add("d-none");
+  document.getElementById("addThreadTile").classList.add("d-none");
+  document.getElementById("addThreadTileTop").classList.add("d-none");
+  document.getElementById("threadEditorFilters").classList.add("d-none");
+  document.getElementById("singleThreadEditor").classList.add("d-none");
+  document.getElementById("jobsEditor").classList.remove("d-none");
+  renderJobsEditor();
+}
+
+function closeJobsEditor() {
+  document.getElementById("jobsEditor").classList.add("d-none");
+  document.getElementById("threadEditorList").classList.remove("d-none");
+  document.getElementById("addThreadTile").classList.remove("d-none");
+  document.getElementById("addThreadTileTop").classList.remove("d-none");
+  document.getElementById("threadEditorFilters").classList.remove("d-none");
+  jobsThreadIndex = -1; jobsEditingIdx = -1; jobsBuffer = null; isNewJob = false;
+  renderThreadsEditor();
+}
+
+function renderJobsEditor() {
+  const threads = loadThreads();
+  const thread = threads[jobsThreadIndex];
+  if (!thread) { closeJobsEditor(); return; }
+
+  const jobs = thread.jobs || [];
+  const header = document.getElementById("jobsEditorHeader");
+  const list = document.getElementById("jobsList");
+  const addTile = document.getElementById("addJobTile");
+  const topTile = document.getElementById("addJobTileTop");
+  const singleEditor = document.getElementById("singleJobEditor");
+
+  list.innerHTML = ""; addTile.innerHTML = ""; topTile.innerHTML = ""; singleEditor.innerHTML = "";
+
+  document.getElementById("jobsEditorTitle").textContent = `Jobs: ${escapeHtml(thread.title)}`;
+
+  if (jobsEditingIdx >= 0) {
+    list.classList.add("d-none"); addTile.classList.add("d-none");
+    topTile.classList.add("d-none"); singleEditor.classList.remove("d-none");
+
+    const job = jobs[jobsEditingIdx];
+    const data = jobsBuffer || job;
+
+    const heading = isNewJob ? "Add Job" : "Edit Job";
+    singleEditor.innerHTML = `
+      <div class="d-flex align-items-center mb-3">
+        <h3 class="mb-0">${heading}</h3>
+        <button class="btn btn-outline-secondary ms-auto" onclick="cancelJobEdit()">Back</button>
+      </div>
+      <div class="card p-3 card-edited">
+        <div class="mb-2">
+          <label class="form-label">Title</label>
+          <input class="form-control" value="${escapeHtml(data.title || "")}" oninput="jobField('title', this.value)">
+        </div>
+        <div class="mb-2">
+          <label class="form-label">Description</label>
+          <textarea class="form-control" rows="3" oninput="jobField('description', this.value)">${escapeHtml(data.description || "")}</textarea>
+        </div>
+        <div class="row mb-2">
+          <div class="col">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" id="jobActiveCb" ${data.active !== false ? "checked" : ""} onchange="jobField('active', this.checked)">
+              <label class="form-check-label" for="jobActiveCb">Active</label>
+            </div>
+          </div>
+          <div class="col">
+            <label class="form-label">Frequency</label>
+            <select class="form-select" onchange="jobField('frequency', this.value)">
+              <option value="daily" ${(data.frequency || "daily") === "daily" ? "selected" : ""}>Daily</option>
+              <option value="weekly" ${data.frequency === "weekly" ? "selected" : ""}>Weekly</option>
+            </select>
+          </div>
+        </div>
+        <div class="d-flex gap-2 mt-3">
+          <button class="btn btn-success editor-btn" onclick="doneJobEdit()">OK</button>
+          <button class="btn btn-secondary editor-btn ms-auto" onclick="cancelJobEdit()">Cancel</button>
+        </div>
+      </div>
+    `;
+    updateNavState();
+    return;
+  }
+
+  list.classList.remove("d-none"); addTile.classList.remove("d-none");
+  topTile.classList.remove("d-none"); singleEditor.classList.add("d-none");
+
+  const sorted = [...jobs].sort((a, b) => (a.sequence || 0) - (b.sequence || 0));
+
+  sorted.forEach((j, displayIdx) => {
+    const realIdx = jobs.indexOf(j);
+    const activeBadge = j.active !== false ? "success" : "secondary";
+    const freqBadge = j.frequency === "weekly" ? "info" : "primary";
+    const card = document.createElement("div");
+    card.className = "card p-3 mb-3";
+    card.innerHTML = `
+      <div class="d-flex align-items-center gap-2">
+        <div class="flex-fill" style="min-width:0">
+          <div class="fw-bold editor-title mb-1">${escapeHtml(j.title)}</div>
+          <div class="d-flex gap-2 align-items-center small text-secondary">
+            <span class="badge bg-${activeBadge}">${j.active !== false ? "Active" : "Inactive"}</span>
+            <span class="badge bg-${freqBadge}">${escapeHtml(j.frequency || "daily")}</span>
+            <span class="text-muted">#${j.sequence || displayIdx + 1}</span>
+          </div>
+          ${j.description ? `<div class="mt-1 text-secondary small">${escapeHtml(j.description.substring(0, 80))}${j.description.length > 80 ? "..." : ""}</div>` : ""}
+        </div>
+        <div class="d-flex gap-2 flex-shrink-0">
+          <button class="btn btn-primary editor-btn" onclick="editJob(${realIdx})">Edit</button>
+          <button class="btn btn-danger editor-btn" onclick="confirmDeleteJob(${realIdx})">Delete</button>
+        </div>
+      </div>
+    `;
+    list.appendChild(card);
+  });
+
+  topTile.innerHTML = `
+    <div class="d-flex gap-2">
+      <button class="btn btn-primary editor-btn btn-wide" onclick="addNewJob()">Add Job</button>
+      <button class="btn btn-success editor-btn btn-wide ms-auto" onclick="closeJobsEditor()">Done</button>
+    </div>
+  `;
+  updateNavState();
+}
+
+function jobField(field, value) {
+  if (!jobsBuffer) return;
+  jobsBuffer[field] = value;
+  if (field === "active") renderJobsEditor();
+}
+
+function editJob(index) {
+  const threads = loadThreads();
+  const jobs = threads[jobsThreadIndex].jobs || [];
+  jobsBuffer = JSON.parse(JSON.stringify(jobs[index]));
+  jobsEditingIdx = index; isNewJob = false;
+  renderJobsEditor();
+}
+
+function cancelJobEdit() {
+  if (isNewJob && jobsEditingIdx >= 0) {
+    const threads = loadThreads();
+    const jobs = threads[jobsThreadIndex].jobs || [];
+    jobs.splice(jobsEditingIdx, 1);
+    threads[jobsThreadIndex].jobs = jobs;
+    saveThreads(threads);
+  }
+  jobsEditingIdx = -1; jobsBuffer = null; isNewJob = false;
+  renderJobsEditor();
+}
+
+function doneJobEdit() {
+  if (jobsEditingIdx >= 0 && jobsBuffer) {
+    const threads = loadThreads();
+    const jobs = threads[jobsThreadIndex].jobs || [];
+    jobs[jobsEditingIdx] = jobsBuffer;
+    threads[jobsThreadIndex].jobs = jobs;
+    saveThreads(threads);
+  }
+  jobsEditingIdx = -1; jobsBuffer = null; isNewJob = false;
+  renderJobsEditor();
+}
+
+function confirmDeleteJob(index) {
+  jobsEditingIdx = index;
+  const modalEl = document.getElementById("deleteConfirmModal");
+  document.getElementById("deleteConfirmMessage").textContent = 'Delete this job?';
+  document.getElementById("deleteConfirmBtn").onclick = function() {
+    const threads = loadThreads();
+    const jobs = threads[jobsThreadIndex].jobs || [];
+    jobs.splice(index, 1);
+    jobs.forEach((j, i) => j.sequence = i + 1);
+    threads[jobsThreadIndex].jobs = jobs;
+    saveThreads(threads);
+    bootstrap.Modal.getInstance(modalEl).hide();
+    jobsEditingIdx = -1; jobsBuffer = null; isNewJob = false;
+    renderJobsEditor();
+  };
+  new bootstrap.Modal(modalEl).show();
+}
+
+function addNewJob() {
+  const threads = loadThreads();
+  const jobs = threads[jobsThreadIndex].jobs || [];
+  const seq = jobs.length + 1;
+  const newJob = { title: "New Job", sequence: seq, description: "", active: true, frequency: "daily" };
+  jobs.push(newJob);
+  threads[jobsThreadIndex].jobs = jobs;
+  saveThreads(threads);
+  jobsBuffer = JSON.parse(JSON.stringify(newJob));
+  jobsEditingIdx = jobs.length - 1; isNewJob = true;
+  renderJobsEditor();
 }
 
 // SETTINGS
