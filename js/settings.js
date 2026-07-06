@@ -66,14 +66,6 @@ function changeDensity(value) {
   }
 }
 
-function changeFormat(value) {
-  localStorage.setItem("countdownFormat", value);
-}
-
-function changeMaxCountdowns(value) {
-  localStorage.setItem("maxCountdowns", value);
-}
-
 function changeShowDanger(enabled) {
   localStorage.setItem("showDanger", enabled);
   const row = document.getElementById("clearAllDataRow");

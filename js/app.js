@@ -670,9 +670,6 @@ function openSettings() {
   const savedTheme = localStorage.getItem("theme") || "darkly";
   const themeSel = document.getElementById("themeSelector");
   if (themeSel) themeSel.value = savedTheme;
-  const savedFormat = localStorage.getItem("countdownFormat") || "days";
-  const formatSel = document.getElementById("formatSelector");
-  if (formatSel) formatSel.value = savedFormat;
   const savedFontSize = localStorage.getItem("fontSize") || "xlarge";
   const fontSizeSel = document.getElementById("fontSizeSelector");
   if (fontSizeSel) fontSizeSel.value = savedFontSize;
@@ -686,9 +683,6 @@ function openSettings() {
     const el = document.getElementById(id);
     if (el) el.classList.toggle("d-none", !showDanger);
   });
-  const savedMax = localStorage.getItem("maxCountdowns") || "10";
-  const maxSel = document.getElementById("maxCountdownsSelector");
-  if (maxSel) maxSel.value = savedMax;
   const savedIconSize = localStorage.getItem("iconSize") || "large";
   const iconSel = document.getElementById("iconSizeSelector");
   if (iconSel) iconSel.value = savedIconSize;
