@@ -1,6 +1,15 @@
 // STORAGE HELPERS
 function loadThreads() {
-  return JSON.parse(localStorage.getItem("planmydays_threads") || "[]");
+  const threads = JSON.parse(localStorage.getItem("planmydays_threads") || "[]");
+  let nextId = Date.now();
+  let changed = false;
+  threads.forEach(t => {
+    (t.jobs || []).forEach(j => {
+      if (!j.id) { j.id = "job_" + (nextId++); changed = true; }
+    });
+  });
+  if (changed) saveThreads(threads);
+  return threads;
 }
 function saveThreads(threads) {
   localStorage.setItem("planmydays_threads", JSON.stringify(threads));
@@ -23,33 +32,13 @@ function escapeHtml(str) {
   return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
-// SCHEDULE CALCULATION
-function threadTargetDate(t) {
-  const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  let year = now.getFullYear();
-  if (t.scheduleType === "once") year = t.scheduleYear || now.getFullYear();
-  const target = new Date(year, (t.scheduleMonth || 1) - 1, t.scheduleDay || 1);
-  if (t.scheduleType === "annual" && target < today) target.setFullYear(target.getFullYear() + 1);
-  return target;
+// JOB COMPLETION STORAGE
+function loadCompletedJobs() {
+  const data = localStorage.getItem("planmydays_completed");
+  return data ? JSON.parse(data) : [];
 }
-
-function daysUntilThread(t) {
-  return Math.ceil((threadTargetDate(t) - new Date()) / (1000 * 60 * 60 * 24));
-}
-
-function formatDate(d) {
-  const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-  return `${days[d.getDay()]} ${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
-}
-
-function formatSchedule(t) {
-  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-  const d = t.scheduleDay || 1;
-  const m = months[(t.scheduleMonth || 1) - 1];
-  if (t.scheduleType === "once") return `${d} ${m} ${t.scheduleYear || new Date().getFullYear()}`;
-  return `${d} ${m}`;
+function saveCompletedJobs(ids) {
+  localStorage.setItem("planmydays_completed", JSON.stringify(ids));
 }
 
 // MAIN PAGE RENDER
@@ -58,78 +47,84 @@ function renderMain() {
   if (!container) return;
   container.innerHTML = "";
 
+  const now = new Date();
+  const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const dateStr = `${days[now.getDay()]} ${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`;
+
+  const dateHeading = document.createElement("h2");
+  dateHeading.className = "mb-3";
+  dateHeading.textContent = dateStr;
+  container.appendChild(dateHeading);
+
   const threads = loadThreads();
-  const maxCountdowns = parseInt(localStorage.getItem("maxCountdowns") || "10", 10);
-  const showAll = container.dataset.showAll === "true" || maxCountdowns === 0;
+  const completed = loadCompletedJobs();
 
-  const withDays = threads.map(t => ({ ...t, days: daysUntilThread(t) })).sort((a, b) => a.days - b.days);
-  const todayItems = withDays.filter(t => t.days === 0);
-  const futureItems = withDays.filter(t => t.days > 0);
+  const allJobs = [];
+  threads.forEach(t => {
+    (t.jobs || []).forEach(j => {
+      if (j.active !== false) {
+        allJobs.push({ job: j, threadTitle: t.title });
+      }
+    });
+  });
 
-  function renderCard(t) {
+  allJobs.sort((a, b) => (a.job.sequence || 0) - (b.job.sequence || 0));
+
+  if (allJobs.length === 0) {
+    const msg = document.createElement("p");
+    msg.className = "text-secondary";
+    msg.textContent = "No active jobs yet. Add threads with active jobs to get started.";
+    container.appendChild(msg);
+    updateNavState();
+    return;
+  }
+
+  allJobs.forEach(({ job, threadTitle }) => {
+    const isDone = completed.includes(job.id);
+    const freqBadge = job.frequency === "weekly" ? "info" : "primary";
     const card = document.createElement("div");
-    card.className = "card countdown-card mb-2";
-    const format = localStorage.getItem("countdownFormat") || "days";
-    const weeks = Math.floor(t.days / 7);
-    const remainDays = t.days % 7;
-    let line1, line2;
-    if (format === "weeksAndDays") {
-      line1 = weeks > 0 ? `${weeks} week${weeks !== 1 ? "s" : ""}` : "";
-      line2 = remainDays > 0 ? `${remainDays} day${remainDays !== 1 ? "s" : ""}` : "";
-    } else {
-      line1 = `${t.days}`;
-      line2 = `day${t.days !== 1 ? "s" : ""}`;
-    }
-    const priorityBadge = { high: "danger", medium: "warning", low: "secondary" }[t.priority] || "secondary";
+    card.className = `card countdown-card mb-2 ${isDone ? "opacity-50" : ""}`;
     card.innerHTML = `
       <div class="row align-items-center">
-        <div class="col">
-          <div class="d-flex align-items-center gap-2 mb-1">
-            <h4 class="mb-0">${escapeHtml(t.title)}</h4>
-            <span class="badge bg-${priorityBadge}">${escapeHtml(t.priority || "medium")}</span>
+        <div class="col-auto">
+          <div class="form-check mb-0">
+            <input class="form-check-input job-checkbox" type="checkbox" data-job-id="${escapeHtml(job.id)}" ${isDone ? "checked" : ""}>
           </div>
-          <div class="text-secondary small">${formatSchedule(t)}</div>
-          ${t.description ? `<div class="mt-1 text-secondary">${escapeHtml(t.description)}</div>` : ""}
         </div>
-        <div class="col-auto text-center ps-3">
-          <div class="h4 mb-0">${line1}</div>
-          ${line2 ? `<div class="h4 mb-0">${line2}</div>` : ""}
+        <div class="col" style="min-width:0">
+          <div class="d-flex align-items-center gap-2 mb-1">
+            <h4 class="mb-0" style="${isDone ? 'text-decoration:line-through' : ''}">${escapeHtml(job.title)}</h4>
+            <span class="badge bg-${freqBadge}">${escapeHtml(job.frequency || "daily")}</span>
+          </div>
+          <div class="text-secondary small">${escapeHtml(threadTitle)}</div>
+          ${job.description ? `<div class="mt-1 text-secondary small">${escapeHtml(job.description)}</div>` : ""}
         </div>
       </div>
     `;
     container.appendChild(card);
-  }
+  });
 
-  if (todayItems.length > 0) {
-    const h = document.createElement("h2");
-    h.className = "mb-3";
-    h.textContent = "Today!";
-    container.appendChild(h);
-    todayItems.forEach(renderCard);
-  }
+  // checkbox change handler
+  container.querySelectorAll(".job-checkbox").forEach(cb => {
+    cb.addEventListener("change", function() {
+      const jobId = this.dataset.jobId;
+      let completed = loadCompletedJobs();
+      if (this.checked) {
+        if (!completed.includes(jobId)) completed.push(jobId);
+      } else {
+        completed = completed.filter(id => id !== jobId);
+      }
+      saveCompletedJobs(completed);
+      const card = this.closest(".countdown-card");
+      if (card) {
+        card.classList.toggle("opacity-50", this.checked);
+        const titleEl = card.querySelector("h4");
+        if (titleEl) titleEl.style.textDecoration = this.checked ? "line-through" : "none";
+      }
+    });
+  });
 
-  if (futureItems.length > 0) {
-    const visible = showAll ? futureItems : futureItems.slice(0, maxCountdowns);
-    const h = document.createElement("h2");
-    h.className = "mb-3";
-    const days = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
-    const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-    const now = new Date();
-    h.textContent = `From ${days[now.getDay()]} ${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()} :`;
-    container.appendChild(h);
-    visible.forEach(renderCard);
-    if (!showAll && futureItems.length > maxCountdowns) {
-      const more = document.createElement("div");
-      more.className = "text-center mt-2";
-      const btn = document.createElement("a");
-      btn.href = "#";
-      btn.className = "btn btn-outline-primary btn-sm";
-      btn.textContent = `+ ${futureItems.length - maxCountdowns} more`;
-      btn.onclick = e => { e.preventDefault(); container.dataset.showAll = "true"; renderMain(); };
-      more.appendChild(btn);
-      container.appendChild(more);
-    }
-  }
   updateNavState();
 }
 
@@ -657,7 +652,7 @@ function addNewJob() {
   const threads = loadThreads();
   const jobs = threads[jobsThreadIndex].jobs || [];
   const seq = jobs.length + 1;
-  const newJob = { title: "New Job", sequence: seq, description: "", active: true, frequency: "daily" };
+  const newJob = { id: "job_" + Date.now(), title: "New Job", sequence: seq, description: "", active: true, frequency: "daily" };
   jobs.push(newJob);
   threads[jobsThreadIndex].jobs = jobs;
   saveThreads(threads);
@@ -706,6 +701,12 @@ function closeSettings() {
   document.getElementById("settingsPage").classList.add("d-none");
   document.getElementById("countdownContainer").classList.remove("d-none");
   delete document.getElementById("countdownContainer").dataset.showAll;
+  renderMain();
+}
+
+function regenerateTiles() {
+  localStorage.removeItem("planmydays_completed");
+  closeSettings();
   renderMain();
 }
 
