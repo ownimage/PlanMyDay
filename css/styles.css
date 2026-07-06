@@ -392,6 +392,20 @@ body.compact .editor-btn {
   cursor: default;
   user-select: none;
 }
+.today-drag-card {
+  cursor: default;
+  user-select: none;
+}
+.today-drag-card.dragging {
+  opacity: 0.3;
+}
+.today-drag-card.drag-over-top {
+  border-top: 3px solid var(--bs-primary) !important;
+}
+.today-drag-card.drag-over-bottom {
+  border-bottom: 3px solid var(--bs-primary) !important;
+}
+
 .thread-drag-card.dragging {
   opacity: 0.3;
 }

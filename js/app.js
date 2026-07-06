@@ -41,6 +41,15 @@ function saveCompletedJobs(ids) {
   localStorage.setItem("planmydays_completed", JSON.stringify(ids));
 }
 
+// TODAY PAGE ORDER
+function loadTodayOrder() {
+  const data = localStorage.getItem("planmydays_today_order");
+  return data ? JSON.parse(data) : null;
+}
+function saveTodayOrder(order) {
+  localStorage.setItem("planmydays_today_order", JSON.stringify(order));
+}
+
 // MAIN PAGE RENDER
 function renderMain() {
   const container = document.getElementById("countdownContainer");
@@ -57,19 +66,45 @@ function renderMain() {
   dateHeading.textContent = dateStr;
   container.appendChild(dateHeading);
 
+  // add button row
+  const addRow = document.createElement("div");
+  addRow.className = "d-flex gap-2 mb-3";
+  const addBtn = document.createElement("button");
+  addBtn.className = "btn btn-outline-primary btn-sm";
+  addBtn.innerHTML = "&#43; Add card";
+  addBtn.onclick = function() { showAddCardForm(); };
+  addRow.appendChild(addBtn);
+  container.appendChild(addRow);
+
+  // inline add form (hidden initially)
+  const addForm = document.createElement("div");
+  addForm.id = "addCardForm";
+  addForm.className = "card p-3 mb-3 d-none";
+  container.appendChild(addForm);
+
   const threads = loadThreads();
   const completed = loadCompletedJobs();
+  const todayOrder = loadTodayOrder();
 
   const allJobs = [];
   threads.forEach(t => {
     (t.jobs || []).forEach(j => {
       if (j.active !== false) {
-        allJobs.push({ job: j, threadTitle: t.title });
+        allJobs.push({ job: j, threadTitle: t.title, threadIdx: threads.indexOf(t) });
       }
     });
   });
 
-  allJobs.sort((a, b) => (a.job.sequence || 0) - (b.job.sequence || 0));
+  if (todayOrder) {
+    const orderMap = {};
+    todayOrder.forEach((id, i) => { orderMap[id] = i; });
+    allJobs.sort((a, b) => (orderMap[a.job.id] !== undefined ? orderMap[a.job.id] : 999) - (orderMap[b.job.id] !== undefined ? orderMap[b.job.id] : 999));
+  } else {
+    allJobs.sort((a, b) => (a.job.sequence || 0) - (b.job.sequence || 0));
+  }
+
+  const cardContainer = document.createElement("div");
+  cardContainer.id = "todayCardList";
 
   if (allJobs.length === 0) {
     const msg = document.createElement("p");
@@ -84,11 +119,14 @@ function renderMain() {
     const isDone = completed.includes(job.id);
     const freqBadge = job.frequency === "weekly" ? "info" : "primary";
     const card = document.createElement("div");
-    card.className = `card countdown-card mb-2 ${isDone ? "opacity-50" : ""}`;
+    card.className = `card countdown-card mb-2 today-drag-card ${isDone ? "opacity-50" : ""}`;
+    card.draggable = true;
+    card.dataset.jobId = job.id;
     card.innerHTML = `
       <div class="row align-items-center">
         <div class="col-auto">
-          <div class="form-check mb-0">
+          <div class="drag-handle text-secondary" style="cursor:grab;font-size:1.2rem;line-height:1;display:inline-block;vertical-align:middle">&#9776;</div>
+          <div class="form-check mb-0 d-inline-block ms-1">
             <input class="form-check-input job-checkbox" type="checkbox" data-job-id="${escapeHtml(job.id)}" ${isDone ? "checked" : ""}>
           </div>
         </div>
@@ -102,8 +140,10 @@ function renderMain() {
         </div>
       </div>
     `;
-    container.appendChild(card);
+    cardContainer.appendChild(card);
   });
+
+  container.appendChild(cardContainer);
 
   // checkbox change handler
   container.querySelectorAll(".job-checkbox").forEach(cb => {
@@ -116,7 +156,7 @@ function renderMain() {
         completed = completed.filter(id => id !== jobId);
       }
       saveCompletedJobs(completed);
-      const card = this.closest(".countdown-card");
+      const card = this.closest(".today-drag-card");
       if (card) {
         card.classList.toggle("opacity-50", this.checked);
         const titleEl = card.querySelector("h4");
@@ -125,7 +165,107 @@ function renderMain() {
     });
   });
 
+  // today page drag and drop
+  let todayDragSrc = null;
+  cardContainer.addEventListener("dragstart", e => {
+    const card = e.target.closest(".today-drag-card");
+    if (!card) return;
+    todayDragSrc = card.dataset.jobId;
+    card.classList.add("dragging");
+    e.dataTransfer.effectAllowed = "move";
+  });
+  cardContainer.addEventListener("dragend", e => {
+    cardContainer.querySelectorAll(".today-drag-card").forEach(c => c.classList.remove("dragging", "drag-over-top", "drag-over-bottom"));
+  });
+  cardContainer.addEventListener("dragover", e => {
+    e.preventDefault();
+    const target = e.target.closest(".today-drag-card");
+    if (!target || !todayDragSrc) return;
+    cardContainer.querySelectorAll(".today-drag-card").forEach(c => c.classList.remove("drag-over-top", "drag-over-bottom"));
+    const rect = target.getBoundingClientRect();
+    target.classList.add(e.clientY < rect.top + rect.height / 2 ? "drag-over-top" : "drag-over-bottom");
+  });
+  cardContainer.addEventListener("drop", e => {
+    e.preventDefault();
+    cardContainer.querySelectorAll(".today-drag-card").forEach(c => c.classList.remove("drag-over-top", "drag-over-bottom"));
+    const target = e.target.closest(".today-drag-card");
+    if (!target || !todayDragSrc || target.dataset.jobId === todayDragSrc) { todayDragSrc = null; return; }
+    const cards = [...cardContainer.querySelectorAll(".today-drag-card")];
+    const ids = cards.map(c => c.dataset.jobId);
+    const srcIdx = ids.indexOf(todayDragSrc);
+    const dstIdx = ids.indexOf(target.dataset.jobId);
+    if (srcIdx < 0 || dstIdx < 0) { todayDragSrc = null; return; }
+    ids.splice(srcIdx, 1);
+    const rect = target.getBoundingClientRect();
+    const above = e.clientY < rect.top + rect.height / 2;
+    const insertAt = srcIdx < dstIdx ? (above ? dstIdx - 1 : dstIdx) : (above ? dstIdx : dstIdx + 1);
+    ids.splice(insertAt, 0, todayDragSrc);
+    saveTodayOrder(ids);
+    todayDragSrc = null;
+    renderMain();
+  });
+
   updateNavState();
+}
+
+function showAddCardForm() {
+  const form = document.getElementById("addCardForm");
+  if (!form) return;
+  form.classList.toggle("d-none");
+  if (form.classList.contains("d-none")) return;
+  const threads = loadThreads();
+  if (threads.length === 0) {
+    threads.push({ title: "General", sequence: 1, jobs: [] });
+    saveThreads(threads);
+  }
+  form.innerHTML = `
+    <div class="mb-2">
+      <input class="form-control" id="newCardTitle" placeholder="Job title" value="">
+    </div>
+    <div class="mb-2">
+      <textarea class="form-control" id="newCardDesc" placeholder="Description (optional)" rows="2"></textarea>
+    </div>
+    <div class="row mb-2">
+      <div class="col">
+        <select class="form-select" id="newCardFreq">
+          <option value="daily">Daily</option>
+          <option value="weekly">Weekly</option>
+        </select>
+      </div>
+      <div class="col">
+        <select class="form-select" id="newCardThread">
+          ${threads.map(t => `<option value="${escapeHtml(t.title)}">${escapeHtml(t.title)}</option>`).join("")}
+        </select>
+      </div>
+    </div>
+    <div class="d-flex gap-2">
+      <button class="btn btn-primary editor-btn" onclick="addTodayCard()">Add</button>
+      <button class="btn btn-secondary editor-btn" onclick="document.getElementById('addCardForm').classList.add('d-none')">Cancel</button>
+    </div>
+  `;
+}
+
+function addTodayCard() {
+  const title = document.getElementById("newCardTitle").value.trim();
+  if (!title) return;
+  const desc = document.getElementById("newCardDesc").value.trim();
+  const freq = document.getElementById("newCardFreq").value;
+  const threadTitle = document.getElementById("newCardThread").value;
+  const threads = loadThreads();
+  let thread = threads.find(t => t.title === threadTitle);
+  if (!thread) { thread = threads[0]; }
+  const jobs = thread.jobs || [];
+  const newJob = { id: "job_" + Date.now(), title, sequence: jobs.length + 1, description: desc, active: true, frequency: freq };
+  jobs.push(newJob);
+  thread.jobs = jobs;
+  saveThreads(threads);
+  const order = loadTodayOrder() || [];
+  const allActive = [];
+  threads.forEach(t => { (t.jobs || []).forEach(j => { if (j.active !== false) allActive.push(j.id); }); });
+  const remaining = allActive.filter(id => order.includes(id));
+  remaining.push(newJob.id);
+  saveTodayOrder(remaining);
+  renderMain();
 }
 
 // THREADS EDITOR
