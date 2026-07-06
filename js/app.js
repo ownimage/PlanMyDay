@@ -518,9 +518,12 @@ function renderJobsEditor() {
     const activeBadge = j.active !== false ? "success" : "secondary";
     const freqBadge = j.frequency === "weekly" ? "info" : "primary";
     const card = document.createElement("div");
-    card.className = "card p-3 mb-3";
+    card.className = "card p-3 mb-3 thread-drag-card";
+    card.draggable = true;
+    card.dataset.index = realIdx;
     card.innerHTML = `
       <div class="d-flex align-items-center gap-2">
+        <div class="drag-handle text-secondary" style="cursor:grab;font-size:1.3rem;line-height:1">&#9776;</div>
         <div class="flex-fill" style="min-width:0">
           <div class="fw-bold editor-title mb-1">${escapeHtml(j.title)}</div>
           <div class="d-flex gap-2 align-items-center small text-secondary">
@@ -537,6 +540,52 @@ function renderJobsEditor() {
       </div>
     `;
     list.appendChild(card);
+  });
+
+  // job drag and drop
+  let jobDragSrc = -1;
+  list.addEventListener("dragstart", e => {
+    const card = e.target.closest(".thread-drag-card");
+    if (!card) return;
+    jobDragSrc = parseInt(card.dataset.index);
+    card.classList.add("dragging");
+    e.dataTransfer.effectAllowed = "move";
+  });
+  list.addEventListener("dragend", e => {
+    list.querySelectorAll(".thread-drag-card").forEach(c => c.classList.remove("dragging", "drag-over-top", "drag-over-bottom"));
+  });
+  list.addEventListener("dragover", e => {
+    e.preventDefault();
+    const target = e.target.closest(".thread-drag-card");
+    if (!target || jobDragSrc < 0) return;
+    list.querySelectorAll(".thread-drag-card").forEach(c => c.classList.remove("drag-over-top", "drag-over-bottom"));
+    const rect = target.getBoundingClientRect();
+    target.classList.add(e.clientY < rect.top + rect.height / 2 ? "drag-over-top" : "drag-over-bottom");
+  });
+  list.addEventListener("drop", e => {
+    e.preventDefault();
+    list.querySelectorAll(".thread-drag-card").forEach(c => c.classList.remove("drag-over-top", "drag-over-bottom"));
+    const target = e.target.closest(".thread-drag-card");
+    if (!target || jobDragSrc < 0) return;
+    const dropIndex = parseInt(target.dataset.index);
+    if (dropIndex === jobDragSrc) { jobDragSrc = -1; return; }
+    const threads = loadThreads();
+    const jobs = threads[jobsThreadIndex].jobs || [];
+    const [moved] = jobs.splice(jobDragSrc, 1);
+    const rect = target.getBoundingClientRect();
+    const above = e.clientY < rect.top + rect.height / 2;
+    let insertAt;
+    if (jobDragSrc < dropIndex) {
+      insertAt = above ? dropIndex - 1 : dropIndex;
+    } else {
+      insertAt = above ? dropIndex : dropIndex + 1;
+    }
+    jobs.splice(insertAt, 0, moved);
+    jobs.forEach((jb, i) => jb.sequence = i + 1);
+    threads[jobsThreadIndex].jobs = jobs;
+    saveThreads(threads);
+    jobDragSrc = -1;
+    renderJobsEditor();
   });
 
   topTile.innerHTML = `
