@@ -194,11 +194,11 @@ body.font-size-xsmall #settingsPage .btn,
 body.font-size-xsmall #settingsPage .form-label,
 body.font-size-xsmall #settingsPage .form-control,
 body.font-size-xsmall #settingsPage .form-select,
-body.font-size-xsmall #threadsEditor,
-body.font-size-xsmall #threadsEditor .btn,
-body.font-size-xsmall #threadsEditor .form-label,
-body.font-size-xsmall #threadsEditor .form-control,
-body.font-size-xsmall #threadsEditor .form-select,
+body.font-size-xsmall #streamsEditor,
+body.font-size-xsmall #streamsEditor .btn,
+body.font-size-xsmall #streamsEditor .form-label,
+body.font-size-xsmall #streamsEditor .form-control,
+body.font-size-xsmall #streamsEditor .form-select,
 body.font-size-xsmall #deleteConfirmModal,
 body.font-size-xsmall #deleteConfirmModal .btn {
   font-size: 0.8rem;
@@ -211,11 +211,11 @@ body.font-size-small #settingsPage .btn,
 body.font-size-small #settingsPage .form-label,
 body.font-size-small #settingsPage .form-control,
 body.font-size-small #settingsPage .form-select,
-body.font-size-small #threadsEditor,
-body.font-size-small #threadsEditor .btn,
-body.font-size-small #threadsEditor .form-label,
-body.font-size-small #threadsEditor .form-control,
-body.font-size-small #threadsEditor .form-select,
+body.font-size-small #streamsEditor,
+body.font-size-small #streamsEditor .btn,
+body.font-size-small #streamsEditor .form-label,
+body.font-size-small #streamsEditor .form-control,
+body.font-size-small #streamsEditor .form-select,
 body.font-size-small #deleteConfirmModal,
 body.font-size-small #deleteConfirmModal .btn {
   font-size: 0.925rem;
@@ -228,11 +228,11 @@ body.font-size-large #settingsPage .btn,
 body.font-size-large #settingsPage .form-label,
 body.font-size-large #settingsPage .form-control,
 body.font-size-large #settingsPage .form-select,
-body.font-size-large #threadsEditor,
-body.font-size-large #threadsEditor .btn,
-body.font-size-large #threadsEditor .form-label,
-body.font-size-large #threadsEditor .form-control,
-body.font-size-large #threadsEditor .form-select,
+body.font-size-large #streamsEditor,
+body.font-size-large #streamsEditor .btn,
+body.font-size-large #streamsEditor .form-label,
+body.font-size-large #streamsEditor .form-control,
+body.font-size-large #streamsEditor .form-select,
 body.font-size-large #deleteConfirmModal,
 body.font-size-large #deleteConfirmModal .btn {
   font-size: 1.125rem;
@@ -245,11 +245,11 @@ body.font-size-xlarge #settingsPage .btn,
 body.font-size-xlarge #settingsPage .form-label,
 body.font-size-xlarge #settingsPage .form-control,
 body.font-size-xlarge #settingsPage .form-select,
-body.font-size-xlarge #threadsEditor,
-body.font-size-xlarge #threadsEditor .btn,
-body.font-size-xlarge #threadsEditor .form-label,
-body.font-size-xlarge #threadsEditor .form-control,
-body.font-size-xlarge #threadsEditor .form-select,
+body.font-size-xlarge #streamsEditor,
+body.font-size-xlarge #streamsEditor .btn,
+body.font-size-xlarge #streamsEditor .form-label,
+body.font-size-xlarge #streamsEditor .form-control,
+body.font-size-xlarge #streamsEditor .form-select,
 body.font-size-xlarge #deleteConfirmModal,
 body.font-size-xlarge #deleteConfirmModal .btn {
   font-size: 1.3rem;
@@ -262,11 +262,11 @@ body.font-size-jumbo #settingsPage .btn,
 body.font-size-jumbo #settingsPage .form-label,
 body.font-size-jumbo #settingsPage .form-control,
 body.font-size-jumbo #settingsPage .form-select,
-body.font-size-jumbo #threadsEditor,
-body.font-size-jumbo #threadsEditor .btn,
-body.font-size-jumbo #threadsEditor .form-label,
-body.font-size-jumbo #threadsEditor .form-control,
-body.font-size-jumbo #threadsEditor .form-select,
+body.font-size-jumbo #streamsEditor,
+body.font-size-jumbo #streamsEditor .btn,
+body.font-size-jumbo #streamsEditor .form-label,
+body.font-size-jumbo #streamsEditor .form-control,
+body.font-size-jumbo #streamsEditor .form-select,
 body.font-size-jumbo #deleteConfirmModal,
 body.font-size-jumbo #deleteConfirmModal .btn {
   font-size: 1.6rem;
@@ -328,16 +328,16 @@ body.auto-hide-menu #mainNav.nav-hidden ~ .container-fluid {
   opacity: 0.4;
 }
 
-#threadsEditor {
+#streamsEditor {
   display: flex;
   flex-direction: column;
   height: calc(100vh - 56px);
   padding-top: 20px;
 }
-#threadsEditorHeader {
+#streamsEditorHeader {
   flex-shrink: 0;
 }
-#threadsEditor #threadEditorList {
+#streamsEditor #streamEditorList {
   flex: 1;
   overflow-y: auto;
   min-height: 0;
@@ -361,7 +361,7 @@ body.auto-hide-menu #mainNav.nav-hidden ~ .container-fluid {
   min-height: 0;
 }
 
-#threadsEditor .editor-title {
+#streamsEditor .editor-title {
   font-weight: 800;
 }
 
@@ -388,7 +388,7 @@ body.compact .editor-btn {
   opacity: 0.6;
 }
 
-.thread-drag-card {
+.stream-drag-card {
   cursor: default;
   user-select: none;
 }
@@ -406,19 +406,19 @@ body.compact .editor-btn {
   border-bottom: 3px solid var(--bs-primary) !important;
 }
 
-.thread-drag-card.dragging {
+.stream-drag-card.dragging {
   opacity: 0.3;
 }
-.thread-drag-card.drag-over-top {
+.stream-drag-card.drag-over-top {
   border-top: 3px solid var(--bs-primary) !important;
 }
-.thread-drag-card.drag-over-bottom {
+.stream-drag-card.drag-over-bottom {
   border-bottom: 3px solid var(--bs-primary) !important;
 }
-.thread-drag-card .drag-handle {
+.stream-drag-card .drag-handle {
   cursor: grab;
   touch-action: none;
 }
-.thread-drag-card .drag-handle:active {
+.stream-drag-card .drag-handle:active {
   cursor: grabbing;
 }

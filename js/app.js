@@ -1,23 +1,23 @@
 // STORAGE HELPERS
-function loadThreads() {
-  const threads = JSON.parse(localStorage.getItem("planmydays_threads") || "[]");
+function loadStreams() {
+  const streams = JSON.parse(localStorage.getItem("planmydays_streams") || "[]");
   let nextId = Date.now();
   let changed = false;
-  threads.forEach(t => {
+  streams.forEach(t => {
     (t.jobs || []).forEach(j => {
       if (!j.id) { j.id = "job_" + (nextId++); changed = true; }
     });
   });
-  if (changed) saveThreads(threads);
-  return threads;
+  if (changed) saveStreams(streams);
+  return streams;
 }
-function saveThreads(threads) {
-  localStorage.setItem("planmydays_threads", JSON.stringify(threads));
+function saveStreams(streams) {
+  localStorage.setItem("planmydays_streams", JSON.stringify(streams));
 }
 
 function hideAllEditors() {
   document.getElementById("countdownContainer").classList.remove("d-none");
-  document.getElementById("threadsEditor").classList.add("d-none");
+  document.getElementById("streamsEditor").classList.add("d-none");
   document.getElementById("jobsEditor").classList.add("d-none");
   document.getElementById("settingsPage").classList.add("d-none");
 }
@@ -82,15 +82,15 @@ function renderMain() {
   addForm.className = "card p-3 mb-3 d-none";
   container.appendChild(addForm);
 
-  const threads = loadThreads();
+  const streams = loadStreams();
   const completed = loadCompletedJobs();
   const todayOrder = loadTodayOrder();
 
   const allJobs = [];
-  threads.forEach(t => {
+  streams.forEach(t => {
     (t.jobs || []).forEach(j => {
       if (j.active !== false) {
-        allJobs.push({ job: j, threadTitle: t.title, threadIdx: threads.indexOf(t) });
+        allJobs.push({ job: j, streamTitle: t.title, streamIdx: streams.indexOf(t) });
       }
     });
   });
@@ -109,13 +109,13 @@ function renderMain() {
   if (allJobs.length === 0) {
     const msg = document.createElement("p");
     msg.className = "text-secondary";
-    msg.textContent = "No active jobs yet. Add threads with active jobs to get started.";
+    msg.textContent = "No active jobs yet. Add streams with active jobs to get started.";
     container.appendChild(msg);
     updateNavState();
     return;
   }
 
-  allJobs.forEach(({ job, threadTitle }) => {
+  allJobs.forEach(({ job, streamTitle }) => {
     const isDone = completed.includes(job.id);
     const freqBadge = job.frequency === "weekly" ? "info" : "primary";
     const card = document.createElement("div");
@@ -135,7 +135,7 @@ function renderMain() {
             <h4 class="mb-0" style="${isDone ? 'text-decoration:line-through' : ''}">${escapeHtml(job.title)}</h4>
             <span class="badge bg-${freqBadge}">${escapeHtml(job.frequency || "daily")}</span>
           </div>
-          <div class="text-secondary small">${escapeHtml(threadTitle)}</div>
+          <div class="text-secondary small">${escapeHtml(streamTitle)}</div>
           ${job.description ? `<div class="mt-1 text-secondary small">${escapeHtml(job.description)}</div>` : ""}
         </div>
       </div>
@@ -213,10 +213,10 @@ function showAddCardForm() {
   if (!form) return;
   form.classList.toggle("d-none");
   if (form.classList.contains("d-none")) return;
-  const threads = loadThreads();
-  if (threads.length === 0) {
-    threads.push({ title: "General", sequence: 1, jobs: [] });
-    saveThreads(threads);
+  const streams = loadStreams();
+  if (streams.length === 0) {
+    streams.push({ title: "General", sequence: 1, jobs: [] });
+    saveStreams(streams);
   }
   form.innerHTML = `
     <div class="mb-2">
@@ -233,8 +233,8 @@ function showAddCardForm() {
         </select>
       </div>
       <div class="col">
-        <select class="form-select" id="newCardThread">
-          ${threads.map(t => `<option value="${escapeHtml(t.title)}">${escapeHtml(t.title)}</option>`).join("")}
+        <select class="form-select" id="newCardStream">
+          ${streams.map(t => `<option value="${escapeHtml(t.title)}">${escapeHtml(t.title)}</option>`).join("")}
         </select>
       </div>
     </div>
@@ -250,18 +250,18 @@ function addTodayCard() {
   if (!title) return;
   const desc = document.getElementById("newCardDesc").value.trim();
   const freq = document.getElementById("newCardFreq").value;
-  const threadTitle = document.getElementById("newCardThread").value;
-  const threads = loadThreads();
-  let thread = threads.find(t => t.title === threadTitle);
-  if (!thread) { thread = threads[0]; }
-  const jobs = thread.jobs || [];
+  const streamTitle = document.getElementById("newCardStream").value;
+  const streams = loadStreams();
+  let stream = streams.find(t => t.title === streamTitle);
+  if (!stream) { stream = streams[0]; }
+  const jobs = stream.jobs || [];
   const newJob = { id: "job_" + Date.now(), title, sequence: jobs.length + 1, description: desc, active: true, frequency: freq };
   jobs.push(newJob);
-  thread.jobs = jobs;
-  saveThreads(threads);
+  stream.jobs = jobs;
+  saveStreams(streams);
   const order = loadTodayOrder() || [];
   const allActive = [];
-  threads.forEach(t => { (t.jobs || []).forEach(j => { if (j.active !== false) allActive.push(j.id); }); });
+  streams.forEach(t => { (t.jobs || []).forEach(j => { if (j.active !== false) allActive.push(j.id); }); });
   const remaining = allActive.filter(id => order.includes(id));
   remaining.push(newJob.id);
   saveTodayOrder(remaining);
@@ -274,31 +274,31 @@ let editBuffer = null;
 let isNew = false;
 let dragIndex = -1;
 
-function openThreadsEditor() {
+function openStreamsEditor() {
   document.getElementById("countdownContainer").classList.add("d-none");
-  document.getElementById("threadsEditor").classList.remove("d-none");
+  document.getElementById("streamsEditor").classList.remove("d-none");
   document.getElementById("settingsPage").classList.add("d-none");
-  renderThreadsEditor();
+  renderStreamsEditor();
 }
 
-function closeThreadsEditor() {
-  document.getElementById("threadsEditor").classList.add("d-none");
+function closeStreamsEditor() {
+  document.getElementById("streamsEditor").classList.add("d-none");
   document.getElementById("countdownContainer").classList.remove("d-none");
   editingIndex = -1; editBuffer = null; isNew = false;
   renderMain();
 }
 
-function renderThreadsEditor() {
-  const list = document.getElementById("threadEditorList");
-  const addTile = document.getElementById("addThreadTile");
-  const topTile = document.getElementById("addThreadTileTop");
-  const filterEl = document.getElementById("threadEditorFilters");
-  const singleEditor = document.getElementById("singleThreadEditor");
+function renderStreamsEditor() {
+  const list = document.getElementById("streamEditorList");
+  const addTile = document.getElementById("addStreamTile");
+  const topTile = document.getElementById("addStreamTileTop");
+  const filterEl = document.getElementById("streamEditorFilters");
+  const singleEditor = document.getElementById("singleStreamEditor");
 
   document.getElementById("jobsEditor").classList.add("d-none");
   list.innerHTML = ""; addTile.innerHTML = ""; topTile.innerHTML = ""; filterEl.innerHTML = ""; singleEditor.innerHTML = "";
 
-  const threads = loadThreads();
+  const streams = loadStreams();
   const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
   if (editingIndex >= 0) {
@@ -306,7 +306,7 @@ function renderThreadsEditor() {
     topTile.classList.add("d-none"); filterEl.classList.add("d-none");
     singleEditor.classList.remove("d-none");
 
-    const t = threads[editingIndex];
+    const t = streams[editingIndex];
     const data = editBuffer || t;
     const showYear = data.scheduleType === "once";
     const day = data.scheduleDay || 1;
@@ -314,7 +314,7 @@ function renderThreadsEditor() {
 
     let dateHtml;
     if (showYear) {
-      dateHtml = `<input type="text" class="form-control flatpickr-date" data-editor="thread" placeholder="dd/mm/yyyy">`;
+      dateHtml = `<input type="text" class="form-control flatpickr-date" data-editor="stream" placeholder="dd/mm/yyyy">`;
     } else {
       dateHtml = `
         <select class="form-select date-day-select" onchange="editField('scheduleDay', parseInt(this.value))">
@@ -325,7 +325,7 @@ function renderThreadsEditor() {
         </select>`;
     }
 
-    const heading = isNew ? "Add Thread" : "Edit Thread";
+    const heading = isNew ? "Add Stream" : "Edit Stream";
     singleEditor.innerHTML = `
       <div class="d-flex align-items-center mb-3">
         <h3 class="mb-0">${heading}</h3>
@@ -377,16 +377,16 @@ function renderThreadsEditor() {
   topTile.classList.remove("d-none"); filterEl.classList.remove("d-none");
   singleEditor.classList.add("d-none");
 
-  const sorted = [...threads].sort((a, b) => (a.sequence || 0) - (b.sequence || 0));
+  const sorted = [...streams].sort((a, b) => (a.sequence || 0) - (b.sequence || 0));
 
   sorted.forEach((t, displayIdx) => {
-    const realIdx = threads.indexOf(t);
+    const realIdx = streams.indexOf(t);
     const showYear = t.scheduleType === "once";
     const ds = showYear ? `${t.scheduleDay} ${months[(t.scheduleMonth||1)-1]} ${t.scheduleYear || new Date().getFullYear()}` : `${t.scheduleDay} ${months[(t.scheduleMonth||1)-1]}`;
     const priorityBadge = { high: "danger", medium: "warning", low: "secondary" }[t.priority] || "secondary";
 
     const card = document.createElement("div");
-    card.className = "card p-3 mb-3 thread-drag-card";
+    card.className = "card p-3 mb-3 stream-drag-card";
     card.draggable = true;
     card.dataset.index = realIdx;
     card.innerHTML = `
@@ -402,9 +402,9 @@ function renderThreadsEditor() {
           ${t.description ? `<div class="mt-1 text-secondary small">${escapeHtml(t.description.substring(0, 80))}${t.description.length > 80 ? "..." : ""}</div>` : ""}
         </div>
         <div class="d-flex gap-2 flex-shrink-0">
-          <button class="btn btn-primary editor-btn" onclick="editThread(${realIdx})">Edit</button>
+          <button class="btn btn-primary editor-btn" onclick="editStream(${realIdx})">Edit</button>
           <button class="btn btn-info editor-btn" onclick="openJobsEditor(${realIdx})">Jobs</button>
-          <button class="btn btn-danger editor-btn" onclick="confirmDeleteThread(${realIdx})">Delete</button>
+          <button class="btn btn-danger editor-btn" onclick="confirmDeleteStream(${realIdx})">Delete</button>
         </div>
       </div>
     `;
@@ -414,32 +414,32 @@ function renderThreadsEditor() {
     // drag and drop handlers
     let dragSrcIndex = -1;
     list.addEventListener("dragstart", e => {
-      const card = e.target.closest(".thread-drag-card");
+      const card = e.target.closest(".stream-drag-card");
       if (!card) return;
       dragSrcIndex = parseInt(card.dataset.index);
       card.classList.add("dragging");
       e.dataTransfer.effectAllowed = "move";
     });
     list.addEventListener("dragend", e => {
-      document.querySelectorAll(".thread-drag-card").forEach(c => c.classList.remove("dragging", "drag-over-top", "drag-over-bottom"));
+      document.querySelectorAll(".stream-drag-card").forEach(c => c.classList.remove("dragging", "drag-over-top", "drag-over-bottom"));
     });
     list.addEventListener("dragover", e => {
       e.preventDefault();
-      const target = e.target.closest(".thread-drag-card");
+      const target = e.target.closest(".stream-drag-card");
       if (!target || dragSrcIndex < 0) return;
-      document.querySelectorAll(".thread-drag-card").forEach(c => c.classList.remove("drag-over-top", "drag-over-bottom"));
+      document.querySelectorAll(".stream-drag-card").forEach(c => c.classList.remove("drag-over-top", "drag-over-bottom"));
       const rect = target.getBoundingClientRect();
       target.classList.add(e.clientY < rect.top + rect.height / 2 ? "drag-over-top" : "drag-over-bottom");
     });
     list.addEventListener("drop", e => {
       e.preventDefault();
-      document.querySelectorAll(".thread-drag-card").forEach(c => c.classList.remove("drag-over-top", "drag-over-bottom"));
-      const target = e.target.closest(".thread-drag-card");
+      document.querySelectorAll(".stream-drag-card").forEach(c => c.classList.remove("drag-over-top", "drag-over-bottom"));
+      const target = e.target.closest(".stream-drag-card");
       if (!target || dragSrcIndex < 0) return;
       const dropIndex = parseInt(target.dataset.index);
       if (dropIndex === dragSrcIndex) { dragSrcIndex = -1; return; }
-      const threads = loadThreads();
-      const [moved] = threads.splice(dragSrcIndex, 1);
+      const streams = loadStreams();
+      const [moved] = streams.splice(dragSrcIndex, 1);
       const rect = target.getBoundingClientRect();
       const above = e.clientY < rect.top + rect.height / 2;
       let insertAt;
@@ -449,17 +449,17 @@ function renderThreadsEditor() {
       } else {
         insertAt = above ? dropIndex : dropIndex + 1;
       }
-      threads.splice(insertAt, 0, moved);
-      threads.forEach((t, i) => t.sequence = i + 1);
-      saveThreads(threads);
+      streams.splice(insertAt, 0, moved);
+      streams.forEach((t, i) => t.sequence = i + 1);
+      saveStreams(streams);
       dragSrcIndex = -1;
-      renderThreadsEditor();
+      renderStreamsEditor();
     });
 
   topTile.innerHTML = `
     <div class="d-flex gap-2">
-      <button class="btn btn-primary editor-btn btn-wide" onclick="addNewThread()">Add Thread</button>
-      <button class="btn btn-success editor-btn btn-wide ms-auto" onclick="closeThreadsEditor()">Done</button>
+      <button class="btn btn-primary editor-btn btn-wide" onclick="addNewStream()">Add Stream</button>
+      <button class="btn btn-success editor-btn btn-wide ms-auto" onclick="closeStreamsEditor()">Done</button>
     </div>
   `;
   updateNavState();
@@ -471,13 +471,13 @@ function editField(field, value) {
   if (field === "scheduleType") {
     if (value === "annual") delete editBuffer.scheduleYear;
     else editBuffer.scheduleYear = new Date().getFullYear();
-    renderThreadsEditor();
+    renderStreamsEditor();
   }
 }
 
 function initEditorFlatpickr() {
   if (typeof flatpickr === 'undefined') return;
-  const input = document.querySelector('.flatpickr-date[data-editor="thread"]');
+  const input = document.querySelector('.flatpickr-date[data-editor="stream"]');
   if (!input || !editBuffer) return;
   const showYear = editBuffer.scheduleType === "once";
   const d = editBuffer.scheduleDay || 1;
@@ -497,95 +497,95 @@ function initEditorFlatpickr() {
   });
 }
 
-function editThread(index) {
-  const threads = loadThreads();
-  editBuffer = JSON.parse(JSON.stringify(threads[index]));
+function editStream(index) {
+  const streams = loadStreams();
+  editBuffer = JSON.parse(JSON.stringify(streams[index]));
   editingIndex = index; isNew = false;
-  renderThreadsEditor();
+  renderStreamsEditor();
 }
 
 function cancelEdit() {
   if (isNew && editingIndex >= 0) {
-    const threads = loadThreads();
-    threads.splice(editingIndex, 1);
-    saveThreads(threads);
+    const streams = loadStreams();
+    streams.splice(editingIndex, 1);
+    saveStreams(streams);
   }
   editingIndex = -1; editBuffer = null; isNew = false;
-  renderThreadsEditor();
+  renderStreamsEditor();
 }
 
 function doneEdit() {
   if (editingIndex >= 0 && editBuffer) {
-    const threads = loadThreads();
-    threads[editingIndex] = editBuffer;
-    saveThreads(threads);
+    const streams = loadStreams();
+    streams[editingIndex] = editBuffer;
+    saveStreams(streams);
   }
   editingIndex = -1; editBuffer = null; isNew = false;
-  renderThreadsEditor();
+  renderStreamsEditor();
 }
 
-function confirmDeleteThread(index) {
+function confirmDeleteStream(index) {
   editingIndex = index;
   const modalEl = document.getElementById("deleteConfirmModal");
-  document.getElementById("deleteConfirmMessage").textContent = 'Delete this thread?';
+  document.getElementById("deleteConfirmMessage").textContent = 'Delete this stream?';
   document.getElementById("deleteConfirmBtn").onclick = function() {
-    const threads = loadThreads();
-    threads.splice(index, 1);
-    threads.forEach((t, i) => t.sequence = i + 1);
-    saveThreads(threads);
+    const streams = loadStreams();
+    streams.splice(index, 1);
+    streams.forEach((t, i) => t.sequence = i + 1);
+    saveStreams(streams);
     bootstrap.Modal.getInstance(modalEl).hide();
     editingIndex = -1; editBuffer = null; isNew = false;
-    renderThreadsEditor();
+    renderStreamsEditor();
   };
   new bootstrap.Modal(modalEl).show();
 }
 
-function addNewThread() {
-  const threads = loadThreads();
-  const seq = threads.length + 1;
-  const newThread = { title: "New Thread", sequence: seq, priority: "medium", scheduleType: "annual", scheduleDay: 1, scheduleMonth: 1, description: "", jobs: [] };
-  threads.push(newThread);
-  saveThreads(threads);
-  editBuffer = JSON.parse(JSON.stringify(newThread));
-  editingIndex = threads.length - 1; isNew = true;
-  renderThreadsEditor();
-  const el = document.getElementById("threadsEditor");
+function addNewStream() {
+  const streams = loadStreams();
+  const seq = streams.length + 1;
+  const newStream = { title: "New Stream", sequence: seq, priority: "medium", scheduleType: "annual", scheduleDay: 1, scheduleMonth: 1, description: "", jobs: [] };
+  streams.push(newStream);
+  saveStreams(streams);
+  editBuffer = JSON.parse(JSON.stringify(newStream));
+  editingIndex = streams.length - 1; isNew = true;
+  renderStreamsEditor();
+  const el = document.getElementById("streamsEditor");
   if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 // JOBS EDITOR
-let jobsThreadIndex = -1;
+let jobsStreamIndex = -1;
 let jobsEditingIdx = -1;
 let jobsBuffer = null;
 let isNewJob = false;
 
-function openJobsEditor(threadIdx) {
-  jobsThreadIndex = threadIdx;
-  document.getElementById("threadEditorList").classList.add("d-none");
-  document.getElementById("addThreadTile").classList.add("d-none");
-  document.getElementById("addThreadTileTop").classList.add("d-none");
-  document.getElementById("threadEditorFilters").classList.add("d-none");
-  document.getElementById("singleThreadEditor").classList.add("d-none");
+function openJobsEditor(streamIdx) {
+  jobsStreamIndex = streamIdx;
+  document.getElementById("streamEditorList").classList.add("d-none");
+  document.getElementById("addStreamTile").classList.add("d-none");
+  document.getElementById("addStreamTileTop").classList.add("d-none");
+  document.getElementById("streamEditorFilters").classList.add("d-none");
+  document.getElementById("singleStreamEditor").classList.add("d-none");
   document.getElementById("jobsEditor").classList.remove("d-none");
   renderJobsEditor();
 }
 
 function closeJobsEditor() {
   document.getElementById("jobsEditor").classList.add("d-none");
-  document.getElementById("threadEditorList").classList.remove("d-none");
-  document.getElementById("addThreadTile").classList.remove("d-none");
-  document.getElementById("addThreadTileTop").classList.remove("d-none");
-  document.getElementById("threadEditorFilters").classList.remove("d-none");
-  jobsThreadIndex = -1; jobsEditingIdx = -1; jobsBuffer = null; isNewJob = false;
-  renderThreadsEditor();
+  document.getElementById("streamEditorList").classList.remove("d-none");
+  document.getElementById("addStreamTile").classList.remove("d-none");
+  document.getElementById("addStreamTileTop").classList.remove("d-none");
+  document.getElementById("streamEditorFilters").classList.remove("d-none");
+  jobsStreamIndex = -1; jobsEditingIdx = -1; jobsBuffer = null; isNewJob = false;
+  renderStreamsEditor();
 }
 
 function renderJobsEditor() {
-  const threads = loadThreads();
-  const thread = threads[jobsThreadIndex];
-  if (!thread) { closeJobsEditor(); return; }
+  const streams = loadStreams();
+  const stream = streams[jobsStreamIndex];
+  if (!stream) { closeJobsEditor(); return; }
 
-  const jobs = thread.jobs || [];
+  const jobs = stream.jobs || [];
   const header = document.getElementById("jobsEditorHeader");
   const list = document.getElementById("jobsList");
   const addTile = document.getElementById("addJobTile");
@@ -594,7 +594,7 @@ function renderJobsEditor() {
 
   list.innerHTML = ""; addTile.innerHTML = ""; topTile.innerHTML = ""; singleEditor.innerHTML = "";
 
-  document.getElementById("jobsEditorTitle").textContent = `Jobs: ${escapeHtml(thread.title)}`;
+  document.getElementById("jobsEditorTitle").textContent = `Jobs: ${escapeHtml(stream.title)}`;
 
   if (jobsEditingIdx >= 0) {
     list.classList.add("d-none"); addTile.classList.add("d-none");
@@ -653,7 +653,7 @@ function renderJobsEditor() {
     const activeBadge = j.active !== false ? "success" : "secondary";
     const freqBadge = j.frequency === "weekly" ? "info" : "primary";
     const card = document.createElement("div");
-    card.className = "card p-3 mb-3 thread-drag-card";
+    card.className = "card p-3 mb-3 stream-drag-card";
     card.draggable = true;
     card.dataset.index = realIdx;
     card.innerHTML = `
@@ -680,32 +680,32 @@ function renderJobsEditor() {
   // job drag and drop
   let jobDragSrc = -1;
   list.addEventListener("dragstart", e => {
-    const card = e.target.closest(".thread-drag-card");
+    const card = e.target.closest(".stream-drag-card");
     if (!card) return;
     jobDragSrc = parseInt(card.dataset.index);
     card.classList.add("dragging");
     e.dataTransfer.effectAllowed = "move";
   });
   list.addEventListener("dragend", e => {
-    list.querySelectorAll(".thread-drag-card").forEach(c => c.classList.remove("dragging", "drag-over-top", "drag-over-bottom"));
+    list.querySelectorAll(".stream-drag-card").forEach(c => c.classList.remove("dragging", "drag-over-top", "drag-over-bottom"));
   });
   list.addEventListener("dragover", e => {
     e.preventDefault();
-    const target = e.target.closest(".thread-drag-card");
+    const target = e.target.closest(".stream-drag-card");
     if (!target || jobDragSrc < 0) return;
-    list.querySelectorAll(".thread-drag-card").forEach(c => c.classList.remove("drag-over-top", "drag-over-bottom"));
+    list.querySelectorAll(".stream-drag-card").forEach(c => c.classList.remove("drag-over-top", "drag-over-bottom"));
     const rect = target.getBoundingClientRect();
     target.classList.add(e.clientY < rect.top + rect.height / 2 ? "drag-over-top" : "drag-over-bottom");
   });
   list.addEventListener("drop", e => {
     e.preventDefault();
-    list.querySelectorAll(".thread-drag-card").forEach(c => c.classList.remove("drag-over-top", "drag-over-bottom"));
-    const target = e.target.closest(".thread-drag-card");
+    list.querySelectorAll(".stream-drag-card").forEach(c => c.classList.remove("drag-over-top", "drag-over-bottom"));
+    const target = e.target.closest(".stream-drag-card");
     if (!target || jobDragSrc < 0) return;
     const dropIndex = parseInt(target.dataset.index);
     if (dropIndex === jobDragSrc) { jobDragSrc = -1; return; }
-    const threads = loadThreads();
-    const jobs = threads[jobsThreadIndex].jobs || [];
+    const streams = loadStreams();
+    const jobs = streams[jobsStreamIndex].jobs || [];
     const [moved] = jobs.splice(jobDragSrc, 1);
     const rect = target.getBoundingClientRect();
     const above = e.clientY < rect.top + rect.height / 2;
@@ -717,8 +717,8 @@ function renderJobsEditor() {
     }
     jobs.splice(insertAt, 0, moved);
     jobs.forEach((jb, i) => jb.sequence = i + 1);
-    threads[jobsThreadIndex].jobs = jobs;
-    saveThreads(threads);
+    streams[jobsStreamIndex].jobs = jobs;
+    saveStreams(streams);
     jobDragSrc = -1;
     renderJobsEditor();
   });
@@ -739,8 +739,8 @@ function jobField(field, value) {
 }
 
 function editJob(index) {
-  const threads = loadThreads();
-  const jobs = threads[jobsThreadIndex].jobs || [];
+  const streams = loadStreams();
+  const jobs = streams[jobsStreamIndex].jobs || [];
   jobsBuffer = JSON.parse(JSON.stringify(jobs[index]));
   jobsEditingIdx = index; isNewJob = false;
   renderJobsEditor();
@@ -748,11 +748,11 @@ function editJob(index) {
 
 function cancelJobEdit() {
   if (isNewJob && jobsEditingIdx >= 0) {
-    const threads = loadThreads();
-    const jobs = threads[jobsThreadIndex].jobs || [];
+    const streams = loadStreams();
+    const jobs = streams[jobsStreamIndex].jobs || [];
     jobs.splice(jobsEditingIdx, 1);
-    threads[jobsThreadIndex].jobs = jobs;
-    saveThreads(threads);
+    streams[jobsStreamIndex].jobs = jobs;
+    saveStreams(streams);
   }
   jobsEditingIdx = -1; jobsBuffer = null; isNewJob = false;
   renderJobsEditor();
@@ -760,11 +760,11 @@ function cancelJobEdit() {
 
 function doneJobEdit() {
   if (jobsEditingIdx >= 0 && jobsBuffer) {
-    const threads = loadThreads();
-    const jobs = threads[jobsThreadIndex].jobs || [];
+    const streams = loadStreams();
+    const jobs = streams[jobsStreamIndex].jobs || [];
     jobs[jobsEditingIdx] = jobsBuffer;
-    threads[jobsThreadIndex].jobs = jobs;
-    saveThreads(threads);
+    streams[jobsStreamIndex].jobs = jobs;
+    saveStreams(streams);
   }
   jobsEditingIdx = -1; jobsBuffer = null; isNewJob = false;
   renderJobsEditor();
@@ -775,12 +775,12 @@ function confirmDeleteJob(index) {
   const modalEl = document.getElementById("deleteConfirmModal");
   document.getElementById("deleteConfirmMessage").textContent = 'Delete this job?';
   document.getElementById("deleteConfirmBtn").onclick = function() {
-    const threads = loadThreads();
-    const jobs = threads[jobsThreadIndex].jobs || [];
+    const streams = loadStreams();
+    const jobs = streams[jobsStreamIndex].jobs || [];
     jobs.splice(index, 1);
     jobs.forEach((j, i) => j.sequence = i + 1);
-    threads[jobsThreadIndex].jobs = jobs;
-    saveThreads(threads);
+    streams[jobsStreamIndex].jobs = jobs;
+    saveStreams(streams);
     bootstrap.Modal.getInstance(modalEl).hide();
     jobsEditingIdx = -1; jobsBuffer = null; isNewJob = false;
     renderJobsEditor();
@@ -789,13 +789,13 @@ function confirmDeleteJob(index) {
 }
 
 function addNewJob() {
-  const threads = loadThreads();
-  const jobs = threads[jobsThreadIndex].jobs || [];
+  const streams = loadStreams();
+  const jobs = streams[jobsStreamIndex].jobs || [];
   const seq = jobs.length + 1;
   const newJob = { id: "job_" + Date.now(), title: "New Job", sequence: seq, description: "", active: true, frequency: "daily" };
   jobs.push(newJob);
-  threads[jobsThreadIndex].jobs = jobs;
-  saveThreads(threads);
+  streams[jobsStreamIndex].jobs = jobs;
+  saveStreams(streams);
   jobsBuffer = JSON.parse(JSON.stringify(newJob));
   jobsEditingIdx = jobs.length - 1; isNewJob = true;
   renderJobsEditor();
@@ -804,7 +804,7 @@ function addNewJob() {
 // SETTINGS
 function openSettings() {
   document.getElementById("countdownContainer").classList.add("d-none");
-  document.getElementById("threadsEditor").classList.add("d-none");
+  document.getElementById("streamsEditor").classList.add("d-none");
   document.getElementById("settingsPage").classList.remove("d-none");
 
   const savedTheme = localStorage.getItem("theme") || "darkly";
@@ -848,7 +848,7 @@ function confirmClearAllData() {
   const modalEl = document.getElementById("deleteConfirmModal");
   document.getElementById("deleteConfirmMessage").textContent = "Clear ALL data? This cannot be undone.";
   document.getElementById("deleteConfirmBtn").onclick = function() {
-    localStorage.removeItem("planmydays_threads");
+    localStorage.removeItem("planmydays_streams");
     bootstrap.Modal.getInstance(modalEl).hide();
     closeSettings();
   };
