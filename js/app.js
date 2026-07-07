@@ -103,6 +103,19 @@ function renderMain() {
     allJobs.sort((a, b) => (a.job.sequence || 0) - (b.job.sequence || 0));
   }
 
+  if (localStorage.getItem("hideDone") === "true") {
+    const filtered = allJobs.filter(({ job }) => !completed.includes(job.id));
+    if (filtered.length === 0 && allJobs.length > 0) {
+      const msg = document.createElement("p");
+      msg.className = "text-secondary";
+      msg.textContent = "All jobs completed!";
+      container.appendChild(msg);
+      updateNavState();
+      return;
+    }
+    allJobs.length = 0; allJobs.push(...filtered);
+  }
+
   const cardContainer = document.createElement("div");
   cardContainer.id = "todayCardList";
 
@@ -746,6 +759,9 @@ function openSettings() {
   const autoHide = localStorage.getItem("autoHideMenu") === "true";
   const autoHideCb = document.getElementById("autoHideMenu");
   if (autoHideCb) autoHideCb.checked = autoHide;
+  const hideDone = localStorage.getItem("hideDone") === "true";
+  const hideDoneCb = document.getElementById("hideDone");
+  if (hideDoneCb) hideDoneCb.checked = hideDone;
   const showDanger = localStorage.getItem("showDanger") === "true";
   const showDangerCb = document.getElementById("showDanger");
   if (showDangerCb) showDangerCb.checked = showDanger;

@@ -66,6 +66,10 @@ function changeDensity(value) {
   }
 }
 
+function changeHideDone(enabled) {
+  localStorage.setItem("hideDone", enabled);
+}
+
 function changeShowDanger(enabled) {
   localStorage.setItem("showDanger", enabled);
   const row = document.getElementById("clearAllDataRow");
