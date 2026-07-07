@@ -522,7 +522,7 @@ function renderJobsEditor() {
 
   list.innerHTML = ""; addTile.innerHTML = ""; topTile.innerHTML = ""; singleEditor.innerHTML = "";
 
-  document.getElementById("jobsEditorTitle").textContent = `Jobs: ${escapeHtml(stream.title)}`;
+  document.getElementById("jobsEditorTitle").textContent = `Jobs List: ${escapeHtml(stream.title)}`;
 
   if (jobsEditingIdx >= 0) {
     list.classList.add("d-none"); addTile.classList.add("d-none");
