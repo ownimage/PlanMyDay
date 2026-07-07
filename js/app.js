@@ -593,7 +593,6 @@ function renderJobsEditor() {
 
   sorted.forEach((j, displayIdx) => {
     const realIdx = jobs.indexOf(j);
-    const activeBadge = j.active !== false ? "success" : "secondary";
     const freqBadge = j.frequency === "weekly" ? "info" : "primary";
     const card = document.createElement("div");
     card.className = "card p-3 mb-3 stream-drag-card";
@@ -605,7 +604,10 @@ function renderJobsEditor() {
         <div class="flex-fill" style="min-width:0">
           <div class="fw-bold editor-title mb-1">${escapeHtml(j.title)}</div>
           <div class="d-flex gap-2 align-items-center small text-secondary">
-            <span class="badge bg-${activeBadge}">${j.active !== false ? "Active" : "Inactive"}</span>
+            <label class="form-check-label mb-0 me-1" style="cursor:pointer">
+              <input class="form-check-input active-toggle" type="checkbox" data-job-idx="${realIdx}" ${j.active !== false ? "checked" : ""} style="cursor:pointer">
+              Active
+            </label>
             <span class="badge bg-${freqBadge}">${escapeHtml(j.frequency || "daily")}</span>
             <span class="text-muted">#${j.sequence || displayIdx + 1}</span>
           </div>
@@ -618,6 +620,18 @@ function renderJobsEditor() {
       </div>
     `;
     list.appendChild(card);
+  });
+
+  // active toggle handler
+  list.querySelectorAll(".active-toggle").forEach(cb => {
+    cb.addEventListener("change", function() {
+      const idx = parseInt(this.dataset.jobIdx);
+      const streams = loadStreams();
+      const jobs = streams[jobsStreamIndex].jobs || [];
+      if (jobs[idx]) jobs[idx].active = this.checked;
+      saveStreams(streams);
+      renderJobsEditor();
+    });
   });
 
   // job drag and drop
