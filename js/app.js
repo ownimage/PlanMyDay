@@ -299,7 +299,6 @@ function renderStreamsEditor() {
   list.innerHTML = ""; addTile.innerHTML = ""; topTile.innerHTML = ""; filterEl.innerHTML = ""; singleEditor.innerHTML = "";
 
   const streams = loadStreams();
-  const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
   if (editingIndex >= 0) {
     list.classList.add("d-none"); addTile.classList.add("d-none");
@@ -308,22 +307,6 @@ function renderStreamsEditor() {
 
     const t = streams[editingIndex];
     const data = editBuffer || t;
-    const showYear = data.scheduleType === "once";
-    const day = data.scheduleDay || 1;
-    const month = data.scheduleMonth || 1;
-
-    let dateHtml;
-    if (showYear) {
-      dateHtml = `<input type="text" class="form-control flatpickr-date" data-editor="stream" placeholder="dd/mm/yyyy">`;
-    } else {
-      dateHtml = `
-        <select class="form-select date-day-select" onchange="editField('scheduleDay', parseInt(this.value))">
-          ${Array.from({length: 31}, (_, i) => `<option value="${i+1}" ${i+1 === day ? "selected" : ""}>${i+1}</option>`).join("")}
-        </select>
-        <select class="form-select date-month-select" onchange="editField('scheduleMonth', parseInt(this.value))">
-          ${months.map((m, i) => `<option value="${i+1}" ${i+1 === month ? "selected" : ""}>${m}</option>`).join("")}
-        </select>`;
-    }
 
     const heading = isNew ? "Add Stream" : "Edit Stream";
     singleEditor.innerHTML = `
@@ -336,27 +319,6 @@ function renderStreamsEditor() {
           <label class="form-label">Title</label>
           <input class="form-control" value="${escapeHtml(data.title || "")}" oninput="editField('title', this.value)">
         </div>
-        <div class="row mb-2">
-          <div class="col">
-            <label class="form-label">Priority</label>
-            <select class="form-select" onchange="editField('priority', this.value)">
-              <option value="low" ${data.priority === "low" ? "selected" : ""}>Low</option>
-              <option value="medium" ${(data.priority || "medium") === "medium" ? "selected" : ""}>Medium</option>
-              <option value="high" ${data.priority === "high" ? "selected" : ""}>High</option>
-            </select>
-          </div>
-          <div class="col">
-            <label class="form-label">Schedule type</label>
-            <select class="form-select" onchange="editField('scheduleType', this.value)">
-              <option value="annual" ${(data.scheduleType || "annual") === "annual" ? "selected" : ""}>Annual</option>
-              <option value="once" ${data.scheduleType === "once" ? "selected" : ""}>Once</option>
-            </select>
-          </div>
-        </div>
-        <div class="mb-2">
-          <label class="form-label">Schedule date</label>
-          <div class="d-flex gap-1">${dateHtml}</div>
-        </div>
         <div class="mb-2">
           <label class="form-label">Description</label>
           <textarea class="form-control" rows="3" oninput="editField('description', this.value)">${escapeHtml(data.description || "")}</textarea>
@@ -367,8 +329,6 @@ function renderStreamsEditor() {
         </div>
       </div>
     `;
-
-    initEditorFlatpickr();
     updateNavState();
     return;
   }
@@ -381,9 +341,6 @@ function renderStreamsEditor() {
 
   sorted.forEach((t, displayIdx) => {
     const realIdx = streams.indexOf(t);
-    const showYear = t.scheduleType === "once";
-    const ds = showYear ? `${t.scheduleDay} ${months[(t.scheduleMonth||1)-1]} ${t.scheduleYear || new Date().getFullYear()}` : `${t.scheduleDay} ${months[(t.scheduleMonth||1)-1]}`;
-    const priorityBadge = { high: "danger", medium: "warning", low: "secondary" }[t.priority] || "secondary";
 
     const card = document.createElement("div");
     card.className = "card p-3 mb-3 stream-drag-card";
@@ -395,8 +352,6 @@ function renderStreamsEditor() {
         <div class="flex-fill" style="min-width:0">
           <div class="fw-bold editor-title mb-1">${escapeHtml(t.title)}</div>
           <div class="d-flex gap-2 align-items-center small text-secondary">
-            <span class="badge bg-${priorityBadge}">${escapeHtml(t.priority || "medium")}</span>
-            <span>${ds}</span>
             <span class="text-muted">#${t.sequence || displayIdx + 1}</span>
           </div>
           ${t.description ? `<div class="mt-1 text-secondary small">${escapeHtml(t.description.substring(0, 80))}${t.description.length > 80 ? "..." : ""}</div>` : ""}
@@ -468,33 +423,6 @@ function renderStreamsEditor() {
 function editField(field, value) {
   if (!editBuffer) return;
   editBuffer[field] = value;
-  if (field === "scheduleType") {
-    if (value === "annual") delete editBuffer.scheduleYear;
-    else editBuffer.scheduleYear = new Date().getFullYear();
-    renderStreamsEditor();
-  }
-}
-
-function initEditorFlatpickr() {
-  if (typeof flatpickr === 'undefined') return;
-  const input = document.querySelector('.flatpickr-date[data-editor="stream"]');
-  if (!input || !editBuffer) return;
-  const showYear = editBuffer.scheduleType === "once";
-  const d = editBuffer.scheduleDay || 1;
-  const m = editBuffer.scheduleMonth || 1;
-  const y = editBuffer.scheduleYear || new Date().getFullYear();
-  flatpickr(input, {
-    dateFormat: showYear ? 'd/m/Y' : 'd/m',
-    defaultDate: new Date(y, m - 1, d),
-    allowInput: true,
-    onChange: function(sel) {
-      if (sel.length > 0 && editBuffer) {
-        editBuffer.scheduleDay = sel[0].getDate();
-        editBuffer.scheduleMonth = sel[0].getMonth() + 1;
-        if (showYear) editBuffer.scheduleYear = sel[0].getFullYear();
-      }
-    }
-  });
 }
 
 function editStream(index) {
@@ -543,7 +471,7 @@ function confirmDeleteStream(index) {
 function addNewStream() {
   const streams = loadStreams();
   const seq = streams.length + 1;
-  const newStream = { title: "New Stream", sequence: seq, priority: "medium", scheduleType: "annual", scheduleDay: 1, scheduleMonth: 1, description: "", jobs: [] };
+  const newStream = { title: "New Stream", sequence: seq, description: "", jobs: [] };
   streams.push(newStream);
   saveStreams(streams);
   editBuffer = JSON.parse(JSON.stringify(newStream));
