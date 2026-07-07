@@ -489,6 +489,7 @@ let isNewJob = false;
 
 function openJobsEditor(streamIdx) {
   jobsStreamIndex = streamIdx;
+  document.getElementById("streamsEditorHeader").classList.add("d-none");
   document.getElementById("streamEditorList").classList.add("d-none");
   document.getElementById("addStreamTile").classList.add("d-none");
   document.getElementById("addStreamTileTop").classList.add("d-none");
@@ -500,6 +501,7 @@ function openJobsEditor(streamIdx) {
 
 function closeJobsEditor() {
   document.getElementById("jobsEditor").classList.add("d-none");
+  document.getElementById("streamsEditorHeader").classList.remove("d-none");
   document.getElementById("streamEditorList").classList.remove("d-none");
   document.getElementById("addStreamTile").classList.remove("d-none");
   document.getElementById("addStreamTileTop").classList.remove("d-none");
