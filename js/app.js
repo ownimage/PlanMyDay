@@ -584,7 +584,8 @@ function renderJobsEditor() {
 
   list.innerHTML = ""; addTile.innerHTML = ""; topTile.innerHTML = ""; singleEditor.innerHTML = "";
 
-  document.getElementById("jobsEditorTitle").textContent = `Stream: ${escapeHtml(stream.title)}`;
+  const streamImgUrl = getImageDataUrl(stream.image);
+  document.getElementById("jobsEditorTitle").innerHTML = `Stream: ${streamImgUrl ? `<img src="${streamImgUrl}" class="date-img mx-1" style="max-width:32px;max-height:32px;vertical-align:middle">` : ""}${escapeHtml(stream.title)}`;
 
   if (jobsEditingIdx >= 0) {
     list.classList.add("d-none"); addTile.classList.add("d-none");
