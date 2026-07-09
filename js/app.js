@@ -129,9 +129,13 @@ function renderMain() {
     return;
   }
 
-  allJobs.forEach(({ job, streamTitle }) => {
+  allJobs.forEach(({ job, streamTitle, streamIdx }) => {
     const isDone = completed.includes(job.id);
     const freqBadge = job.frequency === "weekly" ? "info" : "primary";
+    const streams = loadStreams();
+    const stream = streams[streamIdx] || {};
+    const streamImageUrl = getImageDataUrl(stream.image);
+    const jobImageUrl = getImageDataUrl(job.image);
     const card = document.createElement("div");
     card.className = `card countdown-card mb-2 today-drag-card ${isDone ? "opacity-50" : ""}`;
     card.draggable = true;
@@ -143,6 +147,10 @@ function renderMain() {
           <div class="form-check mb-0 d-inline-block ms-1">
             <input class="form-check-input job-checkbox" type="checkbox" data-job-id="${escapeHtml(job.id)}" ${isDone ? "checked" : ""}>
           </div>
+        </div>
+        <div class="col-auto d-flex align-items-center gap-1">
+          ${streamImageUrl ? `<img src="${streamImageUrl}" class="date-img" style="width:32px;height:32px;object-fit:contain">` : ""}
+          ${jobImageUrl ? `<img src="${jobImageUrl}" class="date-img" style="width:32px;height:32px;object-fit:contain">` : ""}
         </div>
         <div class="col" style="min-width:0">
           <div class="d-flex align-items-center gap-2 mb-1">
@@ -322,10 +330,9 @@ function renderStreamsEditor() {
     const t = streams[editingIndex];
     const data = editBuffer || t;
 
-    const heading = isNew ? "Add Stream" : "Edit Stream";
     singleEditor.innerHTML = `
       <div class="d-flex align-items-center mb-3">
-        <h3 class="mb-0">${heading}</h3>
+        <h3 class="mb-0">${isNew ? "Add Stream" : "Edit Stream"}</h3>
         <button class="btn btn-outline-secondary ms-auto" onclick="cancelEdit()">Back</button>
       </div>
       <div class="card p-3 card-edited">
@@ -336,6 +343,17 @@ function renderStreamsEditor() {
         <div class="mb-2">
           <label class="form-label">Description</label>
           <textarea class="form-control" rows="3" oninput="editField('description', this.value)">${escapeHtml(data.description || "")}</textarea>
+        </div>
+        <div class="mb-2">
+          <label class="form-label">Image</label>
+          <div class="d-flex align-items-center gap-2">
+            <div style="width:50px;height:50px;border:1px solid var(--bs-border-color);border-radius:6px;overflow:hidden;display:flex;align-items:center;justify-content:center;flex-shrink:0" id="streamImagePreview">
+              ${getImageDataUrl(data.image) ? `<img src="${getImageDataUrl(data.image)}" class="date-img" style="max-width:50px;max-height:50px">` : `<span class="text-secondary small">none</span>`}
+            </div>
+            <span class="small text-secondary" id="streamImageName">${escapeHtml(data.image || "")}</span>
+            <button class="btn btn-outline-primary btn-sm" onclick="openImagePicker(function(name){ editField('image', name); updateStreamImagePreview(name); })">Choose</button>
+            ${data.image ? `<button class="btn btn-outline-danger btn-sm" onclick="editField('image','');updateStreamImagePreview(null)">Remove</button>` : ""}
+          </div>
         </div>
         <div class="d-flex gap-2 mt-3">
           <button class="btn btn-success editor-btn" onclick="doneEdit()">OK</button>
@@ -355,6 +373,7 @@ function renderStreamsEditor() {
 
   sorted.forEach((t, displayIdx) => {
     const realIdx = streams.indexOf(t);
+    const streamImgUrl = getImageDataUrl(t.image);
 
     const card = document.createElement("div");
     card.className = "card p-3 mb-3 stream-drag-card";
@@ -363,6 +382,7 @@ function renderStreamsEditor() {
     card.innerHTML = `
       <div class="d-flex align-items-center gap-2">
         <div class="drag-handle text-secondary" style="cursor:grab;font-size:1.3rem;line-height:1">&#9776;</div>
+        ${streamImgUrl ? `<div style="width:40px;height:40px;flex-shrink:0"><img src="${streamImgUrl}" class="date-img" style="max-width:40px;max-height:40px"></div>` : ""}
         <div class="flex-fill" style="min-width:0">
           <div class="fw-bold editor-title mb-1">${escapeHtml(t.title)}</div>
           <div class="d-flex gap-2 align-items-center small text-secondary">
@@ -437,6 +457,33 @@ function renderStreamsEditor() {
 function editField(field, value) {
   if (!editBuffer) return;
   editBuffer[field] = value;
+}
+
+function updateStreamImagePreview(name) {
+  const preview = document.getElementById("streamImagePreview");
+  const nameEl = document.getElementById("streamImageName");
+  if (!preview) return;
+  const url = getImageDataUrl(name);
+  if (url) {
+    preview.innerHTML = `<img src="${url}" class="date-img" style="max-width:50px;max-height:50px">`;
+    if (nameEl) nameEl.textContent = name;
+  } else {
+    preview.innerHTML = `<span class="text-secondary small">none</span>`;
+    if (nameEl) nameEl.textContent = "";
+  }
+}
+function updateJobImagePreview(name) {
+  const preview = document.getElementById("jobImagePreview");
+  const nameEl = document.getElementById("jobImageName");
+  if (!preview) return;
+  const url = getImageDataUrl(name);
+  if (url) {
+    preview.innerHTML = `<img src="${url}" class="date-img" style="max-width:50px;max-height:50px">`;
+    if (nameEl) nameEl.textContent = name;
+  } else {
+    preview.innerHTML = `<span class="text-secondary small">none</span>`;
+    if (nameEl) nameEl.textContent = "";
+  }
 }
 
 function editStream(index) {
@@ -547,10 +594,10 @@ function renderJobsEditor() {
     const job = jobs[jobsEditingIdx];
     const data = jobsBuffer || job;
 
-    const heading = isNewJob ? "Add Job" : "Edit Job";
+    const jobHeading = isNewJob ? "Add Job" : "Edit Job";
     singleEditor.innerHTML = `
       <div class="d-flex align-items-center mb-3">
-        <h3 class="mb-0">${heading}</h3>
+        <h3 class="mb-0">${jobHeading}</h3>
         <button class="btn btn-outline-secondary ms-auto" onclick="cancelJobEdit()">Back</button>
       </div>
       <div class="card p-3 card-edited">
@@ -561,6 +608,17 @@ function renderJobsEditor() {
         <div class="mb-2">
           <label class="form-label">Description</label>
           <textarea class="form-control" rows="3" oninput="jobField('description', this.value)">${escapeHtml(data.description || "")}</textarea>
+        </div>
+        <div class="mb-2">
+          <label class="form-label">Image</label>
+          <div class="d-flex align-items-center gap-2">
+            <div style="width:50px;height:50px;border:1px solid var(--bs-border-color);border-radius:6px;overflow:hidden;display:flex;align-items:center;justify-content:center;flex-shrink:0" id="jobImagePreview">
+              ${getImageDataUrl(data.image) ? `<img src="${getImageDataUrl(data.image)}" class="date-img" style="max-width:50px;max-height:50px">` : `<span class="text-secondary small">none</span>`}
+            </div>
+            <span class="small text-secondary" id="jobImageName">${escapeHtml(data.image || "")}</span>
+            <button class="btn btn-outline-primary btn-sm" onclick="openImagePicker(function(name){ jobField('image', name); updateJobImagePreview(name); })">Choose</button>
+            ${data.image ? `<button class="btn btn-outline-danger btn-sm" onclick="jobField('image','');updateJobImagePreview(null)">Remove</button>` : ""}
+          </div>
         </div>
         <div class="row mb-2">
           <div class="col">
@@ -595,6 +653,7 @@ function renderJobsEditor() {
   sorted.forEach((j, displayIdx) => {
     const realIdx = jobs.indexOf(j);
     const freqBadge = j.frequency === "weekly" ? "info" : "primary";
+    const jobImgUrl = getImageDataUrl(j.image);
     const card = document.createElement("div");
     card.className = "card p-3 mb-3 stream-drag-card";
     card.draggable = true;
@@ -602,6 +661,7 @@ function renderJobsEditor() {
     card.innerHTML = `
       <div class="d-flex align-items-center gap-2">
         <div class="drag-handle text-secondary" style="cursor:grab;font-size:1.3rem;line-height:1">&#9776;</div>
+        ${jobImgUrl ? `<div style="width:40px;height:40px;flex-shrink:0"><img src="${jobImgUrl}" class="date-img" style="max-width:40px;max-height:40px"></div>` : ""}
         <div class="flex-fill" style="min-width:0">
           <div class="fw-bold editor-title mb-1">${escapeHtml(j.title)}</div>
           <div class="d-flex gap-2 align-items-center small text-secondary">
