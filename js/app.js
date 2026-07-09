@@ -584,7 +584,7 @@ function renderJobsEditor() {
 
   list.innerHTML = ""; addTile.innerHTML = ""; topTile.innerHTML = ""; singleEditor.innerHTML = "";
 
-  document.getElementById("jobsEditorTitle").textContent = `Jobs List: ${escapeHtml(stream.title)}`;
+  document.getElementById("jobsEditorTitle").textContent = `Stream: ${escapeHtml(stream.title)}`;
 
   if (jobsEditingIdx >= 0) {
     list.classList.add("d-none"); addTile.classList.add("d-none");
@@ -597,7 +597,6 @@ function renderJobsEditor() {
     singleEditor.innerHTML = `
       <div class="d-flex align-items-center mb-3">
         <h3 class="mb-0">${jobHeading}</h3>
-        <button class="btn btn-outline-secondary ms-auto" onclick="cancelJobEdit()">Back</button>
       </div>
       <div class="card p-3 card-edited">
         <div class="mb-2">
