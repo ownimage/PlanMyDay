@@ -72,10 +72,10 @@ function changeHideDone(enabled) {
 
 function changeShowDanger(enabled) {
   localStorage.setItem("showDanger", enabled);
-  const row = document.getElementById("clearAllDataRow");
-  if (row) row.classList.toggle("d-none", !enabled);
-  const row3 = document.getElementById("refreshAppRow");
-  if (row3) row3.classList.toggle("d-none", !enabled);
+  ["clearAllDataRow", "refreshAppRow", "regenerateTilesRow"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.toggle("d-none", !enabled);
+  });
 }
 
 // AUTO-HIDE MENU

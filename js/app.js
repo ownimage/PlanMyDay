@@ -838,7 +838,7 @@ function openSettings() {
   const showDanger = localStorage.getItem("showDanger") === "true";
   const showDangerCb = document.getElementById("showDanger");
   if (showDangerCb) showDangerCb.checked = showDanger;
-  ["clearAllDataRow", "refreshAppRow"].forEach(id => {
+  ["clearAllDataRow", "refreshAppRow", "regenerateTilesRow"].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.classList.toggle("d-none", !showDanger);
   });
