@@ -189,6 +189,26 @@
       </div>
 
       <div class="row mb-4 align-items-center col-md-8">
+        <div class="col-4 text-end"><label class="form-label mb-0">1 Jan</label></div>
+        <div class="col-8">
+          <select id="jan1Selector" class="form-select" onchange="changeJan1(this.value)">
+            <option value="0">0</option>
+            <option value="1">1</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="row mb-4 align-items-center col-md-8">
+        <div class="col-4 text-end"><label class="form-label mb-0">Monday</label></div>
+        <div class="col-8">
+          <select id="mondaySelector" class="form-select" onchange="changeMonday(this.value)">
+            <option value="0">0</option>
+            <option value="1">1</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="row mb-4 align-items-center col-md-8">
         <div class="col-4 text-end"><label class="form-label mb-0">Show danger</label></div>
         <div class="col-8">
           <div class="form-check form-switch mt-1">

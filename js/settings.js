@@ -70,6 +70,14 @@ function changeHideDone(enabled) {
   localStorage.setItem("hideDone", enabled);
 }
 
+function changeJan1(value) {
+  localStorage.setItem("jan1", value);
+}
+
+function changeMonday(value) {
+  localStorage.setItem("monday", value);
+}
+
 function changeShowDanger(enabled) {
   localStorage.setItem("showDanger", enabled);
   ["clearAllDataRow", "refreshAppRow", "regenerateTilesRow", "uploadStandardImagesRow"].forEach(id => {

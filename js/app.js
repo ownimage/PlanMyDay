@@ -863,6 +863,12 @@ function openSettings() {
   const hideDone = localStorage.getItem("hideDone") === "true";
   const hideDoneCb = document.getElementById("hideDone");
   if (hideDoneCb) hideDoneCb.checked = hideDone;
+  const jan1 = localStorage.getItem("jan1") || "0";
+  const jan1Sel = document.getElementById("jan1Selector");
+  if (jan1Sel) jan1Sel.value = jan1;
+  const monday = localStorage.getItem("monday") || "0";
+  const mondaySel = document.getElementById("mondaySelector");
+  if (mondaySel) mondaySel.value = monday;
   const showDanger = localStorage.getItem("showDanger") === "true";
   const showDangerCb = document.getElementById("showDanger");
   if (showDangerCb) showDangerCb.checked = showDanger;
