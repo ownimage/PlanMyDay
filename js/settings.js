@@ -72,10 +72,12 @@ function changeHideDone(enabled) {
 
 function changeJan1(value) {
   localStorage.setItem("jan1", value);
+  if (typeof renderMain === "function") renderMain();
 }
 
 function changeMonday(value) {
   localStorage.setItem("monday", value);
+  if (typeof renderMain === "function") renderMain();
 }
 
 function changeShowDanger(enabled) {

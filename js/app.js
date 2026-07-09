@@ -136,6 +136,7 @@ function renderMain() {
     const stream = streams[streamIdx] || {};
     const streamImageUrl = getImageDataUrl(stream.image);
     const jobImageUrl = getImageDataUrl(job.image);
+    const suffixLabel = getJobSuffix(job);
     const card = document.createElement("div");
     card.className = `card countdown-card mb-2 today-drag-card ${isDone ? "opacity-50" : ""}`;
     card.draggable = true;
@@ -154,7 +155,7 @@ function renderMain() {
         </div>
         <div class="col" style="min-width:0">
           <div class="d-flex align-items-center gap-2 mb-1">
-            <h4 class="mb-0" style="${isDone ? 'text-decoration:line-through' : ''}">${escapeHtml(job.title)}</h4>
+            <h4 class="mb-0" style="${isDone ? 'text-decoration:line-through' : ''}">${escapeHtml(job.title)}${suffixLabel ? ` <span class="badge bg-secondary">${escapeHtml(suffixLabel.trim())}</span>` : ""}</h4>
             <span class="badge bg-${freqBadge}">${escapeHtml(job.frequency || "daily")}</span>
           </div>
           <div class="text-secondary small">${escapeHtml(streamTitle)}</div>
@@ -625,7 +626,6 @@ function renderJobsEditor() {
           <div class="col">
             <select class="form-select" onchange="jobField('mod', this.value)">
               <option value="" ${!data.mod ? "selected" : ""}>None</option>
-              <option value="1" ${data.mod === "1" ? "selected" : ""}>1</option>
               <option value="2" ${data.mod === "2" ? "selected" : ""}>2</option>
               <option value="3" ${data.mod === "3" ? "selected" : ""}>3</option>
               <option value="4" ${data.mod === "4" ? "selected" : ""}>4</option>
@@ -845,6 +845,41 @@ function addNewJob() {
   renderJobsEditor();
 }
 
+function getJobSuffix(job) {
+  if (!job.suffix) return "";
+  const today = new Date();
+  const dayType = job.dayType || "dayOfYear";
+  let dayNum;
+
+  if (dayType === "dayOfWeek") {
+    dayNum = today.getDay();
+    const mondaySetting = localStorage.getItem("monday") || "1";
+    if (mondaySetting === "1") {
+      dayNum = dayNum === 0 ? 7 : dayNum;
+    } else {
+      dayNum = dayNum === 0 ? 6 : dayNum - 1;
+    }
+  } else if (dayType === "dayOfMonth") {
+    dayNum = today.getDate();
+  } else {
+    const startOfYear = new Date(today.getFullYear(), 0, 0);
+    dayNum = Math.floor((today - startOfYear) / 86400000);
+    const jan1Setting = localStorage.getItem("jan1") || "0";
+    if (jan1Setting === "0") {
+      dayNum -= 1;
+    }
+  }
+
+  if (job.mod && job.mod !== "") {
+    const modVal = parseInt(job.mod, 10);
+    if (modVal > 0) {
+      dayNum = dayNum % modVal;
+    }
+  }
+
+  return ` (${dayNum})`;
+}
+
 // SETTINGS
 function openSettings() {
   document.getElementById("countdownContainer").classList.add("d-none");
@@ -863,10 +898,10 @@ function openSettings() {
   const hideDone = localStorage.getItem("hideDone") === "true";
   const hideDoneCb = document.getElementById("hideDone");
   if (hideDoneCb) hideDoneCb.checked = hideDone;
-  const jan1 = localStorage.getItem("jan1") || "0";
+  const jan1 = localStorage.getItem("jan1") || "1";
   const jan1Sel = document.getElementById("jan1Selector");
   if (jan1Sel) jan1Sel.value = jan1;
-  const monday = localStorage.getItem("monday") || "0";
+  const monday = localStorage.getItem("monday") || "1";
   const mondaySel = document.getElementById("mondaySelector");
   if (mondaySel) mondaySel.value = monday;
   const showDanger = localStorage.getItem("showDanger") === "true";
