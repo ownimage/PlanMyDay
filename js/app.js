@@ -943,6 +943,50 @@ function confirmClearAllData() {
   new bootstrap.Modal(modalEl).show();
 }
 
+function exportData() {
+  const data = {
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    streams: JSON.parse(localStorage.getItem("planmydays_streams") || "[]"),
+    images: JSON.parse(localStorage.getItem("images") || "[]")
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "planmydays-backup.json";
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importData() {
+  const input = document.createElement("input");
+  input.type = "file";
+  input.accept = ".json,application/json";
+  input.onchange = e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = evt => {
+      try {
+        const data = JSON.parse(evt.target.result);
+        if (!data || (!data.streams && !data.images)) {
+          alert("Invalid backup file: missing streams or images data.");
+          return;
+        }
+        if (data.streams) localStorage.setItem("planmydays_streams", JSON.stringify(data.streams));
+        if (data.images) localStorage.setItem("images", JSON.stringify(data.images));
+        closeSettings();
+        renderMain();
+      } catch (err) {
+        alert("Invalid JSON file.");
+      }
+    };
+    reader.readAsText(file);
+  };
+  input.click();
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   const savedTheme = localStorage.getItem("theme") || "darkly";
   applyTheme(savedTheme);
