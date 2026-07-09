@@ -72,7 +72,7 @@ function changeHideDone(enabled) {
 
 function changeShowDanger(enabled) {
   localStorage.setItem("showDanger", enabled);
-  ["clearAllDataRow", "refreshAppRow", "regenerateTilesRow"].forEach(id => {
+  ["clearAllDataRow", "refreshAppRow", "regenerateTilesRow", "uploadStandardImagesRow"].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.classList.toggle("d-none", !enabled);
   });

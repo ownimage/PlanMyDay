@@ -562,3 +562,26 @@ function seedSampleImages() {
     })
     .catch(() => {});
 }
+
+function uploadStandardImages() {
+  fetch("sampleImages.json?v=" + (typeof BUILD_NUMBER !== "undefined" ? BUILD_NUMBER : Date.now()))
+    .then(res => res.json())
+    .then(data => {
+      if (!data || !data.images) return;
+      const existing = loadImages();
+      const existingNames = new Set(existing.map(img => img.name));
+      let added = 0;
+      data.images.forEach(img => {
+        if (!existingNames.has(img.name)) {
+          existing.push(img);
+          existingNames.add(img.name);
+          added++;
+        }
+      });
+      if (added > 0) {
+        saveImages(existing);
+        renderImagesEditor();
+      }
+    })
+    .catch(() => {});
+}

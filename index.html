@@ -216,6 +216,12 @@
           <button class="btn btn-warning editor-btn btn-wide w-100" onclick="location.reload()">Refresh App</button>
         </div>
       </div>
+      <div id="uploadStandardImagesRow" class="mt-2 row align-items-center col-md-8 d-none">
+        <div class="col-4 text-end"></div>
+        <div class="col-8">
+          <button class="btn btn-primary editor-btn btn-wide w-100" onclick="uploadStandardImages()">Upload Standard Images</button>
+        </div>
+      </div>
       <div class="mt-5 small build-number">Build <span id="buildNumber"></span></div>
     </div>
     <script>document.getElementById("buildNumber").textContent = BUILD_NUMBER;</script>
