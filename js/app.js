@@ -236,30 +236,12 @@ function showAddCardForm() {
   if (!form) return;
   form.classList.toggle("d-none");
   if (form.classList.contains("d-none")) return;
-  const streams = loadStreams();
-  if (streams.length === 0) {
-    streams.push({ title: "General", sequence: 1, jobs: [] });
-    saveStreams(streams);
-  }
   form.innerHTML = `
     <div class="mb-2">
       <input class="form-control" id="newCardTitle" placeholder="Job title" value="">
     </div>
     <div class="mb-2">
       <textarea class="form-control" id="newCardDesc" placeholder="Description (optional)" rows="2"></textarea>
-    </div>
-    <div class="row mb-2">
-      <div class="col">
-        <select class="form-select" id="newCardFreq">
-          <option value="daily">Daily</option>
-          <option value="weekly">Weekly</option>
-        </select>
-      </div>
-      <div class="col">
-        <select class="form-select" id="newCardStream">
-          ${streams.map(t => `<option value="${escapeHtml(t.title)}">${escapeHtml(t.title)}</option>`).join("")}
-        </select>
-      </div>
     </div>
     <div class="d-flex gap-2">
       <button class="btn btn-primary editor-btn" onclick="addTodayCard()">Add</button>
@@ -272,13 +254,14 @@ function addTodayCard() {
   const title = document.getElementById("newCardTitle").value.trim();
   if (!title) return;
   const desc = document.getElementById("newCardDesc").value.trim();
-  const freq = document.getElementById("newCardFreq").value;
-  const streamTitle = document.getElementById("newCardStream").value;
   const streams = loadStreams();
-  let stream = streams.find(t => t.title === streamTitle);
-  if (!stream) { stream = streams[0]; }
+  let stream = streams.find(t => t.title === "Ad Hoc");
+  if (!stream) {
+    stream = { title: "Ad Hoc", sequence: streams.length + 1, jobs: [] };
+    streams.push(stream);
+  }
   const jobs = stream.jobs || [];
-  const newJob = { id: "job_" + Date.now(), title, sequence: jobs.length + 1, description: desc, active: true, frequency: freq };
+  const newJob = { id: "job_" + Date.now(), title, sequence: jobs.length + 1, description: desc, active: true, frequency: "daily" };
   jobs.push(newJob);
   stream.jobs = jobs;
   saveStreams(streams);
