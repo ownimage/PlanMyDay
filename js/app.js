@@ -19,6 +19,7 @@ function hideAllEditors() {
   document.getElementById("countdownContainer").classList.remove("d-none");
   document.getElementById("streamsEditor").classList.add("d-none");
   document.getElementById("jobsEditor").classList.add("d-none");
+  document.getElementById("imagesEditor").classList.add("d-none");
   document.getElementById("settingsPage").classList.add("d-none");
 }
 
@@ -818,6 +819,7 @@ function confirmClearAllData() {
 document.addEventListener("DOMContentLoaded", () => {
   const savedTheme = localStorage.getItem("theme") || "darkly";
   applyTheme(savedTheme);
+  if (typeof seedSampleImages === "function") seedSampleImages();
   renderMain();
 });
 

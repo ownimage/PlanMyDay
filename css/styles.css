@@ -346,6 +346,21 @@ body.auto-hide-menu #mainNav.nav-hidden ~ .container-fluid {
   padding-top: 20px;
 }
 
+#imagesEditor {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 56px);
+  padding-top: 20px;
+}
+#imagesEditorHeader {
+  flex-shrink: 0;
+}
+#imagesEditor #imagesList {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
+
 #jobsEditor {
   display: flex;
   flex-direction: column;
