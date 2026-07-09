@@ -148,9 +148,9 @@ function renderMain() {
             <input class="form-check-input job-checkbox" type="checkbox" data-job-id="${escapeHtml(job.id)}" ${isDone ? "checked" : ""}>
           </div>
         </div>
-        <div class="col-auto d-flex align-items-center gap-1">
-          ${streamImageUrl ? `<img src="${streamImageUrl}" class="date-img" style="width:32px;height:32px;object-fit:contain">` : ""}
-          ${jobImageUrl ? `<img src="${jobImageUrl}" class="date-img" style="width:32px;height:32px;object-fit:contain">` : ""}
+        <div class="col-auto d-flex align-items-center gap-1" style="min-width:68px">
+          <div style="width:32px;height:32px;display:flex;align-items:center;justify-content:center">${streamImageUrl ? `<img src="${streamImageUrl}" class="date-img" style="max-width:32px;max-height:32px">` : ""}</div>
+          <div style="width:32px;height:32px;display:flex;align-items:center;justify-content:center">${jobImageUrl ? `<img src="${jobImageUrl}" class="date-img" style="max-width:32px;max-height:32px">` : ""}</div>
         </div>
         <div class="col" style="min-width:0">
           <div class="d-flex align-items-center gap-2 mb-1">
@@ -333,7 +333,6 @@ function renderStreamsEditor() {
     singleEditor.innerHTML = `
       <div class="d-flex align-items-center mb-3">
         <h3 class="mb-0">${isNew ? "Add Stream" : "Edit Stream"}</h3>
-        <button class="btn btn-outline-secondary ms-auto" onclick="cancelEdit()">Back</button>
       </div>
       <div class="card p-3 card-edited">
         <div class="mb-2">
