@@ -33,6 +33,55 @@ function escapeHtml(str) {
   return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
+// TOUCH DRAG AND DROP (iOS fallback)
+function addTouchDnD(container, cardSelector, getSrcId, reorderCallback) {
+  let touchSrc = null;
+
+  container.addEventListener("touchstart", e => {
+    const card = e.target.closest(cardSelector);
+    if (!card) return;
+    touchSrc = getSrcId(card);
+    card.classList.add("dragging");
+  }, { passive: true });
+
+  container.addEventListener("touchmove", e => {
+    if (touchSrc === null || touchSrc === undefined) return;
+    e.preventDefault();
+    const touch = e.touches[0];
+    const el = document.elementFromPoint(touch.clientX, touch.clientY);
+    const target = el ? el.closest(cardSelector) : null;
+    if (!target) return;
+    container.querySelectorAll(cardSelector).forEach(c => c.classList.remove("drag-over-top", "drag-over-bottom"));
+    const rect = target.getBoundingClientRect();
+    target.classList.add(touch.clientY < rect.top + rect.height / 2 ? "drag-over-top" : "drag-over-bottom");
+  }, { passive: false });
+
+  container.addEventListener("touchend", e => {
+    if (touchSrc === null || touchSrc === undefined) { touchSrc = null; return; }
+    container.querySelectorAll(cardSelector).forEach(c => c.classList.remove("dragging", "drag-over-top", "drag-over-bottom"));
+    const touch = e.changedTouches[0];
+    const el = document.elementFromPoint(touch.clientX, touch.clientY);
+    const target = el ? el.closest(cardSelector) : null;
+    if (target) {
+      const dstSrc = getSrcId(target);
+      if (touchSrc !== dstSrc) {
+        const rect = target.getBoundingClientRect();
+        const above = touch.clientY < rect.top + rect.height / 2;
+        reorderCallback(touchSrc, dstSrc, above);
+        touchSrc = null;
+        return;
+      }
+    }
+    touchSrc = null;
+  }, { passive: true });
+
+  container.addEventListener("touchcancel", () => {
+    if (touchSrc === null || touchSrc === undefined) return;
+    container.querySelectorAll(cardSelector).forEach(c => c.classList.remove("dragging", "drag-over-top", "drag-over-bottom"));
+    touchSrc = null;
+  }, { passive: true });
+}
+
 // JOB COMPLETION STORAGE
 function loadCompletedJobs() {
   const data = localStorage.getItem("planmydays_completed");
@@ -228,6 +277,20 @@ function renderMain() {
     renderMain();
   });
 
+  // touch DnD fallback for iOS
+  addTouchDnD(cardContainer, ".today-drag-card", c => c.dataset.jobId, (srcId, dstId, above) => {
+    const cards = [...cardContainer.querySelectorAll(".today-drag-card")];
+    const ids = cards.map(c => c.dataset.jobId);
+    const srcIdx = ids.indexOf(srcId);
+    const dstIdx = ids.indexOf(dstId);
+    if (srcIdx < 0 || dstIdx < 0) return;
+    ids.splice(srcIdx, 1);
+    const insertAt = srcIdx < dstIdx ? (above ? dstIdx - 1 : dstIdx) : (above ? dstIdx : dstIdx + 1);
+    ids.splice(insertAt, 0, srcId);
+    saveTodayOrder(ids);
+    renderMain();
+  });
+
   updateNavState();
 }
 
@@ -419,6 +482,24 @@ function renderStreamsEditor() {
       streams.forEach((t, i) => t.sequence = i + 1);
       saveStreams(streams);
       dragSrcIndex = -1;
+      renderStreamsEditor();
+    });
+
+    // touch DnD fallback for iOS
+    addTouchDnD(list, ".stream-drag-card", c => parseInt(c.dataset.index), (srcIdx, dstIdx, above) => {
+      if (srcIdx === dstIdx) return;
+      const s = loadStreams();
+      const [moved] = s.splice(srcIdx, 1);
+      let insertAt;
+      if (srcIdx < dstIdx) {
+        const actualDropIdx = dstIdx - 1;
+        insertAt = above ? actualDropIdx : actualDropIdx + 1;
+      } else {
+        insertAt = above ? dstIdx : dstIdx + 1;
+      }
+      s.splice(insertAt, 0, moved);
+      s.forEach((t, i) => t.sequence = i + 1);
+      saveStreams(s);
       renderStreamsEditor();
     });
 
@@ -740,6 +821,25 @@ function renderJobsEditor() {
     streams[jobsStreamIndex].jobs = jobs;
     saveStreams(streams);
     jobDragSrc = -1;
+    renderJobsEditor();
+  });
+
+  // touch DnD fallback for iOS
+  addTouchDnD(list, ".stream-drag-card", c => parseInt(c.dataset.index), (srcIdx, dstIdx, above) => {
+    if (srcIdx === dstIdx) return;
+    const streams = loadStreams();
+    const jobs = streams[jobsStreamIndex].jobs || [];
+    const [moved] = jobs.splice(srcIdx, 1);
+    let insertAt;
+    if (srcIdx < dstIdx) {
+      insertAt = above ? dstIdx - 1 : dstIdx;
+    } else {
+      insertAt = above ? dstIdx : dstIdx + 1;
+    }
+    jobs.splice(insertAt, 0, moved);
+    jobs.forEach((jb, i) => jb.sequence = i + 1);
+    streams[jobsStreamIndex].jobs = jobs;
+    saveStreams(streams);
     renderJobsEditor();
   });
 
