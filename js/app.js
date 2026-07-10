@@ -190,6 +190,7 @@ function renderMain() {
     card.className = `card countdown-card mb-2 today-drag-card ${isDone ? "opacity-50" : ""}`;
     card.draggable = true;
     card.dataset.jobId = job.id;
+    card.dataset.streamIdx = streamIdx;
     card.innerHTML = `
       <div class="row align-items-center">
         <div class="col-auto">
@@ -221,21 +222,76 @@ function renderMain() {
   container.querySelectorAll(".job-checkbox").forEach(cb => {
     cb.addEventListener("change", function() {
       const jobId = this.dataset.jobId;
-      let completed = loadCompletedJobs();
-      if (this.checked) {
-        if (!completed.includes(jobId)) completed.push(jobId);
-      } else {
-        completed = completed.filter(id => id !== jobId);
-      }
-      saveCompletedJobs(completed);
       const card = this.closest(".today-drag-card");
-      if (card) {
-        card.classList.toggle("opacity-50", this.checked);
-        const titleEl = card.querySelector("h4");
-        if (titleEl) titleEl.style.textDecoration = this.checked ? "line-through" : "none";
+      if (this.checked) {
+        const streamIdx = card ? parseInt(card.dataset.streamIdx) : -1;
+        const streams = loadStreams();
+        const stream = streams[streamIdx];
+        if (stream && stream.title === "Ad Hoc") {
+          const skipConfirm = localStorage.getItem("skipAdhocConfirm") === "true";
+          if (!skipConfirm) {
+            const job = (stream.jobs || []).find(j => j.id === jobId);
+            const modalEl = document.getElementById("deleteConfirmModal");
+            const confirmBtn = document.getElementById("deleteConfirmBtn");
+            document.getElementById("deleteConfirmMessage").innerHTML = `Remove "<strong>${escapeHtml(job?.title || jobId)}</strong>" from Ad Hoc?`;
+            confirmBtn.className = "btn btn-danger editor-btn btn-wide";
+            confirmBtn.textContent = "Remove";
+            const cbRef = this;
+            let confirmed = false;
+            confirmBtn.onclick = function() {
+              confirmed = true;
+              bootstrap.Modal.getInstance(modalEl).hide();
+              removeAdhocJob(streamIdx, jobId, cbRef);
+            };
+            modalEl.addEventListener("hidden.bs.modal", function handler() {
+              modalEl.removeEventListener("hidden.bs.modal", handler);
+              if (!confirmed) cbRef.checked = false;
+            });
+            new bootstrap.Modal(modalEl).show();
+            return;
+          }
+          removeAdhocJob(streamIdx, jobId, this);
+        } else {
+          markJobDone(jobId, this);
+        }
+      } else {
+        let completed = loadCompletedJobs();
+        completed = completed.filter(id => id !== jobId);
+        saveCompletedJobs(completed);
+        if (card) {
+          card.classList.toggle("opacity-50", false);
+          const titleEl = card.querySelector("h4");
+          if (titleEl) titleEl.style.textDecoration = "none";
+        }
       }
     });
   });
+
+function removeAdhocJob(streamIdx, jobId, cbRef) {
+  const streams = loadStreams();
+  const stream = streams[streamIdx];
+  if (stream) {
+    const jobs = stream.jobs || [];
+    const idx = jobs.findIndex(j => j.id === jobId);
+    if (idx >= 0) jobs.splice(idx, 1);
+    stream.jobs = jobs;
+    saveStreams(streams);
+  }
+  markJobDone(jobId, cbRef);
+  renderMain();
+}
+
+function markJobDone(jobId, cbRef) {
+  let completed = loadCompletedJobs();
+  if (!completed.includes(jobId)) completed.push(jobId);
+  saveCompletedJobs(completed);
+  const card = cbRef.closest(".today-drag-card");
+  if (card) {
+    card.classList.toggle("opacity-50", true);
+    const titleEl = card.querySelector("h4");
+    if (titleEl) titleEl.style.textDecoration = "line-through";
+  }
+}
 
   // today page drag and drop
   let todayDragSrc = null;
@@ -983,7 +1039,10 @@ function openSettings() {
   const showDanger = localStorage.getItem("showDanger") === "true";
   const showDangerCb = document.getElementById("showDanger");
   if (showDangerCb) showDangerCb.checked = showDanger;
-  ["clearAllDataRow", "refreshAppRow", "regenerateTilesRow", "uploadStandardImagesRow"].forEach(id => {
+  const skipAdhoc = localStorage.getItem("skipAdhocConfirm") === "true";
+  const skipAdhocCb = document.getElementById("skipAdhocConfirm");
+  if (skipAdhocCb) skipAdhocCb.checked = skipAdhoc;
+  ["clearAllDataRow", "refreshAppRow", "regenerateTilesRow", "uploadStandardImagesRow", "adhocConfirmRow"].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.classList.toggle("d-none", !showDanger);
   });

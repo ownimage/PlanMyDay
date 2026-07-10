@@ -82,10 +82,14 @@ function changeMonday(value) {
 
 function changeShowDanger(enabled) {
   localStorage.setItem("showDanger", enabled);
-  ["clearAllDataRow", "refreshAppRow", "regenerateTilesRow", "uploadStandardImagesRow"].forEach(id => {
+  ["clearAllDataRow", "refreshAppRow", "regenerateTilesRow", "uploadStandardImagesRow", "adhocConfirmRow"].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.classList.toggle("d-none", !enabled);
   });
+}
+
+function changeSkipAdhocConfirm(enabled) {
+  localStorage.setItem("skipAdhocConfirm", enabled);
 }
 
 // AUTO-HIDE MENU
