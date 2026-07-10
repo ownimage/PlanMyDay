@@ -1046,6 +1046,18 @@ function openSettings() {
     const el = document.getElementById(id);
     if (el) el.classList.toggle("d-none", !showDanger);
   });
+
+  const qrContainer = document.getElementById("shareQrCode");
+  if (qrContainer) {
+    qrContainer.innerHTML = "";
+    new QRCode(qrContainer, {
+      text: "https://ownimage.github.io/PlanMyDay",
+      width: 120,
+      height: 120,
+      margin: 8
+    });
+  }
+
   const savedIconSize = localStorage.getItem("iconSize") || "large";
   const iconSel = document.getElementById("iconSizeSelector");
   if (iconSel) iconSel.value = savedIconSize;
