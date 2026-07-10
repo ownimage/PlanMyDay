@@ -482,26 +482,37 @@ function getImageDataUrl(name) {
 }
 
 let imagePickerCallback = null;
+let imagePickerSearch = "";
+
 function openImagePicker(callback) {
   imagePickerCallback = callback;
-  document.getElementById("imagePickerModal").classList.remove("d-none");
-  renderImagePickerList();
+  imagePickerSearch = "";
+  const modalEl = document.getElementById("imagePickerModal");
+  modalEl.addEventListener("hidden.bs.modal", function onHide() {
+    modalEl.removeEventListener("hidden.bs.modal", onHide);
+    imagePickerCallback = null;
+    imagePickerSearch = "";
+  });
+  new bootstrap.Modal(modalEl).show();
+  renderImagePicker();
+  setTimeout(() => {
+    const input = modalEl.querySelector(".image-picker-search");
+    if (input) { input.focus(); input.value = ""; }
+  }, 200);
 }
+
 function closeImagePicker() {
-  document.getElementById("imagePickerModal").classList.add("d-none");
+  const modalEl = document.getElementById("imagePickerModal");
+  const modal = bootstrap.Modal.getInstance(modalEl);
+  if (modal) modal.hide();
   imagePickerCallback = null;
   imagePickerSearch = "";
-  imagePickerPage = 0;
 }
-let imagePickerSearch = "";
-let imagePickerPage = 0;
-let imagePickerTotalPages = 1;
+
 function renderImagePicker() {
   const modal = document.getElementById("imagePickerModal");
   const list = modal.querySelector(".image-picker-list");
-  const searchEl = modal.querySelector(".image-picker-search");
-  const nav = modal.querySelector(".image-picker-nav");
-  list.innerHTML = ""; nav.innerHTML = "";
+  list.innerHTML = "";
 
   const images = loadImages();
   const filtered = images.filter(img => {
@@ -509,45 +520,37 @@ function renderImagePicker() {
     return true;
   }).sort((a, b) => a.name.localeCompare(b.name));
 
-  imagePickerTotalPages = Math.ceil(filtered.length / 30) || 1;
-  if (imagePickerPage >= imagePickerTotalPages) imagePickerPage = imagePickerTotalPages - 1;
-  const start = imagePickerPage * 30;
-  const pageItems = filtered.slice(start, start + 30);
+  if (filtered.length === 0) {
+    list.innerHTML = `<div class="text-secondary w-100 text-center py-4">${imagePickerSearch ? "No images match your search." : "No images available."}</div>`;
+    return;
+  }
 
-  pageItems.forEach(img => {
+  filtered.forEach(img => {
     const item = document.createElement("div");
-    item.className = "image-picker-item d-inline-block m-1 text-center";
-    item.style.cssText = "width:80px;cursor:pointer;border:1px solid transparent;border-radius:6px;padding:4px";
-    item.innerHTML = `<img src="${img.data}" class="date-img" style="width:50px;height:50px;object-fit:contain"><div class="small text-secondary" style="font-size:0.65rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(img.name)}</div>`;
+    item.className = "image-picker-item text-center";
+    item.style.cssText = "width:95px;cursor:pointer;border:2px solid transparent;border-radius:8px;padding:6px;transition:border-color 0.15s";
+    item.innerHTML = `<img src="${img.data}" class="date-img" style="width:64px;height:64px;object-fit:contain;display:block;margin:0 auto"><div style="font-size:0.75rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:4px">${escapeHtml(img.name)}</div>`;
     item.onclick = () => { selectImagePickerItem(img.name); };
     item.onmouseenter = () => { item.style.borderColor = "var(--bs-primary)"; };
     item.onmouseleave = () => { item.style.borderColor = "transparent"; };
     list.appendChild(item);
   });
-
-  if (imagePickerTotalPages > 1) {
-    nav.innerHTML = `
-      <div class="d-flex justify-content-center align-items-center gap-2 mt-2">
-        <button class="btn btn-outline-secondary btn-sm" onclick="imagePickerPage=Math.max(0,imagePickerPage-1);renderImagePicker()" ${imagePickerPage === 0 ? 'disabled' : ''}>Previous</button>
-        <span class="small">${imagePickerPage + 1} / ${imagePickerTotalPages}</span>
-        <button class="btn btn-outline-secondary btn-sm" onclick="imagePickerPage=Math.min(imagePickerTotalPages-1,imagePickerPage+1);renderImagePicker()" ${imagePickerPage >= imagePickerTotalPages - 1 ? 'disabled' : ''}>Next</button>
-      </div>`;
-  }
-
-  searchEl.value = imagePickerSearch;
 }
+
 function selectImagePickerItem(name) {
   if (imagePickerCallback) imagePickerCallback(name);
   closeImagePicker();
 }
+
 function filterImagePicker(val) {
   imagePickerSearch = val;
-  imagePickerPage = 0;
   renderImagePicker();
 }
+
 function clearImagePickerFilter() {
   imagePickerSearch = "";
-  imagePickerPage = 0;
+  const input = document.querySelector(".image-picker-search");
+  if (input) input.value = "";
   renderImagePicker();
 }
 
