@@ -139,7 +139,7 @@ function renderMain() {
   const allJobs = [];
   streams.forEach(t => {
     (t.jobs || []).forEach(j => {
-      if (j.active !== false) {
+      if (j.active !== false && shouldShowJobToday(j)) {
         allJobs.push({ job: j, streamTitle: t.title, streamIdx: streams.indexOf(t) });
       }
     });
@@ -180,7 +180,6 @@ function renderMain() {
 
   allJobs.forEach(({ job, streamTitle, streamIdx }) => {
     const isDone = completed.includes(job.id);
-    const freqBadge = job.frequency === "weekly" ? "info" : "primary";
     const streams = loadStreams();
     const stream = streams[streamIdx] || {};
     const streamImageUrl = getImageDataUrl(stream.image);
@@ -206,7 +205,6 @@ function renderMain() {
         <div class="col" style="min-width:0">
           <div class="d-flex align-items-center gap-2 mb-1">
             <h4 class="mb-0" style="${isDone ? 'text-decoration:line-through' : ''}">${escapeHtml(job.title)}${suffixLabel ? ` <span class="badge bg-secondary">${escapeHtml(suffixLabel.trim())}</span>` : ""}</h4>
-            <span class="badge bg-${freqBadge}">${escapeHtml(job.frequency || "daily")}</span>
           </div>
           <div class="text-secondary small">${escapeHtml(streamTitle)}</div>
           ${job.description ? `<div class="mt-1 text-secondary small">${escapeHtml(job.description)}</div>` : ""}
@@ -730,32 +728,6 @@ function renderJobsEditor() {
         <div class="mb-2">
           <input class="form-control" value="${escapeHtml(data.title || "")}" oninput="jobField('title', this.value)">
         </div>
-        <div class="row mb-2">
-          <div class="col-auto d-flex align-items-center">
-            <div class="form-check mb-0">
-              <input class="form-check-input" type="checkbox" id="jobSuffixCb" ${data.suffix ? "checked" : ""} onchange="jobField('suffix', this.checked)">
-              <label class="form-check-label" for="jobSuffixCb">Suffix</label>
-            </div>
-          </div>
-          <div class="col">
-            <select class="form-select" onchange="jobField('dayType', this.value)">
-              <option value="dayOfYear" ${(data.dayType || "dayOfYear") === "dayOfYear" ? "selected" : ""}>Day of Year</option>
-              <option value="dayOfMonth" ${data.dayType === "dayOfMonth" ? "selected" : ""}>Day of Month</option>
-              <option value="dayOfWeek" ${data.dayType === "dayOfWeek" ? "selected" : ""}>Day of Week</option>
-            </select>
-          </div>
-          <div class="col">
-            <select class="form-select" onchange="jobField('mod', this.value)">
-              <option value="" ${!data.mod ? "selected" : ""}>None</option>
-              <option value="2" ${data.mod === "2" ? "selected" : ""}>2</option>
-              <option value="3" ${data.mod === "3" ? "selected" : ""}>3</option>
-              <option value="4" ${data.mod === "4" ? "selected" : ""}>4</option>
-              <option value="5" ${data.mod === "5" ? "selected" : ""}>5</option>
-              <option value="6" ${data.mod === "6" ? "selected" : ""}>6</option>
-              <option value="7" ${data.mod === "7" ? "selected" : ""}>7</option>
-            </select>
-          </div>
-        </div>
         <div class="mb-2">
           <label class="form-label">Image</label>
           <div class="d-flex align-items-center gap-2">
@@ -771,13 +743,11 @@ function renderJobsEditor() {
           <label class="form-label">Description</label>
           <textarea class="form-control" rows="3" oninput="jobField('description', this.value)">${escapeHtml(data.description || "")}</textarea>
         </div>
-        <div class="row mb-2">
-          <div class="col">
-            <label class="form-label">Frequency</label>
-            <select class="form-select" onchange="jobField('frequency', this.value)">
-              <option value="daily" ${(data.frequency || "daily") === "daily" ? "selected" : ""}>Daily</option>
-              <option value="weekly" ${data.frequency === "weekly" ? "selected" : ""}>Weekly</option>
-            </select>
+        <div class="mb-2">
+          <label class="form-label">Schedule</label>
+          <div class="d-flex align-items-center gap-2">
+            <span id="jobScheduleText">${escapeHtml(getScheduleText(data.schedule))}</span>
+            <button class="btn btn-outline-primary btn-sm" onclick="openScheduleModal()">Change</button>
           </div>
         </div>
         <div class="row mb-2">
@@ -838,7 +808,7 @@ function renderJobsEditor() {
 
   sorted.forEach((j, displayIdx) => {
     const realIdx = jobs.indexOf(j);
-    const freqBadge = j.frequency === "weekly" ? "info" : "primary";
+    const scheduleText = getScheduleText(j.schedule);
     const jobImgUrl = getImageDataUrl(j.image);
     const card = document.createElement("div");
     card.className = "card p-3 mb-3 stream-drag-card";
@@ -855,7 +825,7 @@ function renderJobsEditor() {
               <input class="form-check-input active-toggle" type="checkbox" data-job-idx="${realIdx}" ${j.active !== false ? "checked" : ""} style="cursor:pointer">
               Active
             </label>
-            <span class="badge bg-${freqBadge}">${escapeHtml(j.frequency || "daily")}</span>
+            <span class="badge bg-primary">${escapeHtml(scheduleText)}</span>
             ${j.time ? `<span class="badge bg-secondary">${escapeHtml(j.time)}</span>` : ""}
           </div>
           ${j.description ? `<div class="mt-1 text-secondary small">${escapeHtml(j.description.substring(0, 80))}${j.description.length > 80 ? "..." : ""}</div>` : ""}
@@ -966,6 +936,87 @@ function jobTimeChanged() {
   jobField("time", h && m ? h + ":" + m : "");
 }
 
+function getScheduleText(schedule) {
+  if (!schedule) return "Every day";
+  const s = schedule.type || "daily";
+  if (s === "daily") return "Every day";
+  if (s === "weekdays") return "Weekdays (Mon\u2013Fri)";
+  if (s === "weekends") return "Weekends (Sat\u2013Sun)";
+  if (s === "days") {
+    const names = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+    return (schedule.days || []).map(d => names[d]).join(", ");
+  }
+  if (s === "monthly") return (schedule.date || 1) + "th of every month";
+  return "Every day";
+}
+
+let scheduleModalCallback = null;
+
+function openScheduleModal() {
+  const s = (jobsBuffer && jobsBuffer.schedule) || { type: "daily" };
+  document.querySelectorAll('input[name="scheduleType"]').forEach(r => r.checked = r.value === s.type);
+  document.getElementById("schedDaysOptions").classList.toggle("d-none", s.type !== "days");
+  document.getElementById("schedMonthlyOptions").classList.toggle("d-none", s.type !== "monthly");
+  for (let i = 0; i < 7; i++) {
+    document.getElementById("schedDay" + i).checked = (s.days || []).includes(i);
+  }
+  const mSel = document.getElementById("schedMonthlyDay");
+  mSel.innerHTML = "";
+  for (let i = 1; i <= 31; i++) {
+    const opt = document.createElement("option");
+    opt.value = i;
+    opt.textContent = i;
+    if (i === (s.date || 1)) opt.selected = true;
+    mSel.appendChild(opt);
+  }
+  new bootstrap.Modal(document.getElementById("scheduleModal")).show();
+}
+
+function closeScheduleModal() {
+  const modal = bootstrap.Modal.getInstance(document.getElementById("scheduleModal"));
+  if (modal) modal.hide();
+}
+
+function onScheduleTypeChange() {
+  const val = document.querySelector('input[name="scheduleType"]:checked');
+  const type = val ? val.value : "daily";
+  document.getElementById("schedDaysOptions").classList.toggle("d-none", type !== "days");
+  document.getElementById("schedMonthlyOptions").classList.toggle("d-none", type !== "monthly");
+}
+
+function saveScheduleModal() {
+  const type = (document.querySelector('input[name="scheduleType"]:checked') || {}).value || "daily";
+  let schedule = { type: type };
+  if (type === "days") {
+    schedule.days = [];
+    for (let i = 0; i < 7; i++) {
+      if (document.getElementById("schedDay" + i).checked) schedule.days.push(i);
+    }
+    if (schedule.days.length === 0) schedule = { type: "daily" };
+  } else if (type === "monthly") {
+    schedule.date = parseInt(document.getElementById("schedMonthlyDay").value, 10) || 1;
+  }
+  jobField("schedule", schedule);
+  const el = document.getElementById("jobScheduleText");
+  if (el) el.textContent = getScheduleText(schedule);
+  closeScheduleModal();
+}
+
+function shouldShowJobToday(job) {
+  if (job.sleepUntil) {
+    const today = new Date().toISOString().slice(0, 10);
+    if (today > job.sleepUntil) return false;
+  }
+  const s = job.schedule || { type: "daily" };
+  const type = s.type || "daily";
+  if (type === "daily") return true;
+  if (type === "weekdays") { const d = new Date().getDay(); return d >= 1 && d <= 5; }
+  if (type === "weekends") { const d = new Date().getDay(); return d === 0 || d === 6; }
+  if (type === "days") return (s.days || []).includes(new Date().getDay());
+  if (type === "monthly") return new Date().getDate() === (s.date || 1);
+  return true;
+}
+
 function editJob(index) {
   const streams = loadStreams();
   const jobs = streams[jobsStreamIndex].jobs || [];
@@ -1020,7 +1071,7 @@ function addNewJob() {
   const streams = loadStreams();
   const jobs = streams[jobsStreamIndex].jobs || [];
   const seq = jobs.length + 1;
-  const newJob = { id: "job_" + Date.now(), title: "New Job", sequence: seq, description: "", active: true, frequency: "daily", time: "", sleepUntil: "" };
+  const newJob = { id: "job_" + Date.now(), title: "New Job", sequence: seq, description: "", active: true, frequency: "daily", time: "", sleepUntil: "", schedule: { type: "daily" } };
   jobs.push(newJob);
   streams[jobsStreamIndex].jobs = jobs;
   saveStreams(streams);
