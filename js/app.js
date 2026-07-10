@@ -484,7 +484,7 @@ function renderStreamsEditor() {
     card.innerHTML = `
       <div class="d-flex align-items-center gap-2 mb-2">
         <div class="drag-handle text-secondary" style="cursor:grab;font-size:1.3rem;line-height:1">&#9776;</div>
-        ${streamImgUrl ? `<div style="width:40px;height:40px;flex-shrink:0"><img src="${streamImgUrl}" class="date-img" style="max-width:40px;max-height:40px"></div>` : ""}
+        <div style="width:40px;height:40px;flex-shrink:0">${streamImgUrl ? `<img src="${streamImgUrl}" class="date-img" style="max-width:40px;max-height:40px">` : ""}</div>
         <div class="fw-bold editor-title">${escapeHtml(t.title)}</div>
       </div>
       <div class="d-flex gap-2">
