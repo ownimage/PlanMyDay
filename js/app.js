@@ -663,6 +663,7 @@ let jobsBuffer = null;
 let isNewJob = false;
 
 function openJobsEditor(streamIdx) {
+  jobsEditingIdx = -1; jobsBuffer = null; isNewJob = false;
   jobsStreamIndex = streamIdx;
   document.getElementById("streamsEditorHeader").classList.add("d-none");
   document.getElementById("streamEditorList").classList.add("d-none");
@@ -715,13 +716,19 @@ function renderJobsEditor() {
         <h3 class="mb-0">${jobHeading}</h3>
       </div>
       <div class="card p-3 card-edited">
-        <div class="mb-2">
-          <label class="form-label">Title</label>
-          <input class="form-control" value="${escapeHtml(data.title || "")}" oninput="jobField('title', this.value)">
+        <div class="row mb-1">
+          <div class="col">
+            <label class="form-label">Title</label>
+          </div>
+          <div class="col-auto d-flex align-items-center">
+            <div class="form-check mb-0">
+              <input class="form-check-input" type="checkbox" id="jobActiveCb" ${data.active !== false ? "checked" : ""} onchange="jobField('active', this.checked)">
+              <label class="form-check-label" for="jobActiveCb">Active</label>
+            </div>
+          </div>
         </div>
         <div class="mb-2">
-          <label class="form-label">Description</label>
-          <textarea class="form-control" rows="3" oninput="jobField('description', this.value)">${escapeHtml(data.description || "")}</textarea>
+          <input class="form-control" value="${escapeHtml(data.title || "")}" oninput="jobField('title', this.value)">
         </div>
         <div class="row mb-2">
           <div class="col-auto d-flex align-items-center">
@@ -760,13 +767,11 @@ function renderJobsEditor() {
             ${data.image ? `<button class="btn btn-outline-danger btn-sm" onclick="jobField('image','');updateJobImagePreview(null)">Remove</button>` : ""}
           </div>
         </div>
+        <div class="mb-2">
+          <label class="form-label">Description</label>
+          <textarea class="form-control" rows="3" oninput="jobField('description', this.value)">${escapeHtml(data.description || "")}</textarea>
+        </div>
         <div class="row mb-2">
-          <div class="col">
-            <div class="form-check">
-              <input class="form-check-input" type="checkbox" id="jobActiveCb" ${data.active !== false ? "checked" : ""} onchange="jobField('active', this.checked)">
-              <label class="form-check-label" for="jobActiveCb">Active</label>
-            </div>
-          </div>
           <div class="col">
             <label class="form-label">Frequency</label>
             <select class="form-select" onchange="jobField('frequency', this.value)">
@@ -777,7 +782,13 @@ function renderJobsEditor() {
         </div>
         <div class="row mb-2">
           <div class="col">
-            <label class="form-label">Time</label>
+            <label class="form-label">Sleep Until</label>
+            <input class="form-control" id="jobSleepUntil" value="${escapeHtml(data.sleepUntil || "")}" placeholder="Pick a date">
+          </div>
+        </div>
+        <div class="row mb-2">
+          <div class="col">
+            <label class="form-label">Schedule Time</label>
             <div class="d-flex gap-2">
               <select class="form-select" id="jobTimeHour" onchange="jobTimeChanged()" style="width:auto">
                 <option value="" ${!data.time ? "selected" : ""}>-</option>
@@ -804,6 +815,18 @@ function renderJobsEditor() {
         </div>
       </div>
     `;
+    const fpInput = document.getElementById("jobSleepUntil");
+    if (fpInput) {
+      if (fpInput._flatpickr) fpInput._flatpickr.destroy();
+      flatpickr(fpInput, {
+        dateFormat: "Y-m-d",
+        allowInput: true,
+        monthSelectorType: "dropdown",
+        onChange: function(selectedDates, dateStr) {
+          jobField("sleepUntil", dateStr);
+        }
+      });
+    }
     updateNavState();
     return;
   }
@@ -997,7 +1020,7 @@ function addNewJob() {
   const streams = loadStreams();
   const jobs = streams[jobsStreamIndex].jobs || [];
   const seq = jobs.length + 1;
-  const newJob = { id: "job_" + Date.now(), title: "New Job", sequence: seq, description: "", active: true, frequency: "daily", time: "" };
+  const newJob = { id: "job_" + Date.now(), title: "New Job", sequence: seq, description: "", active: true, frequency: "daily", time: "", sleepUntil: "" };
   jobs.push(newJob);
   streams[jobsStreamIndex].jobs = jobs;
   saveStreams(streams);
