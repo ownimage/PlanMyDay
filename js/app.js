@@ -379,21 +379,15 @@ function renderStreamsEditor() {
     card.draggable = true;
     card.dataset.index = realIdx;
     card.innerHTML = `
-      <div class="d-flex align-items-center gap-2">
+      <div class="d-flex align-items-center gap-2 mb-2">
         <div class="drag-handle text-secondary" style="cursor:grab;font-size:1.3rem;line-height:1">&#9776;</div>
         ${streamImgUrl ? `<div style="width:40px;height:40px;flex-shrink:0"><img src="${streamImgUrl}" class="date-img" style="max-width:40px;max-height:40px"></div>` : ""}
-        <div class="flex-fill" style="min-width:0">
-          <div class="fw-bold editor-title mb-1">${escapeHtml(t.title)}</div>
-          <div class="d-flex gap-2 align-items-center small text-secondary">
-            <span class="text-muted">#${t.sequence || displayIdx + 1}</span>
-          </div>
-          ${t.description ? `<div class="mt-1 text-secondary small">${escapeHtml(t.description.substring(0, 80))}${t.description.length > 80 ? "..." : ""}</div>` : ""}
-        </div>
-        <div class="d-flex gap-2 flex-shrink-0">
-          <button class="btn btn-primary editor-btn" onclick="editStream(${realIdx})">Edit</button>
-          <button class="btn btn-info editor-btn" onclick="openJobsEditor(${realIdx})">Jobs</button>
-          <button class="btn btn-danger editor-btn" onclick="confirmDeleteStream(${realIdx})">Delete</button>
-        </div>
+        <div class="fw-bold editor-title">${escapeHtml(t.title)}</div>
+      </div>
+      <div class="d-flex gap-2">
+        <button class="btn btn-primary editor-btn" onclick="editStream(${realIdx})">Edit</button>
+        <button class="btn btn-info editor-btn" onclick="openJobsEditor(${realIdx})">Jobs</button>
+        <button class="btn btn-danger editor-btn" onclick="confirmDeleteStream(${realIdx})">Delete</button>
       </div>
     `;
     list.appendChild(card);
