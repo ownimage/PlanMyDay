@@ -775,6 +775,29 @@ function renderJobsEditor() {
             </select>
           </div>
         </div>
+        <div class="row mb-2">
+          <div class="col">
+            <label class="form-label">Time</label>
+            <div class="d-flex gap-2">
+              <select class="form-select" id="jobTimeHour" onchange="jobTimeChanged()" style="width:auto">
+                <option value="" ${!data.time ? "selected" : ""}>-</option>
+                ${Array.from({length: 24}, (_, i) => {
+                  const h = String(i).padStart(2, "0");
+                  const cur = data.time ? data.time.split(":")[0] : "";
+                  return `<option value="${h}" ${cur === h ? "selected" : ""}>${h}</option>`;
+                }).join("")}
+              </select>
+              <span class="align-self-center">:</span>
+              <select class="form-select" id="jobTimeMin" onchange="jobTimeChanged()" style="width:auto">
+                <option value="" ${!data.time ? "selected" : ""}>-</option>
+                <option value="00" ${data.time && data.time.split(":")[1] === "00" ? "selected" : ""}>00</option>
+                <option value="15" ${data.time && data.time.split(":")[1] === "15" ? "selected" : ""}>15</option>
+                <option value="30" ${data.time && data.time.split(":")[1] === "30" ? "selected" : ""}>30</option>
+                <option value="45" ${data.time && data.time.split(":")[1] === "45" ? "selected" : ""}>45</option>
+              </select>
+            </div>
+          </div>
+        </div>
         <div class="d-flex gap-2 mt-3">
           <button class="btn btn-success editor-btn" onclick="doneJobEdit()">OK</button>
           <button class="btn btn-secondary editor-btn ms-auto" onclick="cancelJobEdit()">Cancel</button>
@@ -810,6 +833,7 @@ function renderJobsEditor() {
               Active
             </label>
             <span class="badge bg-${freqBadge}">${escapeHtml(j.frequency || "daily")}</span>
+            ${j.time ? `<span class="badge bg-secondary">${escapeHtml(j.time)}</span>` : ""}
           </div>
           ${j.description ? `<div class="mt-1 text-secondary small">${escapeHtml(j.description.substring(0, 80))}${j.description.length > 80 ? "..." : ""}</div>` : ""}
         </div>
@@ -913,6 +937,11 @@ function jobField(field, value) {
   jobsBuffer[field] = value;
   if (field === "active") renderJobsEditor();
 }
+function jobTimeChanged() {
+  const h = document.getElementById("jobTimeHour").value;
+  const m = document.getElementById("jobTimeMin").value;
+  jobField("time", h && m ? h + ":" + m : "");
+}
 
 function editJob(index) {
   const streams = loadStreams();
@@ -968,7 +997,7 @@ function addNewJob() {
   const streams = loadStreams();
   const jobs = streams[jobsStreamIndex].jobs || [];
   const seq = jobs.length + 1;
-  const newJob = { id: "job_" + Date.now(), title: "New Job", sequence: seq, description: "", active: true, frequency: "daily" };
+  const newJob = { id: "job_" + Date.now(), title: "New Job", sequence: seq, description: "", active: true, frequency: "daily", time: "" };
   jobs.push(newJob);
   streams[jobsStreamIndex].jobs = jobs;
   saveStreams(streams);
