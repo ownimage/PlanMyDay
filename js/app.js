@@ -664,7 +664,7 @@ function renderJobsEditor() {
     card.innerHTML = `
       <div class="d-flex align-items-center gap-2">
         <div class="drag-handle text-secondary" style="cursor:grab;font-size:1.3rem;line-height:1">&#9776;</div>
-        ${jobImgUrl ? `<div style="width:40px;height:40px;flex-shrink:0"><img src="${jobImgUrl}" class="date-img" style="max-width:40px;max-height:40px"></div>` : ""}
+        <div style="width:40px;height:40px;flex-shrink:0">${jobImgUrl ? `<img src="${jobImgUrl}" class="date-img" style="max-width:40px;max-height:40px">` : ""}</div>
         <div class="flex-fill" style="min-width:0">
           <div class="fw-bold editor-title mb-1">${escapeHtml(j.title)}</div>
           <div class="d-flex gap-2 align-items-center small text-secondary">
@@ -673,7 +673,6 @@ function renderJobsEditor() {
               Active
             </label>
             <span class="badge bg-${freqBadge}">${escapeHtml(j.frequency || "daily")}</span>
-            <span class="text-muted">#${j.sequence || displayIdx + 1}</span>
           </div>
           ${j.description ? `<div class="mt-1 text-secondary small">${escapeHtml(j.description.substring(0, 80))}${j.description.length > 80 ? "..." : ""}</div>` : ""}
         </div>
