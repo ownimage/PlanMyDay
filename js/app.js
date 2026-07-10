@@ -104,13 +104,23 @@ function saveTodayOrder(order) {
 function addScheduleJobsToOrder(order) {
   const streams = loadStreams();
   const existing = new Set(order);
+  const jobMap = {};
   streams.forEach(t => {
     (t.jobs || []).forEach(j => {
+      jobMap[j.id] = j;
       if (j.active !== false && shouldShowJobToday(j) && !existing.has(j.id)) {
         order.push(j.id);
         existing.add(j.id);
       }
     });
+  });
+  order.sort((a, b) => {
+    const ta = jobMap[a]?.time;
+    const tb = jobMap[b]?.time;
+    if (!ta && !tb) return 0;
+    if (!ta) return 1;
+    if (!tb) return -1;
+    return ta.localeCompare(tb);
   });
   return order;
 }
