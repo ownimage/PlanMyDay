@@ -101,6 +101,43 @@ function saveTodayOrder(order) {
 }
 
 // MAIN PAGE RENDER
+function addScheduleJobsToOrder(order) {
+  const streams = loadStreams();
+  const existing = new Set(order);
+  streams.forEach(t => {
+    (t.jobs || []).forEach(j => {
+      if (j.active !== false && shouldShowJobToday(j) && !existing.has(j.id)) {
+        order.push(j.id);
+        existing.add(j.id);
+      }
+    });
+  });
+  return order;
+}
+
+function ensureTodayList() {
+  const today = new Date().toISOString().slice(0, 10);
+  const lastGen = localStorage.getItem("planmydays_last_gen");
+  const existingOrder = loadTodayOrder();
+  if (lastGen === today && existingOrder) return;
+
+  if (!existingOrder) {
+    const order = addScheduleJobsToOrder([]);
+    saveTodayOrder(order);
+    saveCompletedJobs([]);
+    localStorage.setItem("planmydays_last_gen", today);
+    return;
+  }
+
+  // date changed: carry over uncompleted + add new schedule-matching jobs
+  const completed = loadCompletedJobs();
+  const carried = existingOrder.filter(id => !completed.includes(id));
+  const merged = addScheduleJobsToOrder(carried);
+  saveTodayOrder(merged);
+  saveCompletedJobs([]);
+  localStorage.setItem("planmydays_last_gen", today);
+}
+
 function renderMain() {
   const container = document.getElementById("countdownContainer");
   if (!container) return;
@@ -132,26 +169,25 @@ function renderMain() {
   addForm.className = "card p-3 mb-3 d-none";
   container.appendChild(addForm);
 
+  ensureTodayList();
+
   const streams = loadStreams();
   const completed = loadCompletedJobs();
-  const todayOrder = loadTodayOrder();
+  const todayOrder = loadTodayOrder() || [];
+  const todaySet = new Set(todayOrder);
 
   const allJobs = [];
   streams.forEach(t => {
     (t.jobs || []).forEach(j => {
-      if (j.active !== false && shouldShowJobToday(j)) {
+      if (j.active !== false && todaySet.has(j.id)) {
         allJobs.push({ job: j, streamTitle: t.title, streamIdx: streams.indexOf(t) });
       }
     });
   });
 
-  if (todayOrder) {
-    const orderMap = {};
-    todayOrder.forEach((id, i) => { orderMap[id] = i; });
-    allJobs.sort((a, b) => (orderMap[a.job.id] !== undefined ? orderMap[a.job.id] : 999) - (orderMap[b.job.id] !== undefined ? orderMap[b.job.id] : 999));
-  } else {
-    allJobs.sort((a, b) => (a.job.sequence || 0) - (b.job.sequence || 0));
-  }
+  const orderMap = {};
+  todayOrder.forEach((id, i) => { orderMap[id] = i; });
+  allJobs.sort((a, b) => (orderMap[a.job.id] !== undefined ? orderMap[a.job.id] : 999) - (orderMap[b.job.id] !== undefined ? orderMap[b.job.id] : 999));
 
   if (localStorage.getItem("hideDone") === "true") {
     const filtered = allJobs.filter(({ job }) => !completed.includes(job.id));
@@ -735,8 +771,8 @@ function renderJobsEditor() {
               ${getImageDataUrl(data.image) ? `<img src="${getImageDataUrl(data.image)}" class="date-img" style="max-width:50px;max-height:50px">` : `<span class="text-secondary small">none</span>`}
             </div>
             <span class="small text-secondary" id="jobImageName">${escapeHtml(data.image || "")}</span>
-            <button class="btn btn-outline-primary btn-sm" onclick="openImagePicker(function(name){ jobField('image', name); updateJobImagePreview(name); })">Choose</button>
-            ${data.image ? `<button class="btn btn-outline-danger btn-sm" onclick="jobField('image','');updateJobImagePreview(null)">Remove</button>` : ""}
+            <button class="btn btn-primary btn-sm" onclick="openImagePicker(function(name){ jobField('image', name); updateJobImagePreview(name); })">Choose</button>
+            ${data.image ? `<button class="btn btn-danger btn-sm" onclick="jobField('image','');updateJobImagePreview(null)">Remove</button>` : ""}
           </div>
         </div>
         <div class="mb-2">
@@ -747,7 +783,7 @@ function renderJobsEditor() {
           <label class="form-label">Schedule</label>
           <div class="d-flex align-items-center gap-2">
             <span id="jobScheduleText">${escapeHtml(getScheduleText(data.schedule))}</span>
-            <button class="btn btn-outline-primary btn-sm" onclick="openScheduleModal()">Change</button>
+            <button class="btn btn-primary btn-sm" onclick="openScheduleModal()">Change</button>
           </div>
         </div>
         <div class="row mb-2">
@@ -826,6 +862,7 @@ function renderJobsEditor() {
               Active
             </label>
             <span class="badge bg-primary">${escapeHtml(scheduleText)}</span>
+            ${j.sleepUntil ? `<span class="badge bg-info">Sleep: ${escapeHtml(formatDate(j.sleepUntil))}</span>` : ""}
             ${j.time ? `<span class="badge bg-secondary">${escapeHtml(j.time)}</span>` : ""}
           </div>
           ${j.description ? `<div class="mt-1 text-secondary small">${escapeHtml(j.description.substring(0, 80))}${j.description.length > 80 ? "..." : ""}</div>` : ""}
@@ -936,6 +973,12 @@ function jobTimeChanged() {
   jobField("time", h && m ? h + ":" + m : "");
 }
 
+function formatDate(dateStr) {
+  if (!dateStr) return "";
+  const d = new Date(dateStr + "T00:00:00");
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
 function getScheduleText(schedule) {
   if (!schedule) return "Every day";
   const s = schedule.type || "daily";
@@ -1005,7 +1048,7 @@ function saveScheduleModal() {
 function shouldShowJobToday(job) {
   if (job.sleepUntil) {
     const today = new Date().toISOString().slice(0, 10);
-    if (today > job.sleepUntil) return false;
+    if (today < job.sleepUntil) return false;
   }
   const s = job.schedule || { type: "daily" };
   const type = s.type || "daily";
@@ -1021,6 +1064,10 @@ function editJob(index) {
   const streams = loadStreams();
   const jobs = streams[jobsStreamIndex].jobs || [];
   jobsBuffer = JSON.parse(JSON.stringify(jobs[index]));
+  if (jobsBuffer.sleepUntil) {
+    const today = new Date().toISOString().slice(0, 10);
+    if (jobsBuffer.sleepUntil < today) jobsBuffer.sleepUntil = "";
+  }
   jobsEditingIdx = index; isNewJob = false;
   renderJobsEditor();
 }
@@ -1177,7 +1224,14 @@ function closeSettings() {
 }
 
 function regenerateTiles() {
-  localStorage.removeItem("planmydays_completed");
+  const order = loadTodayOrder() || [];
+  const streams = loadStreams();
+  const validIds = new Set();
+  streams.forEach(t => (t.jobs || []).forEach(j => validIds.add(j.id)));
+  const clean = order.filter(id => validIds.has(id));
+  const merged = addScheduleJobsToOrder(clean);
+  saveTodayOrder(merged);
+  saveCompletedJobs([]);
   localStorage.setItem("planmydays_last_gen", new Date().toISOString().slice(0, 10));
   closeSettings();
   renderMain();
@@ -1242,13 +1296,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const savedTheme = localStorage.getItem("theme") || "darkly";
   applyTheme(savedTheme);
   if (typeof seedSampleImages === "function") seedSampleImages();
-
-  const lastGen = localStorage.getItem("planmydays_last_gen");
-  const today = new Date().toISOString().slice(0, 10);
-  if (lastGen !== today) {
-    localStorage.removeItem("planmydays_completed");
-    localStorage.setItem("planmydays_last_gen", today);
-  }
 
   renderMain();
 });
