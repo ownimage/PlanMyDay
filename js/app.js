@@ -1127,6 +1127,7 @@ function closeSettings() {
 
 function regenerateTiles() {
   localStorage.removeItem("planmydays_completed");
+  localStorage.setItem("planmydays_last_gen", new Date().toISOString().slice(0, 10));
   closeSettings();
   renderMain();
 }
@@ -1190,6 +1191,14 @@ document.addEventListener("DOMContentLoaded", () => {
   const savedTheme = localStorage.getItem("theme") || "darkly";
   applyTheme(savedTheme);
   if (typeof seedSampleImages === "function") seedSampleImages();
+
+  const lastGen = localStorage.getItem("planmydays_last_gen");
+  const today = new Date().toISOString().slice(0, 10);
+  if (lastGen !== today) {
+    localStorage.removeItem("planmydays_completed");
+    localStorage.setItem("planmydays_last_gen", today);
+  }
+
   renderMain();
 });
 
