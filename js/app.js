@@ -120,7 +120,7 @@ function renderMain() {
   const addRow = document.createElement("div");
   addRow.className = "d-flex gap-2 mb-3";
   const addBtn = document.createElement("button");
-  addBtn.className = "btn btn-primary btn-sm ms-auto";
+  addBtn.className = "btn btn-primary editor-btn ms-auto";
   addBtn.innerHTML = "&#43; Add card";
   addBtn.onclick = function() { showAddCardForm(); };
   addRow.appendChild(addBtn);
