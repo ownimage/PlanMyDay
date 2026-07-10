@@ -101,7 +101,8 @@ function hideNav() {
   const nav = document.getElementById("mainNav");
   if (!nav) return;
   if (document.getElementById("settingsPage").classList.contains("d-none") &&
-      document.getElementById("streamsEditor").classList.contains("d-none")) {
+      document.getElementById("streamsEditor").classList.contains("d-none") &&
+      document.getElementById("imagesEditor").classList.contains("d-none")) {
     nav.classList.add("nav-hidden");
     autoHideCooldown = true;
     setTimeout(() => { autoHideCooldown = false; }, 600);
@@ -117,12 +118,37 @@ function resetAutoHideTimer() {
   autoHideTimer = setTimeout(hideNav, 4000);
 }
 
+let autoHideEventsBound = false;
+const autoHideEvents = ["pointerdown", "pointerup", "touchstart", "click", "mousedown"];
+
+function bindAutoHideEvents() {
+  if (autoHideEventsBound) return;
+  autoHideEvents.forEach(evt => {
+    document.addEventListener(evt, resetAutoHideTimer, { passive: true });
+    document.body.addEventListener(evt, resetAutoHideTimer, { passive: true });
+  });
+  window.addEventListener("scroll", resetAutoHideTimer, { passive: true });
+  autoHideEventsBound = true;
+}
+
+function unbindAutoHideEvents() {
+  if (!autoHideEventsBound) return;
+  autoHideEvents.forEach(evt => {
+    document.removeEventListener(evt, resetAutoHideTimer);
+    document.body.removeEventListener(evt, resetAutoHideTimer);
+  });
+  window.removeEventListener("scroll", resetAutoHideTimer);
+  autoHideEventsBound = false;
+}
+
 function changeAutoHideMenu(enabled) {
   localStorage.setItem("autoHideMenu", enabled);
   document.body.classList.toggle("auto-hide-menu", enabled);
   if (enabled) {
+    bindAutoHideEvents();
     resetAutoHideTimer();
   } else {
+    unbindAutoHideEvents();
     clearTimeout(autoHideTimer);
     document.getElementById("mainNav").classList.remove("nav-hidden");
   }
@@ -145,11 +171,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const autoHide = localStorage.getItem("autoHideMenu") === "true";
   if (autoHide) {
     document.body.classList.add("auto-hide-menu");
+    bindAutoHideEvents();
     resetAutoHideTimer();
-    ["pointerdown", "pointerup", "touchstart", "click", "mousedown"].forEach(evt => {
-      document.addEventListener(evt, resetAutoHideTimer, { passive: true });
-      document.body.addEventListener(evt, resetAutoHideTimer, { passive: true });
-    });
-    window.addEventListener("scroll", resetAutoHideTimer, { passive: true });
   }
 });
