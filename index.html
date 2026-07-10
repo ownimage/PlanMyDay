@@ -36,6 +36,13 @@
         <li><a class="dropdown-item" onclick="openImagesEditor()">Images</a></li>
       </ul>
     </div>
+    <div class="dropdown">
+      <button class="btn btn-sm dropdown-toggle" data-bs-toggle="dropdown">Import/Export</button>
+      <ul class="dropdown-menu">
+        <li><a class="dropdown-item" onclick="exportData()">Export</a></li>
+        <li><a class="dropdown-item" onclick="importData()">Import</a></li>
+      </ul>
+    </div>
 
   </nav>
 
@@ -189,6 +196,34 @@
       </div>
 
       <div class="row mb-4 align-items-center col-md-8">
+        <div class="col-4 text-end"><label class="form-label mb-0">1 Jan</label></div>
+        <div class="col-8">
+          <select id="jan1Selector" class="form-select" onchange="changeJan1(this.value)">
+            <option value="1">1</option>
+            <option value="0">0</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="row mb-4 align-items-center col-md-8">
+        <div class="col-4 text-end"><label class="form-label mb-0">Monday</label></div>
+        <div class="col-8">
+          <select id="mondaySelector" class="form-select" onchange="changeMonday(this.value)">
+            <option value="1">1</option>
+            <option value="0">0</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="row mb-4 align-items-center col-md-8">
+        <div class="col-4 text-end"></div>
+        <div class="col-8 d-flex gap-2">
+          <button class="btn btn-primary editor-btn btn-wide flex-fill" onclick="exportData()">Export Data</button>
+          <button class="btn btn-secondary editor-btn btn-wide flex-fill" onclick="importData()">Import Data</button>
+        </div>
+      </div>
+
+      <div class="row mb-4 align-items-center col-md-8">
         <div class="col-4 text-end"><label class="form-label mb-0">Show danger</label></div>
         <div class="col-8">
           <div class="form-check form-switch mt-1">
@@ -214,6 +249,12 @@
         <div class="col-4 text-end"></div>
         <div class="col-8">
           <button class="btn btn-warning editor-btn btn-wide w-100" onclick="location.reload()">Refresh App</button>
+        </div>
+      </div>
+      <div id="uploadStandardImagesRow" class="mt-2 row align-items-center col-md-8 d-none">
+        <div class="col-4 text-end"></div>
+        <div class="col-8">
+          <button class="btn btn-primary editor-btn btn-wide w-100" onclick="uploadStandardImages()">Upload Standard Images</button>
         </div>
       </div>
       <div class="mt-5 small build-number">Build <span id="buildNumber"></span></div>

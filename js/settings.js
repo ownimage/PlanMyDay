@@ -70,9 +70,19 @@ function changeHideDone(enabled) {
   localStorage.setItem("hideDone", enabled);
 }
 
+function changeJan1(value) {
+  localStorage.setItem("jan1", value);
+  if (typeof renderMain === "function") renderMain();
+}
+
+function changeMonday(value) {
+  localStorage.setItem("monday", value);
+  if (typeof renderMain === "function") renderMain();
+}
+
 function changeShowDanger(enabled) {
   localStorage.setItem("showDanger", enabled);
-  ["clearAllDataRow", "refreshAppRow", "regenerateTilesRow"].forEach(id => {
+  ["clearAllDataRow", "refreshAppRow", "regenerateTilesRow", "uploadStandardImagesRow"].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.classList.toggle("d-none", !enabled);
   });

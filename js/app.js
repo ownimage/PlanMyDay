@@ -136,6 +136,7 @@ function renderMain() {
     const stream = streams[streamIdx] || {};
     const streamImageUrl = getImageDataUrl(stream.image);
     const jobImageUrl = getImageDataUrl(job.image);
+    const suffixLabel = getJobSuffix(job);
     const card = document.createElement("div");
     card.className = `card countdown-card mb-2 today-drag-card ${isDone ? "opacity-50" : ""}`;
     card.draggable = true;
@@ -154,7 +155,7 @@ function renderMain() {
         </div>
         <div class="col" style="min-width:0">
           <div class="d-flex align-items-center gap-2 mb-1">
-            <h4 class="mb-0" style="${isDone ? 'text-decoration:line-through' : ''}">${escapeHtml(job.title)}</h4>
+            <h4 class="mb-0" style="${isDone ? 'text-decoration:line-through' : ''}">${escapeHtml(job.title)}${suffixLabel ? ` <span class="badge bg-secondary">${escapeHtml(suffixLabel.trim())}</span>` : ""}</h4>
             <span class="badge bg-${freqBadge}">${escapeHtml(job.frequency || "daily")}</span>
           </div>
           <div class="text-secondary small">${escapeHtml(streamTitle)}</div>
@@ -235,30 +236,12 @@ function showAddCardForm() {
   if (!form) return;
   form.classList.toggle("d-none");
   if (form.classList.contains("d-none")) return;
-  const streams = loadStreams();
-  if (streams.length === 0) {
-    streams.push({ title: "General", sequence: 1, jobs: [] });
-    saveStreams(streams);
-  }
   form.innerHTML = `
     <div class="mb-2">
       <input class="form-control" id="newCardTitle" placeholder="Job title" value="">
     </div>
     <div class="mb-2">
       <textarea class="form-control" id="newCardDesc" placeholder="Description (optional)" rows="2"></textarea>
-    </div>
-    <div class="row mb-2">
-      <div class="col">
-        <select class="form-select" id="newCardFreq">
-          <option value="daily">Daily</option>
-          <option value="weekly">Weekly</option>
-        </select>
-      </div>
-      <div class="col">
-        <select class="form-select" id="newCardStream">
-          ${streams.map(t => `<option value="${escapeHtml(t.title)}">${escapeHtml(t.title)}</option>`).join("")}
-        </select>
-      </div>
     </div>
     <div class="d-flex gap-2">
       <button class="btn btn-primary editor-btn" onclick="addTodayCard()">Add</button>
@@ -271,13 +254,14 @@ function addTodayCard() {
   const title = document.getElementById("newCardTitle").value.trim();
   if (!title) return;
   const desc = document.getElementById("newCardDesc").value.trim();
-  const freq = document.getElementById("newCardFreq").value;
-  const streamTitle = document.getElementById("newCardStream").value;
   const streams = loadStreams();
-  let stream = streams.find(t => t.title === streamTitle);
-  if (!stream) { stream = streams[0]; }
+  let stream = streams.find(t => t.title === "Ad Hoc");
+  if (!stream) {
+    stream = { title: "Ad Hoc", sequence: streams.length + 1, jobs: [] };
+    streams.push(stream);
+  }
   const jobs = stream.jobs || [];
-  const newJob = { id: "job_" + Date.now(), title, sequence: jobs.length + 1, description: desc, active: true, frequency: freq };
+  const newJob = { id: "job_" + Date.now(), title, sequence: jobs.length + 1, description: desc, active: true, frequency: "daily" };
   jobs.push(newJob);
   stream.jobs = jobs;
   saveStreams(streams);
@@ -578,7 +562,8 @@ function renderJobsEditor() {
 
   list.innerHTML = ""; addTile.innerHTML = ""; topTile.innerHTML = ""; singleEditor.innerHTML = "";
 
-  document.getElementById("jobsEditorTitle").textContent = `Stream: ${escapeHtml(stream.title)}`;
+  const streamImgUrl = getImageDataUrl(stream.image);
+  document.getElementById("jobsEditorTitle").innerHTML = `Stream: ${streamImgUrl ? `<img src="${streamImgUrl}" class="date-img mx-1" style="max-width:32px;max-height:32px;vertical-align:middle">` : ""}${escapeHtml(stream.title)}`;
 
   if (jobsEditingIdx >= 0) {
     list.classList.add("d-none"); addTile.classList.add("d-none");
@@ -618,7 +603,6 @@ function renderJobsEditor() {
           <div class="col">
             <select class="form-select" onchange="jobField('mod', this.value)">
               <option value="" ${!data.mod ? "selected" : ""}>None</option>
-              <option value="1" ${data.mod === "1" ? "selected" : ""}>1</option>
               <option value="2" ${data.mod === "2" ? "selected" : ""}>2</option>
               <option value="3" ${data.mod === "3" ? "selected" : ""}>3</option>
               <option value="4" ${data.mod === "4" ? "selected" : ""}>4</option>
@@ -838,6 +822,41 @@ function addNewJob() {
   renderJobsEditor();
 }
 
+function getJobSuffix(job) {
+  if (!job.suffix) return "";
+  const today = new Date();
+  const dayType = job.dayType || "dayOfYear";
+  let dayNum;
+
+  if (dayType === "dayOfWeek") {
+    dayNum = today.getDay();
+    const mondaySetting = localStorage.getItem("monday") || "1";
+    if (mondaySetting === "1") {
+      dayNum = dayNum === 0 ? 7 : dayNum;
+    } else {
+      dayNum = dayNum === 0 ? 6 : dayNum - 1;
+    }
+  } else if (dayType === "dayOfMonth") {
+    dayNum = today.getDate();
+  } else {
+    const startOfYear = new Date(today.getFullYear(), 0, 0);
+    dayNum = Math.floor((today - startOfYear) / 86400000);
+    const jan1Setting = localStorage.getItem("jan1") || "0";
+    if (jan1Setting === "0") {
+      dayNum -= 1;
+    }
+  }
+
+  if (job.mod && job.mod !== "") {
+    const modVal = parseInt(job.mod, 10);
+    if (modVal > 0) {
+      dayNum = dayNum % modVal;
+    }
+  }
+
+  return ` (${dayNum})`;
+}
+
 // SETTINGS
 function openSettings() {
   document.getElementById("countdownContainer").classList.add("d-none");
@@ -856,10 +875,16 @@ function openSettings() {
   const hideDone = localStorage.getItem("hideDone") === "true";
   const hideDoneCb = document.getElementById("hideDone");
   if (hideDoneCb) hideDoneCb.checked = hideDone;
+  const jan1 = localStorage.getItem("jan1") || "1";
+  const jan1Sel = document.getElementById("jan1Selector");
+  if (jan1Sel) jan1Sel.value = jan1;
+  const monday = localStorage.getItem("monday") || "1";
+  const mondaySel = document.getElementById("mondaySelector");
+  if (mondaySel) mondaySel.value = monday;
   const showDanger = localStorage.getItem("showDanger") === "true";
   const showDangerCb = document.getElementById("showDanger");
   if (showDangerCb) showDangerCb.checked = showDanger;
-  ["clearAllDataRow", "refreshAppRow", "regenerateTilesRow"].forEach(id => {
+  ["clearAllDataRow", "refreshAppRow", "regenerateTilesRow", "uploadStandardImagesRow"].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.classList.toggle("d-none", !showDanger);
   });
@@ -893,6 +918,50 @@ function confirmClearAllData() {
     closeSettings();
   };
   new bootstrap.Modal(modalEl).show();
+}
+
+function exportData() {
+  const data = {
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    streams: JSON.parse(localStorage.getItem("planmydays_streams") || "[]"),
+    images: JSON.parse(localStorage.getItem("images") || "[]")
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "planmydays-backup.json";
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importData() {
+  const input = document.createElement("input");
+  input.type = "file";
+  input.accept = ".json,application/json";
+  input.onchange = e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = evt => {
+      try {
+        const data = JSON.parse(evt.target.result);
+        if (!data || (!data.streams && !data.images)) {
+          alert("Invalid backup file: missing streams or images data.");
+          return;
+        }
+        if (data.streams) localStorage.setItem("planmydays_streams", JSON.stringify(data.streams));
+        if (data.images) localStorage.setItem("images", JSON.stringify(data.images));
+        closeSettings();
+        renderMain();
+      } catch (err) {
+        alert("Invalid JSON file.");
+      }
+    };
+    reader.readAsText(file);
+  };
+  input.click();
 }
 
 document.addEventListener("DOMContentLoaded", () => {
