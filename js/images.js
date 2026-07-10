@@ -566,7 +566,27 @@ function seedSampleImages() {
     .catch(() => {});
 }
 
+function showUploadDialog() {
+  let dlg = document.getElementById("uploadProgressDialog");
+  if (!dlg) {
+    dlg = document.createElement("div");
+    dlg.id = "uploadProgressDialog";
+    dlg.style.cssText = "position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center";
+    dlg.innerHTML = '<div style="background:var(--bs-body-bg,#1e1e1e);padding:2rem;border-radius:12px;text-align:center;min-width:200px;box-shadow:0 8px 32px rgba(0,0,0,0.3)">'
+      + '<div class="spinner-border mb-3" role="status"></div>'
+      + '<div>Uploading Standard Images…</div></div>';
+    document.body.appendChild(dlg);
+  }
+  dlg.classList.remove("d-none");
+}
+
+function hideUploadDialog() {
+  const dlg = document.getElementById("uploadProgressDialog");
+  if (dlg) dlg.classList.add("d-none");
+}
+
 function uploadStandardImages() {
+  showUploadDialog();
   fetch("sampleImages.json?v=" + (typeof BUILD_NUMBER !== "undefined" ? BUILD_NUMBER : Date.now()))
     .then(res => res.json())
     .then(data => {
@@ -586,5 +606,6 @@ function uploadStandardImages() {
         renderImagesEditor();
       }
     })
-    .catch(() => {});
+    .catch(() => {})
+    .finally(() => hideUploadDialog());
 }
