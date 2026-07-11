@@ -919,7 +919,7 @@ function renderJobsEditor() {
         <div class="drag-handle text-secondary" style="cursor:grab;font-size:1.3rem;line-height:1">&#9776;</div>
         <div style="width:40px;height:40px;flex-shrink:0">${jobImgUrl ? `<img src="${jobImgUrl}" class="date-img" style="max-width:40px;max-height:40px">` : ""}</div>
         <div class="flex-fill" style="min-width:0">
-          <div class="fw-bold editor-title mb-1">${escapeHtml(j.title)}</div>
+          <div class="fw-bold editor-title mb-1">${escapeHtml(j.title)}${getJobSuffix(j) ? ` <span class="badge bg-secondary">${escapeHtml(getJobSuffix(j).trim())}</span>` : ""}</div>
           <div class="d-flex gap-2 align-items-center small text-secondary">
             <label class="form-check-label mb-0 me-1" style="cursor:pointer">
               <input class="form-check-input active-toggle" type="checkbox" data-job-idx="${realIdx}" ${j.active !== false ? "checked" : ""} style="cursor:pointer">
