@@ -557,6 +557,7 @@ function renderStreamsEditor() {
         <div class="drag-handle text-secondary" style="cursor:grab;font-size:1.3rem;line-height:1">&#9776;</div>
         <div style="width:40px;height:40px;flex-shrink:0">${streamImgUrl ? `<img src="${streamImgUrl}" class="date-img" style="max-width:40px;max-height:40px">` : ""}</div>
         <div class="fw-bold editor-title">${escapeHtml(t.title)}</div>
+        <span class="badge bg-${(t.tab || "progress") === "progress" ? "primary" : "secondary"} ms-auto">${escapeHtml(t.tab || "progress")}</span>
       </div>
       <div class="d-flex gap-2">
         <button class="btn btn-primary editor-btn" onclick="editStream(${realIdx})">Edit</button>
