@@ -238,13 +238,13 @@ function renderMain() {
     card.dataset.streamIdx = streamIdx;
     card.innerHTML = `
       <div class="row align-items-center">
-        <div class="col-auto">
-          <div class="drag-handle text-secondary" style="cursor:grab;font-size:1.2rem;line-height:1;display:inline-block;vertical-align:middle">&#9776;</div>
-          <div class="form-check mb-0 d-inline-block ms-1">
-            <input class="form-check-input job-checkbox" type="checkbox" data-job-id="${escapeHtml(job.id)}" ${isDone ? "checked" : ""}>
+        <div class="col-auto d-flex align-items-center">
+          <div class="drag-handle text-secondary" style="cursor:grab;font-size:1.2rem;line-height:1;display:flex;align-items:center">&#9776;</div>
+          <div class="form-check mb-0 ms-1 pe-0 d-flex align-items-center" style="min-height:0;padding-left:0">
+            <input class="form-check-input job-checkbox m-0 position-static" type="checkbox" data-job-id="${escapeHtml(job.id)}" ${isDone ? "checked" : ""}>
           </div>
         </div>
-        <div class="col-auto d-flex align-items-center gap-1" style="min-width:68px">
+        <div class="col-auto d-flex align-items-center gap-1 px-0" style="min-width:68px">
           <div style="width:32px;height:32px;display:flex;align-items:center;justify-content:center">${streamImageUrl ? `<img src="${streamImageUrl}" class="date-img" style="max-width:32px;max-height:32px">` : ""}</div>
           <div style="width:32px;height:32px;display:flex;align-items:center;justify-content:center">${jobImageUrl ? `<img src="${jobImageUrl}" class="date-img" style="max-width:32px;max-height:32px">` : ""}</div>
         </div>
