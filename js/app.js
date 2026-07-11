@@ -156,22 +156,20 @@ function renderMain() {
   const now = new Date();
   const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
   const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-  const dateStr = `${days[now.getDay()]} ${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`;
+  const dateStr = `${days[now.getDay()]} ${now.getDate()} ${months[now.getMonth()]}, ${now.getFullYear()}`;
 
+  const headingRow = document.createElement("div");
+  headingRow.className = "d-flex align-items-center gap-2 mb-3";
   const dateHeading = document.createElement("h2");
-  dateHeading.className = "mb-3";
+  dateHeading.className = "mb-0";
   dateHeading.textContent = dateStr;
-  container.appendChild(dateHeading);
-
-  // add button row
-  const addRow = document.createElement("div");
-  addRow.className = "d-flex gap-2 mb-3";
+  headingRow.appendChild(dateHeading);
   const addBtn = document.createElement("button");
   addBtn.className = "btn btn-primary editor-btn ms-auto";
   addBtn.innerHTML = "&#43; Add card";
   addBtn.onclick = function() { showAddCardForm(); };
-  addRow.appendChild(addBtn);
-  container.appendChild(addRow);
+  headingRow.appendChild(addBtn);
+  container.appendChild(headingRow);
 
   // inline add form (hidden initially)
   const addForm = document.createElement("div");
