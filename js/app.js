@@ -789,6 +789,32 @@ function renderJobsEditor() {
           <label class="form-label">Description</label>
           <textarea class="form-control" rows="3" oninput="jobField('description', this.value)">${escapeHtml(data.description || "")}</textarea>
         </div>
+        <div class="row mb-2">
+          <div class="col-auto d-flex align-items-center">
+            <div class="form-check mb-0">
+              <input class="form-check-input" type="checkbox" id="jobSuffixCb" ${data.suffix ? "checked" : ""} onchange="jobField('suffix', this.checked)">
+              <label class="form-check-label" for="jobSuffixCb">Suffix</label>
+            </div>
+          </div>
+          <div class="col">
+            <select class="form-select" onchange="jobField('dayType', this.value)">
+              <option value="dayOfYear" ${(data.dayType || "dayOfYear") === "dayOfYear" ? "selected" : ""}>Day of Year</option>
+              <option value="dayOfMonth" ${data.dayType === "dayOfMonth" ? "selected" : ""}>Day of Month</option>
+              <option value="dayOfWeek" ${data.dayType === "dayOfWeek" ? "selected" : ""}>Day of Week</option>
+            </select>
+          </div>
+          <div class="col">
+            <select class="form-select" onchange="jobField('mod', this.value)">
+              <option value="" ${!data.mod ? "selected" : ""}>None</option>
+              <option value="2" ${data.mod === "2" ? "selected" : ""}>2</option>
+              <option value="3" ${data.mod === "3" ? "selected" : ""}>3</option>
+              <option value="4" ${data.mod === "4" ? "selected" : ""}>4</option>
+              <option value="5" ${data.mod === "5" ? "selected" : ""}>5</option>
+              <option value="6" ${data.mod === "6" ? "selected" : ""}>6</option>
+              <option value="7" ${data.mod === "7" ? "selected" : ""}>7</option>
+            </select>
+          </div>
+        </div>
         <div class="mb-2">
           <label class="form-label">Schedule</label>
           <div class="d-flex align-items-center gap-2">
