@@ -66,6 +66,10 @@ function changeDensity(value) {
   }
 }
 
+function changeSplitList(enabled) {
+  localStorage.setItem("splitList", enabled);
+}
+
 function changeHideDone(enabled) {
   localStorage.setItem("hideDone", enabled);
 }

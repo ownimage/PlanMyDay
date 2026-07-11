@@ -212,19 +212,41 @@ function renderMain() {
     allJobs.length = 0; allJobs.push(...filtered);
   }
 
+  const splitList = localStorage.getItem("splitList") === "true";
+  let jobsToRender = allJobs;
+
+  if (splitList) {
+    const tab = container.dataset.todayTab || "progress";
+    const tabBar = document.createElement("div");
+    tabBar.className = "d-flex gap-2 mb-3";
+    ["progress", "maintenance"].forEach(t => {
+      const btn = document.createElement("button");
+      btn.className = `btn btn-sm ${t === tab ? "btn-primary" : "btn-outline-secondary"}`;
+      btn.textContent = t.charAt(0).toUpperCase() + t.slice(1);
+      btn.onclick = function() { container.dataset.todayTab = t; renderMain(); };
+      tabBar.appendChild(btn);
+    });
+    container.appendChild(tabBar);
+
+    jobsToRender = allJobs.filter(({ streamIdx }) => {
+      const s = streams[streamIdx];
+      return (s.tab || "progress") === tab;
+    });
+  }
+
   const cardContainer = document.createElement("div");
   cardContainer.id = "todayCardList";
 
-  if (allJobs.length === 0) {
+  if (jobsToRender.length === 0) {
     const msg = document.createElement("p");
     msg.className = "text-secondary";
-    msg.textContent = "No active jobs yet. Add streams with active jobs to get started.";
+    msg.textContent = splitList ? "No jobs in this tab." : "No active jobs yet. Add streams with active jobs to get started.";
     container.appendChild(msg);
     updateNavState();
     return;
   }
 
-  allJobs.forEach(({ job, streamTitle, streamIdx }) => {
+  jobsToRender.forEach(({ job, streamTitle, streamIdx }) => {
     const isDone = completed.includes(job.id);
     const streams = loadStreams();
     const stream = streams[streamIdx] || {};
@@ -487,6 +509,13 @@ function renderStreamsEditor() {
           <input class="form-control" value="${escapeHtml(data.title || "")}" oninput="editField('title', this.value)">
         </div>
         <div class="mb-2">
+          <label class="form-label">Tab</label>
+          <select class="form-select" onchange="editField('tab', this.value)">
+            <option value="progress" ${(data.tab || "progress") === "progress" ? "selected" : ""}>Progress</option>
+            <option value="maintenance" ${data.tab === "maintenance" ? "selected" : ""}>Maintenance</option>
+          </select>
+        </div>
+        <div class="mb-2">
           <label class="form-label">Description</label>
           <textarea class="form-control" rows="3" oninput="editField('description', this.value)">${escapeHtml(data.description || "")}</textarea>
         </div>
@@ -690,7 +719,7 @@ function confirmDeleteStream(index) {
 function addNewStream() {
   const streams = loadStreams();
   const seq = streams.length + 1;
-  const newStream = { title: "New Stream", sequence: seq, description: "", jobs: [] };
+  const newStream = { title: "New Stream", sequence: seq, description: "", jobs: [], tab: "progress" };
   streams.push(newStream);
   saveStreams(streams);
   editBuffer = JSON.parse(JSON.stringify(newStream));
@@ -1210,6 +1239,9 @@ function openSettings() {
   const savedFontSize = localStorage.getItem("fontSize") || "xlarge";
   const fontSizeSel = document.getElementById("fontSizeSelector");
   if (fontSizeSel) fontSizeSel.value = savedFontSize;
+  const splitList = localStorage.getItem("splitList") === "true";
+  const splitListCb = document.getElementById("splitList");
+  if (splitListCb) splitListCb.checked = splitList;
   const autoHide = localStorage.getItem("autoHideMenu") === "true";
   const autoHideCb = document.getElementById("autoHideMenu");
   if (autoHideCb) autoHideCb.checked = autoHide;
