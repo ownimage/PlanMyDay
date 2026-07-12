@@ -14,7 +14,7 @@
   <link id="bootstrap-theme-css" href="https://cdn.jsdelivr.net/npm/bootswatch@5.3.3/dist/darkly/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css">
   <link rel="stylesheet" href="css/styles.css">
-  <script>const BUILD_NUMBER = "202607110822";</script>
+  <script>const BUILD_NUMBER = "202607121027";</script>
 </head>
 
 <body>
@@ -366,6 +366,23 @@
 
   <!-- FLATPICKR -->
   <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js"></script>
+
+  <!-- JOB EDIT MODAL -->
+  <div id="jobEditModal" class="modal fade" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 class="modal-title" id="jobEditModalTitle">Edit Job</h3>
+          <button type="button" class="btn-close" onclick="cancelJobEdit()"></button>
+        </div>
+        <div class="modal-body" id="jobEditModalBody"></div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary editor-btn" onclick="cancelJobEdit()">Cancel</button>
+          <button class="btn btn-success editor-btn" onclick="doneJobEdit()">OK</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- QR CODE -->
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
