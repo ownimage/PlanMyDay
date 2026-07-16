@@ -116,7 +116,12 @@ function renderImagesEditor() {
       </div>
     `;
 
-    new bootstrap.Modal(document.getElementById("imageEditModal")).show();
+    const modalEl = document.getElementById("imageEditModal");
+    let modal = bootstrap.Modal.getInstance(modalEl);
+    if (!modal) {
+      modal = new bootstrap.Modal(modalEl);
+      modal.show();
+    }
     updateNavState();
     return;
   }
@@ -410,6 +415,10 @@ function checkDuplicateName() {
 function doneImageEdit(index) {
   const images = loadImages();
   if (images.some((img, i) => i !== index && img.name === images[index].name)) return;
+  imageNameSearch = "";
+  const sorted = images.slice().sort((a, b) => a.name.localeCompare(b.name));
+  const pos = sorted.findIndex(img => img.name === images[index].name);
+  imagesPage = pos >= 0 ? Math.floor(pos / IMAGES_PAGE_SIZE) : 0;
   editingImageIndex = -1;
   isNewImage = false;
   editImageBackup = null;
