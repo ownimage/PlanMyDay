@@ -1,3 +1,21 @@
+// DEV MODE
+window.isDevMode = new URLSearchParams(window.location.search).get("dev") === "true";
+function getTodayDate() {
+  const dev = localStorage.getItem("devToday");
+  return dev ? new Date(dev + "T00:00:00") : new Date();
+}
+function getTodayStr() {
+  const d = getTodayDate();
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+}
+function getStoredLastGen() {
+  if (isDevMode) {
+    const dev = localStorage.getItem("devLastGen");
+    if (dev) return dev;
+  }
+  return localStorage.getItem("planmydays_last_gen");
+}
+
 // STORAGE HELPERS
 function loadStreams() {
   const streams = JSON.parse(localStorage.getItem("planmydays_streams") || "[]");
@@ -126,8 +144,8 @@ function addScheduleJobsToOrder(order) {
 }
 
 function ensureTodayList() {
-  const today = new Date().toISOString().slice(0, 10);
-  const lastGen = localStorage.getItem("planmydays_last_gen");
+  const today = getTodayStr();
+  const lastGen = getStoredLastGen();
   const existingOrder = loadTodayOrder();
   if (lastGen === today && existingOrder) return;
 
@@ -153,7 +171,7 @@ function renderMain() {
   if (!container) return;
   container.innerHTML = "";
 
-  const now = new Date();
+  const now = getTodayDate();
   const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
   const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   const dateStr = `${days[now.getDay()]} ${now.getDate()} ${months[now.getMonth()]}, ${now.getFullYear()}`;
@@ -167,7 +185,7 @@ function renderMain() {
   const addBtn = document.createElement("button");
   addBtn.className = "btn btn-primary editor-btn ms-auto";
   addBtn.innerHTML = "&#43; Add card";
-  addBtn.onclick = function() { showAddCardForm(); };
+  addBtn.onclick = function() { addTodayCardWithModal(); };
   headingRow.appendChild(addBtn);
   container.appendChild(headingRow);
 
@@ -197,7 +215,7 @@ function renderMain() {
   todayOrder.forEach((id, i) => { orderMap[id] = i; });
   allJobs.sort((a, b) => (orderMap[a.job.id] !== undefined ? orderMap[a.job.id] : 999) - (orderMap[b.job.id] !== undefined ? orderMap[b.job.id] : 999));
 
-  if (localStorage.getItem("hideDone") === "true") {
+  if (localStorage.getItem("planmydays_hideDone") === "true") {
     const filtered = allJobs.filter(({ job }) => !completed.includes(job.id));
     if (filtered.length === 0 && allJobs.length > 0) {
       const msg = document.createElement("p");
@@ -210,7 +228,7 @@ function renderMain() {
     allJobs.length = 0; allJobs.push(...filtered);
   }
 
-  const splitList = localStorage.getItem("splitList") === "true";
+  const splitList = localStorage.getItem("planmydays_splitList") === "true";
   let jobsToRender = allJobs;
 
   if (splitList) {
@@ -272,7 +290,7 @@ function renderMain() {
           <div class="d-flex align-items-center gap-2 mb-1">
             <h4 class="mb-0" style="${isDone ? 'text-decoration:line-through' : ''}">${escapeHtml(job.title)}${suffixLabel ? ` <span class="badge bg-secondary">${escapeHtml(suffixLabel.trim())}</span>` : ""}</h4>
           </div>
-          <div class="text-secondary small">${escapeHtml(streamTitle)}</div>
+          <div class="text-secondary small">${escapeHtml(streamTitle)} <span class="badge bg-${(stream.tab || "progress") === "progress" ? "primary" : "secondary"}">${escapeHtml(stream.tab || "progress")}</span></div>
           ${job.description ? `<div class="mt-1 text-secondary small">${escapeHtml(job.description)}</div>` : ""}
         </div>
       </div>
@@ -292,7 +310,7 @@ function renderMain() {
         const streams = loadStreams();
         const stream = streams[streamIdx];
         if (stream && stream.title === "Ad Hoc") {
-          const skipConfirm = localStorage.getItem("skipAdhocConfirm") === "true";
+          const skipConfirm = localStorage.getItem("planmydays_skipAdhocConfirm") === "true";
           if (!skipConfirm) {
             const job = (stream.jobs || []).find(j => j.id === jobId);
             const modalEl = document.getElementById("deleteConfirmModal");
@@ -457,6 +475,27 @@ function addTodayCard() {
   renderMain();
 }
 
+function addTodayCardWithModal() {
+  const streams = loadStreams();
+  let stream = streams.find(t => t.title === "Ad Hoc");
+  if (!stream) {
+    stream = { title: "Ad Hoc", sequence: streams.length + 1, jobs: [] };
+    streams.push(stream);
+    saveStreams(streams);
+  }
+  const jobs = stream.jobs || [];
+  const streamIdx = streams.indexOf(stream);
+  jobsStreamIndex = streamIdx;
+  const seq = jobs.length + 1;
+  const newJob = { id: "job_" + Date.now(), title: "", sequence: seq, description: "", active: true, frequency: "daily", time: "", sleepUntil: "", schedule: { type: "daily" } };
+  jobs.push(newJob);
+  stream.jobs = jobs;
+  saveStreams(streams);
+  jobsBuffer = JSON.parse(JSON.stringify(newJob));
+  jobsEditingIdx = jobs.length - 1; isNewJob = true;
+  showJobEditModal();
+}
+
 // THREADS EDITOR
 let editingIndex = -1;
 let editBuffer = null;
@@ -477,6 +516,46 @@ function closeStreamsEditor() {
   renderMain();
 }
 
+function showStreamEditModal() {
+  const streams = loadStreams();
+  const t = streams[editingIndex];
+  const data = editBuffer || t;
+  document.getElementById("streamEditModalTitle").textContent = isNew ? "Add Stream" : "Edit Stream";
+  document.getElementById("streamEditModalBody").innerHTML = getStreamEditFormHTML(data);
+  new bootstrap.Modal(document.getElementById("streamEditModal")).show();
+}
+
+function getStreamEditFormHTML(data) {
+  return `
+    <div class="mb-2">
+      <label class="form-label">Title</label>
+      <input class="form-control" value="${escapeHtml(data.title || "")}" oninput="editField('title', this.value)">
+    </div>
+    <div class="mb-2">
+      <label class="form-label">Tab</label>
+      <select class="form-select" onchange="editField('tab', this.value)">
+        <option value="progress" ${(data.tab || "progress") === "progress" ? "selected" : ""}>Progress</option>
+        <option value="maintenance" ${data.tab === "maintenance" ? "selected" : ""}>Maintenance</option>
+      </select>
+    </div>
+    <div class="mb-2">
+      <label class="form-label">Description</label>
+      <textarea class="form-control" rows="3" oninput="editField('description', this.value)">${escapeHtml(data.description || "")}</textarea>
+    </div>
+    <div class="mb-2">
+      <label class="form-label">Image</label>
+      <div class="d-flex align-items-center gap-2">
+        <div style="width:50px;height:50px;border:1px solid var(--bs-border-color);border-radius:6px;overflow:hidden;display:flex;align-items:center;justify-content:center;flex-shrink:0" id="streamImagePreview">
+          ${getImageDataUrl(data.image) ? `<img src="${getImageDataUrl(data.image)}" class="date-img" style="max-width:50px;max-height:50px">` : `<span class="text-secondary small">none</span>`}
+        </div>
+        <span class="small text-secondary" id="streamImageName">${escapeHtml(data.image || "")}</span>
+        <button class="btn btn-primary btn-sm" onclick="openImagePicker(function(name){ editField('image', name); updateStreamImagePreview(name); })">Choose</button>
+        ${data.image ? `<button class="btn btn-danger btn-sm" onclick="editField('image','');updateStreamImagePreview(null)">Remove</button>` : ""}
+      </div>
+    </div>
+  `;
+}
+
 function renderStreamsEditor() {
   const list = document.getElementById("streamEditorList");
   const addTile = document.getElementById("addStreamTile");
@@ -492,48 +571,8 @@ function renderStreamsEditor() {
   if (editingIndex >= 0) {
     list.classList.add("d-none"); addTile.classList.add("d-none");
     topTile.classList.add("d-none"); filterEl.classList.add("d-none");
-    singleEditor.classList.remove("d-none");
-
-    const t = streams[editingIndex];
-    const data = editBuffer || t;
-
-    singleEditor.innerHTML = `
-      <div class="d-flex align-items-center mb-3">
-        <h3 class="mb-0">${isNew ? "Add Stream" : "Edit Stream"}</h3>
-      </div>
-      <div class="card p-3 card-edited">
-        <div class="mb-2">
-          <label class="form-label">Title</label>
-          <input class="form-control" value="${escapeHtml(data.title || "")}" oninput="editField('title', this.value)">
-        </div>
-        <div class="mb-2">
-          <label class="form-label">Tab</label>
-          <select class="form-select" onchange="editField('tab', this.value)">
-            <option value="progress" ${(data.tab || "progress") === "progress" ? "selected" : ""}>Progress</option>
-            <option value="maintenance" ${data.tab === "maintenance" ? "selected" : ""}>Maintenance</option>
-          </select>
-        </div>
-        <div class="mb-2">
-          <label class="form-label">Description</label>
-          <textarea class="form-control" rows="3" oninput="editField('description', this.value)">${escapeHtml(data.description || "")}</textarea>
-        </div>
-        <div class="mb-2">
-          <label class="form-label">Image</label>
-          <div class="d-flex align-items-center gap-2">
-            <div style="width:50px;height:50px;border:1px solid var(--bs-border-color);border-radius:6px;overflow:hidden;display:flex;align-items:center;justify-content:center;flex-shrink:0" id="streamImagePreview">
-              ${getImageDataUrl(data.image) ? `<img src="${getImageDataUrl(data.image)}" class="date-img" style="max-width:50px;max-height:50px">` : `<span class="text-secondary small">none</span>`}
-            </div>
-            <span class="small text-secondary" id="streamImageName">${escapeHtml(data.image || "")}</span>
-            <button class="btn btn-outline-primary btn-sm" onclick="openImagePicker(function(name){ editField('image', name); updateStreamImagePreview(name); })">Choose</button>
-            ${data.image ? `<button class="btn btn-outline-danger btn-sm" onclick="editField('image','');updateStreamImagePreview(null)">Remove</button>` : ""}
-          </div>
-        </div>
-        <div class="d-flex gap-2 mt-3">
-          <button class="btn btn-success editor-btn" onclick="doneEdit()">OK</button>
-          <button class="btn btn-secondary editor-btn ms-auto" onclick="cancelEdit()">Cancel</button>
-        </div>
-      </div>
-    `;
+    singleEditor.classList.add("d-none");
+    showStreamEditModal();
     updateNavState();
     return;
   }
@@ -560,9 +599,9 @@ function renderStreamsEditor() {
         <span class="badge bg-${(t.tab || "progress") === "progress" ? "primary" : "secondary"} ms-auto">${escapeHtml(t.tab || "progress")}</span>
       </div>
       <div class="d-flex gap-2">
-        <button class="btn btn-primary editor-btn" onclick="editStream(${realIdx})">Edit</button>
-        <button class="btn btn-info editor-btn" onclick="openJobsEditor(${realIdx})">Jobs</button>
-        <button class="btn btn-danger editor-btn" onclick="confirmDeleteStream(${realIdx})">Delete</button>
+        <button class="btn btn-primary editor-btn" style="flex:1" onclick="editStream(${realIdx})">Edit</button>
+        <button class="btn btn-info editor-btn" style="flex:1" onclick="openJobsEditor(${realIdx})">Jobs</button>
+        <button class="btn btn-danger editor-btn" style="flex:1" onclick="confirmDeleteStream(${realIdx})">Delete</button>
       </div>
     `;
     list.appendChild(card);
@@ -680,6 +719,8 @@ function editStream(index) {
 }
 
 function cancelEdit() {
+  const modal = bootstrap.Modal.getInstance(document.getElementById("streamEditModal"));
+  if (modal) modal.hide();
   if (isNew && editingIndex >= 0) {
     const streams = loadStreams();
     streams.splice(editingIndex, 1);
@@ -690,11 +731,13 @@ function cancelEdit() {
 }
 
 function doneEdit() {
+  const modal = bootstrap.Modal.getInstance(document.getElementById("streamEditModal"));
   if (editingIndex >= 0 && editBuffer) {
     const streams = loadStreams();
     streams[editingIndex] = editBuffer;
     saveStreams(streams);
   }
+  if (modal) modal.hide();
   editingIndex = -1; editBuffer = null; isNew = false;
   renderStreamsEditor();
 }
@@ -789,26 +832,24 @@ function renderJobsEditor() {
     card.draggable = true;
     card.dataset.index = realIdx;
     card.innerHTML = `
-      <div class="d-flex align-items-center gap-2">
+      <div class="d-flex align-items-center gap-2 mb-1">
         <div class="drag-handle text-secondary" style="cursor:grab;font-size:1.3rem;line-height:1">&#9776;</div>
-        <div style="width:40px;height:40px;flex-shrink:0">${jobImgUrl ? `<img src="${jobImgUrl}" class="date-img" style="max-width:40px;max-height:40px">` : ""}</div>
-        <div class="flex-fill" style="min-width:0">
-          <div class="fw-bold editor-title mb-1">${escapeHtml(j.title)}${getJobSuffix(j) ? ` <span class="badge bg-secondary">${escapeHtml(getJobSuffix(j).trim())}</span>` : ""}</div>
-          <div class="d-flex gap-2 align-items-center small text-secondary">
-            <label class="form-check-label mb-0 me-1" style="cursor:pointer">
-              <input class="form-check-input active-toggle" type="checkbox" data-job-idx="${realIdx}" ${j.active !== false ? "checked" : ""} style="cursor:pointer">
-              Active
-            </label>
-            <span class="badge bg-primary">${escapeHtml(scheduleText)}</span>
-            ${j.sleepUntil ? `<span class="badge bg-info">Sleep: ${escapeHtml(formatDate(j.sleepUntil))}</span>` : ""}
-            ${j.time ? `<span class="badge bg-secondary">${escapeHtml(j.time)}</span>` : ""}
-          </div>
-          ${j.description ? `<div class="mt-1 text-secondary small">${escapeHtml(j.description.substring(0, 80))}${j.description.length > 80 ? "..." : ""}</div>` : ""}
-        </div>
-        <div class="d-flex gap-2 flex-shrink-0">
-          <button class="btn btn-primary editor-btn" onclick="editJob(${realIdx})">Edit</button>
-          <button class="btn btn-danger editor-btn" onclick="confirmDeleteJob(${realIdx})">Delete</button>
-        </div>
+        ${jobImgUrl ? `<div style="width:40px;height:40px;flex-shrink:0"><img src="${jobImgUrl}" class="date-img" style="max-width:40px;max-height:40px"></div>` : ""}
+        <div class="fw-bold editor-title">${escapeHtml(j.title)}${getJobSuffix(j) ? ` <span class="badge bg-secondary">${escapeHtml(getJobSuffix(j).trim())}</span>` : ""}</div>
+      </div>
+      <div class="d-flex gap-2 align-items-center small text-secondary mb-2">
+        <label class="form-check-label mb-0" style="cursor:pointer;display:flex;align-items:center;gap:4px">
+          <input class="form-check-input active-toggle m-0 position-static" type="checkbox" data-job-idx="${realIdx}" ${j.active !== false ? "checked" : ""} style="cursor:pointer">
+          Active
+        </label>
+        <span class="badge bg-primary">${escapeHtml(scheduleText)}</span>
+        ${j.sleepUntil ? `<span class="badge bg-info">Sleep: ${escapeHtml(formatDate(j.sleepUntil))}</span>` : ""}
+        ${j.time ? `<span class="badge bg-secondary">${escapeHtml(j.time)}</span>` : ""}
+      </div>
+      ${j.description ? `<div class="text-secondary small mb-2">${escapeHtml(j.description.substring(0, 80))}${j.description.length > 80 ? "..." : ""}</div>` : ""}
+      <div class="d-flex gap-2">
+        <button class="btn btn-primary editor-btn flex-fill" onclick="editJob(${realIdx})">Edit</button>
+        <button class="btn btn-danger editor-btn flex-fill" onclick="confirmDeleteJob(${realIdx})">Delete</button>
       </div>
     `;
     list.appendChild(card);
@@ -950,7 +991,20 @@ function openScheduleModal() {
     if (i === (s.date || 1)) opt.selected = true;
     mSel.appendChild(opt);
   }
-  new bootstrap.Modal(document.getElementById("scheduleModal")).show();
+  const modalEl = document.getElementById("scheduleModal");
+  modalEl.addEventListener("show.bs.modal", function boostZ() {
+    modalEl.removeEventListener("show.bs.modal", boostZ);
+    modalEl.style.zIndex = 2000;
+    const backdrops = document.querySelectorAll(".modal-backdrop");
+    if (backdrops.length > 0) backdrops[backdrops.length - 1].style.zIndex = 1999;
+  });
+  modalEl.addEventListener("hidden.bs.modal", function resetZ() {
+    modalEl.removeEventListener("hidden.bs.modal", resetZ);
+    modalEl.style.zIndex = "";
+    const backdrops = document.querySelectorAll(".modal-backdrop");
+    if (backdrops.length > 0) backdrops[backdrops.length - 1].style.zIndex = "";
+  });
+  new bootstrap.Modal(modalEl).show();
 }
 
 function closeScheduleModal() {
@@ -985,16 +1039,17 @@ function saveScheduleModal() {
 
 function shouldShowJobToday(job) {
   if (job.sleepUntil) {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = getTodayStr();
     if (today < job.sleepUntil) return false;
   }
   const s = job.schedule || { type: "daily" };
   const type = s.type || "daily";
+  const now = getTodayDate();
   if (type === "daily") return true;
-  if (type === "weekdays") { const d = new Date().getDay(); return d >= 1 && d <= 5; }
-  if (type === "weekends") { const d = new Date().getDay(); return d === 0 || d === 6; }
-  if (type === "days") return (s.days || []).includes(new Date().getDay());
-  if (type === "monthly") return new Date().getDate() === (s.date || 1);
+  if (type === "weekdays") { const d = now.getDay(); return d >= 1 && d <= 5; }
+  if (type === "weekends") { const d = now.getDay(); return d === 0 || d === 6; }
+  if (type === "days") return (s.days || []).includes(now.getDay());
+  if (type === "monthly") return now.getDate() === (s.date || 1);
   return true;
 }
 
@@ -1120,7 +1175,7 @@ function editJob(index) {
   const jobs = streams[jobsStreamIndex].jobs || [];
   jobsBuffer = JSON.parse(JSON.stringify(jobs[index]));
   if (jobsBuffer.sleepUntil) {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = getTodayStr();
     if (jobsBuffer.sleepUntil < today) jobsBuffer.sleepUntil = "";
   }
   jobsEditingIdx = index; isNewJob = false;
@@ -1131,6 +1186,7 @@ function editJob(index) {
 function cancelJobEdit() {
   const modal = bootstrap.Modal.getInstance(document.getElementById("jobEditModal"));
   if (modal) modal.hide();
+  const fromMain = document.getElementById("jobsEditor").classList.contains("d-none");
   if (isNewJob && jobsEditingIdx >= 0) {
     const streams = loadStreams();
     const jobs = streams[jobsStreamIndex].jobs || [];
@@ -1139,13 +1195,16 @@ function cancelJobEdit() {
     saveStreams(streams);
   }
   jobsEditingIdx = -1; jobsBuffer = null; isNewJob = false;
-  renderJobsEditor();
+  if (fromMain) { renderMain(); } else { renderJobsEditor(); }
 }
 
 function doneJobEdit() {
+  const fromMain = document.getElementById("jobsEditor").classList.contains("d-none");
+  let savedId = null;
   if (jobsEditingIdx >= 0 && jobsBuffer) {
     const streams = loadStreams();
     const jobs = streams[jobsStreamIndex].jobs || [];
+    savedId = jobsBuffer.id;
     jobs[jobsEditingIdx] = jobsBuffer;
     streams[jobsStreamIndex].jobs = jobs;
     saveStreams(streams);
@@ -1153,7 +1212,18 @@ function doneJobEdit() {
   const modal = bootstrap.Modal.getInstance(document.getElementById("jobEditModal"));
   if (modal) modal.hide();
   jobsEditingIdx = -1; jobsBuffer = null; isNewJob = false;
-  renderJobsEditor();
+  if (fromMain) {
+    const streams = loadStreams();
+    const order = loadTodayOrder() || [];
+    const allActive = [];
+    streams.forEach(t => { (t.jobs || []).forEach(j => { if (j.active !== false) allActive.push(j.id); }); });
+    const remaining = allActive.filter(id => order.includes(id));
+    if (savedId && !remaining.includes(savedId)) remaining.push(savedId);
+    saveTodayOrder(remaining);
+    renderMain();
+  } else {
+    renderJobsEditor();
+  }
 }
 
 function confirmDeleteJob(index) {
@@ -1190,13 +1260,13 @@ function addNewJob() {
 
 function getJobSuffix(job) {
   if (!job.suffix) return "";
-  const today = new Date();
+  const today = getTodayDate();
   const dayType = job.dayType || "dayOfYear";
   let dayNum;
 
   if (dayType === "dayOfWeek") {
     dayNum = today.getDay();
-    const mondaySetting = localStorage.getItem("monday") || "1";
+    const mondaySetting = localStorage.getItem("planmydays_monday") || "1";
     if (mondaySetting === "1") {
       dayNum = dayNum === 0 ? 7 : dayNum;
     } else {
@@ -1207,7 +1277,7 @@ function getJobSuffix(job) {
   } else {
     const startOfYear = new Date(today.getFullYear(), 0, 0);
     dayNum = Math.floor((today - startOfYear) / 86400000);
-    const jan1Setting = localStorage.getItem("jan1") || "0";
+    const jan1Setting = localStorage.getItem("planmydays_jan1") || "0";
     if (jan1Setting === "0") {
       dayNum -= 1;
     }
@@ -1220,6 +1290,9 @@ function getJobSuffix(job) {
     }
   }
 
+  const suffixStart = localStorage.getItem("planmydays_suffixStart") || "0";
+  if (suffixStart === "1") dayNum += 1;
+
   return ` (${dayNum})`;
 }
 
@@ -1229,37 +1302,62 @@ function openSettings() {
   document.getElementById("streamsEditor").classList.add("d-none");
   document.getElementById("settingsPage").classList.remove("d-none");
 
-  const savedTheme = localStorage.getItem("theme") || "darkly";
+  const savedTheme = localStorage.getItem("planmydays_theme") || "darkly";
   const themeSel = document.getElementById("themeSelector");
   if (themeSel) themeSel.value = savedTheme;
-  const savedFontSize = localStorage.getItem("fontSize") || "xlarge";
+  const savedFontSize = localStorage.getItem("planmydays_fontSize") || "xlarge";
   const fontSizeSel = document.getElementById("fontSizeSelector");
   if (fontSizeSel) fontSizeSel.value = savedFontSize;
-  const splitList = localStorage.getItem("splitList") === "true";
+  const splitList = localStorage.getItem("planmydays_splitList") === "true";
   const splitListCb = document.getElementById("splitList");
   if (splitListCb) splitListCb.checked = splitList;
-  const autoHide = localStorage.getItem("autoHideMenu") === "true";
+  const autoHide = localStorage.getItem("planmydays_autoHideMenu") === "true";
   const autoHideCb = document.getElementById("autoHideMenu");
   if (autoHideCb) autoHideCb.checked = autoHide;
-  const hideDone = localStorage.getItem("hideDone") === "true";
+  const hideDone = localStorage.getItem("planmydays_hideDone") === "true";
   const hideDoneCb = document.getElementById("hideDone");
   if (hideDoneCb) hideDoneCb.checked = hideDone;
-  const jan1 = localStorage.getItem("jan1") || "1";
+  const suffixStart = localStorage.getItem("planmydays_suffixStart") || "0";
+  const suffixStartSel = document.getElementById("suffixStartSelector");
+  if (suffixStartSel) suffixStartSel.value = suffixStart;
+  const jan1 = localStorage.getItem("planmydays_jan1") || "1";
   const jan1Sel = document.getElementById("jan1Selector");
   if (jan1Sel) jan1Sel.value = jan1;
-  const monday = localStorage.getItem("monday") || "1";
+  const monday = localStorage.getItem("planmydays_monday") || "1";
   const mondaySel = document.getElementById("mondaySelector");
   if (mondaySel) mondaySel.value = monday;
-  const showDanger = localStorage.getItem("showDanger") === "true";
+  const showDanger = localStorage.getItem("planmydays_showDanger") === "true";
   const showDangerCb = document.getElementById("showDanger");
   if (showDangerCb) showDangerCb.checked = showDanger;
-  const skipAdhoc = localStorage.getItem("skipAdhocConfirm") === "true";
+  const skipAdhoc = localStorage.getItem("planmydays_skipAdhocConfirm") === "true";
   const skipAdhocCb = document.getElementById("skipAdhocConfirm");
   if (skipAdhocCb) skipAdhocCb.checked = skipAdhoc;
-  ["clearAllDataRow", "refreshAppRow", "regenerateTilesRow", "uploadStandardImagesRow", "adhocConfirmRow"].forEach(id => {
+  const dangerIds = ["clearAllDataRow", "refreshAppRow", "regenerateTilesRow", "uploadStandardImagesRow", "adhocConfirmRow"];
+  if (isDevMode) dangerIds.push("devTodayRow", "devLastGenRow");
+  dangerIds.forEach(id => {
     const el = document.getElementById(id);
     if (el) el.classList.toggle("d-none", !showDanger);
   });
+
+  if (isDevMode) {
+    ["devTodayInput", "devLastGenInput"].forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const key = id === "devTodayInput" ? "devToday" : "devLastGen";
+      const saved = localStorage.getItem(key) || "";
+      if (el._flatpickr) el._flatpickr.destroy();
+      flatpickr(el, {
+        dateFormat: "Y-m-d",
+        allowInput: true,
+        monthSelectorType: "dropdown",
+        defaultDate: saved || undefined,
+        onChange: function(selectedDates, dateStr) {
+          localStorage.setItem(key, dateStr);
+          if (key === "devToday" && typeof renderMain === "function") renderMain();
+        }
+      });
+    });
+  }
 
   const qrContainer = document.getElementById("shareQrCode");
   if (qrContainer) {
@@ -1272,10 +1370,10 @@ function openSettings() {
     });
   }
 
-  const savedIconSize = localStorage.getItem("iconSize") || "large";
+  const savedIconSize = localStorage.getItem("planmydays_iconSize") || "large";
   const iconSel = document.getElementById("iconSizeSelector");
   if (iconSel) iconSel.value = savedIconSize;
-  const savedDensity = localStorage.getItem("density") || "normal";
+  const savedDensity = localStorage.getItem("planmydays_density") || "normal";
   const densitySel = document.getElementById("densitySelector");
   if (densitySel) densitySel.value = savedDensity;
 }
@@ -1296,7 +1394,7 @@ function regenerateTiles() {
   const merged = addScheduleJobsToOrder(clean);
   saveTodayOrder(merged);
   saveCompletedJobs([]);
-  localStorage.setItem("planmydays_last_gen", new Date().toISOString().slice(0, 10));
+  localStorage.setItem("planmydays_last_gen", getTodayStr());
   closeSettings();
   renderMain();
 }
@@ -1305,7 +1403,8 @@ function confirmClearAllData() {
   const modalEl = document.getElementById("deleteConfirmModal");
   document.getElementById("deleteConfirmMessage").textContent = "Clear ALL data? This cannot be undone.";
   document.getElementById("deleteConfirmBtn").onclick = function() {
-    localStorage.removeItem("planmydays_streams");
+    const keys = Object.keys(localStorage);
+    keys.forEach(k => localStorage.removeItem(k));
     bootstrap.Modal.getInstance(modalEl).hide();
     closeSettings();
   };
@@ -1317,7 +1416,7 @@ function exportData() {
     version: 1,
     exportedAt: new Date().toISOString(),
     streams: JSON.parse(localStorage.getItem("planmydays_streams") || "[]"),
-    images: JSON.parse(localStorage.getItem("images") || "[]")
+    images: JSON.parse(localStorage.getItem("planmydays_images") || "[]")
   };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
@@ -1346,7 +1445,7 @@ function importData() {
           return;
         }
         if (data.streams) localStorage.setItem("planmydays_streams", JSON.stringify(data.streams));
-        if (data.images) localStorage.setItem("images", JSON.stringify(data.images));
+        if (data.images) localStorage.setItem("planmydays_images", JSON.stringify(data.images));
         closeSettings();
         renderMain();
       } catch (err) {
@@ -1359,7 +1458,7 @@ function importData() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-  const savedTheme = localStorage.getItem("theme") || "darkly";
+  const savedTheme = localStorage.getItem("planmydays_theme") || "darkly";
   applyTheme(savedTheme);
   if (typeof seedSampleImages === "function") seedSampleImages();
 
