@@ -578,9 +578,9 @@ function renderStreamsEditor() {
         <span class="badge bg-${(t.tab || "progress") === "progress" ? "primary" : "secondary"} ms-auto">${escapeHtml(t.tab || "progress")}</span>
       </div>
       <div class="d-flex gap-2">
-        <button class="btn btn-primary editor-btn" onclick="editStream(${realIdx})">Edit</button>
-        <button class="btn btn-info editor-btn" onclick="openJobsEditor(${realIdx})">Jobs</button>
-        <button class="btn btn-danger editor-btn" onclick="confirmDeleteStream(${realIdx})">Delete</button>
+        <button class="btn btn-primary editor-btn" style="flex:1" onclick="editStream(${realIdx})">Edit</button>
+        <button class="btn btn-info editor-btn" style="flex:1" onclick="openJobsEditor(${realIdx})">Jobs</button>
+        <button class="btn btn-danger editor-btn" style="flex:1" onclick="confirmDeleteStream(${realIdx})">Delete</button>
       </div>
     `;
     list.appendChild(card);
