@@ -1283,12 +1283,23 @@ function openSettings() {
   });
 
   if (isDevMode) {
-    const devToday = localStorage.getItem("devToday") || "";
-    const devTodayInput = document.getElementById("devTodayInput");
-    if (devTodayInput) devTodayInput.value = devToday;
-    const devLastGen = localStorage.getItem("devLastGen") || "";
-    const devLastGenInput = document.getElementById("devLastGenInput");
-    if (devLastGenInput) devLastGenInput.value = devLastGen;
+    ["devTodayInput", "devLastGenInput"].forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const key = id === "devTodayInput" ? "devToday" : "devLastGen";
+      const saved = localStorage.getItem(key) || "";
+      if (el._flatpickr) el._flatpickr.destroy();
+      flatpickr(el, {
+        dateFormat: "Y-m-d",
+        allowInput: true,
+        monthSelectorType: "dropdown",
+        defaultDate: saved || undefined,
+        onChange: function(selectedDates, dateStr) {
+          localStorage.setItem(key, dateStr);
+          if (key === "devToday" && typeof renderMain === "function") renderMain();
+        }
+      });
+    });
   }
 
   const qrContainer = document.getElementById("shareQrCode");
