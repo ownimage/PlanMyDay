@@ -215,7 +215,7 @@ function renderMain() {
   todayOrder.forEach((id, i) => { orderMap[id] = i; });
   allJobs.sort((a, b) => (orderMap[a.job.id] !== undefined ? orderMap[a.job.id] : 999) - (orderMap[b.job.id] !== undefined ? orderMap[b.job.id] : 999));
 
-  if (localStorage.getItem("hideDone") === "true") {
+  if (localStorage.getItem("planmydays_hideDone") === "true") {
     const filtered = allJobs.filter(({ job }) => !completed.includes(job.id));
     if (filtered.length === 0 && allJobs.length > 0) {
       const msg = document.createElement("p");
@@ -228,7 +228,7 @@ function renderMain() {
     allJobs.length = 0; allJobs.push(...filtered);
   }
 
-  const splitList = localStorage.getItem("splitList") === "true";
+  const splitList = localStorage.getItem("planmydays_splitList") === "true";
   let jobsToRender = allJobs;
 
   if (splitList) {
@@ -310,7 +310,7 @@ function renderMain() {
         const streams = loadStreams();
         const stream = streams[streamIdx];
         if (stream && stream.title === "Ad Hoc") {
-          const skipConfirm = localStorage.getItem("skipAdhocConfirm") === "true";
+          const skipConfirm = localStorage.getItem("planmydays_skipAdhocConfirm") === "true";
           if (!skipConfirm) {
             const job = (stream.jobs || []).find(j => j.id === jobId);
             const modalEl = document.getElementById("deleteConfirmModal");
@@ -1266,7 +1266,7 @@ function getJobSuffix(job) {
 
   if (dayType === "dayOfWeek") {
     dayNum = today.getDay();
-    const mondaySetting = localStorage.getItem("monday") || "1";
+    const mondaySetting = localStorage.getItem("planmydays_monday") || "1";
     if (mondaySetting === "1") {
       dayNum = dayNum === 0 ? 7 : dayNum;
     } else {
@@ -1277,7 +1277,7 @@ function getJobSuffix(job) {
   } else {
     const startOfYear = new Date(today.getFullYear(), 0, 0);
     dayNum = Math.floor((today - startOfYear) / 86400000);
-    const jan1Setting = localStorage.getItem("jan1") || "0";
+    const jan1Setting = localStorage.getItem("planmydays_jan1") || "0";
     if (jan1Setting === "0") {
       dayNum -= 1;
     }
@@ -1290,7 +1290,7 @@ function getJobSuffix(job) {
     }
   }
 
-  const suffixStart = localStorage.getItem("suffixStart") || "0";
+  const suffixStart = localStorage.getItem("planmydays_suffixStart") || "0";
   if (suffixStart === "1") dayNum += 1;
 
   return ` (${dayNum})`;
@@ -1302,34 +1302,34 @@ function openSettings() {
   document.getElementById("streamsEditor").classList.add("d-none");
   document.getElementById("settingsPage").classList.remove("d-none");
 
-  const savedTheme = localStorage.getItem("theme") || "darkly";
+  const savedTheme = localStorage.getItem("planmydays_theme") || "darkly";
   const themeSel = document.getElementById("themeSelector");
   if (themeSel) themeSel.value = savedTheme;
-  const savedFontSize = localStorage.getItem("fontSize") || "xlarge";
+  const savedFontSize = localStorage.getItem("planmydays_fontSize") || "xlarge";
   const fontSizeSel = document.getElementById("fontSizeSelector");
   if (fontSizeSel) fontSizeSel.value = savedFontSize;
-  const splitList = localStorage.getItem("splitList") === "true";
+  const splitList = localStorage.getItem("planmydays_splitList") === "true";
   const splitListCb = document.getElementById("splitList");
   if (splitListCb) splitListCb.checked = splitList;
-  const autoHide = localStorage.getItem("autoHideMenu") === "true";
+  const autoHide = localStorage.getItem("planmydays_autoHideMenu") === "true";
   const autoHideCb = document.getElementById("autoHideMenu");
   if (autoHideCb) autoHideCb.checked = autoHide;
-  const hideDone = localStorage.getItem("hideDone") === "true";
+  const hideDone = localStorage.getItem("planmydays_hideDone") === "true";
   const hideDoneCb = document.getElementById("hideDone");
   if (hideDoneCb) hideDoneCb.checked = hideDone;
-  const suffixStart = localStorage.getItem("suffixStart") || "0";
+  const suffixStart = localStorage.getItem("planmydays_suffixStart") || "0";
   const suffixStartSel = document.getElementById("suffixStartSelector");
   if (suffixStartSel) suffixStartSel.value = suffixStart;
-  const jan1 = localStorage.getItem("jan1") || "1";
+  const jan1 = localStorage.getItem("planmydays_jan1") || "1";
   const jan1Sel = document.getElementById("jan1Selector");
   if (jan1Sel) jan1Sel.value = jan1;
-  const monday = localStorage.getItem("monday") || "1";
+  const monday = localStorage.getItem("planmydays_monday") || "1";
   const mondaySel = document.getElementById("mondaySelector");
   if (mondaySel) mondaySel.value = monday;
-  const showDanger = localStorage.getItem("showDanger") === "true";
+  const showDanger = localStorage.getItem("planmydays_showDanger") === "true";
   const showDangerCb = document.getElementById("showDanger");
   if (showDangerCb) showDangerCb.checked = showDanger;
-  const skipAdhoc = localStorage.getItem("skipAdhocConfirm") === "true";
+  const skipAdhoc = localStorage.getItem("planmydays_skipAdhocConfirm") === "true";
   const skipAdhocCb = document.getElementById("skipAdhocConfirm");
   if (skipAdhocCb) skipAdhocCb.checked = skipAdhoc;
   const dangerIds = ["clearAllDataRow", "refreshAppRow", "regenerateTilesRow", "uploadStandardImagesRow", "adhocConfirmRow"];
@@ -1370,10 +1370,10 @@ function openSettings() {
     });
   }
 
-  const savedIconSize = localStorage.getItem("iconSize") || "large";
+  const savedIconSize = localStorage.getItem("planmydays_iconSize") || "large";
   const iconSel = document.getElementById("iconSizeSelector");
   if (iconSel) iconSel.value = savedIconSize;
-  const savedDensity = localStorage.getItem("density") || "normal";
+  const savedDensity = localStorage.getItem("planmydays_density") || "normal";
   const densitySel = document.getElementById("densitySelector");
   if (densitySel) densitySel.value = savedDensity;
 }
@@ -1403,7 +1403,8 @@ function confirmClearAllData() {
   const modalEl = document.getElementById("deleteConfirmModal");
   document.getElementById("deleteConfirmMessage").textContent = "Clear ALL data? This cannot be undone.";
   document.getElementById("deleteConfirmBtn").onclick = function() {
-    localStorage.removeItem("planmydays_streams");
+    const keys = Object.keys(localStorage);
+    keys.forEach(k => localStorage.removeItem(k));
     bootstrap.Modal.getInstance(modalEl).hide();
     closeSettings();
   };
@@ -1415,7 +1416,7 @@ function exportData() {
     version: 1,
     exportedAt: new Date().toISOString(),
     streams: JSON.parse(localStorage.getItem("planmydays_streams") || "[]"),
-    images: JSON.parse(localStorage.getItem("images") || "[]")
+    images: JSON.parse(localStorage.getItem("planmydays_images") || "[]")
   };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
@@ -1444,7 +1445,7 @@ function importData() {
           return;
         }
         if (data.streams) localStorage.setItem("planmydays_streams", JSON.stringify(data.streams));
-        if (data.images) localStorage.setItem("images", JSON.stringify(data.images));
+        if (data.images) localStorage.setItem("planmydays_images", JSON.stringify(data.images));
         closeSettings();
         renderMain();
       } catch (err) {
@@ -1457,7 +1458,7 @@ function importData() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-  const savedTheme = localStorage.getItem("theme") || "darkly";
+  const savedTheme = localStorage.getItem("planmydays_theme") || "darkly";
   applyTheme(savedTheme);
   if (typeof seedSampleImages === "function") seedSampleImages();
 

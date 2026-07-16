@@ -34,7 +34,7 @@ function applyTheme(name) {
   const link = document.getElementById("bootstrap-theme-css");
   if (link) link.href = config.css;
   document.documentElement.setAttribute("data-bs-theme", config.bsTheme);
-  localStorage.setItem("theme", name);
+  localStorage.setItem("planmydays_theme", name);
 }
 
 function changeTheme(name) {
@@ -43,7 +43,7 @@ function changeTheme(name) {
 
 // FONT SIZE
 function changeFontSize(value) {
-  localStorage.setItem("fontSize", value);
+  localStorage.setItem("planmydays_fontSize", value);
   document.body.classList.remove("font-size-xsmall", "font-size-small", "font-size-normal", "font-size-large", "font-size-xlarge", "font-size-jumbo");
   if (value !== "normal") {
     document.body.classList.add("font-size-" + value);
@@ -52,14 +52,14 @@ function changeFontSize(value) {
 
 // ICON SIZE
 function changeIconSize(value) {
-  localStorage.setItem("iconSize", value);
+  localStorage.setItem("planmydays_iconSize", value);
   document.body.classList.remove("icon-size-small", "icon-size-medium", "icon-size-large");
   document.body.classList.add("icon-size-" + value);
 }
 
 // TILE DENSITY
 function changeDensity(value) {
-  localStorage.setItem("density", value);
+  localStorage.setItem("planmydays_density", value);
   document.body.classList.remove("compact", "density-normal");
   if (value !== "normal") {
     document.body.classList.add(value);
@@ -67,7 +67,7 @@ function changeDensity(value) {
 }
 
 function changeSplitList(enabled) {
-  localStorage.setItem("splitList", enabled);
+  localStorage.setItem("planmydays_splitList", enabled);
 }
 
 function changeDevToday(value) {
@@ -80,26 +80,26 @@ function changeDevLastGen(value) {
 }
 
 function changeHideDone(enabled) {
-  localStorage.setItem("hideDone", enabled);
+  localStorage.setItem("planmydays_hideDone", enabled);
 }
 
 function changeSuffixStart(value) {
-  localStorage.setItem("suffixStart", value);
+  localStorage.setItem("planmydays_suffixStart", value);
   if (typeof renderMain === "function") renderMain();
 }
 
 function changeJan1(value) {
-  localStorage.setItem("jan1", value);
+  localStorage.setItem("planmydays_jan1", value);
   if (typeof renderMain === "function") renderMain();
 }
 
 function changeMonday(value) {
-  localStorage.setItem("monday", value);
+  localStorage.setItem("planmydays_monday", value);
   if (typeof renderMain === "function") renderMain();
 }
 
 function changeShowDanger(enabled) {
-  localStorage.setItem("showDanger", enabled);
+  localStorage.setItem("planmydays_showDanger", enabled);
   const dangerIds = ["clearAllDataRow", "refreshAppRow", "regenerateTilesRow", "uploadStandardImagesRow", "adhocConfirmRow"];
   if (isDevMode) dangerIds.push("devTodayRow", "devLastGenRow");
   dangerIds.forEach(id => {
@@ -109,7 +109,7 @@ function changeShowDanger(enabled) {
 }
 
 function changeSkipAdhocConfirm(enabled) {
-  localStorage.setItem("skipAdhocConfirm", enabled);
+  localStorage.setItem("planmydays_skipAdhocConfirm", enabled);
 }
 
 // AUTO-HIDE MENU
@@ -135,7 +135,7 @@ function hideNav() {
 
 function resetAutoHideTimer() {
   if (autoHideCooldown) return;
-  const enabled = localStorage.getItem("autoHideMenu") === "true";
+  const enabled = localStorage.getItem("planmydays_autoHideMenu") === "true";
   if (!enabled) return;
   showNav();
   clearTimeout(autoHideTimer);
@@ -166,7 +166,7 @@ function unbindAutoHideEvents() {
 }
 
 function changeAutoHideMenu(enabled) {
-  localStorage.setItem("autoHideMenu", enabled);
+  localStorage.setItem("planmydays_autoHideMenu", enabled);
   document.body.classList.toggle("auto-hide-menu", enabled);
   if (enabled) {
     bindAutoHideEvents();
@@ -179,20 +179,20 @@ function changeAutoHideMenu(enabled) {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-  const savedFontSize = localStorage.getItem("fontSize") || "xlarge";
+  const savedFontSize = localStorage.getItem("planmydays_fontSize") || "xlarge";
   if (savedFontSize !== "normal") {
     document.body.classList.add("font-size-" + savedFontSize);
   }
 
-  const savedIconSize = localStorage.getItem("iconSize") || "large";
+  const savedIconSize = localStorage.getItem("planmydays_iconSize") || "large";
   document.body.classList.add("icon-size-" + savedIconSize);
 
-  const savedDensity = localStorage.getItem("density") || "normal";
+  const savedDensity = localStorage.getItem("planmydays_density") || "normal";
   if (savedDensity !== "normal") {
     document.body.classList.add(savedDensity);
   }
 
-  const autoHide = localStorage.getItem("autoHideMenu") === "true";
+  const autoHide = localStorage.getItem("planmydays_autoHideMenu") === "true";
   if (autoHide) {
     document.body.classList.add("auto-hide-menu");
     bindAutoHideEvents();

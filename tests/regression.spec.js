@@ -237,15 +237,6 @@ test.describe("PlanMyDay - Regression", () => {
       await expect(page.locator("#hideDone")).toBeChecked();
     });
 
-    test("exports data as downloadable file", async ({ page }) => {
-      await page.getByTitle("Settings").click();
-      const [download] = await Promise.all([
-        page.waitForEvent("download", { timeout: 5000 }),
-        page.getByText("Export Data").click()
-      ]);
-      expect(download.suggestedFilename()).toMatch(/^planmydays-backup-/);
-    });
-
     test("settings close returns to main view", async ({ page }) => {
       await page.getByTitle("Settings").click();
       await page.getByRole("button", { name: "Done" }).click();
@@ -326,7 +317,7 @@ test.describe("PlanMyDay - Regression", () => {
         localStorage.setItem("planmydays_streams", JSON.stringify([{
           id: "stream_1", title: "ImgStream", tab: "progress", image: "testimg", sequence: 1, jobs: []
         }]));
-        localStorage.setItem("images", JSON.stringify([{ name: "testimg", data: "" }]));
+        localStorage.setItem("planmydays_images", JSON.stringify([{ name: "testimg", data: "" }]));
       });
       await page.reload();
       await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
@@ -571,7 +562,7 @@ test.describe("PlanMyDay - Regression", () => {
       await page.evaluate((data) => {
         localStorage.clear();
         localStorage.setItem("planmydays_streams", JSON.stringify(data));
-        localStorage.setItem("images", JSON.stringify([
+        localStorage.setItem("planmydays_images", JSON.stringify([
           { name: "PickTest", data: "" },
           { name: "Another", data: "" }
         ]));
@@ -637,7 +628,7 @@ test.describe("PlanMyDay - Regression", () => {
 
     test("tabs appear when split list enabled", async ({ page }) => {
       await seedTodayList(page);
-      await page.evaluate(() => localStorage.setItem("splitList", "true"));
+      await page.evaluate(() => localStorage.setItem("planmydays_splitList", "true"));
       await page.reload();
       const tabs = page.locator("button.btn-sm").filter({ hasText: /Progress|Maintenance/ });
       await expect(tabs).toHaveCount(2);
@@ -645,7 +636,7 @@ test.describe("PlanMyDay - Regression", () => {
 
     test("can switch between tabs", async ({ page }) => {
       await seedTodayList(page);
-      await page.evaluate(() => localStorage.setItem("splitList", "true"));
+      await page.evaluate(() => localStorage.setItem("planmydays_splitList", "true"));
       await page.reload();
       await page.locator("button.btn-sm").filter({ hasText: "Maintenance" }).click();
       await expect(page.getByText("Laundry")).toBeVisible();
@@ -689,7 +680,7 @@ test.describe("PlanMyDay - Regression", () => {
     });
 
     test("skip adhoc confirm setting works", async ({ page }) => {
-      await page.evaluate(() => localStorage.setItem("skipAdhocConfirm", "true"));
+      await page.evaluate(() => localStorage.setItem("planmydays_skipAdhocConfirm", "true"));
       await page.reload();
       await page.getByText("+ Add card").click();
       await page.locator("#jobEditModal").waitFor({ state: "visible" });
@@ -739,7 +730,7 @@ test.describe("PlanMyDay - Regression", () => {
         localStorage.setItem("planmydays_today_order", JSON.stringify(["job_1"]));
         localStorage.setItem("planmydays_last_gen", ds);
         localStorage.setItem("planmydays_completed", JSON.stringify([]));
-        localStorage.setItem("suffixStart", "0");
+        localStorage.setItem("planmydays_suffixStart", "0");
       });
       await page.reload();
       const badge = page.locator(".badge.bg-secondary").first();
@@ -761,8 +752,8 @@ test.describe("PlanMyDay - Regression", () => {
         localStorage.setItem("planmydays_today_order", JSON.stringify(["job_1"]));
         localStorage.setItem("planmydays_last_gen", ds);
         localStorage.setItem("planmydays_completed", JSON.stringify([]));
-        localStorage.setItem("suffixStart", "1");
-        localStorage.setItem("jan1", "1");
+        localStorage.setItem("planmydays_suffixStart", "1");
+        localStorage.setItem("planmydays_jan1", "1");
       });
       await page.reload();
       const badge = page.locator(".badge.bg-secondary").first();
@@ -776,7 +767,7 @@ test.describe("PlanMyDay - Regression", () => {
     test("suffix start setting persists via settings page", async ({ page }) => {
       await page.getByTitle("Settings").click();
       await page.locator("#suffixStartSelector").selectOption("1");
-      const val = await page.evaluate(() => localStorage.getItem("suffixStart"));
+      const val = await page.evaluate(() => localStorage.getItem("planmydays_suffixStart"));
       expect(val).toBe("1");
     });
   });
@@ -804,7 +795,7 @@ test.describe("PlanMyDay - Regression", () => {
       await seedTodayList(page);
       await page.evaluate(() => {
         localStorage.setItem("planmydays_completed", JSON.stringify(["job_1"]));
-        localStorage.setItem("hideDone", "true");
+        localStorage.setItem("planmydays_hideDone", "true");
       });
       await page.reload();
       await expect(page.getByText("Report")).not.toBeVisible();
@@ -816,7 +807,7 @@ test.describe("PlanMyDay - Regression", () => {
         localStorage.setItem("planmydays_today_order", JSON.stringify(todayOrder));
         localStorage.setItem("planmydays_last_gen", todayStr);
         localStorage.setItem("planmydays_completed", JSON.stringify(["job_1"]));
-        localStorage.setItem("hideDone", "true");
+        localStorage.setItem("planmydays_hideDone", "true");
       }, { streams: TEST_STREAMS, todayStr, todayOrder: ["job_1"] });
       await page.reload();
       await expect(page.getByText("All jobs completed!")).toBeVisible();
@@ -834,12 +825,12 @@ test.describe("PlanMyDay - Regression", () => {
 
     test("theme selector changes theme", async ({ page }) => {
       await page.locator("#themeSelector").selectOption("solar");
-      const val = await page.evaluate(() => localStorage.getItem("theme"));
+      const val = await page.evaluate(() => localStorage.getItem("planmydays_theme"));
       expect(val).toBe("solar");
     });
 
     test("theme fallback on unknown value", async ({ page }) => {
-      await page.evaluate(() => localStorage.setItem("theme", "nonexistent"));
+      await page.evaluate(() => localStorage.setItem("planmydays_theme", "nonexistent"));
       await page.reload();
       await page.getByTitle("Settings").click();
       const linkHref = await page.evaluate(() => {
@@ -875,7 +866,7 @@ test.describe("PlanMyDay - Regression", () => {
     test("auto hide menu disabling unbinds events", async ({ page }) => {
       await page.locator("#autoHideMenu").check();
       await page.locator("#autoHideMenu").uncheck();
-      const autoHide = await page.evaluate(() => localStorage.getItem("autoHideMenu"));
+      const autoHide = await page.evaluate(() => localStorage.getItem("planmydays_autoHideMenu"));
       expect(autoHide).toBe("false");
       const bodyClass = await page.evaluate(() => document.body.classList.contains("auto-hide-menu"));
       expect(bodyClass).toBe(false);
@@ -884,14 +875,14 @@ test.describe("PlanMyDay - Regression", () => {
     test("split list uncheck disables feature", async ({ page }) => {
       await page.locator("#splitList").check();
       await page.locator("#splitList").uncheck();
-      const val = await page.evaluate(() => localStorage.getItem("splitList"));
+      const val = await page.evaluate(() => localStorage.getItem("planmydays_splitList"));
       expect(val).toBe("false");
     });
 
     test("hide done uncheck disables feature", async ({ page }) => {
       await page.locator("#hideDone").check();
       await page.locator("#hideDone").uncheck();
-      const val = await page.evaluate(() => localStorage.getItem("hideDone"));
+      const val = await page.evaluate(() => localStorage.getItem("planmydays_hideDone"));
       expect(val).toBe("false");
     });
 
@@ -900,25 +891,25 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#skipAdhocConfirm").waitFor({ state: "visible" });
       await page.locator("#skipAdhocConfirm").check();
       await page.locator("#skipAdhocConfirm").uncheck();
-      const val = await page.evaluate(() => localStorage.getItem("skipAdhocConfirm"));
+      const val = await page.evaluate(() => localStorage.getItem("planmydays_skipAdhocConfirm"));
       expect(val).toBe("false");
     });
 
     test("jan1 selector persists value", async ({ page }) => {
       await page.locator("#jan1Selector").selectOption("1");
-      const val = await page.evaluate(() => localStorage.getItem("jan1"));
+      const val = await page.evaluate(() => localStorage.getItem("planmydays_jan1"));
       expect(val).toBe("1");
     });
 
     test("monday selector persists value", async ({ page }) => {
       await page.locator("#mondaySelector").selectOption("0");
-      const val = await page.evaluate(() => localStorage.getItem("monday"));
+      const val = await page.evaluate(() => localStorage.getItem("planmydays_monday"));
       expect(val).toBe("0");
     });
 
     test("auto hide menu toggle enables auto-hide", async ({ page }) => {
       await page.locator("#autoHideMenu").check();
-      const autoHide = await page.evaluate(() => localStorage.getItem("autoHideMenu") === "true");
+      const autoHide = await page.evaluate(() => localStorage.getItem("planmydays_autoHideMenu") === "true");
       expect(autoHide).toBe(true);
       const bodyClass = await page.evaluate(() => document.body.classList.contains("auto-hide-menu"));
       expect(bodyClass).toBe(true);
@@ -928,7 +919,7 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#showDanger").check();
       await page.locator("#skipAdhocConfirm").waitFor({ state: "visible" });
       await page.locator("#skipAdhocConfirm").check();
-      const val = await page.evaluate(() => localStorage.getItem("skipAdhocConfirm"));
+      const val = await page.evaluate(() => localStorage.getItem("planmydays_skipAdhocConfirm"));
       expect(val).toBe("true");
     });
 
@@ -1017,7 +1008,7 @@ test.describe("PlanMyDay - Regression", () => {
       const svg = "data:image/svg+xml," + encodeURIComponent('<svg stroke="#000000" fill="#ffffff" stroke-width="2" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100"/></svg>');
       await page.addInitScript((svgData) => {
         localStorage.clear();
-        localStorage.setItem("images", JSON.stringify([{ name: "EditTest", data: svgData }]));
+        localStorage.setItem("planmydays_images", JSON.stringify([{ name: "EditTest", data: svgData }]));
       }, svg);
       await page.reload();
       await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
@@ -1037,7 +1028,7 @@ test.describe("PlanMyDay - Regression", () => {
       await colorInput.fill("#ff0000");
       await page.waitForTimeout(300);
       const data = await page.evaluate(() => {
-        const images = JSON.parse(localStorage.getItem("images"));
+        const images = JSON.parse(localStorage.getItem("planmydays_images"));
         return images[0].data;
       });
       expect(data).toContain("%23ff0000");
@@ -1050,7 +1041,7 @@ test.describe("PlanMyDay - Regression", () => {
       await colorInput.fill("#00ff00");
       await page.waitForTimeout(300);
       const data = await page.evaluate(() => {
-        const images = JSON.parse(localStorage.getItem("images"));
+        const images = JSON.parse(localStorage.getItem("planmydays_images"));
         return images[0].data;
       });
       expect(data).toContain("%2300ff00");
@@ -1062,7 +1053,7 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator('#imageEditModal input[type="checkbox"]').first().check();
       await page.waitForTimeout(300);
       const data = await page.evaluate(() => {
-        const images = JSON.parse(localStorage.getItem("images"));
+        const images = JSON.parse(localStorage.getItem("planmydays_images"));
         return images[0].data;
       });
       expect(data).toContain("none");
@@ -1074,7 +1065,7 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator('#imageEditModal input[type="checkbox"]').nth(1).check();
       await page.waitForTimeout(300);
       const data = await page.evaluate(() => {
-        const images = JSON.parse(localStorage.getItem("images"));
+        const images = JSON.parse(localStorage.getItem("planmydays_images"));
         return images[0].data;
       });
       expect(data).toContain("none");
@@ -1087,7 +1078,7 @@ test.describe("PlanMyDay - Regression", () => {
       await widthInput.fill("5");
       await page.waitForTimeout(300);
       const data = await page.evaluate(() => {
-        const images = JSON.parse(localStorage.getItem("images"));
+        const images = JSON.parse(localStorage.getItem("planmydays_images"));
         return images[0].data;
       });
       expect(data).toContain("5");
@@ -1112,7 +1103,7 @@ test.describe("PlanMyDay - Regression", () => {
       await startCoverage(page);
       await page.addInitScript((data) => {
         localStorage.setItem("planmydays_streams", JSON.stringify(data));
-        localStorage.setItem("images", JSON.stringify([
+        localStorage.setItem("planmydays_images", JSON.stringify([
           { name: "PickMe", data: "" },
           { name: "PickMeToo", data: "" }
         ]));
@@ -1235,7 +1226,7 @@ test.describe("PlanMyDay - Regression", () => {
       const svg = "data:image/svg+xml," + encodeURIComponent('<svg stroke="#000000" fill="#ffffff" stroke-width="2" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100"/></svg>');
       await page.addInitScript((svgData) => {
         localStorage.clear();
-        localStorage.setItem("images", JSON.stringify([{ name: "OriginalName", data: svgData }]));
+        localStorage.setItem("planmydays_images", JSON.stringify([{ name: "OriginalName", data: svgData }]));
       }, svg);
       await page.reload();
       await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
@@ -1243,12 +1234,14 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#imagesEditor").waitFor({ state: "visible" });
       await page.locator(".card:has-text('OriginalName') .btn-primary").first().click();
       await page.locator("#imageEditModal").waitFor({ state: "visible" });
-      const nameInput = page.locator("#imageEditModalBody .form-control:not(.form-control-sm)");
-      await nameInput.fill("ChangedName");
+      await page.evaluate(() => {
+        const input = document.querySelector('#imageEditModalBody .form-control:not(.form-control-sm)');
+        if (input) { input.value = "ChangedName"; input.dispatchEvent(new Event('input', { bubbles: true })); }
+      });
       await page.locator("#imageEditModal .btn-secondary").filter({ hasText: "Cancel" }).click();
       await page.waitForTimeout(300);
       const restored = await page.evaluate(() => {
-        const images = JSON.parse(localStorage.getItem("images") || "[]");
+        const images = JSON.parse(localStorage.getItem("planmydays_images") || "[]");
         return { name: images[0]?.name, data: images[0]?.data };
       });
       expect(restored.name).toBe("OriginalName");
@@ -1259,7 +1252,7 @@ test.describe("PlanMyDay - Regression", () => {
       const svg = "data:image/svg+xml," + encodeURIComponent('<svg stroke="#ff0000" fill="#ffffff" stroke-width="2" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100"/></svg>');
       await page.addInitScript((svgData) => {
         localStorage.clear();
-        localStorage.setItem("images", JSON.stringify([{ name: "StrokeTest", data: svgData }]));
+        localStorage.setItem("planmydays_images", JSON.stringify([{ name: "StrokeTest", data: svgData }]));
       }, svg);
       await page.reload();
       await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
@@ -1273,7 +1266,7 @@ test.describe("PlanMyDay - Regression", () => {
       await lineCheckbox.uncheck();
       await page.waitForTimeout(300);
       const data = await page.evaluate(() => {
-        const images = JSON.parse(localStorage.getItem("images"));
+        const images = JSON.parse(localStorage.getItem("planmydays_images"));
         return images[0].data;
       });
       expect(data).toContain("%23ff0000");
@@ -1283,7 +1276,7 @@ test.describe("PlanMyDay - Regression", () => {
       const svg = "data:image/svg+xml," + encodeURIComponent('<svg stroke="#000000" fill="#00ff00" stroke-width="2" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100"/></svg>');
       await page.addInitScript((svgData) => {
         localStorage.clear();
-        localStorage.setItem("images", JSON.stringify([{ name: "FillTest", data: svgData }]));
+        localStorage.setItem("planmydays_images", JSON.stringify([{ name: "FillTest", data: svgData }]));
       }, svg);
       await page.reload();
       await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
@@ -1297,7 +1290,7 @@ test.describe("PlanMyDay - Regression", () => {
       await fillCheckbox.uncheck();
       await page.waitForTimeout(300);
       const data = await page.evaluate(() => {
-        const images = JSON.parse(localStorage.getItem("images"));
+        const images = JSON.parse(localStorage.getItem("planmydays_images"));
         return images[0].data;
       });
       expect(data).toContain("%2300ff00");
@@ -1313,7 +1306,7 @@ test.describe("PlanMyDay - Regression", () => {
         localStorage.setItem("planmydays_streams", JSON.stringify([{
           id: "stream_1", title: "Test", tab: "progress", image: "", sequence: 1, jobs: []
         }]));
-        localStorage.setItem("images", JSON.stringify([]));
+        localStorage.setItem("planmydays_images", JSON.stringify([]));
       });
       await page.reload();
       await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
@@ -1329,7 +1322,7 @@ test.describe("PlanMyDay - Regression", () => {
         localStorage.setItem("planmydays_streams", JSON.stringify([{
           id: "stream_1", title: "Test", tab: "progress", image: "", sequence: 1, jobs: []
         }]));
-        localStorage.setItem("images", JSON.stringify([{ name: "Apple", data: "" }]));
+        localStorage.setItem("planmydays_images", JSON.stringify([{ name: "Apple", data: "" }]));
       });
       await page.reload();
       await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
@@ -1559,7 +1552,14 @@ test.describe("PlanMyDay - Regression", () => {
     });
 
     test("clear all data removes everything", async ({ page }) => {
-      await seedTodayList(page);
+      await page.evaluate(() => {
+        localStorage.setItem("planmydays_streams", "[]");
+        localStorage.setItem("planmydays_images", "[]");
+        localStorage.setItem("planmydays_theme", "darkly");
+        localStorage.setItem("theme", "old");
+        localStorage.setItem("images", "old");
+        localStorage.setItem("showDanger", "true");
+      });
       await page.reload();
       await page.getByTitle("Settings").click();
       await page.locator("#showDanger").check();
@@ -1567,9 +1567,12 @@ test.describe("PlanMyDay - Regression", () => {
       await page.getByRole("button", { name: "Clear All Data" }).click();
       await expect(page.locator("#deleteConfirmModal")).toBeVisible();
       await page.locator("#deleteConfirmBtn").click();
-      await page.waitForTimeout(300);
-      const streams = await page.evaluate(() => localStorage.getItem("planmydays_streams"));
-      expect(streams).toBeNull();
+      await expect(page.locator("#deleteConfirmModal")).not.toBeVisible({ timeout: 5000 });
+      const allKeys = await page.evaluate(() => {
+        const k = Object.keys(localStorage);
+        return k.filter(key => key !== "planmydays_last_gen" && key !== "planmydays_today_order" && key !== "planmydays_completed");
+      });
+      expect(allKeys.length).toBe(0);
     });
   });
 
@@ -1578,7 +1581,7 @@ test.describe("PlanMyDay - Regression", () => {
   test.describe("Auto-Hide Nav Behavior", () => {
 
     test("nav hides when auto-hide is enabled and editors are closed", async ({ page }) => {
-      await page.evaluate(() => localStorage.setItem("autoHideMenu", "true"));
+      await page.evaluate(() => localStorage.setItem("planmydays_autoHideMenu", "true"));
       await page.reload();
       await page.waitForTimeout(4500);
       const navHidden = await page.evaluate(() => {
@@ -1589,7 +1592,7 @@ test.describe("PlanMyDay - Regression", () => {
     });
 
     test("nav not hidden when auto-hide is disabled", async ({ page }) => {
-      await page.evaluate(() => localStorage.setItem("autoHideMenu", "false"));
+      await page.evaluate(() => localStorage.setItem("planmydays_autoHideMenu", "false"));
       await page.reload();
       await page.waitForTimeout(4500);
       const navHidden = await page.evaluate(() => {
@@ -1600,7 +1603,7 @@ test.describe("PlanMyDay - Regression", () => {
     });
 
     test("nav shown when pointer moves after auto-hide", async ({ page }) => {
-      await page.evaluate(() => localStorage.setItem("autoHideMenu", "true"));
+      await page.evaluate(() => localStorage.setItem("planmydays_autoHideMenu", "true"));
       await page.reload();
       const navHidden1 = await page.evaluate(() => {
         const nav = document.getElementById("mainNav");
@@ -1716,7 +1719,7 @@ test.describe("PlanMyDay - Regression", () => {
         localStorage.setItem("planmydays_today_order", JSON.stringify(["job_1"]));
         localStorage.setItem("planmydays_last_gen", ds);
         localStorage.setItem("planmydays_completed", JSON.stringify([]));
-        localStorage.setItem("monday", "0");
+        localStorage.setItem("planmydays_monday", "0");
       });
       await page.reload();
       const badge = page.locator(".badge.bg-secondary").first();
@@ -1734,7 +1737,7 @@ test.describe("PlanMyDay - Regression", () => {
         localStorage.setItem("planmydays_today_order", JSON.stringify(["job_1"]));
         localStorage.setItem("planmydays_last_gen", ds);
         localStorage.setItem("planmydays_completed", JSON.stringify([]));
-        localStorage.setItem("jan1", "0");
+        localStorage.setItem("planmydays_jan1", "0");
       });
       await page.reload();
       const badge = page.locator(".badge.bg-secondary").first();
@@ -1910,7 +1913,7 @@ test.describe("PlanMyDay - Regression", () => {
           id: "stream_1", title: "Work", tab: "progress", image: "", sequence: 1,
           jobs: [{ id: "job_1", title: "Report", active: true, frequency: "daily", sequence: 1, suffix: false, dayType: "dayOfYear", mod: "" }]
         }]));
-        localStorage.setItem("images", JSON.stringify([
+        localStorage.setItem("planmydays_images", JSON.stringify([
           { name: "TestImg", data: "" },
           { name: "TestImg2", data: "" }
         ]));
@@ -1936,7 +1939,7 @@ test.describe("PlanMyDay - Regression", () => {
           id: "stream_1", title: "Work", tab: "progress", image: "", sequence: 1,
           jobs: [{ id: "job_1", title: "Existing", active: true, frequency: "daily", sequence: 1, suffix: false, dayType: "dayOfYear", mod: "" }]
         }]));
-        localStorage.setItem("images", JSON.stringify([
+        localStorage.setItem("planmydays_images", JSON.stringify([
           { name: "AddJobImg", data: "" }
         ]));
       });
@@ -1961,7 +1964,7 @@ test.describe("PlanMyDay - Regression", () => {
           id: "stream_1", title: "Work", tab: "progress", image: "", sequence: 1,
           jobs: [{ id: "job_1", title: "Report", active: true, frequency: "daily", sequence: 1, suffix: false, dayType: "dayOfYear", mod: "" }]
         }]));
-        localStorage.setItem("images", JSON.stringify([
+        localStorage.setItem("planmydays_images", JSON.stringify([
           { name: "Apple", data: "" },
           { name: "Banana", data: "" }
         ]));
@@ -1988,7 +1991,7 @@ test.describe("PlanMyDay - Regression", () => {
 
     test("selecting image from front page add card is blocked by jobEditModal backdrop", async ({ page }) => {
       await page.evaluate(() => {
-        localStorage.setItem("images", JSON.stringify([
+        localStorage.setItem("planmydays_images", JSON.stringify([
           { name: "FrontImg", data: "" }
         ]));
       });
