@@ -402,12 +402,12 @@ function addNewImage() {
 
 function checkDuplicateName() {
   const images = loadImages();
-  const input = document.querySelector('#singleImageEditor .card-edited input.form-control');
+  const input = document.querySelector('#imageEditModalBody .card-edited input.form-control');
   if (!input) return;
   const trimmed = input.value.trim();
   const hasDuplicate = images.some((img, i) => i !== editingImageIndex && img.name === trimmed);
   const errorEl = document.getElementById("imageNameError");
-  const okBtn = document.querySelector('#singleImageEditor .btn-success.editor-btn');
+  const okBtn = document.querySelector('#imageEditModalBody .btn-success.editor-btn');
   if (errorEl) errorEl.style.display = hasDuplicate ? "block" : "none";
   if (okBtn) okBtn.disabled = hasDuplicate;
 }

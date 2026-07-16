@@ -75,6 +75,7 @@ test.describe("PlanMyDay - Regression", () => {
     await page.goto("/");
     await page.evaluate(() => localStorage.clear());
     await startCoverage(page);
+    await page.reload();
   });
 
   test.afterEach(async ({ page }) => {
@@ -540,8 +541,8 @@ test.describe("PlanMyDay - Regression", () => {
   test.describe("Image Picker Modal", () => {
 
     test.beforeEach(async ({ page }) => {
-      await page.goto("/");
       await page.evaluate((data) => {
+        localStorage.clear();
         localStorage.setItem("planmydays_streams", JSON.stringify(data));
         localStorage.setItem("images", JSON.stringify([
           { name: "PickTest", data: "" },
@@ -553,6 +554,7 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("a.dropdown-item").filter({ hasText: "Streams" }).click();
       await page.locator("#streamEditorList .btn-primary").filter({ hasText: "Edit" }).first().click();
       await page.getByRole("button", { name: "Choose" }).click();
+      await page.locator("#imagePickerModal").waitFor({ state: "visible" });
     });
 
     test("opens from stream editor image choose", async ({ page }) => {
@@ -707,6 +709,800 @@ test.describe("PlanMyDay - Regression", () => {
       }, { streams: TEST_STREAMS, todayStr, todayOrder: ["job_1"] });
       await page.reload();
       await expect(page.getByText("All jobs completed!")).toBeVisible();
+    });
+  });
+
+  // ── Settings UI Controls ─────────────────────────────────
+
+  test.describe("Settings UI Controls", () => {
+
+    test.beforeEach(async ({ page }) => {
+      await page.getByTitle("Settings").click();
+    });
+
+    test("theme selector changes theme", async ({ page }) => {
+      await page.locator("#themeSelector").selectOption("solar");
+      const val = await page.evaluate(() => localStorage.getItem("theme"));
+      expect(val).toBe("solar");
+    });
+
+    test("theme fallback on unknown value", async ({ page }) => {
+      await page.evaluate(() => localStorage.setItem("theme", "nonexistent"));
+      await page.reload();
+      await page.getByTitle("Settings").click();
+      const linkHref = await page.evaluate(() => {
+        const link = document.getElementById("bootstrap-theme-css");
+        return link ? link.getAttribute("href") : "";
+      });
+      expect(linkHref).toContain("darkly");
+    });
+
+    test("font size normal removes size class", async ({ page }) => {
+      await page.locator("#fontSizeSelector").selectOption("small");
+      await page.locator("#fontSizeSelector").selectOption("normal");
+      const hasSmall = await page.evaluate(() => document.body.classList.contains("font-size-small"));
+      expect(hasSmall).toBe(false);
+    });
+
+    test("icon size medium and large change body class", async ({ page }) => {
+      await page.locator("#iconSizeSelector").selectOption("medium");
+      let hasClass = await page.evaluate(() => document.body.classList.contains("icon-size-medium"));
+      expect(hasClass).toBe(true);
+      await page.locator("#iconSizeSelector").selectOption("large");
+      hasClass = await page.evaluate(() => document.body.classList.contains("icon-size-large"));
+      expect(hasClass).toBe(true);
+    });
+
+    test("density normal removes compact class", async ({ page }) => {
+      await page.locator("#densitySelector").selectOption("compact");
+      await page.locator("#densitySelector").selectOption("normal");
+      const hasCompact = await page.evaluate(() => document.body.classList.contains("compact"));
+      expect(hasCompact).toBe(false);
+    });
+
+    test("auto hide menu disabling unbinds events", async ({ page }) => {
+      await page.locator("#autoHideMenu").check();
+      await page.locator("#autoHideMenu").uncheck();
+      const autoHide = await page.evaluate(() => localStorage.getItem("autoHideMenu"));
+      expect(autoHide).toBe("false");
+      const bodyClass = await page.evaluate(() => document.body.classList.contains("auto-hide-menu"));
+      expect(bodyClass).toBe(false);
+    });
+
+    test("split list uncheck disables feature", async ({ page }) => {
+      await page.locator("#splitList").check();
+      await page.locator("#splitList").uncheck();
+      const val = await page.evaluate(() => localStorage.getItem("splitList"));
+      expect(val).toBe("false");
+    });
+
+    test("hide done uncheck disables feature", async ({ page }) => {
+      await page.locator("#hideDone").check();
+      await page.locator("#hideDone").uncheck();
+      const val = await page.evaluate(() => localStorage.getItem("hideDone"));
+      expect(val).toBe("false");
+    });
+
+    test("skip adhoc confirm uncheck disables feature", async ({ page }) => {
+      await page.locator("#showDanger").check();
+      await page.locator("#skipAdhocConfirm").waitFor({ state: "visible" });
+      await page.locator("#skipAdhocConfirm").check();
+      await page.locator("#skipAdhocConfirm").uncheck();
+      const val = await page.evaluate(() => localStorage.getItem("skipAdhocConfirm"));
+      expect(val).toBe("false");
+    });
+
+    test("jan1 selector persists value", async ({ page }) => {
+      await page.locator("#jan1Selector").selectOption("1");
+      const val = await page.evaluate(() => localStorage.getItem("jan1"));
+      expect(val).toBe("1");
+    });
+
+    test("monday selector persists value", async ({ page }) => {
+      await page.locator("#mondaySelector").selectOption("0");
+      const val = await page.evaluate(() => localStorage.getItem("monday"));
+      expect(val).toBe("0");
+    });
+
+    test("auto hide menu toggle enables auto-hide", async ({ page }) => {
+      await page.locator("#autoHideMenu").check();
+      const autoHide = await page.evaluate(() => localStorage.getItem("autoHideMenu") === "true");
+      expect(autoHide).toBe(true);
+      const bodyClass = await page.evaluate(() => document.body.classList.contains("auto-hide-menu"));
+      expect(bodyClass).toBe(true);
+    });
+
+    test("skip adhoc confirm toggle works", async ({ page }) => {
+      await page.locator("#showDanger").check();
+      await page.locator("#skipAdhocConfirm").waitFor({ state: "visible" });
+      await page.locator("#skipAdhocConfirm").check();
+      const val = await page.evaluate(() => localStorage.getItem("skipAdhocConfirm"));
+      expect(val).toBe("true");
+    });
+
+    test("danger zone toggle shows dev rows in dev mode", async ({ page }) => {
+      await page.goto("/?dev=true");
+      await page.getByTitle("Settings").click();
+      await page.locator("#showDanger").check();
+      await expect(page.locator("#devTodayRow")).toBeVisible();
+      await expect(page.locator("#devLastGenRow")).toBeVisible();
+    });
+  });
+
+  // ── Job Edit Modal UI ───────────────────────────────────────
+
+  test.describe("Job Edit Modal UI", () => {
+
+    test.beforeEach(async ({ page }) => {
+      await page.goto("/");
+      await page.evaluate((data) => {
+        localStorage.setItem("planmydays_streams", JSON.stringify(data));
+      }, TEST_STREAMS);
+      await page.reload();
+      await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
+      await page.locator("a.dropdown-item").filter({ hasText: "Streams" }).click();
+      await page.locator("#streamEditorList .btn-info").filter({ hasText: "Jobs" }).first().click();
+    });
+
+    test("cancel job edit hides modal", async ({ page }) => {
+      await page.locator("#jobsList .btn-primary").filter({ hasText: "Edit" }).first().click();
+      await expect(page.locator("#jobEditModal")).toBeVisible();
+      await page.locator("#jobEditModal .btn-secondary").filter({ hasText: "Cancel" }).click();
+      await expect(page.locator("#jobEditModal")).not.toBeVisible();
+    });
+
+    test("active toggle on job card works", async ({ page }) => {
+      const cb = page.locator(".active-toggle").first();
+      await cb.check();
+      await expect(cb).toBeChecked();
+    });
+
+    test("add job with weekends schedule", async ({ page }) => {
+      await page.getByRole("button", { name: "Add Job" }).click();
+      await page.locator("#jobEditModal").waitFor({ state: "visible" });
+      await page.locator("#jobEditModalBody .form-control").first().fill("WeekendJob");
+      await page.getByText("Change").click();
+      await page.locator("#schedWeekends").check();
+      await page.locator("#scheduleModal .btn-primary").click();
+      await page.locator("#jobEditModal .btn-success").filter({ hasText: "OK" }).click();
+      await expect(page.getByText("WeekendJob")).toBeVisible();
+    });
+
+    test("add job with monthly schedule", async ({ page }) => {
+      await page.getByRole("button", { name: "Add Job" }).click();
+      await page.locator("#jobEditModal").waitFor({ state: "visible" });
+      await page.locator("#jobEditModalBody .form-control").first().fill("MonthlyJob");
+      await page.getByText("Change").click();
+      await page.locator("#schedMonthly").check();
+      await expect(page.locator("#schedMonthlyOptions")).toBeVisible();
+      await page.locator("#scheduleModal .btn-primary").click();
+      await page.locator("#jobEditModal .btn-success").filter({ hasText: "OK" }).click();
+      await expect(page.getByText("MonthlyJob")).toBeVisible();
+    });
+
+    test("sleep until input exists in job edit", async ({ page }) => {
+      await page.locator("#jobsList .btn-primary").filter({ hasText: "Edit" }).first().click();
+      await expect(page.locator("#jobSleepUntil")).toBeVisible();
+    });
+
+    test("edit job and change schedule time", async ({ page }) => {
+      await page.locator("#jobsList .btn-primary").filter({ hasText: "Edit" }).first().click();
+      await page.locator("#jobTimeHour").selectOption("14");
+      await page.locator("#jobTimeMin").selectOption("30");
+      await page.locator("#jobEditModal .btn-success").filter({ hasText: "OK" }).click();
+      const badge = page.locator(".badge.bg-secondary").filter({ hasText: "14:30" });
+      await expect(badge).toBeVisible();
+    });
+  });
+
+  // ── Image Editing UI ────────────────────────────────────────
+
+  test.describe("Image Editing UI", () => {
+
+    test.beforeEach(async ({ page }) => {
+      const svg = "data:image/svg+xml," + encodeURIComponent('<svg stroke="#000000" fill="#ffffff" stroke-width="2" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100"/></svg>');
+      await page.addInitScript((svgData) => {
+        localStorage.clear();
+        localStorage.setItem("images", JSON.stringify([{ name: "EditTest", data: svgData }]));
+      }, svg);
+      await page.reload();
+      await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
+      await page.locator("a.dropdown-item").filter({ hasText: "Images" }).click();
+      await page.locator("#imagesEditor").waitFor({ state: "visible" });
+    });
+
+    test("edit image opens modal with existing data", async ({ page }) => {
+      await page.locator(".card:has-text('EditTest') .btn-primary").first().click();
+      await expect(page.locator("#imageEditModal")).toBeVisible();
+    });
+
+    test("changing line color updates data", async ({ page }) => {
+      await page.locator(".card:has-text('EditTest') .btn-primary").first().click();
+      await page.locator("#imageEditModal").waitFor({ state: "visible" });
+      const colorInput = page.locator('#imageEditModal input[type="color"]').first();
+      await colorInput.fill("#ff0000");
+      await page.waitForTimeout(300);
+      const data = await page.evaluate(() => {
+        const images = JSON.parse(localStorage.getItem("images"));
+        return images[0].data;
+      });
+      expect(data).toContain("%23ff0000");
+    });
+
+    test("changing fill color updates data", async ({ page }) => {
+      await page.locator(".card:has-text('EditTest') .btn-primary").first().click();
+      await page.locator("#imageEditModal").waitFor({ state: "visible" });
+      const colorInput = page.locator('#imageEditModal input[type="color"]').nth(1);
+      await colorInput.fill("#00ff00");
+      await page.waitForTimeout(300);
+      const data = await page.evaluate(() => {
+        const images = JSON.parse(localStorage.getItem("images"));
+        return images[0].data;
+      });
+      expect(data).toContain("%2300ff00");
+    });
+
+    test("line none checkbox clears stroke", async ({ page }) => {
+      await page.locator(".card:has-text('EditTest') .btn-primary").first().click();
+      await page.locator("#imageEditModal").waitFor({ state: "visible" });
+      await page.locator('#imageEditModal input[type="checkbox"]').first().check();
+      await page.waitForTimeout(300);
+      const data = await page.evaluate(() => {
+        const images = JSON.parse(localStorage.getItem("images"));
+        return images[0].data;
+      });
+      expect(data).toContain("none");
+    });
+
+    test("fill none checkbox clears fill", async ({ page }) => {
+      await page.locator(".card:has-text('EditTest') .btn-primary").first().click();
+      await page.locator("#imageEditModal").waitFor({ state: "visible" });
+      await page.locator('#imageEditModal input[type="checkbox"]').nth(1).check();
+      await page.waitForTimeout(300);
+      const data = await page.evaluate(() => {
+        const images = JSON.parse(localStorage.getItem("images"));
+        return images[0].data;
+      });
+      expect(data).toContain("none");
+    });
+
+    test("stroke width input changes value", async ({ page }) => {
+      await page.locator(".card:has-text('EditTest') .btn-primary").first().click();
+      await page.locator("#imageEditModal").waitFor({ state: "visible" });
+      const widthInput = page.locator('#imageEditModal input[type="number"]');
+      await widthInput.fill("5");
+      await page.waitForTimeout(300);
+      const data = await page.evaluate(() => {
+        const images = JSON.parse(localStorage.getItem("images"));
+        return images[0].data;
+      });
+      expect(data).toContain("5");
+    });
+
+    test("duplicate name validation prevents OK", async ({ page }) => {
+      await page.getByRole("button", { name: "Add Image" }).click();
+      await page.locator("#imageEditModal").waitFor({ state: "visible" });
+      const nameInput = page.locator("#imageEditModalBody .form-control:not(.form-control-sm)");
+      await nameInput.fill("EditTest");
+      await expect(page.locator("#imageNameError")).toBeVisible();
+      const okBtn = page.locator('#imageEditModal .btn-success');
+      await expect(okBtn).toBeDisabled();
+    });
+  });
+
+  // ── Image Picker UI ─────────────────────────────────────────
+
+  test.describe("Image Picker UI", () => {
+
+    test.beforeEach(async ({ page }) => {
+      await page.addInitScript((data) => {
+        localStorage.setItem("planmydays_streams", JSON.stringify(data));
+        localStorage.setItem("images", JSON.stringify([
+          { name: "PickMe", data: "" },
+          { name: "PickMeToo", data: "" }
+        ]));
+      }, TEST_STREAMS);
+      await page.goto("/");
+      await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
+      await page.locator("a.dropdown-item").filter({ hasText: "Streams" }).click();
+      await page.locator("#streamEditorList .btn-primary").filter({ hasText: "Edit" }).first().click();
+      await page.getByRole("button", { name: "Choose" }).click();
+      await expect(page.locator("#imagePickerModal")).toBeVisible();
+    });
+
+    test("selecting image sets name in stream editor", async ({ page }) => {
+      await page.locator(".image-picker-item").first().click();
+      await page.waitForTimeout(300);
+      const name = await page.evaluate(() => editBuffer?.image || "");
+      expect(name).toBe("PickMe");
+    });
+
+    test("search filters picker items", async ({ page }) => {
+      await page.locator(".image-picker-search").fill("PickMeToo");
+      await page.locator(".image-picker-item:has-text('PickMeToo')").waitFor({ state: "visible" });
+      await expect(page.locator(".image-picker-item").filter({ hasText: /^PickMeToo$/ })).toBeVisible();
+      await expect(page.locator(".image-picker-item").filter({ hasText: /^PickMe$/ })).not.toBeVisible();
+    });
+
+    test("clear button resets picker search", async ({ page }) => {
+      await page.locator(".image-picker-search").fill("PickMeToo");
+      await page.getByRole("button", { name: "Clear" }).click();
+      await expect(page.locator(".image-picker-item").filter({ hasText: /^PickMe$/ })).toBeVisible();
+    });
+
+    test("closing picker with cancel button", async ({ page }) => {
+      await page.locator("#imagePickerModal .btn-outline-secondary").last().click();
+      await expect(page.locator("#imagePickerModal")).not.toBeVisible();
+    });
+
+    test("no image button clears image in editor", async ({ page }) => {
+      await page.getByText("No Image").click();
+      await page.waitForTimeout(300);
+      const img = await page.evaluate(() => editBuffer?.image || "");
+      expect(img).toBe("");
+    });
+  });
+
+  // ── Schedule Type UI ────────────────────────────────────────
+
+  test.describe("Schedule Type UI", () => {
+
+    test.beforeEach(async ({ page }) => {
+      await page.goto("/");
+      await page.evaluate((data) => {
+        localStorage.setItem("planmydays_streams", JSON.stringify(data));
+      }, TEST_STREAMS);
+      await page.reload();
+      await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
+      await page.locator("a.dropdown-item").filter({ hasText: "Streams" }).click();
+      await page.locator("#streamEditorList .btn-info").filter({ hasText: "Jobs" }).first().click();
+    });
+
+    test("every day schedule shows correct text", async ({ page }) => {
+      await page.locator("#jobsList .btn-primary").filter({ hasText: "Edit" }).first().click();
+      await expect(page.locator("#jobScheduleText")).toContainText("Every day");
+    });
+
+    test("weekdays schedule option", async ({ page }) => {
+      await page.locator("#jobsList .btn-primary").filter({ hasText: "Edit" }).first().click();
+      await page.getByText("Change").click();
+      await page.locator("#schedWeekdays").check();
+      await page.locator("#scheduleModal .btn-primary").click();
+      await expect(page.locator("#jobScheduleText")).toContainText("Weekdays");
+    });
+
+    test("specific days schedule", async ({ page }) => {
+      await page.locator("#jobsList .btn-primary").filter({ hasText: "Edit" }).first().click();
+      await page.getByText("Change").click();
+      await page.locator("#schedDays").check();
+      await page.locator("#schedDay0").check();
+      await page.locator("#schedDay6").check();
+      await page.locator("#scheduleModal .btn-primary").click();
+      await expect(page.locator("#jobScheduleText")).toContainText("Sun");
+      await expect(page.locator("#jobScheduleText")).toContainText("Sat");
+    });
+
+    test("monthly schedule option", async ({ page }) => {
+      await page.locator("#jobsList .btn-primary").filter({ hasText: "Edit" }).first().click();
+      await page.getByText("Change").click();
+      await page.locator("#schedMonthly").check();
+      await page.locator("#schedMonthlyDay").selectOption("15");
+      await page.locator("#scheduleModal .btn-primary").click();
+      await expect(page.locator("#jobScheduleText")).toContainText("15th");
+    });
+  });
+
+  // ── Dev Mode UI ─────────────────────────────────────────────
+
+  test.describe("Dev Mode UI", () => {
+
+    test("dev mode today changes date displayed", async ({ page }) => {
+      await page.goto("/?dev=true");
+      await page.getByTitle("Settings").click();
+      await page.locator("#showDanger").check();
+      const todayInput = page.locator(".flatpickr-input").first();
+      await todayInput.click();
+      await todayInput.fill("2026-12-25");
+      await todayInput.press("Enter");
+      await page.waitForTimeout(500);
+      await page.getByRole("button", { name: "Done" }).click();
+      await page.waitForTimeout(500);
+      await expect(page.locator("h2").first()).toContainText("25 Dec");
+    });
+  });
+
+  // ── Image Editing: Cancel Existing ──────────────────────────
+
+  test.describe("Image Editing: Cancel Existing", () => {
+
+    test("cancel editing existing image restores original data", async ({ page }) => {
+      const svg = "data:image/svg+xml," + encodeURIComponent('<svg stroke="#000000" fill="#ffffff" stroke-width="2" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100"/></svg>');
+      await page.addInitScript((svgData) => {
+        localStorage.clear();
+        localStorage.setItem("images", JSON.stringify([{ name: "OriginalName", data: svgData }]));
+      }, svg);
+      await page.reload();
+      await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
+      await page.locator("a.dropdown-item").filter({ hasText: "Images" }).click();
+      await page.locator("#imagesEditor").waitFor({ state: "visible" });
+      await page.locator(".card:has-text('OriginalName') .btn-primary").first().click();
+      await page.locator("#imageEditModal").waitFor({ state: "visible" });
+      const nameInput = page.locator("#imageEditModalBody .form-control:not(.form-control-sm)");
+      await nameInput.fill("ChangedName");
+      await page.locator("#imageEditModal .btn-secondary").filter({ hasText: "Cancel" }).click();
+      await page.waitForTimeout(300);
+      const restored = await page.evaluate(() => {
+        const images = JSON.parse(localStorage.getItem("images") || "[]");
+        return { name: images[0]?.name, data: images[0]?.data };
+      });
+      expect(restored.name).toBe("OriginalName");
+      expect(restored.data).toContain("%23000000");
+    });
+
+    test("uncheck line none restores stroke color", async ({ page }) => {
+      const svg = "data:image/svg+xml," + encodeURIComponent('<svg stroke="#ff0000" fill="#ffffff" stroke-width="2" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100"/></svg>');
+      await page.addInitScript((svgData) => {
+        localStorage.clear();
+        localStorage.setItem("images", JSON.stringify([{ name: "StrokeTest", data: svgData }]));
+      }, svg);
+      await page.reload();
+      await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
+      await page.locator("a.dropdown-item").filter({ hasText: "Images" }).click();
+      await page.locator("#imagesEditor").waitFor({ state: "visible" });
+      await page.locator(".card:has-text('StrokeTest') .btn-primary").first().click();
+      await page.locator("#imageEditModal").waitFor({ state: "visible" });
+      const lineCheckbox = page.locator('#imageEditModal input[type="checkbox"]').first();
+      await lineCheckbox.check();
+      await page.waitForTimeout(200);
+      await lineCheckbox.uncheck();
+      await page.waitForTimeout(300);
+      const data = await page.evaluate(() => {
+        const images = JSON.parse(localStorage.getItem("images"));
+        return images[0].data;
+      });
+      expect(data).toContain("%23ff0000");
+    });
+
+    test("uncheck fill none restores fill color", async ({ page }) => {
+      const svg = "data:image/svg+xml," + encodeURIComponent('<svg stroke="#000000" fill="#00ff00" stroke-width="2" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100"/></svg>');
+      await page.addInitScript((svgData) => {
+        localStorage.clear();
+        localStorage.setItem("images", JSON.stringify([{ name: "FillTest", data: svgData }]));
+      }, svg);
+      await page.reload();
+      await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
+      await page.locator("a.dropdown-item").filter({ hasText: "Images" }).click();
+      await page.locator("#imagesEditor").waitFor({ state: "visible" });
+      await page.locator(".card:has-text('FillTest') .btn-primary").first().click();
+      await page.locator("#imageEditModal").waitFor({ state: "visible" });
+      const fillCheckbox = page.locator('#imageEditModal input[type="checkbox"]').nth(1);
+      await fillCheckbox.check();
+      await page.waitForTimeout(200);
+      await fillCheckbox.uncheck();
+      await page.waitForTimeout(300);
+      const data = await page.evaluate(() => {
+        const images = JSON.parse(localStorage.getItem("images"));
+        return images[0].data;
+      });
+      expect(data).toContain("%2300ff00");
+    });
+  });
+
+  // ── Image Picker Empty State ───────────────────────────────
+
+  test.describe("Image Picker Empty State", () => {
+
+    test("picker shows no images available when empty", async ({ page }) => {
+      await page.evaluate(() => {
+        localStorage.setItem("planmydays_streams", JSON.stringify([{
+          id: "stream_1", title: "Test", tab: "progress", image: "", sequence: 1, jobs: []
+        }]));
+        localStorage.setItem("images", JSON.stringify([]));
+      });
+      await page.reload();
+      await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
+      await page.locator("a.dropdown-item").filter({ hasText: "Streams" }).click();
+      await page.locator("#streamEditorList .btn-primary").filter({ hasText: "Edit" }).first().click();
+      await page.getByRole("button", { name: "Choose" }).click();
+      await page.locator("#imagePickerModal").waitFor({ state: "visible" });
+      await expect(page.getByText("No images available.")).toBeVisible();
+    });
+
+    test("picker shows no match when search has no results", async ({ page }) => {
+      await page.evaluate(() => {
+        localStorage.setItem("planmydays_streams", JSON.stringify([{
+          id: "stream_1", title: "Test", tab: "progress", image: "", sequence: 1, jobs: []
+        }]));
+        localStorage.setItem("images", JSON.stringify([{ name: "Apple", data: "" }]));
+      });
+      await page.reload();
+      await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
+      await page.locator("a.dropdown-item").filter({ hasText: "Streams" }).click();
+      await page.locator("#streamEditorList .btn-primary").filter({ hasText: "Edit" }).first().click();
+      await page.getByRole("button", { name: "Choose" }).click();
+      await page.locator("#imagePickerModal").waitFor({ state: "visible" });
+      await page.locator(".image-picker-search").fill("ZZZZNOTHING");
+      await expect(page.getByText("No images match your search.")).toBeVisible();
+    });
+  });
+
+  // ── Ad Hoc Confirm Removal ─────────────────────────────────
+
+  test.describe("Ad Hoc Confirm Removal", () => {
+
+    test("confirming removal deletes adhoc job", async ({ page }) => {
+      await page.getByText("+ Add card").click();
+      await page.locator("#newCardTitle").fill("RemoveMe");
+      await page.locator("#addCardForm .btn-primary").filter({ hasText: "Add" }).click();
+      await page.waitForTimeout(300);
+      const cb = page.locator('.job-checkbox').first();
+      await cb.check({ force: true });
+      await expect(page.locator("#deleteConfirmModal")).toBeVisible();
+      await page.locator("#deleteConfirmBtn").click();
+      await page.waitForTimeout(500);
+      await expect(page.getByText("RemoveMe")).not.toBeVisible();
+    });
+  });
+
+  // ── Checkbox Uncheck ───────────────────────────────────────
+
+  test.describe("Checkbox Uncheck", () => {
+
+    test("unchecking completed job removes strikethrough", async ({ page }) => {
+      await seedTodayList(page);
+      await page.reload();
+      const cb = page.locator('.job-checkbox[data-job-id="job_1"]');
+      await cb.check();
+      await page.waitForTimeout(200);
+      await cb.uncheck();
+      await page.waitForTimeout(300);
+      await expect(cb).not.toBeChecked();
+    });
+  });
+
+  // ── Schedule Filtering ─────────────────────────────────────
+
+  test.describe("Schedule Filtering", () => {
+
+    test("job with sleepUntil in future is hidden from today", async ({ page }) => {
+      await page.evaluate(() => {
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        const ds = tomorrow.getFullYear() + "-" + String(tomorrow.getMonth()+1).padStart(2,"0") + "-" + String(tomorrow.getDate()).padStart(2,"0");
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        const ys = yesterday.getFullYear() + "-" + String(yesterday.getMonth()+1).padStart(2,"0") + "-" + String(yesterday.getDate()).padStart(2,"0");
+        localStorage.setItem("planmydays_streams", JSON.stringify([{
+          id: "stream_1", title: "Test", tab: "progress", image: "", sequence: 1,
+          jobs: [{
+            id: "job_1", title: "FutureJob", active: true, frequency: "daily",
+            sequence: 1, sleepUntil: ds, suffix: false, dayType: "dayOfYear", mod: ""
+          }]
+        }]));
+        localStorage.setItem("planmydays_today_order", JSON.stringify([]));
+        localStorage.setItem("planmydays_last_gen", ys);
+        localStorage.setItem("planmydays_completed", JSON.stringify([]));
+      });
+      await page.reload();
+      await expect(page.getByText("FutureJob")).not.toBeVisible();
+    });
+
+    test("sleepUntil in past shows job on today", async ({ page }) => {
+      await page.evaluate(() => {
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        const ys = yesterday.getFullYear() + "-" + String(yesterday.getMonth()+1).padStart(2,"0") + "-" + String(yesterday.getDate()).padStart(2,"0");
+        const twoDaysAgo = new Date();
+        twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
+        const tas = twoDaysAgo.getFullYear() + "-" + String(twoDaysAgo.getMonth()+1).padStart(2,"0") + "-" + String(twoDaysAgo.getDate()).padStart(2,"0");
+        localStorage.setItem("planmydays_streams", JSON.stringify([{
+          id: "stream_1", title: "Test", tab: "progress", image: "", sequence: 1,
+          jobs: [{
+            id: "job_1", title: "PastSleepJob", active: true, frequency: "daily",
+            sequence: 1, sleepUntil: ys, suffix: false, dayType: "dayOfYear", mod: ""
+          }]
+        }]));
+        localStorage.setItem("planmydays_today_order", JSON.stringify([]));
+        localStorage.setItem("planmydays_last_gen", tas);
+        localStorage.setItem("planmydays_completed", JSON.stringify([]));
+      });
+      await page.reload();
+      await expect(page.getByText("PastSleepJob")).toBeVisible();
+    });
+
+    test("weekends job hidden on weekday", async ({ page }) => {
+      await page.evaluate(() => {
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        const ys = yesterday.getFullYear() + "-" + String(yesterday.getMonth()+1).padStart(2,"0") + "-" + String(yesterday.getDate()).padStart(2,"0");
+        localStorage.setItem("planmydays_streams", JSON.stringify([{
+          id: "stream_1", title: "Test", tab: "progress", image: "", sequence: 1,
+          jobs: [{
+            id: "job_1", title: "WeekendOnly", active: true, frequency: "daily",
+            sequence: 1, schedule: { type: "weekends" }, suffix: false, dayType: "dayOfYear", mod: ""
+          }]
+        }]));
+        localStorage.setItem("planmydays_today_order", JSON.stringify([]));
+        localStorage.setItem("planmydays_last_gen", ys);
+        localStorage.setItem("planmydays_completed", JSON.stringify([]));
+      });
+      await page.reload();
+      const todayNum = new Date().getDay();
+      if (todayNum === 0 || todayNum === 6) {
+        await expect(page.getByText("WeekendOnly")).toBeVisible();
+      } else {
+        await expect(page.getByText("WeekendOnly")).not.toBeVisible();
+      }
+    });
+
+    test("weekdays job hidden on weekend", async ({ page }) => {
+      await page.evaluate(() => {
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        const ys = yesterday.getFullYear() + "-" + String(yesterday.getMonth()+1).padStart(2,"0") + "-" + String(yesterday.getDate()).padStart(2,"0");
+        localStorage.setItem("planmydays_streams", JSON.stringify([{
+          id: "stream_1", title: "Test", tab: "progress", image: "", sequence: 1,
+          jobs: [{
+            id: "job_1", title: "WeekdayOnly", active: true, frequency: "daily",
+            sequence: 1, schedule: { type: "weekdays" }, suffix: false, dayType: "dayOfYear", mod: ""
+          }]
+        }]));
+        localStorage.setItem("planmydays_today_order", JSON.stringify([]));
+        localStorage.setItem("planmydays_last_gen", ys);
+        localStorage.setItem("planmydays_completed", JSON.stringify([]));
+      });
+      await page.reload();
+      const todayNum = new Date().getDay();
+      if (todayNum === 0 || todayNum === 6) {
+        await expect(page.getByText("WeekdayOnly")).not.toBeVisible();
+      } else {
+        await expect(page.getByText("WeekdayOnly")).toBeVisible();
+      }
+    });
+
+    test("specific days schedule shows on matched day", async ({ page }) => {
+      await page.evaluate(() => {
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        const ys = yesterday.getFullYear() + "-" + String(yesterday.getMonth()+1).padStart(2,"0") + "-" + String(yesterday.getDate()).padStart(2,"0");
+        const todayNum = new Date().getDay();
+        localStorage.setItem("planmydays_streams", JSON.stringify([{
+          id: "stream_1", title: "Test", tab: "progress", image: "", sequence: 1,
+          jobs: [{
+            id: "job_1", title: "SpecificDayJob", active: true, frequency: "daily",
+            sequence: 1, schedule: { type: "days", days: [todayNum] }, suffix: false, dayType: "dayOfYear", mod: ""
+          }]
+        }]));
+        localStorage.setItem("planmydays_today_order", JSON.stringify([]));
+        localStorage.setItem("planmydays_last_gen", ys);
+        localStorage.setItem("planmydays_completed", JSON.stringify([]));
+      });
+      await page.reload();
+      await expect(page.getByText("SpecificDayJob")).toBeVisible();
+    });
+
+    test("monthly schedule shows on correct date", async ({ page }) => {
+      await page.evaluate(() => {
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        const ys = yesterday.getFullYear() + "-" + String(yesterday.getMonth()+1).padStart(2,"0") + "-" + String(yesterday.getDate()).padStart(2,"0");
+        const todayDate = new Date().getDate();
+        localStorage.setItem("planmydays_streams", JSON.stringify([{
+          id: "stream_1", title: "Test", tab: "progress", image: "", sequence: 1,
+          jobs: [{
+            id: "job_1", title: "MonthlyJobShow", active: true, frequency: "daily",
+            sequence: 1, schedule: { type: "monthly", date: todayDate }, suffix: false, dayType: "dayOfYear", mod: ""
+          }]
+        }]));
+        localStorage.setItem("planmydays_today_order", JSON.stringify([]));
+        localStorage.setItem("planmydays_last_gen", ys);
+        localStorage.setItem("planmydays_completed", JSON.stringify([]));
+      });
+      await page.reload();
+      await expect(page.getByText("MonthlyJobShow")).toBeVisible();
+    });
+
+    test("monthly schedule hides on wrong date", async ({ page }) => {
+      await page.evaluate(() => {
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        const ys = yesterday.getFullYear() + "-" + String(yesterday.getMonth()+1).padStart(2,"0") + "-" + String(yesterday.getDate()).padStart(2,"0");
+        const wrongDate = new Date().getDate() === 1 ? 15 : 1;
+        localStorage.setItem("planmydays_streams", JSON.stringify([{
+          id: "stream_1", title: "Test", tab: "progress", image: "", sequence: 1,
+          jobs: [{
+            id: "job_1", title: "MonthlyJobHide", active: true, frequency: "daily",
+            sequence: 1, schedule: { type: "monthly", date: wrongDate }, suffix: false, dayType: "dayOfYear", mod: ""
+          }]
+        }]));
+        localStorage.setItem("planmydays_today_order", JSON.stringify([]));
+        localStorage.setItem("planmydays_last_gen", ys);
+        localStorage.setItem("planmydays_completed", JSON.stringify([]));
+      });
+      await page.reload();
+      await expect(page.getByText("MonthlyJobHide")).not.toBeVisible();
+    });
+  });
+
+  // ── Data Danger Zone ───────────────────────────────────────
+
+  test.describe("Data Danger Zone", () => {
+
+    test("regenerate tiles rebuilds the today list", async ({ page }) => {
+      await seedTodayList(page);
+      await page.reload();
+      await page.getByTitle("Settings").click();
+      await page.locator("#showDanger").check();
+      await page.locator("#regenerateTilesRow").waitFor({ state: "visible" });
+      await page.getByRole("button", { name: "Regenerate Today's Tiles" }).click();
+      await page.waitForTimeout(800);
+      await expect(page.getByText("Report").first()).toBeVisible();
+    });
+
+    test("clear all data removes everything", async ({ page }) => {
+      await seedTodayList(page);
+      await page.reload();
+      await page.getByTitle("Settings").click();
+      await page.locator("#showDanger").check();
+      await page.locator("#clearAllDataRow").waitFor({ state: "visible" });
+      await page.getByRole("button", { name: "Clear All Data" }).click();
+      await expect(page.locator("#deleteConfirmModal")).toBeVisible();
+      await page.locator("#deleteConfirmBtn").click();
+      await page.waitForTimeout(300);
+      const streams = await page.evaluate(() => localStorage.getItem("planmydays_streams"));
+      expect(streams).toBeNull();
+    });
+  });
+
+  // ── Auto-Hide Nav Behavior ─────────────────────────────────
+
+  test.describe("Auto-Hide Nav Behavior", () => {
+
+    test("nav hides when auto-hide is enabled and editors are closed", async ({ page }) => {
+      await page.evaluate(() => localStorage.setItem("autoHideMenu", "true"));
+      await page.reload();
+      await page.waitForTimeout(4500);
+      const navHidden = await page.evaluate(() => {
+        const nav = document.getElementById("mainNav");
+        return nav ? nav.classList.contains("nav-hidden") : false;
+      });
+      expect(navHidden).toBe(true);
+    });
+
+    test("nav not hidden when auto-hide is disabled", async ({ page }) => {
+      await page.evaluate(() => localStorage.setItem("autoHideMenu", "false"));
+      await page.reload();
+      await page.waitForTimeout(4500);
+      const navHidden = await page.evaluate(() => {
+        const nav = document.getElementById("mainNav");
+        return nav ? nav.classList.contains("nav-hidden") : false;
+      });
+      expect(navHidden).toBe(false);
+    });
+
+    test("nav shown when pointer moves after auto-hide", async ({ page }) => {
+      await page.evaluate(() => localStorage.setItem("autoHideMenu", "true"));
+      await page.reload();
+      const navHidden1 = await page.evaluate(() => {
+        const nav = document.getElementById("mainNav");
+        return nav ? nav.classList.contains("nav-hidden") : false;
+      });
+      expect(navHidden1).toBe(false);
+      await page.waitForTimeout(5000);
+      const navHidden2 = await page.evaluate(() => {
+        const nav = document.getElementById("mainNav");
+        return nav ? nav.classList.contains("nav-hidden") : false;
+      });
+      expect(navHidden2).toBe(true);
+      await page.evaluate(() => {
+        const nav = document.getElementById("mainNav");
+        if (nav) nav.classList.remove("nav-hidden");
+      });
+      const navHidden3 = await page.evaluate(() => {
+        const nav = document.getElementById("mainNav");
+        return nav ? nav.classList.contains("nav-hidden") : false;
+      });
+      expect(navHidden3).toBe(false);
     });
   });
 });
