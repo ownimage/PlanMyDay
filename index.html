@@ -86,7 +86,7 @@
 
     <!-- IMAGE PICKER MODAL (Bootstrap modal) -->
     <div id="imagePickerModal" class="modal fade" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
-      <div class="modal-dialog modal-xl modal-dialog-scrollable">
+      <div class="modal-dialog modal-xl modal-dialog-scrollable modal-fullscreen-lg-down">
         <div class="modal-content">
           <div class="modal-header">
             <h3 class="modal-title">Choose Image</h3>
@@ -392,6 +392,19 @@
           <button class="btn btn-secondary editor-btn" onclick="cancelJobEdit()">Cancel</button>
           <button class="btn btn-success editor-btn" onclick="doneJobEdit()">OK</button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- IMAGE EDIT MODAL -->
+  <div id="imageEditModal" class="modal fade" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered modal-fullscreen-lg-down">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 class="modal-title" id="imageEditModalTitle">Edit Image</h3>
+          <button type="button" class="btn-close" onclick="cancelImageEdit()"></button>
+        </div>
+        <div class="modal-body" id="imageEditModalBody"></div>
       </div>
     </div>
   </div>

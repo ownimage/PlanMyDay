@@ -60,10 +60,10 @@ function renderImagesEditor() {
   const images = loadImages();
 
   if (editingImageIndex >= 0) {
-    list.classList.add("d-none");
-    topTile.classList.add("d-none");
-    filterEl.classList.add("d-none");
-    singleEditor.classList.remove("d-none");
+    list.classList.remove("d-none");
+    topTile.classList.remove("d-none");
+    filterEl.classList.remove("d-none");
+    singleEditor.classList.add("d-none");
 
     const img = images[editingImageIndex];
     const hasData = img.data && img.data.length > 0;
@@ -71,49 +71,52 @@ function renderImagesEditor() {
     const lineVal = colors.line !== "none" ? colors.line : (img._prevStroke || "#000000");
     const fillVal = colors.fill !== "none" ? colors.fill : (img._prevFill || "#ffffff");
 
-    const heading = isNewImage ? "Add Image" : "Edit Image";
-    singleEditor.innerHTML = `
-      <div class="d-flex align-items-center mb-3">
-        <h3 class="mb-0">${heading}</h3>
-        <button class="btn btn-outline-secondary ms-auto" onclick="cancelImageEdit()">Back</button>
-      </div>
+    document.getElementById("imageEditModalTitle").textContent = isNewImage ? "Add Image" : "Edit Image";
+    document.getElementById("imageEditModalBody").innerHTML = `
       <div class="card p-3 card-edited">
-        <div class="row align-items-center">
-          <div class="col-auto" style="width:130px;flex:0 0 auto">
-            ${hasData
-              ? `<img src="${img.data}" class="date-img">`
-              : `<div class="date-img d-flex align-items-center justify-content-center text-secondary border rounded">No image</div>`
-            }
-            <button class="btn btn-primary btn-sm mt-2 w-100 text-nowrap" onclick="openImageUpload(${editingImageIndex})">Upload</button>
+        <div class="mb-2">
+          <label class="form-label mb-1">Name</label>
+          <input class="form-control" value="${escapeHtml(img.name)}" onchange="editImageField('name', this.value); checkDuplicateName()" oninput="checkDuplicateName()">
+          <div id="imageNameError" class="text-danger mt-1" style="display:none">ERROR: There is already an image with this name.</div>
+        </div>
+        <div class="d-flex gap-2 align-items-center mb-2">
+          <div style="width:45px;flex-shrink:0"></div>
+          ${hasData
+            ? `<img src="${img.data}" class="date-img">`
+            : `<div class="date-img d-flex align-items-center justify-content-center text-secondary border rounded">No image</div>`
+          }
+          <button class="btn btn-primary btn-sm text-nowrap" onclick="openImageUpload(${editingImageIndex})">Upload</button>
+        </div>
+        <div class="d-flex flex-column gap-2">
+          <div class="d-flex gap-2 align-items-center">
+            <label class="form-label mb-0" style="min-width:45px">Line:</label>
+            <input type="color" value="${lineVal}" oninput="editImageColor(${editingImageIndex}, 'stroke', this.value)">
+            <label class="form-check-label mb-0">
+              <input type="checkbox" ${colors.line === 'none' || !colors.line ? 'checked' : ''} onchange="editImageStrokeNone(${editingImageIndex}, this.checked)">
+              none
+            </label>
           </div>
-          <div class="col">
-            <input class="form-control" value="${escapeHtml(img.name)}" onchange="editImageField('name', this.value); checkDuplicateName()" oninput="checkDuplicateName()">
-            <div id="imageNameError" class="text-danger mt-1" style="display:none">ERROR: There is already an image with this name.</div>
-            <div class="d-flex gap-2 mt-2 align-items-center flex-wrap">
-              <button class="btn btn-success editor-btn" onclick="doneImageEdit(${editingImageIndex})">OK</button>
-              <label class="form-label mb-0">Line:</label>
-              <input type="color" value="${lineVal}" oninput="editImageColor(${editingImageIndex}, 'stroke', this.value)">
-              <label class="form-check-label mb-0">
-                <input type="checkbox" ${colors.line === 'none' || !colors.line ? 'checked' : ''} onchange="editImageStrokeNone(${editingImageIndex}, this.checked)">
-                none
-              </label>
-              <label class="form-label mb-0">Fill:</label>
-              <input type="color" value="${fillVal}" oninput="editImageColor(${editingImageIndex}, 'fill', this.value)">
-              <label class="form-check-label mb-0">
-                <input type="checkbox" ${colors.fill === 'none' || !colors.fill ? 'checked' : ''} onchange="editImageFillNone(${editingImageIndex}, this.checked)">
-                none
-              </label>
-              <label class="form-label mb-0">Width:</label>
-              <input type="number" min="0.5" max="10" step="0.5" value="${colors.strokeWidth || '2'}" style="width:60px" class="form-control form-control-sm d-inline-block" oninput="editImageStrokeWidth(${editingImageIndex}, this.value)">
-            </div>
+          <div class="d-flex gap-2 align-items-center">
+            <label class="form-label mb-0" style="min-width:45px">Fill:</label>
+            <input type="color" value="${fillVal}" oninput="editImageColor(${editingImageIndex}, 'fill', this.value)">
+            <label class="form-check-label mb-0">
+              <input type="checkbox" ${colors.fill === 'none' || !colors.fill ? 'checked' : ''} onchange="editImageFillNone(${editingImageIndex}, this.checked)">
+              none
+            </label>
           </div>
-            <div class="col-auto d-flex align-items-center">
-              <button class="btn btn-secondary editor-btn" onclick="cancelImageEdit()">Cancel</button>
-            </div>
+          <div class="d-flex gap-2 align-items-center">
+            <label class="form-label mb-0" style="min-width:45px">Width:</label>
+            <input type="number" min="0.5" max="10" step="0.5" value="${colors.strokeWidth || '2'}" style="width:70px" class="form-control form-control-sm d-inline-block" oninput="editImageStrokeWidth(${editingImageIndex}, this.value)">
+          </div>
+        </div>
+        <div class="d-flex gap-2 mt-3">
+          <button class="btn btn-success editor-btn" onclick="doneImageEdit(${editingImageIndex})">OK</button>
+          <button class="btn btn-secondary editor-btn ms-auto" onclick="cancelImageEdit()">Cancel</button>
         </div>
       </div>
     `;
 
+    new bootstrap.Modal(document.getElementById("imageEditModal")).show();
     updateNavState();
     return;
   }
@@ -412,6 +415,8 @@ function doneImageEdit(index) {
   editingImageIndex = -1;
   isNewImage = false;
   editImageBackup = null;
+  var modal = bootstrap.Modal.getInstance(document.getElementById("imageEditModal"));
+  if (modal) modal.hide();
   renderImagesEditor();
 }
 
@@ -428,6 +433,8 @@ function cancelImageEdit() {
   editingImageIndex = -1;
   isNewImage = false;
   editImageBackup = null;
+  var modal = bootstrap.Modal.getInstance(document.getElementById("imageEditModal"));
+  if (modal) modal.hide();
   renderImagesEditor();
 }
 
