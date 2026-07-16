@@ -141,18 +141,16 @@ function renderImagesEditor() {
     card.className = "card p-3 mb-3";
     const colors = getImageColors(img.data);
     card.innerHTML = `
-      <div class="row align-items-center">
-        <div class="col-auto" style="width:130px;flex:0 0 auto">
+      <div class="row mb-2">
+        <div class="col d-flex align-items-start pt-1">${escapeHtml(img.name)}</div>
+        <div class="col-auto">
           <img src="${img.data}" class="date-img">
         </div>
-        <div class="col">
-          <div class="mb-1">${escapeHtml(img.name)}</div>
-          <div class="d-flex gap-2 align-items-center flex-wrap">
-            <button class="btn btn-primary editor-btn" onclick="startEditImage(${images.indexOf(img)})">Edit</button>
-            <button class="btn btn-info editor-btn mx-auto" onclick="duplicateImage(${images.indexOf(img)})">Duplicate</button>
-            <button class="btn btn-danger editor-btn" onclick="confirmDeleteImage(${images.indexOf(img)})">Delete</button>
-          </div>
-        </div>
+      </div>
+      <div class="d-flex gap-2">
+        <button class="btn btn-primary editor-btn" style="flex:1" onclick="startEditImage(${images.indexOf(img)})">Edit</button>
+        <button class="btn btn-info editor-btn" style="flex:1" onclick="duplicateImage(${images.indexOf(img)})">Duplicate</button>
+        <button class="btn btn-danger editor-btn" style="flex:1" onclick="confirmDeleteImage(${images.indexOf(img)})">Delete</button>
       </div>
     `;
     list.appendChild(card);
