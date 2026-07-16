@@ -1,3 +1,21 @@
+// DEV MODE
+window.isDevMode = new URLSearchParams(window.location.search).get("dev") === "true";
+function getTodayDate() {
+  const dev = localStorage.getItem("devToday");
+  return dev ? new Date(dev + "T00:00:00") : new Date();
+}
+function getTodayStr() {
+  const d = getTodayDate();
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+}
+function getStoredLastGen() {
+  if (isDevMode) {
+    const dev = localStorage.getItem("devLastGen");
+    if (dev) return dev;
+  }
+  return localStorage.getItem("planmydays_last_gen");
+}
+
 // STORAGE HELPERS
 function loadStreams() {
   const streams = JSON.parse(localStorage.getItem("planmydays_streams") || "[]");
@@ -126,8 +144,8 @@ function addScheduleJobsToOrder(order) {
 }
 
 function ensureTodayList() {
-  const today = new Date().toISOString().slice(0, 10);
-  const lastGen = localStorage.getItem("planmydays_last_gen");
+  const today = getTodayStr();
+  const lastGen = getStoredLastGen();
   const existingOrder = loadTodayOrder();
   if (lastGen === today && existingOrder) return;
 
@@ -153,7 +171,7 @@ function renderMain() {
   if (!container) return;
   container.innerHTML = "";
 
-  const now = new Date();
+  const now = getTodayDate();
   const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
   const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   const dateStr = `${days[now.getDay()]} ${now.getDate()} ${months[now.getMonth()]}, ${now.getFullYear()}`;
@@ -985,16 +1003,17 @@ function saveScheduleModal() {
 
 function shouldShowJobToday(job) {
   if (job.sleepUntil) {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = getTodayStr();
     if (today < job.sleepUntil) return false;
   }
   const s = job.schedule || { type: "daily" };
   const type = s.type || "daily";
+  const now = getTodayDate();
   if (type === "daily") return true;
-  if (type === "weekdays") { const d = new Date().getDay(); return d >= 1 && d <= 5; }
-  if (type === "weekends") { const d = new Date().getDay(); return d === 0 || d === 6; }
-  if (type === "days") return (s.days || []).includes(new Date().getDay());
-  if (type === "monthly") return new Date().getDate() === (s.date || 1);
+  if (type === "weekdays") { const d = now.getDay(); return d >= 1 && d <= 5; }
+  if (type === "weekends") { const d = now.getDay(); return d === 0 || d === 6; }
+  if (type === "days") return (s.days || []).includes(now.getDay());
+  if (type === "monthly") return now.getDate() === (s.date || 1);
   return true;
 }
 
@@ -1120,7 +1139,7 @@ function editJob(index) {
   const jobs = streams[jobsStreamIndex].jobs || [];
   jobsBuffer = JSON.parse(JSON.stringify(jobs[index]));
   if (jobsBuffer.sleepUntil) {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = getTodayStr();
     if (jobsBuffer.sleepUntil < today) jobsBuffer.sleepUntil = "";
   }
   jobsEditingIdx = index; isNewJob = false;
@@ -1190,7 +1209,7 @@ function addNewJob() {
 
 function getJobSuffix(job) {
   if (!job.suffix) return "";
-  const today = new Date();
+  const today = getTodayDate();
   const dayType = job.dayType || "dayOfYear";
   let dayNum;
 
@@ -1256,10 +1275,21 @@ function openSettings() {
   const skipAdhoc = localStorage.getItem("skipAdhocConfirm") === "true";
   const skipAdhocCb = document.getElementById("skipAdhocConfirm");
   if (skipAdhocCb) skipAdhocCb.checked = skipAdhoc;
-  ["clearAllDataRow", "refreshAppRow", "regenerateTilesRow", "uploadStandardImagesRow", "adhocConfirmRow"].forEach(id => {
+  const dangerIds = ["clearAllDataRow", "refreshAppRow", "regenerateTilesRow", "uploadStandardImagesRow", "adhocConfirmRow"];
+  if (isDevMode) dangerIds.push("devTodayRow", "devLastGenRow");
+  dangerIds.forEach(id => {
     const el = document.getElementById(id);
     if (el) el.classList.toggle("d-none", !showDanger);
   });
+
+  if (isDevMode) {
+    const devToday = localStorage.getItem("devToday") || "";
+    const devTodayInput = document.getElementById("devTodayInput");
+    if (devTodayInput) devTodayInput.value = devToday;
+    const devLastGen = localStorage.getItem("devLastGen") || "";
+    const devLastGenInput = document.getElementById("devLastGenInput");
+    if (devLastGenInput) devLastGenInput.value = devLastGen;
+  }
 
   const qrContainer = document.getElementById("shareQrCode");
   if (qrContainer) {
@@ -1296,7 +1326,7 @@ function regenerateTiles() {
   const merged = addScheduleJobsToOrder(clean);
   saveTodayOrder(merged);
   saveCompletedJobs([]);
-  localStorage.setItem("planmydays_last_gen", new Date().toISOString().slice(0, 10));
+  localStorage.setItem("planmydays_last_gen", getTodayStr());
   closeSettings();
   renderMain();
 }

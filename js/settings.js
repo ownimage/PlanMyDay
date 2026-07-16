@@ -70,6 +70,15 @@ function changeSplitList(enabled) {
   localStorage.setItem("splitList", enabled);
 }
 
+function changeDevToday(value) {
+  localStorage.setItem("devToday", value);
+  if (typeof renderMain === "function") renderMain();
+}
+
+function changeDevLastGen(value) {
+  localStorage.setItem("devLastGen", value);
+}
+
 function changeHideDone(enabled) {
   localStorage.setItem("hideDone", enabled);
 }
@@ -86,7 +95,9 @@ function changeMonday(value) {
 
 function changeShowDanger(enabled) {
   localStorage.setItem("showDanger", enabled);
-  ["clearAllDataRow", "refreshAppRow", "regenerateTilesRow", "uploadStandardImagesRow", "adhocConfirmRow"].forEach(id => {
+  const dangerIds = ["clearAllDataRow", "refreshAppRow", "regenerateTilesRow", "uploadStandardImagesRow", "adhocConfirmRow"];
+  if (isDevMode) dangerIds.push("devTodayRow", "devLastGenRow");
+  dangerIds.forEach(id => {
     const el = document.getElementById(id);
     if (el) el.classList.toggle("d-none", !enabled);
   });
