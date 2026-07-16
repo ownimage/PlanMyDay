@@ -1290,6 +1290,9 @@ function getJobSuffix(job) {
     }
   }
 
+  const suffixStart = localStorage.getItem("suffixStart") || "0";
+  if (suffixStart === "1") dayNum += 1;
+
   return ` (${dayNum})`;
 }
 
@@ -1314,6 +1317,9 @@ function openSettings() {
   const hideDone = localStorage.getItem("hideDone") === "true";
   const hideDoneCb = document.getElementById("hideDone");
   if (hideDoneCb) hideDoneCb.checked = hideDone;
+  const suffixStart = localStorage.getItem("suffixStart") || "0";
+  const suffixStartSel = document.getElementById("suffixStartSelector");
+  if (suffixStartSel) suffixStartSel.value = suffixStart;
   const jan1 = localStorage.getItem("jan1") || "1";
   const jan1Sel = document.getElementById("jan1Selector");
   if (jan1Sel) jan1Sel.value = jan1;

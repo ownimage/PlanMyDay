@@ -718,6 +718,69 @@ test.describe("PlanMyDay - Regression", () => {
     });
   });
 
+  // ── Suffix Start Setting ──────────────────────────────────
+
+  test.describe("Suffix Start Setting", () => {
+
+    test("suffix start dropdown exists in settings after hide done", async ({ page }) => {
+      await page.getByTitle("Settings").click();
+      const suffixStartSel = page.locator("#suffixStartSelector");
+      await expect(suffixStartSel).toBeVisible();
+    });
+
+    test("suffix start 0 shows 0-based number on badge", async ({ page }) => {
+      await page.evaluate(() => {
+        const now = new Date();
+        const ds = now.getFullYear() + "-" + String(now.getMonth()+1).padStart(2,"0") + "-" + String(now.getDate()).padStart(2,"0");
+        localStorage.setItem("planmydays_streams", JSON.stringify([{
+          id: "stream_1", title: "Test", tab: "progress", image: "", sequence: 1,
+          jobs: [{ id: "job_1", title: "SuffixJob", active: true, frequency: "daily", sequence: 1, suffix: true, dayType: "dayOfYear", mod: "" }]
+        }]));
+        localStorage.setItem("planmydays_today_order", JSON.stringify(["job_1"]));
+        localStorage.setItem("planmydays_last_gen", ds);
+        localStorage.setItem("planmydays_completed", JSON.stringify([]));
+        localStorage.setItem("suffixStart", "0");
+      });
+      await page.reload();
+      const badge = page.locator(".badge.bg-secondary").first();
+      const text = await badge.textContent();
+      const match = text.match(/\((\d+)\)/);
+      expect(match).not.toBeNull();
+    });
+
+    test("suffix start 1 adds 1 to displayed number", async ({ page }) => {
+      await page.evaluate(() => {
+        const now = new Date();
+        const jan1 = new Date(now.getFullYear(), 0, 0);
+        const dayOfYear = Math.floor((now - jan1) / 86400000);
+        const ds = now.getFullYear() + "-" + String(now.getMonth()+1).padStart(2,"0") + "-" + String(now.getDate()).padStart(2,"0");
+        localStorage.setItem("planmydays_streams", JSON.stringify([{
+          id: "stream_1", title: "Test", tab: "progress", image: "", sequence: 1,
+          jobs: [{ id: "job_1", title: "SuffixPlus1", active: true, frequency: "daily", sequence: 1, suffix: true, dayType: "dayOfYear", mod: "" }]
+        }]));
+        localStorage.setItem("planmydays_today_order", JSON.stringify(["job_1"]));
+        localStorage.setItem("planmydays_last_gen", ds);
+        localStorage.setItem("planmydays_completed", JSON.stringify([]));
+        localStorage.setItem("suffixStart", "1");
+        localStorage.setItem("jan1", "1");
+      });
+      await page.reload();
+      const badge = page.locator(".badge.bg-secondary").first();
+      const text = await badge.textContent();
+      const match = text.match(/\((\d+)\)/);
+      expect(match).not.toBeNull();
+      const num = parseInt(match[1], 10);
+      expect(num).toBeGreaterThan(0);
+    });
+
+    test("suffix start setting persists via settings page", async ({ page }) => {
+      await page.getByTitle("Settings").click();
+      await page.locator("#suffixStartSelector").selectOption("1");
+      const val = await page.evaluate(() => localStorage.getItem("suffixStart"));
+      expect(val).toBe("1");
+    });
+  });
+
   // ── Tab Badge ──────────────────────────────────────────────
 
   test.describe("Tab Badge", () => {

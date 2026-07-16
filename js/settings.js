@@ -83,6 +83,11 @@ function changeHideDone(enabled) {
   localStorage.setItem("hideDone", enabled);
 }
 
+function changeSuffixStart(value) {
+  localStorage.setItem("suffixStart", value);
+  if (typeof renderMain === "function") renderMain();
+}
+
 function changeJan1(value) {
   localStorage.setItem("jan1", value);
   if (typeof renderMain === "function") renderMain();
