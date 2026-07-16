@@ -13,7 +13,11 @@ async function startCoverage(page) {
     await coverageReport.cleanCache();
     clean = true;
   }
-  await page.coverage.startJSCoverage({ resetOnNavigation: false });
+  try {
+    await page.coverage.startJSCoverage({ resetOnNavigation: false });
+  } catch (e) {
+    // JSCoverage may already be enabled from outer beforeEach; ignore
+  }
 }
 
 async function stopCoverage(page) {

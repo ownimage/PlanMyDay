@@ -255,6 +255,7 @@ test.describe("PlanMyDay - Regression", () => {
   test.describe("Streams Editor", () => {
 
     test.beforeEach(async ({ page }) => {
+      await startCoverage(page);
       await page.goto("/");
       await page.evaluate((data) => {
         localStorage.setItem("planmydays_streams", JSON.stringify(data));
@@ -320,6 +321,7 @@ test.describe("PlanMyDay - Regression", () => {
   test.describe("Jobs Editor", () => {
 
     test.beforeEach(async ({ page }) => {
+      await startCoverage(page);
       await page.goto("/");
       await page.evaluate((data) => {
         localStorage.setItem("planmydays_streams", JSON.stringify(data));
@@ -396,6 +398,7 @@ test.describe("PlanMyDay - Regression", () => {
   test.describe("Schedule Modal", () => {
 
     test.beforeEach(async ({ page }) => {
+      await startCoverage(page);
       await page.goto("/");
       await page.evaluate((data) => {
         localStorage.setItem("planmydays_streams", JSON.stringify(data));
@@ -425,6 +428,7 @@ test.describe("PlanMyDay - Regression", () => {
   test.describe("Images Editor", () => {
 
     test.beforeEach(async ({ page }) => {
+      await startCoverage(page);
       await page.goto("/");
       await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
       await page.locator("a.dropdown-item").filter({ hasText: "Images" }).click();
@@ -541,6 +545,7 @@ test.describe("PlanMyDay - Regression", () => {
   test.describe("Image Picker Modal", () => {
 
     test.beforeEach(async ({ page }) => {
+      await startCoverage(page);
       await page.evaluate((data) => {
         localStorage.clear();
         localStorage.setItem("planmydays_streams", JSON.stringify(data));
@@ -717,6 +722,7 @@ test.describe("PlanMyDay - Regression", () => {
   test.describe("Settings UI Controls", () => {
 
     test.beforeEach(async ({ page }) => {
+      await startCoverage(page);
       await page.getByTitle("Settings").click();
     });
 
@@ -834,6 +840,7 @@ test.describe("PlanMyDay - Regression", () => {
   test.describe("Job Edit Modal UI", () => {
 
     test.beforeEach(async ({ page }) => {
+      await startCoverage(page);
       await page.goto("/");
       await page.evaluate((data) => {
         localStorage.setItem("planmydays_streams", JSON.stringify(data));
@@ -900,6 +907,7 @@ test.describe("PlanMyDay - Regression", () => {
   test.describe("Image Editing UI", () => {
 
     test.beforeEach(async ({ page }) => {
+      await startCoverage(page);
       const svg = "data:image/svg+xml," + encodeURIComponent('<svg stroke="#000000" fill="#ffffff" stroke-width="2" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100"/></svg>');
       await page.addInitScript((svgData) => {
         localStorage.clear();
@@ -995,6 +1003,7 @@ test.describe("PlanMyDay - Regression", () => {
   test.describe("Image Picker UI", () => {
 
     test.beforeEach(async ({ page }) => {
+      await startCoverage(page);
       await page.addInitScript((data) => {
         localStorage.setItem("planmydays_streams", JSON.stringify(data));
         localStorage.setItem("images", JSON.stringify([
@@ -1048,6 +1057,7 @@ test.describe("PlanMyDay - Regression", () => {
   test.describe("Schedule Type UI", () => {
 
     test.beforeEach(async ({ page }) => {
+      await startCoverage(page);
       await page.goto("/");
       await page.evaluate((data) => {
         localStorage.setItem("planmydays_streams", JSON.stringify(data));
@@ -1503,6 +1513,280 @@ test.describe("PlanMyDay - Regression", () => {
         return nav ? nav.classList.contains("nav-hidden") : false;
       });
       expect(navHidden3).toBe(false);
+    });
+  });
+
+  // ── Dev Mode: Dev Today Override ───────────────────────────
+
+  test.describe("Dev Mode: Dev Today Override", () => {
+
+    test("dev today overrides getTodayDate", async ({ page }) => {
+      await page.goto("/?dev=true");
+      await page.evaluate(() => {
+        localStorage.setItem("devToday", "2026-06-15");
+      });
+      await page.reload();
+      await expect(page.locator("h2").first()).toContainText("15 Jun");
+    });
+
+    test("dev last gen is returned by getStoredLastGen", async ({ page }) => {
+      await page.goto("/?dev=true");
+      await page.evaluate(() => {
+        localStorage.setItem("devLastGen", "2026-06-14");
+      });
+      await page.reload();
+      const stored = await page.evaluate(() => window.getStoredLastGen());
+      expect(stored).toBe("2026-06-14");
+    });
+  });
+
+  // ── No Active Jobs Message ─────────────────────────────────
+
+  test.describe("No Active Jobs Message", () => {
+
+    test("shows no active jobs message when streams empty", async ({ page }) => {
+      await page.evaluate(() => {
+        localStorage.setItem("planmydays_streams", JSON.stringify([]));
+      });
+      await page.reload();
+      await expect(page.getByText("No active jobs yet")).toBeVisible();
+    });
+  });
+
+  // ── Schedule Filtering Carryover ───────────────────────────
+
+  test.describe("Schedule Filtering Carryover", () => {
+
+    test("uncompleted jobs carried over when date changes", async ({ page }) => {
+      await page.evaluate(() => {
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        const ys = yesterday.getFullYear() + "-" + String(yesterday.getMonth()+1).padStart(2,"0") + "-" + String(yesterday.getDate()).padStart(2,"0");
+        localStorage.setItem("planmydays_streams", JSON.stringify([{
+          id: "stream_1", title: "Test", tab: "progress", image: "", sequence: 1,
+          jobs: [{ id: "job_1", title: "CarryOverJob", active: true, frequency: "daily", sequence: 1, suffix: false, dayType: "dayOfYear", mod: "" }]
+        }]));
+        localStorage.setItem("planmydays_today_order", JSON.stringify(["job_1"]));
+        localStorage.setItem("planmydays_last_gen", ys);
+        localStorage.setItem("planmydays_completed", JSON.stringify([]));
+      });
+      await page.reload();
+      await expect(page.getByText("CarryOverJob")).toBeVisible();
+    });
+  });
+
+  // ── Day Type Suffix Branches ──────────────────────────────
+
+  test.describe("Day Type Suffix Branches", () => {
+
+    test("dayOfMonth suffix badge visible", async ({ page }) => {
+      await page.evaluate(() => {
+        const now = new Date();
+        const ds = now.getFullYear() + "-" + String(now.getMonth()+1).padStart(2,"0") + "-" + String(now.getDate()).padStart(2,"0");
+        localStorage.setItem("planmydays_streams", JSON.stringify([{
+          id: "stream_1", title: "Test", tab: "progress", image: "", sequence: 1,
+          jobs: [{ id: "job_1", title: "DomJob", active: true, frequency: "daily", sequence: 1, suffix: true, dayType: "dayOfMonth", mod: "" }]
+        }]));
+        localStorage.setItem("planmydays_today_order", JSON.stringify(["job_1"]));
+        localStorage.setItem("planmydays_last_gen", ds);
+        localStorage.setItem("planmydays_completed", JSON.stringify([]));
+      });
+      await page.reload();
+      const badge = page.locator(".badge.bg-secondary").first();
+      await expect(badge).toBeVisible();
+    });
+
+    test("dayOfWeek with monday 0 suffix badge visible", async ({ page }) => {
+      await page.evaluate(() => {
+        const now = new Date();
+        const ds = now.getFullYear() + "-" + String(now.getMonth()+1).padStart(2,"0") + "-" + String(now.getDate()).padStart(2,"0");
+        localStorage.setItem("planmydays_streams", JSON.stringify([{
+          id: "stream_1", title: "Test", tab: "progress", image: "", sequence: 1,
+          jobs: [{ id: "job_1", title: "DowJob", active: true, frequency: "daily", sequence: 1, suffix: true, dayType: "dayOfWeek", mod: "" }]
+        }]));
+        localStorage.setItem("planmydays_today_order", JSON.stringify(["job_1"]));
+        localStorage.setItem("planmydays_last_gen", ds);
+        localStorage.setItem("planmydays_completed", JSON.stringify([]));
+        localStorage.setItem("monday", "0");
+      });
+      await page.reload();
+      const badge = page.locator(".badge.bg-secondary").first();
+      await expect(badge).toBeVisible();
+    });
+
+    test("jan1 zero suffix badge visible", async ({ page }) => {
+      await page.evaluate(() => {
+        const now = new Date();
+        const ds = now.getFullYear() + "-" + String(now.getMonth()+1).padStart(2,"0") + "-" + String(now.getDate()).padStart(2,"0");
+        localStorage.setItem("planmydays_streams", JSON.stringify([{
+          id: "stream_1", title: "Test", tab: "progress", image: "", sequence: 1,
+          jobs: [{ id: "job_1", title: "Jan1Job", active: true, frequency: "daily", sequence: 1, suffix: true, dayType: "dayOfYear", mod: "" }]
+        }]));
+        localStorage.setItem("planmydays_today_order", JSON.stringify(["job_1"]));
+        localStorage.setItem("planmydays_last_gen", ds);
+        localStorage.setItem("planmydays_completed", JSON.stringify([]));
+        localStorage.setItem("jan1", "0");
+      });
+      await page.reload();
+      const badge = page.locator(".badge.bg-secondary").first();
+      await expect(badge).toBeVisible();
+    });
+
+    test("suffix with mod 2 badge visible", async ({ page }) => {
+      await page.evaluate(() => {
+        const now = new Date();
+        const ds = now.getFullYear() + "-" + String(now.getMonth()+1).padStart(2,"0") + "-" + String(now.getDate()).padStart(2,"0");
+        localStorage.setItem("planmydays_streams", JSON.stringify([{
+          id: "stream_1", title: "Test", tab: "progress", image: "", sequence: 1,
+          jobs: [{ id: "job_1", title: "Mod2", active: true, frequency: "daily", sequence: 1, suffix: true, dayType: "dayOfYear", mod: "2" }]
+        }]));
+        localStorage.setItem("planmydays_today_order", JSON.stringify(["job_1"]));
+        localStorage.setItem("planmydays_last_gen", ds);
+        localStorage.setItem("planmydays_completed", JSON.stringify([]));
+      });
+      await page.reload();
+      const badge = page.locator(".badge.bg-secondary").first();
+      await expect(badge).toBeVisible();
+    });
+  });
+
+  // ── Job Sorting By Time ────────────────────────────────────
+
+  test.describe("Job Sorting By Time", () => {
+
+    test("addScheduleJobsToOrder sorts newly added jobs by time", async ({ page }) => {
+      await page.evaluate(() => {
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        const ys = yesterday.getFullYear() + "-" + String(yesterday.getMonth()+1).padStart(2,"0") + "-" + String(yesterday.getDate()).padStart(2,"0");
+        localStorage.setItem("planmydays_streams", JSON.stringify([{
+          id: "stream_1", title: "Test", tab: "progress", image: "", sequence: 1,
+          jobs: [
+            { id: "job_1", title: "Late", active: true, frequency: "daily", sequence: 1, time: "15:00", suffix: false, dayType: "dayOfYear", mod: "" },
+            { id: "job_2", title: "Early", active: true, frequency: "daily", sequence: 2, time: "08:00", suffix: false, dayType: "dayOfYear", mod: "" },
+            { id: "job_3", title: "Mid", active: true, frequency: "daily", sequence: 3, time: "12:00", suffix: false, dayType: "dayOfYear", mod: "" }
+          ]
+        }]));
+        localStorage.setItem("planmydays_today_order", JSON.stringify(["job_1", "job_2", "job_3"]));
+        localStorage.setItem("planmydays_last_gen", ys);
+        localStorage.setItem("planmydays_completed", JSON.stringify([]));
+      });
+      await page.reload();
+      const h4s = page.locator("h4");
+      await expect(h4s.nth(0)).toContainText("Early");
+      await expect(h4s.nth(1)).toContainText("Mid");
+      await expect(h4s.nth(2)).toContainText("Late");
+    });
+  });
+
+  // ── Dev Mode Settings ──────────────────────────────────────
+
+  test.describe("Dev Mode Settings", () => {
+
+    test("dev mode flatpickr inputs appear with danger zone", async ({ page }) => {
+      await page.goto("/?dev=true");
+      await page.reload();
+      await page.getByTitle("Settings").click();
+      await page.locator("#showDanger").check();
+      await page.locator("#devTodayRow").waitFor({ state: "visible" });
+      await expect(page.locator(".flatpickr-input")).toHaveCount(2);
+    });
+  });
+
+  // ── Top-Level: Streams Editor Interaction ────────────────
+
+  test.describe("Top-Level: Streams Editor", () => {
+
+    test("open streams editor, add stream, cancel edit", async ({ page }) => {
+      await page.evaluate(() => {
+        localStorage.setItem("planmydays_streams", JSON.stringify([{
+          id: "stream_1", title: "MyStream", tab: "progress", image: "", sequence: 1, jobs: []
+        }]));
+      });
+      await page.reload();
+      await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
+      await page.locator("a.dropdown-item").filter({ hasText: "Streams" }).click();
+      await expect(page.locator("#streamsEditor")).toBeVisible();
+      await expect(page.getByText("MyStream")).toBeVisible();
+      await page.getByRole("button", { name: "Add Stream" }).click();
+      await expect(page.locator("#singleStreamEditor")).toBeVisible();
+      await page.getByRole("button", { name: "Cancel" }).click();
+      await expect(page.locator("#streamEditorList")).toBeVisible();
+    });
+
+    test("edit stream and save changes", async ({ page }) => {
+      await page.evaluate(() => {
+        localStorage.setItem("planmydays_streams", JSON.stringify([{
+          id: "stream_1", title: "EditMe", tab: "progress", image: "", sequence: 1, jobs: []
+        }]));
+      });
+      await page.reload();
+      await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
+      await page.locator("a.dropdown-item").filter({ hasText: "Streams" }).click();
+      await page.locator("#streamEditorList .btn-primary").filter({ hasText: "Edit" }).click();
+      await page.locator('input[value="EditMe"]').fill("EditedStream");
+      await page.getByRole("button", { name: "OK" }).click();
+      await expect(page.getByText("EditedStream")).toBeVisible();
+    });
+  });
+
+  test.describe("Top-Level: Jobs via Streams", () => {
+
+    test("open jobs editor and view jobs", async ({ page }) => {
+      await page.evaluate(() => {
+        localStorage.setItem("planmydays_streams", JSON.stringify([{
+          id: "stream_1", title: "Work", tab: "progress", image: "", sequence: 1,
+          jobs: [{ id: "job_1", title: "Task1", active: true, frequency: "daily", sequence: 1, suffix: false, dayType: "dayOfYear", mod: "" }]
+        }]));
+      });
+      await page.reload();
+      await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
+      await page.locator("a.dropdown-item").filter({ hasText: "Streams" }).click();
+      await page.locator("#streamEditorList .btn-info").filter({ hasText: "Jobs" }).click();
+      await expect(page.locator("#jobsEditor")).toBeVisible();
+      await expect(page.getByText("Task1")).toBeVisible();
+    });
+
+    test("add new job via jobs editor", async ({ page }) => {
+      await page.evaluate(() => {
+        localStorage.setItem("planmydays_streams", JSON.stringify([{
+          id: "stream_1", title: "Work", tab: "progress", image: "", sequence: 1,
+          jobs: [{ id: "job_1", title: "Existing", active: true, frequency: "daily", sequence: 1, suffix: false, dayType: "dayOfYear", mod: "" }]
+        }]));
+      });
+      await page.reload();
+      await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
+      await page.locator("a.dropdown-item").filter({ hasText: "Streams" }).click();
+      await page.locator("#streamEditorList .btn-info").filter({ hasText: "Jobs" }).click();
+      await page.getByRole("button", { name: "Add Job" }).click();
+      await page.locator("#jobEditModal").waitFor({ state: "visible" });
+      await page.locator("#jobEditModalBody .form-control").first().fill("NewTask");
+      await page.locator("#jobEditModal .btn-success").filter({ hasText: "OK" }).click();
+      await expect(page.getByText("NewTask")).toBeVisible();
+    });
+  });
+
+  test.describe("Top-Level: Regenerate Tiles", () => {
+
+    test("regenerate tiles rebuilds order when lastGen differs", async ({ page }) => {
+      await page.evaluate(() => {
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        const ys = yesterday.getFullYear() + "-" + String(yesterday.getMonth()+1).padStart(2,"0") + "-" + String(yesterday.getDate()).padStart(2,"0");
+        localStorage.setItem("planmydays_streams", JSON.stringify([{
+          id: "stream_1", title: "Test", tab: "progress", image: "", sequence: 1,
+          jobs: [{ id: "job_1", title: "RegenJob", active: true, frequency: "daily", sequence: 1, suffix: false, dayType: "dayOfYear", mod: "" }]
+        }]));
+        localStorage.setItem("planmydays_today_order", JSON.stringify(["job_1"]));
+        localStorage.setItem("planmydays_last_gen", ys);
+        localStorage.setItem("planmydays_completed", JSON.stringify([]));
+      });
+      await page.reload();
+      await page.getByTitle("Settings").click();
+      await page.locator("#showDanger").check();
+      await page.locator("#regenerateTilesRow").waitFor({ state: "visible" });
+      await page.getByRole("button", { name: "Regenerate Today's Tiles" }).click();
+      await expect(page.getByText("RegenJob")).toBeVisible();
     });
   });
 });
