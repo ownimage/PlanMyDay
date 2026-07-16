@@ -185,7 +185,7 @@ function renderMain() {
   const addBtn = document.createElement("button");
   addBtn.className = "btn btn-primary editor-btn ms-auto";
   addBtn.innerHTML = "&#43; Add card";
-  addBtn.onclick = function() { showAddCardForm(); };
+  addBtn.onclick = function() { addTodayCardWithModal(); };
   headingRow.appendChild(addBtn);
   container.appendChild(headingRow);
 
@@ -473,6 +473,27 @@ function addTodayCard() {
   remaining.push(newJob.id);
   saveTodayOrder(remaining);
   renderMain();
+}
+
+function addTodayCardWithModal() {
+  const streams = loadStreams();
+  let stream = streams.find(t => t.title === "Ad Hoc");
+  if (!stream) {
+    stream = { title: "Ad Hoc", sequence: streams.length + 1, jobs: [] };
+    streams.push(stream);
+    saveStreams(streams);
+  }
+  const jobs = stream.jobs || [];
+  const streamIdx = streams.indexOf(stream);
+  jobsStreamIndex = streamIdx;
+  const seq = jobs.length + 1;
+  const newJob = { id: "job_" + Date.now(), title: "", sequence: seq, description: "", active: true, frequency: "daily", time: "", sleepUntil: "", schedule: { type: "daily" } };
+  jobs.push(newJob);
+  stream.jobs = jobs;
+  saveStreams(streams);
+  jobsBuffer = JSON.parse(JSON.stringify(newJob));
+  jobsEditingIdx = jobs.length - 1; isNewJob = true;
+  showJobEditModal();
 }
 
 // THREADS EDITOR
@@ -1163,6 +1184,7 @@ function editJob(index) {
 function cancelJobEdit() {
   const modal = bootstrap.Modal.getInstance(document.getElementById("jobEditModal"));
   if (modal) modal.hide();
+  const fromMain = document.getElementById("jobsEditor").classList.contains("d-none");
   if (isNewJob && jobsEditingIdx >= 0) {
     const streams = loadStreams();
     const jobs = streams[jobsStreamIndex].jobs || [];
@@ -1171,13 +1193,16 @@ function cancelJobEdit() {
     saveStreams(streams);
   }
   jobsEditingIdx = -1; jobsBuffer = null; isNewJob = false;
-  renderJobsEditor();
+  if (fromMain) { renderMain(); } else { renderJobsEditor(); }
 }
 
 function doneJobEdit() {
+  const fromMain = document.getElementById("jobsEditor").classList.contains("d-none");
+  let savedId = null;
   if (jobsEditingIdx >= 0 && jobsBuffer) {
     const streams = loadStreams();
     const jobs = streams[jobsStreamIndex].jobs || [];
+    savedId = jobsBuffer.id;
     jobs[jobsEditingIdx] = jobsBuffer;
     streams[jobsStreamIndex].jobs = jobs;
     saveStreams(streams);
@@ -1185,7 +1210,18 @@ function doneJobEdit() {
   const modal = bootstrap.Modal.getInstance(document.getElementById("jobEditModal"));
   if (modal) modal.hide();
   jobsEditingIdx = -1; jobsBuffer = null; isNewJob = false;
-  renderJobsEditor();
+  if (fromMain) {
+    const streams = loadStreams();
+    const order = loadTodayOrder() || [];
+    const allActive = [];
+    streams.forEach(t => { (t.jobs || []).forEach(j => { if (j.active !== false) allActive.push(j.id); }); });
+    const remaining = allActive.filter(id => order.includes(id));
+    if (savedId && !remaining.includes(savedId)) remaining.push(savedId);
+    saveTodayOrder(remaining);
+    renderMain();
+  } else {
+    renderJobsEditor();
+  }
 }
 
 function confirmDeleteJob(index) {

@@ -94,23 +94,26 @@ test.describe("PlanMyDay - Regression", () => {
       await expect(page.locator("h2").first()).toBeVisible();
     });
 
-    test("add card form toggles", async ({ page }) => {
+    test("add card opens job edit modal", async ({ page }) => {
       await page.getByText("+ Add card").click();
-      await expect(page.locator("#addCardForm")).toBeVisible();
-      await expect(page.locator("#newCardTitle")).toBeVisible();
+      await expect(page.locator("#jobEditModal")).toBeVisible();
+      await expect(page.locator("#jobEditModalTitle")).toHaveText("Add Job");
     });
 
     test("can cancel adding an adhoc card", async ({ page }) => {
       await page.getByText("+ Add card").click();
-      await page.locator("#addCardForm .btn-secondary").click();
-      await expect(page.locator("#addCardForm")).not.toBeVisible();
+      await page.locator("#jobEditModal").waitFor({ state: "visible" });
+      await page.locator("#jobEditModal .btn-secondary").filter({ hasText: "Cancel" }).click();
+      await expect(page.locator("#jobEditModal")).not.toBeVisible();
     });
 
     test("can add an adhoc card", async ({ page }) => {
       await page.getByText("+ Add card").click();
-      await page.locator("#newCardTitle").fill("Test Ad Hoc");
-      await page.locator("#newCardDesc").fill("Test description");
-      await page.locator("#addCardForm .btn-primary").filter({ hasText: "Add" }).click();
+      await page.locator("#jobEditModal").waitFor({ state: "visible" });
+      await page.locator("#jobEditModalBody .form-control").first().fill("Test Ad Hoc");
+      await page.locator("#jobEditModalBody textarea").first().fill("Test description");
+      await page.locator("#jobEditModal .btn-success").filter({ hasText: "OK" }).click();
+      await page.locator("#jobEditModal").waitFor({ state: "hidden" });
       await expect(page.locator("h4").filter({ hasText: "Test Ad Hoc" })).toBeVisible();
     });
 
@@ -671,10 +674,14 @@ test.describe("PlanMyDay - Regression", () => {
 
     test("checking adhoc shows remove confirmation", async ({ page }) => {
       await page.getByText("+ Add card").click();
-      await page.locator("#newCardTitle").fill("AdHocJob");
-      await page.locator("#addCardForm .btn-primary").filter({ hasText: "Add" }).click();
-      const cb = page.locator('.job-checkbox').first();
-      await cb.check({ force: true });
+      await page.locator("#jobEditModal").waitFor({ state: "visible" });
+      await page.locator("#jobEditModalBody .form-control").first().fill("AdHocJob");
+      await page.locator("#jobEditModal .btn-success").filter({ hasText: "OK" }).click();
+      await page.locator("#jobEditModal").waitFor({ state: "hidden" });
+      await page.evaluate(() => {
+        const cb = document.querySelector('.job-checkbox');
+        if (cb) { cb.checked = true; cb.dispatchEvent(new Event('change', { bubbles: true })); }
+      });
       await expect(page.locator("#deleteConfirmModal")).toBeVisible();
     });
 
@@ -682,8 +689,10 @@ test.describe("PlanMyDay - Regression", () => {
       await page.evaluate(() => localStorage.setItem("skipAdhocConfirm", "true"));
       await page.reload();
       await page.getByText("+ Add card").click();
-      await page.locator("#newCardTitle").fill("SkipMe");
-      await page.locator("#addCardForm .btn-primary").filter({ hasText: "Add" }).click();
+      await page.locator("#jobEditModal").waitFor({ state: "visible" });
+      await page.locator("#jobEditModalBody .form-control").first().fill("SkipMe");
+      await page.locator("#jobEditModal .btn-success").filter({ hasText: "OK" }).click();
+      await page.locator("#jobEditModal").waitFor({ state: "hidden" });
       await expect(page.getByText("SkipMe")).toBeVisible();
       await page.evaluate(() => {
         const cb = document.querySelector('.job-checkbox');
@@ -1273,11 +1282,14 @@ test.describe("PlanMyDay - Regression", () => {
 
     test("confirming removal deletes adhoc job", async ({ page }) => {
       await page.getByText("+ Add card").click();
-      await page.locator("#newCardTitle").fill("RemoveMe");
-      await page.locator("#addCardForm .btn-primary").filter({ hasText: "Add" }).click();
-      await page.waitForTimeout(300);
-      const cb = page.locator('.job-checkbox').first();
-      await cb.check({ force: true });
+      await page.locator("#jobEditModal").waitFor({ state: "visible" });
+      await page.locator("#jobEditModalBody .form-control").first().fill("RemoveMe");
+      await page.locator("#jobEditModal .btn-success").filter({ hasText: "OK" }).click();
+      await page.locator("#jobEditModal").waitFor({ state: "hidden" });
+      await page.evaluate(() => {
+        const cb = document.querySelector('.job-checkbox');
+        if (cb) { cb.checked = true; cb.dispatchEvent(new Event('change', { bubbles: true })); }
+      });
       await expect(page.locator("#deleteConfirmModal")).toBeVisible();
       await page.locator("#deleteConfirmBtn").click();
       await page.waitForTimeout(500);
