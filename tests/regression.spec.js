@@ -314,6 +314,22 @@ test.describe("PlanMyDay - Regression", () => {
       await page.getByRole("button", { name: "Done" }).click();
       await expect(page.locator("#countdownContainer")).toBeVisible();
     });
+
+    test("stream edit Remove button uses btn-danger", async ({ page }) => {
+      await page.evaluate(() => {
+        localStorage.setItem("planmydays_streams", JSON.stringify([{
+          id: "stream_1", title: "ImgStream", tab: "progress", image: "testimg", sequence: 1, jobs: []
+        }]));
+        localStorage.setItem("images", JSON.stringify([{ name: "testimg", data: "" }]));
+      });
+      await page.reload();
+      await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
+      await page.locator("a.dropdown-item").filter({ hasText: "Streams" }).click();
+      await page.locator("#streamEditorList .btn-primary").filter({ hasText: "Edit" }).click();
+      await expect(page.locator("#singleStreamEditor")).toBeVisible();
+      const removeBtn = page.locator("#singleStreamEditor .btn-danger").filter({ hasText: "Remove" });
+      await expect(removeBtn).toBeVisible();
+    });
   });
 
   // ── Jobs Editor ────────────────────────────────────────────

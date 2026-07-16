@@ -543,7 +543,7 @@ function renderStreamsEditor() {
             </div>
             <span class="small text-secondary" id="streamImageName">${escapeHtml(data.image || "")}</span>
             <button class="btn btn-primary btn-sm" onclick="openImagePicker(function(name){ editField('image', name); updateStreamImagePreview(name); })">Choose</button>
-            ${data.image ? `<button class="btn btn-outline-danger btn-sm" onclick="editField('image','');updateStreamImagePreview(null)">Remove</button>` : ""}
+            ${data.image ? `<button class="btn btn-danger btn-sm" onclick="editField('image','');updateStreamImagePreview(null)">Remove</button>` : ""}
           </div>
         </div>
         <div class="d-flex gap-2 mt-3">
