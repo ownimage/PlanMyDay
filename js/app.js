@@ -542,7 +542,7 @@ function renderStreamsEditor() {
               ${getImageDataUrl(data.image) ? `<img src="${getImageDataUrl(data.image)}" class="date-img" style="max-width:50px;max-height:50px">` : `<span class="text-secondary small">none</span>`}
             </div>
             <span class="small text-secondary" id="streamImageName">${escapeHtml(data.image || "")}</span>
-            <button class="btn btn-outline-primary btn-sm" onclick="openImagePicker(function(name){ editField('image', name); updateStreamImagePreview(name); })">Choose</button>
+            <button class="btn btn-primary btn-sm" onclick="openImagePicker(function(name){ editField('image', name); updateStreamImagePreview(name); })">Choose</button>
             ${data.image ? `<button class="btn btn-outline-danger btn-sm" onclick="editField('image','');updateStreamImagePreview(null)">Remove</button>` : ""}
           </div>
         </div>
