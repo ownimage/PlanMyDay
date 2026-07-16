@@ -832,26 +832,24 @@ function renderJobsEditor() {
     card.draggable = true;
     card.dataset.index = realIdx;
     card.innerHTML = `
-      <div class="d-flex align-items-center gap-2">
+      <div class="d-flex align-items-center gap-2 mb-1">
         <div class="drag-handle text-secondary" style="cursor:grab;font-size:1.3rem;line-height:1">&#9776;</div>
-        <div style="width:40px;height:40px;flex-shrink:0">${jobImgUrl ? `<img src="${jobImgUrl}" class="date-img" style="max-width:40px;max-height:40px">` : ""}</div>
-        <div class="flex-fill" style="min-width:0">
-          <div class="fw-bold editor-title mb-1">${escapeHtml(j.title)}${getJobSuffix(j) ? ` <span class="badge bg-secondary">${escapeHtml(getJobSuffix(j).trim())}</span>` : ""}</div>
-          <div class="d-flex gap-2 align-items-center small text-secondary">
-            <label class="form-check-label mb-0 me-1" style="cursor:pointer">
-              <input class="form-check-input active-toggle" type="checkbox" data-job-idx="${realIdx}" ${j.active !== false ? "checked" : ""} style="cursor:pointer">
-              Active
-            </label>
-            <span class="badge bg-primary">${escapeHtml(scheduleText)}</span>
-            ${j.sleepUntil ? `<span class="badge bg-info">Sleep: ${escapeHtml(formatDate(j.sleepUntil))}</span>` : ""}
-            ${j.time ? `<span class="badge bg-secondary">${escapeHtml(j.time)}</span>` : ""}
-          </div>
-          ${j.description ? `<div class="mt-1 text-secondary small">${escapeHtml(j.description.substring(0, 80))}${j.description.length > 80 ? "..." : ""}</div>` : ""}
-        </div>
-        <div class="d-flex gap-2 flex-shrink-0">
-          <button class="btn btn-primary editor-btn" onclick="editJob(${realIdx})">Edit</button>
-          <button class="btn btn-danger editor-btn" onclick="confirmDeleteJob(${realIdx})">Delete</button>
-        </div>
+        ${jobImgUrl ? `<div style="width:40px;height:40px;flex-shrink:0"><img src="${jobImgUrl}" class="date-img" style="max-width:40px;max-height:40px"></div>` : ""}
+        <div class="fw-bold editor-title">${escapeHtml(j.title)}${getJobSuffix(j) ? ` <span class="badge bg-secondary">${escapeHtml(getJobSuffix(j).trim())}</span>` : ""}</div>
+      </div>
+      <div class="d-flex gap-2 align-items-center small text-secondary mb-2">
+        <label class="form-check-label mb-0" style="cursor:pointer;display:flex;align-items:center;gap:4px">
+          <input class="form-check-input active-toggle m-0 position-static" type="checkbox" data-job-idx="${realIdx}" ${j.active !== false ? "checked" : ""} style="cursor:pointer">
+          Active
+        </label>
+        <span class="badge bg-primary">${escapeHtml(scheduleText)}</span>
+        ${j.sleepUntil ? `<span class="badge bg-info">Sleep: ${escapeHtml(formatDate(j.sleepUntil))}</span>` : ""}
+        ${j.time ? `<span class="badge bg-secondary">${escapeHtml(j.time)}</span>` : ""}
+      </div>
+      ${j.description ? `<div class="text-secondary small mb-2">${escapeHtml(j.description.substring(0, 80))}${j.description.length > 80 ? "..." : ""}</div>` : ""}
+      <div class="d-flex gap-2">
+        <button class="btn btn-primary editor-btn flex-fill" onclick="editJob(${realIdx})">Edit</button>
+        <button class="btn btn-danger editor-btn flex-fill" onclick="confirmDeleteJob(${realIdx})">Delete</button>
       </div>
     `;
     list.appendChild(card);
