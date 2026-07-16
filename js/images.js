@@ -501,11 +501,19 @@ let imagePickerSearch = "";
 function openImagePicker(callback) {
   imagePickerCallback = callback;
   imagePickerSearch = "";
+  const modalIds = ["streamEditModal", "jobEditModal"];
+  const openModals = [];
+  modalIds.forEach(id => {
+    const el = document.getElementById(id);
+    const inst = el ? bootstrap.Modal.getInstance(el) : null;
+    if (inst) { openModals.push(inst); inst.hide(); }
+  });
   const modalEl = document.getElementById("imagePickerModal");
   modalEl.addEventListener("hidden.bs.modal", function onHide() {
     modalEl.removeEventListener("hidden.bs.modal", onHide);
     imagePickerCallback = null;
     imagePickerSearch = "";
+    openModals.forEach(inst => inst.show());
   });
   new bootstrap.Modal(modalEl).show();
   renderImagePicker();

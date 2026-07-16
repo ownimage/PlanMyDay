@@ -1836,4 +1836,109 @@ test.describe("PlanMyDay - Regression", () => {
       await expect(page.getByText("RegenJob")).toBeVisible();
     });
   });
+
+  // ── Modal Stacking: Image Picker from Job Edit ──────────
+
+  test.describe("Modal Stacking: Image Picker from Job Edit", () => {
+
+    test("selecting image from job edit modal is blocked by jobEditModal backdrop", async ({ page }) => {
+      await page.evaluate(() => {
+        localStorage.setItem("planmydays_streams", JSON.stringify([{
+          id: "stream_1", title: "Work", tab: "progress", image: "", sequence: 1,
+          jobs: [{ id: "job_1", title: "Report", active: true, frequency: "daily", sequence: 1, suffix: false, dayType: "dayOfYear", mod: "" }]
+        }]));
+        localStorage.setItem("images", JSON.stringify([
+          { name: "TestImg", data: "" },
+          { name: "TestImg2", data: "" }
+        ]));
+      });
+      await page.reload();
+      await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
+      await page.locator("a.dropdown-item").filter({ hasText: "Streams" }).click();
+      await page.locator("#streamEditorList .btn-info").filter({ hasText: "Jobs" }).first().click();
+      await page.locator("#jobsList .btn-primary").filter({ hasText: "Edit" }).first().click();
+      await page.locator("#jobEditModal").waitFor({ state: "visible" });
+      await page.getByRole("button", { name: "Choose" }).click();
+      await page.locator("#imagePickerModal").waitFor({ state: "visible" });
+      await expect(page.locator("#imagePickerModal")).toBeVisible();
+      await page.locator(".image-picker-item").first().click();
+      await page.waitForTimeout(300);
+      const img = await page.evaluate(() => jobsBuffer?.image || "");
+      expect(img).toBe("TestImg");
+    });
+
+    test("selecting image from add job modal is blocked by jobEditModal backdrop", async ({ page }) => {
+      await page.evaluate(() => {
+        localStorage.setItem("planmydays_streams", JSON.stringify([{
+          id: "stream_1", title: "Work", tab: "progress", image: "", sequence: 1,
+          jobs: [{ id: "job_1", title: "Existing", active: true, frequency: "daily", sequence: 1, suffix: false, dayType: "dayOfYear", mod: "" }]
+        }]));
+        localStorage.setItem("images", JSON.stringify([
+          { name: "AddJobImg", data: "" }
+        ]));
+      });
+      await page.reload();
+      await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
+      await page.locator("a.dropdown-item").filter({ hasText: "Streams" }).click();
+      await page.locator("#streamEditorList .btn-info").filter({ hasText: "Jobs" }).first().click();
+      await page.getByRole("button", { name: "Add Job" }).click();
+      await page.locator("#jobEditModal").waitFor({ state: "visible" });
+      await page.getByRole("button", { name: "Choose" }).click();
+      await page.locator("#imagePickerModal").waitFor({ state: "visible" });
+      await expect(page.locator("#imagePickerModal")).toBeVisible();
+      await page.locator(".image-picker-item").first().click();
+      await page.waitForTimeout(300);
+      const img = await page.evaluate(() => jobsBuffer?.image || "");
+      expect(img).toBe("AddJobImg");
+    });
+
+    test("searching images from job edit modal is blocked by jobEditModal backdrop", async ({ page }) => {
+      await page.evaluate(() => {
+        localStorage.setItem("planmydays_streams", JSON.stringify([{
+          id: "stream_1", title: "Work", tab: "progress", image: "", sequence: 1,
+          jobs: [{ id: "job_1", title: "Report", active: true, frequency: "daily", sequence: 1, suffix: false, dayType: "dayOfYear", mod: "" }]
+        }]));
+        localStorage.setItem("images", JSON.stringify([
+          { name: "Apple", data: "" },
+          { name: "Banana", data: "" }
+        ]));
+      });
+      await page.reload();
+      await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
+      await page.locator("a.dropdown-item").filter({ hasText: "Streams" }).click();
+      await page.locator("#streamEditorList .btn-info").filter({ hasText: "Jobs" }).first().click();
+      await page.locator("#jobsList .btn-primary").filter({ hasText: "Edit" }).first().click();
+      await page.locator("#jobEditModal").waitFor({ state: "visible" });
+      await page.getByRole("button", { name: "Choose" }).click();
+      await page.locator("#imagePickerModal").waitFor({ state: "visible" });
+      await page.locator(".image-picker-search").fill("Banana");
+      const banana = page.locator(".image-picker-item").filter({ hasText: "Banana" });
+      await banana.waitFor({ state: "visible", timeout: 3000 });
+      const apple = page.locator(".image-picker-item").filter({ hasText: "Apple" });
+      await expect(apple).not.toBeVisible();
+    });
+  });
+
+  // ── Modal Stacking: Image Picker from Front Page Add Card ─
+
+  test.describe("Modal Stacking: Image Picker from Front Page Add Card", () => {
+
+    test("selecting image from front page add card is blocked by jobEditModal backdrop", async ({ page }) => {
+      await page.evaluate(() => {
+        localStorage.setItem("images", JSON.stringify([
+          { name: "FrontImg", data: "" }
+        ]));
+      });
+      await page.reload();
+      await page.getByText("+ Add card").click();
+      await page.locator("#jobEditModal").waitFor({ state: "visible" });
+      await page.getByRole("button", { name: "Choose" }).click();
+      await page.locator("#imagePickerModal").waitFor({ state: "visible" });
+      await expect(page.locator("#imagePickerModal")).toBeVisible();
+      await page.locator(".image-picker-item").first().click();
+      await page.waitForTimeout(300);
+      const img = await page.evaluate(() => jobsBuffer?.image || "");
+      expect(img).toBe("FrontImg");
+    });
+  });
 });
