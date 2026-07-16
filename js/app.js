@@ -290,7 +290,7 @@ function renderMain() {
           <div class="d-flex align-items-center gap-2 mb-1">
             <h4 class="mb-0" style="${isDone ? 'text-decoration:line-through' : ''}">${escapeHtml(job.title)}${suffixLabel ? ` <span class="badge bg-secondary">${escapeHtml(suffixLabel.trim())}</span>` : ""}</h4>
           </div>
-          <div class="text-secondary small">${escapeHtml(streamTitle)}</div>
+          <div class="text-secondary small">${escapeHtml(streamTitle)} <span class="badge bg-${(stream.tab || "progress") === "progress" ? "primary" : "secondary"}">${escapeHtml(stream.tab || "progress")}</span></div>
           ${job.description ? `<div class="mt-1 text-secondary small">${escapeHtml(job.description)}</div>` : ""}
         </div>
       </div>

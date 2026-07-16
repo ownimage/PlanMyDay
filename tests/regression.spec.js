@@ -690,6 +690,21 @@ test.describe("PlanMyDay - Regression", () => {
     });
   });
 
+  // ── Tab Badge ──────────────────────────────────────────────
+
+  test.describe("Tab Badge", () => {
+
+    test("tab badge shows progress or maintenance on job cards", async ({ page }) => {
+      await seedTodayList(page);
+      await page.reload();
+      await expect(page.locator("h4").filter({ hasText: "Report" })).toBeVisible();
+      const progressBadge = page.locator(".badge.bg-primary").filter({ hasText: "progress" });
+      await expect(progressBadge.first()).toBeVisible();
+      const maintenanceBadge = page.locator(".badge.bg-secondary").filter({ hasText: "maintenance" });
+      await expect(maintenanceBadge.first()).toBeVisible();
+    });
+  });
+
   // ── Hide Done ──────────────────────────────────────────────
 
   test.describe("Hide Done", () => {
