@@ -379,6 +379,23 @@
   <!-- FLATPICKR -->
   <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js"></script>
 
+  <!-- STREAM EDIT MODAL -->
+  <div id="streamEditModal" class="modal fade" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 class="modal-title" id="streamEditModalTitle">Edit Stream</h3>
+          <button type="button" class="btn-close" onclick="cancelEdit()"></button>
+        </div>
+        <div class="modal-body" id="streamEditModalBody"></div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary editor-btn" onclick="cancelEdit()">Cancel</button>
+          <button class="btn btn-success editor-btn" onclick="doneEdit()">OK</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- JOB EDIT MODAL -->
   <div id="jobEditModal" class="modal fade" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
     <div class="modal-dialog modal-dialog-centered">

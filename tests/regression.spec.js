@@ -275,25 +275,28 @@ test.describe("PlanMyDay - Regression", () => {
 
     test("add stream creates a new stream", async ({ page }) => {
       await page.getByRole("button", { name: "Add Stream" }).click();
-      await expect(page.locator("#singleStreamEditor")).toBeVisible();
-      await expect(page.locator('input[value="New Stream"]')).toBeVisible();
+      await expect(page.locator("#streamEditModal")).toBeVisible();
+      await expect(page.locator("#streamEditModalBody input[value=\"New Stream\"]")).toBeVisible();
     });
 
     test("can edit a stream", async ({ page }) => {
       await page.locator("#streamEditorList .btn-primary").filter({ hasText: "Edit" }).first().click();
-      await expect(page.locator("#singleStreamEditor")).toBeVisible();
-      const titleInput = page.locator('input[value="Work"]');
+      await expect(page.locator("#streamEditModal")).toBeVisible();
+      const titleInput = page.locator("#streamEditModalBody input[value=\"Work\"]");
       await expect(titleInput).toBeVisible();
       await titleInput.fill("Work Updated");
-      await page.getByRole("button", { name: "OK" }).click();
+      await page.locator("#streamEditModal .btn-success").filter({ hasText: "OK" }).click();
+      await page.locator("#streamEditModal").waitFor({ state: "hidden" });
       await expect(page.getByText("Work Updated")).toBeVisible();
     });
 
     test("can cancel editing a stream", async ({ page }) => {
       await page.locator("#streamEditorList .btn-primary").filter({ hasText: "Edit" }).first().click();
-      await page.locator('input[value="Work"]').fill("Cancelled");
-      await page.getByRole("button", { name: "Cancel" }).click();
-      await expect(page.getByText("Work")).toBeVisible();
+      await page.locator("#streamEditModal").waitFor({ state: "visible" });
+      await page.locator("#streamEditModalBody input[value=\"Work\"]").fill("Cancelled");
+      await page.locator("#streamEditModal .btn-secondary").filter({ hasText: "Cancel" }).click();
+      await page.locator("#streamEditModal").waitFor({ state: "hidden" });
+      await expect(page.locator("#streamEditorList .editor-title").filter({ hasText: "Work" })).toBeVisible();
       await expect(page.getByText("Cancelled")).not.toBeVisible();
     });
 
@@ -329,8 +332,8 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
       await page.locator("a.dropdown-item").filter({ hasText: "Streams" }).click();
       await page.locator("#streamEditorList .btn-primary").filter({ hasText: "Edit" }).click();
-      await expect(page.locator("#singleStreamEditor")).toBeVisible();
-      const removeBtn = page.locator("#singleStreamEditor .btn-danger").filter({ hasText: "Remove" });
+      await expect(page.locator("#streamEditModal")).toBeVisible();
+      const removeBtn = page.locator("#streamEditModalBody .btn-danger").filter({ hasText: "Remove" });
       await expect(removeBtn).toBeVisible();
     });
   });
@@ -1752,8 +1755,9 @@ test.describe("PlanMyDay - Regression", () => {
       await expect(page.locator("#streamsEditor")).toBeVisible();
       await expect(page.getByText("MyStream")).toBeVisible();
       await page.getByRole("button", { name: "Add Stream" }).click();
-      await expect(page.locator("#singleStreamEditor")).toBeVisible();
-      await page.getByRole("button", { name: "Cancel" }).click();
+      await expect(page.locator("#streamEditModal")).toBeVisible();
+      await page.locator("#streamEditModal .btn-secondary").filter({ hasText: "Cancel" }).click();
+      await page.locator("#streamEditModal").waitFor({ state: "hidden" });
       await expect(page.locator("#streamEditorList")).toBeVisible();
     });
 

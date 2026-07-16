@@ -516,6 +516,46 @@ function closeStreamsEditor() {
   renderMain();
 }
 
+function showStreamEditModal() {
+  const streams = loadStreams();
+  const t = streams[editingIndex];
+  const data = editBuffer || t;
+  document.getElementById("streamEditModalTitle").textContent = isNew ? "Add Stream" : "Edit Stream";
+  document.getElementById("streamEditModalBody").innerHTML = getStreamEditFormHTML(data);
+  new bootstrap.Modal(document.getElementById("streamEditModal")).show();
+}
+
+function getStreamEditFormHTML(data) {
+  return `
+    <div class="mb-2">
+      <label class="form-label">Title</label>
+      <input class="form-control" value="${escapeHtml(data.title || "")}" oninput="editField('title', this.value)">
+    </div>
+    <div class="mb-2">
+      <label class="form-label">Tab</label>
+      <select class="form-select" onchange="editField('tab', this.value)">
+        <option value="progress" ${(data.tab || "progress") === "progress" ? "selected" : ""}>Progress</option>
+        <option value="maintenance" ${data.tab === "maintenance" ? "selected" : ""}>Maintenance</option>
+      </select>
+    </div>
+    <div class="mb-2">
+      <label class="form-label">Description</label>
+      <textarea class="form-control" rows="3" oninput="editField('description', this.value)">${escapeHtml(data.description || "")}</textarea>
+    </div>
+    <div class="mb-2">
+      <label class="form-label">Image</label>
+      <div class="d-flex align-items-center gap-2">
+        <div style="width:50px;height:50px;border:1px solid var(--bs-border-color);border-radius:6px;overflow:hidden;display:flex;align-items:center;justify-content:center;flex-shrink:0" id="streamImagePreview">
+          ${getImageDataUrl(data.image) ? `<img src="${getImageDataUrl(data.image)}" class="date-img" style="max-width:50px;max-height:50px">` : `<span class="text-secondary small">none</span>`}
+        </div>
+        <span class="small text-secondary" id="streamImageName">${escapeHtml(data.image || "")}</span>
+        <button class="btn btn-primary btn-sm" onclick="openImagePicker(function(name){ editField('image', name); updateStreamImagePreview(name); })">Choose</button>
+        ${data.image ? `<button class="btn btn-danger btn-sm" onclick="editField('image','');updateStreamImagePreview(null)">Remove</button>` : ""}
+      </div>
+    </div>
+  `;
+}
+
 function renderStreamsEditor() {
   const list = document.getElementById("streamEditorList");
   const addTile = document.getElementById("addStreamTile");
@@ -531,48 +571,8 @@ function renderStreamsEditor() {
   if (editingIndex >= 0) {
     list.classList.add("d-none"); addTile.classList.add("d-none");
     topTile.classList.add("d-none"); filterEl.classList.add("d-none");
-    singleEditor.classList.remove("d-none");
-
-    const t = streams[editingIndex];
-    const data = editBuffer || t;
-
-    singleEditor.innerHTML = `
-      <div class="d-flex align-items-center mb-3">
-        <h3 class="mb-0">${isNew ? "Add Stream" : "Edit Stream"}</h3>
-      </div>
-      <div class="card p-3 card-edited">
-        <div class="mb-2">
-          <label class="form-label">Title</label>
-          <input class="form-control" value="${escapeHtml(data.title || "")}" oninput="editField('title', this.value)">
-        </div>
-        <div class="mb-2">
-          <label class="form-label">Tab</label>
-          <select class="form-select" onchange="editField('tab', this.value)">
-            <option value="progress" ${(data.tab || "progress") === "progress" ? "selected" : ""}>Progress</option>
-            <option value="maintenance" ${data.tab === "maintenance" ? "selected" : ""}>Maintenance</option>
-          </select>
-        </div>
-        <div class="mb-2">
-          <label class="form-label">Description</label>
-          <textarea class="form-control" rows="3" oninput="editField('description', this.value)">${escapeHtml(data.description || "")}</textarea>
-        </div>
-        <div class="mb-2">
-          <label class="form-label">Image</label>
-          <div class="d-flex align-items-center gap-2">
-            <div style="width:50px;height:50px;border:1px solid var(--bs-border-color);border-radius:6px;overflow:hidden;display:flex;align-items:center;justify-content:center;flex-shrink:0" id="streamImagePreview">
-              ${getImageDataUrl(data.image) ? `<img src="${getImageDataUrl(data.image)}" class="date-img" style="max-width:50px;max-height:50px">` : `<span class="text-secondary small">none</span>`}
-            </div>
-            <span class="small text-secondary" id="streamImageName">${escapeHtml(data.image || "")}</span>
-            <button class="btn btn-primary btn-sm" onclick="openImagePicker(function(name){ editField('image', name); updateStreamImagePreview(name); })">Choose</button>
-            ${data.image ? `<button class="btn btn-danger btn-sm" onclick="editField('image','');updateStreamImagePreview(null)">Remove</button>` : ""}
-          </div>
-        </div>
-        <div class="d-flex gap-2 mt-3">
-          <button class="btn btn-success editor-btn" onclick="doneEdit()">OK</button>
-          <button class="btn btn-secondary editor-btn ms-auto" onclick="cancelEdit()">Cancel</button>
-        </div>
-      </div>
-    `;
+    singleEditor.classList.add("d-none");
+    showStreamEditModal();
     updateNavState();
     return;
   }
@@ -719,6 +719,8 @@ function editStream(index) {
 }
 
 function cancelEdit() {
+  const modal = bootstrap.Modal.getInstance(document.getElementById("streamEditModal"));
+  if (modal) modal.hide();
   if (isNew && editingIndex >= 0) {
     const streams = loadStreams();
     streams.splice(editingIndex, 1);
@@ -729,11 +731,13 @@ function cancelEdit() {
 }
 
 function doneEdit() {
+  const modal = bootstrap.Modal.getInstance(document.getElementById("streamEditModal"));
   if (editingIndex >= 0 && editBuffer) {
     const streams = loadStreams();
     streams[editingIndex] = editBuffer;
     saveStreams(streams);
   }
+  if (modal) modal.hide();
   editingIndex = -1; editBuffer = null; isNew = false;
   renderStreamsEditor();
 }
