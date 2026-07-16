@@ -968,7 +968,20 @@ function openScheduleModal() {
     if (i === (s.date || 1)) opt.selected = true;
     mSel.appendChild(opt);
   }
-  new bootstrap.Modal(document.getElementById("scheduleModal")).show();
+  const modalEl = document.getElementById("scheduleModal");
+  modalEl.addEventListener("show.bs.modal", function boostZ() {
+    modalEl.removeEventListener("show.bs.modal", boostZ);
+    modalEl.style.zIndex = 2000;
+    const backdrops = document.querySelectorAll(".modal-backdrop");
+    if (backdrops.length > 0) backdrops[backdrops.length - 1].style.zIndex = 1999;
+  });
+  modalEl.addEventListener("hidden.bs.modal", function resetZ() {
+    modalEl.removeEventListener("hidden.bs.modal", resetZ);
+    modalEl.style.zIndex = "";
+    const backdrops = document.querySelectorAll(".modal-backdrop");
+    if (backdrops.length > 0) backdrops[backdrops.length - 1].style.zIndex = "";
+  });
+  new bootstrap.Modal(modalEl).show();
 }
 
 function closeScheduleModal() {
