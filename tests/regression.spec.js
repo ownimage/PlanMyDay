@@ -1,4 +1,5 @@
 const { test, expect } = require("@playwright/test");
+const { startCoverage, stopCoverage, generateCoverage } = require("./coverage");
 
 const TEST_STREAMS = [
   {
@@ -73,6 +74,15 @@ test.describe("PlanMyDay - Regression", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/");
     await page.evaluate(() => localStorage.clear());
+    await startCoverage(page);
+  });
+
+  test.afterEach(async ({ page }) => {
+    await stopCoverage(page);
+  });
+
+  test.afterAll(async () => {
+    await generateCoverage();
   });
 
   // ── Main View ──────────────────────────────────────────────
