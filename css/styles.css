@@ -409,15 +409,24 @@ body.auto-hide-menu #mainNav.nav-hidden ~ .container-fluid {
 #imagesList::-webkit-scrollbar,
 #jobsList::-webkit-scrollbar {
   -webkit-appearance: none;
-  width: 7px;
+  width: 8px;
+  background: rgba(128,128,128,.15);
+  border-radius: 4px;
+}
+#countdownScrollBody::-webkit-scrollbar-track,
+#streamEditorList::-webkit-scrollbar-track,
+#imagesList::-webkit-scrollbar-track,
+#jobsList::-webkit-scrollbar-track {
+  border-radius: 4px;
+  background: transparent;
 }
 #countdownScrollBody::-webkit-scrollbar-thumb,
 #streamEditorList::-webkit-scrollbar-thumb,
 #imagesList::-webkit-scrollbar-thumb,
 #jobsList::-webkit-scrollbar-thumb {
   border-radius: 4px;
-  background-color: rgba(0,0,0,.3);
-  -webkit-box-shadow: 0 0 1px rgba(255,255,255,.4);
+  background-color: rgba(128,128,128,.5);
+  min-height: 30px;
 }
 
 #streamsEditor {
@@ -436,9 +445,14 @@ body.auto-hide-menu #mainNav.nav-hidden ~ .container-fluid {
   min-height: 0;
   -webkit-overflow-scrolling: touch;
 }
-html, body {
+html {
   overflow: hidden;
   height: 100%;
+}
+body {
+  height: 100%;
+  overflow: hidden;
+  -webkit-overflow-scrolling: touch;
 }
 #settingsPage {
   overflow-y: auto;

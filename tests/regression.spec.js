@@ -166,6 +166,13 @@ test.describe("PlanMyDay - Regression", () => {
       });
       expect(scrollBodyScrollable).toBe(true);
 
+      // The scroll container should have overflow-y: scroll applied via CSS
+      const scrollStyle = await page.evaluate(() => {
+        const el = document.getElementById("countdownScrollBody");
+        return window.getComputedStyle(el).overflowY;
+      });
+      expect(scrollStyle).toBe("scroll");
+
       // The page itself should NOT scroll (html/body overflow hidden)
       const pageScrollable = await page.evaluate(() => {
         return document.documentElement.scrollHeight > document.documentElement.clientHeight;
