@@ -402,6 +402,22 @@ body.auto-hide-menu #mainNav.nav-hidden ~ .container-fluid {
   overflow-y: auto;
   overflow-x: hidden;
   min-height: 0;
+  -webkit-overflow-scrolling: touch;
+}
+#countdownScrollBody::-webkit-scrollbar,
+#streamEditorList::-webkit-scrollbar,
+#imagesList::-webkit-scrollbar,
+#jobsList::-webkit-scrollbar {
+  -webkit-appearance: none;
+  width: 7px;
+}
+#countdownScrollBody::-webkit-scrollbar-thumb,
+#streamEditorList::-webkit-scrollbar-thumb,
+#imagesList::-webkit-scrollbar-thumb,
+#jobsList::-webkit-scrollbar-thumb {
+  border-radius: 4px;
+  background-color: rgba(0,0,0,.3);
+  -webkit-box-shadow: 0 0 1px rgba(255,255,255,.4);
 }
 
 #streamsEditor {
