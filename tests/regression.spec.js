@@ -213,6 +213,22 @@ test.describe("PlanMyDay - Regression", () => {
       await expect(page.locator("a.dropdown-item").filter({ hasText: "Export" })).toBeVisible();
       await expect(page.locator("a.dropdown-item").filter({ hasText: "Import" })).toBeVisible();
     });
+
+    test("exported filename does not contain -backup-", async ({ page }) => {
+      await seedTodayList(page);
+      await page.reload();
+      // Seed some images too so export has content
+      await page.evaluate(() => {
+        localStorage.setItem("planmydays_images", JSON.stringify([]));
+      });
+
+      const downloadPromise = page.waitForEvent("download");
+      await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Import/Export" }).click();
+      await page.locator("a.dropdown-item").filter({ hasText: "Export" }).click();
+      const download = await downloadPromise;
+
+      expect(download.suggestedFilename()).not.toContain("-backup-");
+    });
   });
 
   // ── Settings ───────────────────────────────────────────────
