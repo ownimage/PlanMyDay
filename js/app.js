@@ -195,10 +195,6 @@ function renderMain() {
   addForm.className = "card p-3 mb-3 d-none flex-shrink-0";
   container.appendChild(addForm);
 
-  const scrollBody = document.createElement("div");
-  scrollBody.id = "countdownScrollBody";
-  container.appendChild(scrollBody);
-
   ensureTodayList();
 
   const streams = loadStreams();
@@ -225,7 +221,7 @@ function renderMain() {
       const msg = document.createElement("p");
       msg.className = "text-secondary";
       msg.textContent = "All jobs completed!";
-      scrollBody.appendChild(msg);
+      container.appendChild(msg);
       updateNavState();
       return;
     }
@@ -253,6 +249,10 @@ function renderMain() {
       return (s.tab || "progress") === tab;
     });
   }
+
+  const scrollBody = document.createElement("div");
+  scrollBody.id = "countdownScrollBody";
+  container.appendChild(scrollBody);
 
   const cardContainer = document.createElement("div");
   cardContainer.id = "todayCardList";

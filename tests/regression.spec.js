@@ -729,6 +729,54 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("button.btn-sm").filter({ hasText: "Maintenance" }).click();
       await expect(page.locator(".today-drag-card h4").filter({ hasText: "Laundry" })).toBeVisible();
     });
+
+    test("tab bar is visible above the job list when many jobs overflow", async ({ page }) => {
+      // Seed a stream with 20 jobs and split list enabled
+      const jobs = Array.from({ length: 20 }, (_, i) => ({
+        id: `tab_test_job_${i}`,
+        title: `Tab Test Job ${i}`,
+        description: "",
+        active: true,
+        frequency: "daily",
+        sequence: i,
+        suffix: false,
+        dayType: "dayOfYear",
+        mod: ""
+      }));
+      const stream = {
+        id: "tab_test_stream",
+        title: "TabTest",
+        description: "",
+        tab: "progress",
+        image: "",
+        sequence: 1,
+        jobs
+      };
+      const now = new Date();
+      const ds = now.getFullYear() + "-" + String(now.getMonth()+1).padStart(2,"0") + "-" + String(now.getDate()).padStart(2,"0");
+      await page.evaluate(({ stream, ds }) => {
+        localStorage.setItem("planmydays_streams", JSON.stringify([stream]));
+        localStorage.setItem("planmydays_today_order", JSON.stringify(stream.jobs.map(j => j.id)));
+        localStorage.setItem("planmydays_last_gen", ds);
+        localStorage.setItem("planmydays_completed", JSON.stringify([]));
+        localStorage.setItem("planmydays_splitList", "true");
+      }, { stream, ds });
+      await page.reload();
+
+      const tabBar = page.locator("button.btn-sm").filter({ hasText: "Progress" });
+      await expect(tabBar).toBeVisible();
+
+      // Verify the tab bar is within the viewport (not pushed below the fold)
+      const tabBox = await tabBar.boundingBox();
+      expect(tabBox).not.toBeNull();
+      expect(tabBox.y).toBeGreaterThanOrEqual(0);
+
+      // Verify tabs appear above the first job card
+      const firstCard = page.locator(".today-drag-card").first();
+      const cardBox = await firstCard.boundingBox();
+      expect(cardBox).not.toBeNull();
+      expect(tabBox.y + tabBox.height).toBeLessThanOrEqual(cardBox.y);
+    });
   });
 
   // ── Delete Confirm Modal ───────────────────────────────────
