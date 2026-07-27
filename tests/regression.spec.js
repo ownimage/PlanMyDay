@@ -642,6 +642,29 @@ test.describe("PlanMyDay - Regression", () => {
       await expect(page.getByText("Laundry")).toBeVisible();
       await expect(page.getByText("Report")).not.toBeVisible();
     });
+
+    test("reordering on one tab does not lose jobs from the other tab", async ({ page }) => {
+      // Seed with jobs in both tabs: job_1+job_2 (progress), job_3 (maintenance)
+      await page.evaluate(({ data, ds }) => {
+        localStorage.setItem("planmydays_streams", JSON.stringify(data));
+        localStorage.setItem("planmydays_today_order", JSON.stringify(["job_1", "job_2", "job_3"]));
+        localStorage.setItem("planmydays_last_gen", ds);
+        localStorage.setItem("planmydays_completed", JSON.stringify([]));
+        localStorage.setItem("planmydays_splitList", "true");
+      }, { data: TEST_STREAMS, ds: todayStr });
+      await page.reload();
+
+      await expect(page.locator(".today-drag-card h4").filter({ hasText: "Report" })).toBeVisible();
+      await expect(page.locator(".today-drag-card h4").filter({ hasText: "Meeting" })).toBeVisible();
+
+      // Perform an actual reorder via drag-and-drop to exercise the real handler
+      const cards = page.locator(".today-drag-card");
+      await cards.nth(1).dragTo(cards.nth(0));
+
+      // Switch to maintenance tab — Laundry should still be present
+      await page.locator("button.btn-sm").filter({ hasText: "Maintenance" }).click();
+      await expect(page.locator(".today-drag-card h4").filter({ hasText: "Laundry" })).toBeVisible();
+    });
   });
 
   // ── Delete Confirm Modal ───────────────────────────────────
