@@ -177,7 +177,7 @@ function renderMain() {
   const dateStr = `${days[now.getDay()]} ${now.getDate()} ${months[now.getMonth()]}, ${now.getFullYear()}`;
 
   const headingRow = document.createElement("div");
-  headingRow.className = "d-flex align-items-center gap-2 mb-3";
+  headingRow.className = "d-flex align-items-center gap-2 mb-3 flex-shrink-0";
   const dateHeading = document.createElement("h2");
   dateHeading.className = "mb-0";
   dateHeading.textContent = dateStr;
@@ -192,8 +192,12 @@ function renderMain() {
   // inline add form (hidden initially)
   const addForm = document.createElement("div");
   addForm.id = "addCardForm";
-  addForm.className = "card p-3 mb-3 d-none";
+  addForm.className = "card p-3 mb-3 d-none flex-shrink-0";
   container.appendChild(addForm);
+
+  const scrollBody = document.createElement("div");
+  scrollBody.id = "countdownScrollBody";
+  container.appendChild(scrollBody);
 
   ensureTodayList();
 
@@ -221,7 +225,7 @@ function renderMain() {
       const msg = document.createElement("p");
       msg.className = "text-secondary";
       msg.textContent = "All jobs completed!";
-      container.appendChild(msg);
+      scrollBody.appendChild(msg);
       updateNavState();
       return;
     }
@@ -234,7 +238,7 @@ function renderMain() {
   if (splitList) {
     const tab = container.dataset.todayTab || "progress";
     const tabBar = document.createElement("div");
-    tabBar.className = "d-flex gap-2 mb-3";
+    tabBar.className = "d-flex gap-2 mb-3 flex-shrink-0";
     ["progress", "maintenance"].forEach(t => {
       const btn = document.createElement("button");
       btn.className = `btn btn-sm ${t === tab ? "btn-primary" : "btn-outline-secondary"}`;
@@ -257,7 +261,7 @@ function renderMain() {
     const msg = document.createElement("p");
     msg.className = "text-secondary";
     msg.textContent = splitList ? "No jobs in this tab." : "No active jobs yet. Add streams with active jobs to get started.";
-    container.appendChild(msg);
+    scrollBody.appendChild(msg);
     updateNavState();
     return;
   }
@@ -298,7 +302,7 @@ function renderMain() {
     cardContainer.appendChild(card);
   });
 
-  container.appendChild(cardContainer);
+  scrollBody.appendChild(cardContainer);
 
   // checkbox change handler
   container.querySelectorAll(".job-checkbox").forEach(cb => {
