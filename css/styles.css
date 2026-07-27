@@ -408,17 +408,7 @@ body.auto-hide-menu #mainNav.nav-hidden ~ .container-fluid {
 #streamEditorList::-webkit-scrollbar,
 #imagesList::-webkit-scrollbar,
 #jobsList::-webkit-scrollbar {
-  -webkit-appearance: none;
   width: 8px;
-  background: rgba(128,128,128,.15);
-  border-radius: 4px;
-}
-#countdownScrollBody::-webkit-scrollbar-track,
-#streamEditorList::-webkit-scrollbar-track,
-#imagesList::-webkit-scrollbar-track,
-#jobsList::-webkit-scrollbar-track {
-  border-radius: 4px;
-  background: transparent;
 }
 #countdownScrollBody::-webkit-scrollbar-thumb,
 #streamEditorList::-webkit-scrollbar-thumb,
@@ -426,7 +416,6 @@ body.auto-hide-menu #mainNav.nav-hidden ~ .container-fluid {
 #jobsList::-webkit-scrollbar-thumb {
   border-radius: 4px;
   background-color: rgba(128,128,128,.5);
-  min-height: 30px;
 }
 
 #streamsEditor {
