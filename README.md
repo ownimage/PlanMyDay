@@ -57,3 +57,11 @@ After a run, open the HTML report:
 ```bash
 npx playwright show-report
 ```
+
+### Coverage
+
+JS coverage is collected automatically during tests (via `monocart-coverage-reports`). After running the tests, open the report:
+
+```
+coverage-report/index.html
+```

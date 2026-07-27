@@ -388,6 +388,22 @@ body.auto-hide-menu #mainNav.nav-hidden ~ .container-fluid {
   opacity: 0.4;
 }
 
+#countdownContainer {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 56px);
+  padding-top: 20px;
+}
+#countdownContainer > .flex-shrink-0 {
+  flex-shrink: 0;
+}
+#countdownScrollBody {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  min-height: 0;
+}
+
 #streamsEditor {
   display: flex;
   flex-direction: column;
@@ -400,9 +416,17 @@ body.auto-hide-menu #mainNav.nav-hidden ~ .container-fluid {
 #streamsEditor #streamEditorList {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   min-height: 0;
 }
+html, body {
+  overflow: hidden;
+  height: 100%;
+}
 #settingsPage {
+  overflow-y: auto;
+  overflow-x: hidden;
+  height: calc(100vh - 56px);
   padding-top: 20px;
 }
 
@@ -418,13 +442,15 @@ body.auto-hide-menu #mainNav.nav-hidden ~ .container-fluid {
 #imagesEditor #imagesList {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   min-height: 0;
 }
 
 #jobsEditor {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 56px);
+  flex: 1;
+  min-height: 0;
   padding-top: 20px;
 }
 #jobsEditorHeader {
@@ -433,6 +459,7 @@ body.auto-hide-menu #mainNav.nav-hidden ~ .container-fluid {
 #jobsEditor #jobsList {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   min-height: 0;
 }
 

@@ -124,6 +124,54 @@ test.describe("PlanMyDay - Regression", () => {
       await cb.check();
       await expect(cb).toBeChecked();
     });
+
+    test("scroll is contained within job list, not the page", async ({ page }) => {
+      // Seed a stream with 30 jobs to overflow the viewport
+      const jobs = Array.from({ length: 30 }, (_, i) => ({
+        id: `overflow_job_${i}`,
+        title: `Overflow Job ${i}`,
+        description: "",
+        active: true,
+        frequency: "daily",
+        sequence: i,
+        suffix: false,
+        dayType: "dayOfYear",
+        mod: ""
+      }));
+      const stream = {
+        id: "overflow_stream",
+        title: "Overflow",
+        description: "",
+        tab: "progress",
+        image: "",
+        sequence: 1,
+        jobs
+      };
+      const now = new Date();
+      const ds = now.getFullYear() + "-" + String(now.getMonth()+1).padStart(2,"0") + "-" + String(now.getDate()).padStart(2,"0");
+      await page.evaluate(({ stream, ds }) => {
+        localStorage.setItem("planmydays_streams", JSON.stringify([stream]));
+        localStorage.setItem("planmydays_today_order", JSON.stringify(stream.jobs.map(j => j.id)));
+        localStorage.setItem("planmydays_last_gen", ds);
+        localStorage.setItem("planmydays_completed", JSON.stringify([]));
+      }, { stream, ds });
+      await page.reload();
+
+      await expect(page.locator(".today-drag-card").first()).toBeVisible();
+
+      // The scroll body should have overflow (scrollHeight > clientHeight)
+      const scrollBodyScrollable = await page.evaluate(() => {
+        const el = document.getElementById("countdownScrollBody");
+        return el.scrollHeight > el.clientHeight;
+      });
+      expect(scrollBodyScrollable).toBe(true);
+
+      // The page itself should NOT scroll (html/body overflow hidden)
+      const pageScrollable = await page.evaluate(() => {
+        return document.documentElement.scrollHeight > document.documentElement.clientHeight;
+      });
+      expect(pageScrollable).toBe(false);
+    });
   });
 
   // ── Navigation ─────────────────────────────────────────────
