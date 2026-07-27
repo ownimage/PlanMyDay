@@ -642,6 +642,40 @@ test.describe("PlanMyDay - Regression", () => {
       await expect(page.getByText("Laundry")).toBeVisible();
       await expect(page.getByText("Report")).not.toBeVisible();
     });
+
+    test("reordering on one tab does not lose jobs from the other tab", async ({ page }) => {
+      // Seed with jobs in both tabs: job_1+job_2 (progress), job_3 (maintenance)
+      await page.evaluate(({ data, ds }) => {
+        localStorage.setItem("planmydays_streams", JSON.stringify(data));
+        localStorage.setItem("planmydays_today_order", JSON.stringify(["job_1", "job_2", "job_3"]));
+        localStorage.setItem("planmydays_last_gen", ds);
+        localStorage.setItem("planmydays_completed", JSON.stringify([]));
+        localStorage.setItem("planmydays_splitList", "true");
+      }, { data: TEST_STREAMS, ds: todayStr });
+      await page.reload();
+
+      await expect(page.locator(".today-drag-card h4").filter({ hasText: "Report" })).toBeVisible();
+      await expect(page.locator(".today-drag-card h4").filter({ hasText: "Meeting" })).toBeVisible();
+
+      // Simulate what the drag-and-drop handler does: read only the visible cards
+      // (the current tab's cards) and save their IDs, overwriting the full order.
+      // app.js lines 403-413 (HTML5 DnD) and 419-430 (touch DnD) both do this:
+      //   const cards = [...cardContainer.querySelectorAll(".today-drag-card")];
+      //   const ids = cards.map(c => c.dataset.jobId);
+      //   saveTodayOrder(ids);
+      // This loses the other tab's job IDs from the persisted order.
+      await page.evaluate(() => {
+        const cards = [...document.querySelectorAll(".today-drag-card")];
+        const ids = cards.map(c => c.dataset.jobId);
+        [ids[0], ids[1]] = [ids[1], ids[0]]; // simulate a reorder
+        localStorage.setItem("planmydays_today_order", JSON.stringify(ids));
+      });
+
+      // Switch to maintenance tab — Laundry should still be here, but the bug means
+      // job_3 was removed from today_order, so it won't render.
+      await page.locator("button.btn-sm").filter({ hasText: "Maintenance" }).click();
+      await expect(page.locator(".today-drag-card h4").filter({ hasText: "Laundry" })).toBeVisible();
+    });
   });
 
   // ── Delete Confirm Modal ───────────────────────────────────
