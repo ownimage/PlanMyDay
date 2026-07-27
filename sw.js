@@ -24,7 +24,8 @@ const PRECACHE_CDN = [
   "https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js",
   "https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js",
   "https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css",
-  "https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"
+  "https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js",
+  "https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png"
 ];
 
 const ALL_THEMES = ["cerulean","cosmo","cyborg","darkly","flatly","journal","litera","lumen","lux","materia","minty","morph","pulse","quartz","sandstone","simplex","sketchy","slate","solar","spacelab","superhero","united","vapor","yeti","zephyr"];
