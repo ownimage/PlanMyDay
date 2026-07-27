@@ -1436,7 +1436,7 @@ function exportData() {
   a.href = url;
   const d = new Date();
   const ts = d.getFullYear() + String(d.getMonth()+1).padStart(2,"0") + String(d.getDate()).padStart(2,"0") + String(d.getHours()).padStart(2,"0") + String(d.getMinutes()).padStart(2,"0");
-  a.download = `planmydays-backup-${ts}.json`;
+  a.download = `planmydays-${ts}.json`;
   a.click();
   URL.revokeObjectURL(url);
 }
