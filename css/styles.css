@@ -399,7 +399,7 @@ body.auto-hide-menu #mainNav.nav-hidden ~ .container-fluid {
 }
 #countdownScrollBody {
   flex: 1;
-  overflow-y: auto;
+  overflow-y: scroll;
   overflow-x: hidden;
   min-height: 0;
   -webkit-overflow-scrolling: touch;
@@ -431,9 +431,10 @@ body.auto-hide-menu #mainNav.nav-hidden ~ .container-fluid {
 }
 #streamsEditor #streamEditorList {
   flex: 1;
-  overflow-y: auto;
+  overflow-y: scroll;
   overflow-x: hidden;
   min-height: 0;
+  -webkit-overflow-scrolling: touch;
 }
 html, body {
   overflow: hidden;
@@ -457,9 +458,10 @@ html, body {
 }
 #imagesEditor #imagesList {
   flex: 1;
-  overflow-y: auto;
+  overflow-y: scroll;
   overflow-x: hidden;
   min-height: 0;
+  -webkit-overflow-scrolling: touch;
 }
 
 #jobsEditor {
@@ -474,9 +476,10 @@ html, body {
 }
 #jobsEditor #jobsList {
   flex: 1;
-  overflow-y: auto;
+  overflow-y: scroll;
   overflow-x: hidden;
   min-height: 0;
+  -webkit-overflow-scrolling: touch;
 }
 
 #streamsEditor .editor-title {
