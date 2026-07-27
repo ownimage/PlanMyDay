@@ -100,7 +100,7 @@ function changeMonday(value) {
 
 function changeShowDanger(enabled) {
   localStorage.setItem("planmydays_showDanger", enabled);
-  const dangerIds = ["clearAllDataRow", "refreshAppRow", "regenerateTilesRow", "uploadStandardImagesRow", "adhocConfirmRow"];
+  const dangerIds = ["clearAllDataRow", "refreshAppRow", "regenerateTilesRow", "uploadStandardImagesRow"];
   if (isDevMode) dangerIds.push("devTodayRow", "devLastGenRow");
   dangerIds.forEach(id => {
     const el = document.getElementById(id);
