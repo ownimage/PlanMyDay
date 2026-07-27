@@ -397,26 +397,6 @@ body.auto-hide-menu #mainNav.nav-hidden ~ .container-fluid {
 #countdownContainer > .flex-shrink-0 {
   flex-shrink: 0;
 }
-#countdownScrollBody {
-  flex: 1;
-  overflow-y: scroll;
-  overflow-x: hidden;
-  min-height: 0;
-  -webkit-overflow-scrolling: touch;
-}
-#countdownScrollBody::-webkit-scrollbar,
-#streamEditorList::-webkit-scrollbar,
-#imagesList::-webkit-scrollbar,
-#jobsList::-webkit-scrollbar {
-  width: 8px;
-}
-#countdownScrollBody::-webkit-scrollbar-thumb,
-#streamEditorList::-webkit-scrollbar-thumb,
-#imagesList::-webkit-scrollbar-thumb,
-#jobsList::-webkit-scrollbar-thumb {
-  border-radius: 4px;
-  background-color: rgba(128,128,128,.5);
-}
 
 #streamsEditor {
   display: flex;
@@ -429,25 +409,8 @@ body.auto-hide-menu #mainNav.nav-hidden ~ .container-fluid {
 }
 #streamsEditor #streamEditorList {
   flex: 1;
-  overflow-y: scroll;
-  overflow-x: hidden;
-  min-height: 0;
-  -webkit-overflow-scrolling: touch;
-}
-html {
-  overflow: hidden;
-  height: 100%;
-}
-body {
-  height: 100%;
-  overflow: hidden;
-  -webkit-overflow-scrolling: touch;
-}
-#settingsPage {
   overflow-y: auto;
-  overflow-x: hidden;
-  height: calc(100vh - 56px);
-  padding-top: 20px;
+  min-height: 0;
 }
 
 #imagesEditor {
@@ -461,10 +424,8 @@ body {
 }
 #imagesEditor #imagesList {
   flex: 1;
-  overflow-y: scroll;
-  overflow-x: hidden;
+  overflow-y: auto;
   min-height: 0;
-  -webkit-overflow-scrolling: touch;
 }
 
 #jobsEditor {
@@ -479,10 +440,14 @@ body {
 }
 #jobsEditor #jobsList {
   flex: 1;
-  overflow-y: scroll;
-  overflow-x: hidden;
+  overflow-y: auto;
   min-height: 0;
-  -webkit-overflow-scrolling: touch;
+}
+
+#settingsPage {
+  height: calc(100vh - 56px);
+  overflow-y: auto;
+  padding-top: 20px;
 }
 
 #streamsEditor .editor-title {

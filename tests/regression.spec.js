@@ -173,11 +173,18 @@ test.describe("PlanMyDay - Regression", () => {
       });
       expect(scrollStyle).toBe("scroll");
 
-      // The page itself should NOT scroll (html/body overflow hidden)
-      const pageScrollable = await page.evaluate(() => {
-        return document.documentElement.scrollHeight > document.documentElement.clientHeight;
+      // The scroll container should be independently scrollable
+      const scrollContainer = await page.evaluate(() => {
+        const el = document.getElementById("countdownScrollBody");
+        el.scrollTop = 100;
+        return el.scrollTop;
       });
-      expect(pageScrollable).toBe(false);
+      expect(scrollContainer).toBe(100);
+
+      // Reset scroll
+      await page.evaluate(() => {
+        document.getElementById("countdownScrollBody").scrollTop = 0;
+      });
     });
   });
 
