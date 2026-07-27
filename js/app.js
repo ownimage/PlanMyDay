@@ -401,16 +401,20 @@ function markJobDone(jobId, cbRef) {
     const target = e.target.closest(".today-drag-card");
     if (!target || !todayDragSrc || target.dataset.jobId === todayDragSrc) { todayDragSrc = null; return; }
     const cards = [...cardContainer.querySelectorAll(".today-drag-card")];
-    const ids = cards.map(c => c.dataset.jobId);
-    const srcIdx = ids.indexOf(todayDragSrc);
-    const dstIdx = ids.indexOf(target.dataset.jobId);
+    const visibleIds = cards.map(c => c.dataset.jobId);
+    const srcIdx = visibleIds.indexOf(todayDragSrc);
+    const dstIdx = visibleIds.indexOf(target.dataset.jobId);
     if (srcIdx < 0 || dstIdx < 0) { todayDragSrc = null; return; }
-    ids.splice(srcIdx, 1);
+    visibleIds.splice(srcIdx, 1);
     const rect = target.getBoundingClientRect();
     const above = e.clientY < rect.top + rect.height / 2;
     const insertAt = srcIdx < dstIdx ? (above ? dstIdx - 1 : dstIdx) : (above ? dstIdx : dstIdx + 1);
-    ids.splice(insertAt, 0, todayDragSrc);
-    saveTodayOrder(ids);
+    visibleIds.splice(insertAt, 0, todayDragSrc);
+    const fullOrder = loadTodayOrder() || [];
+    const visibleSet = new Set(visibleIds);
+    let vi = 0;
+    const mergedOrder = fullOrder.map(id => visibleSet.has(id) ? visibleIds[vi++] : id);
+    saveTodayOrder(mergedOrder);
     todayDragSrc = null;
     renderMain();
   });
@@ -418,14 +422,18 @@ function markJobDone(jobId, cbRef) {
   // touch DnD fallback for iOS
   addTouchDnD(cardContainer, ".today-drag-card", c => c.dataset.jobId, (srcId, dstId, above) => {
     const cards = [...cardContainer.querySelectorAll(".today-drag-card")];
-    const ids = cards.map(c => c.dataset.jobId);
-    const srcIdx = ids.indexOf(srcId);
-    const dstIdx = ids.indexOf(dstId);
+    const visibleIds = cards.map(c => c.dataset.jobId);
+    const srcIdx = visibleIds.indexOf(srcId);
+    const dstIdx = visibleIds.indexOf(dstId);
     if (srcIdx < 0 || dstIdx < 0) return;
-    ids.splice(srcIdx, 1);
+    visibleIds.splice(srcIdx, 1);
     const insertAt = srcIdx < dstIdx ? (above ? dstIdx - 1 : dstIdx) : (above ? dstIdx : dstIdx + 1);
-    ids.splice(insertAt, 0, srcId);
-    saveTodayOrder(ids);
+    visibleIds.splice(insertAt, 0, srcId);
+    const fullOrder = loadTodayOrder() || [];
+    const visibleSet = new Set(visibleIds);
+    let vi = 0;
+    const mergedOrder = fullOrder.map(id => visibleSet.has(id) ? visibleIds[vi++] : id);
+    saveTodayOrder(mergedOrder);
     renderMain();
   });
 
