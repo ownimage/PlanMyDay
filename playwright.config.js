@@ -5,7 +5,8 @@ module.exports = defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: 1,
+  workers: '100%',
+  retries: 2,
   reporter: "html",
   use: {
     baseURL: "http://localhost:8080",
