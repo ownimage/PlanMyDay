@@ -237,7 +237,7 @@ function renderMain() {
     tabBar.className = "d-flex gap-2 mb-3 flex-shrink-0";
     ["progress", "maintenance"].forEach(t => {
       const btn = document.createElement("button");
-      btn.className = `btn btn-sm ${t === tab ? "btn-primary" : "btn-outline-secondary"}`;
+      btn.className = `btn btn-sm ${t === tab ? "btn-primary" : "btn-secondary"}`;
       btn.textContent = t.charAt(0).toUpperCase() + t.slice(1);
       btn.onclick = function() { container.dataset.todayTab = t; renderMain(); };
       tabBar.appendChild(btn);
