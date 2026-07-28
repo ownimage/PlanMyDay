@@ -65,3 +65,19 @@ JS coverage is collected automatically during tests (via `monocart-coverage-repo
 ```
 coverage-report/index.html
 ```
+
+### Screenshots
+
+Regenerate all screenshots in the `screenshots/` folder:
+
+```bash
+npx playwright test tests/screenshots.spec.js --workers 1
+```
+
+This captures 13 views with the Superhero theme:
+- `main-view.png`, `main-view-split-progress.png`, `main-view-split-maintenance.png`, `main-view-hide-done.png`
+- `main-screen-add-job.png`
+- `settings.png`, `settings-danger.png`
+- `edit-streams.png`, `add-stream.png`
+- `stream-job-list.png`, `stream-add-job.png`, `edit-job.png`
+- `edit-images.png`
