@@ -877,7 +877,7 @@ test.describe("PlanMyDay - Regression", () => {
       await expect(page.locator("h4").filter({ hasText: "Report" })).toBeVisible();
       const progressBadge = page.locator(".badge.bg-success").filter({ hasText: "progress" });
       await expect(progressBadge.first()).toBeVisible();
-      const maintenanceBadge = page.locator(".badge.bg-warning").filter({ hasText: "maintenance" });
+      const maintenanceBadge = page.locator(".badge.bg-primary").filter({ hasText: "maintenance" });
       await expect(maintenanceBadge.first()).toBeVisible();
     });
   });
@@ -1245,7 +1245,7 @@ test.describe("PlanMyDay - Regression", () => {
 
     test("no image button clears image in editor", async ({ page }) => {
       await page.getByText("No Image").click();
-      await page.waitForTimeout(300);
+      await page.locator("#imagePickerModal").waitFor({ state: "hidden" });
       const img = await page.evaluate(() => editBuffer?.image || "");
       expect(img).toBe("");
     });
@@ -1922,10 +1922,11 @@ test.describe("PlanMyDay - Regression", () => {
         }]));
       });
       await page.reload();
+      await page.waitForLoadState("networkidle");
       await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
       await page.locator("a.dropdown-item").filter({ hasText: "Streams" }).click();
       await expect(page.locator("#streamsEditor")).toBeVisible();
-      await expect(page.getByText("MyStream")).toBeVisible();
+      await expect(page.locator("#streamEditorList .editor-title").filter({ hasText: "MyStream" })).toBeVisible();
       await page.getByRole("button", { name: "Add Stream" }).click();
       await expect(page.locator("#streamEditModal")).toBeVisible();
       await page.locator("#streamEditModal .btn-secondary").filter({ hasText: "Cancel" }).click();
