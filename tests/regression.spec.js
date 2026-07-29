@@ -197,8 +197,10 @@ test.describe("PlanMyDay - Regression", () => {
       await expect(page.locator("#splitList")).toBeVisible();
       await expect(page.locator("#autoHideMenu")).toBeVisible();
       await expect(page.locator("#hideDone")).toBeVisible();
+      await page.locator("#schedule-tab").click();
       await expect(page.locator("#jan1Selector")).toBeVisible();
       await expect(page.locator("#mondaySelector")).toBeVisible();
+      await page.locator("#danger-tab").click();
       await expect(page.locator("#showDanger")).toBeVisible();
     });
 
@@ -210,6 +212,7 @@ test.describe("PlanMyDay - Regression", () => {
 
     test("danger zone appears when toggled", async ({ page }) => {
       await page.getByTitle("Settings").click();
+      await page.locator("#danger-tab").click();
       await page.locator("#showDanger").check();
       await expect(page.locator("#regenerateTilesRow")).toBeVisible();
       await expect(page.locator("#clearAllDataRow")).toBeVisible();
@@ -627,6 +630,7 @@ test.describe("PlanMyDay - Regression", () => {
     test("dev mode setting appears with ?dev=true", async ({ page }) => {
       await page.goto("/?dev=true");
       await page.getByTitle("Settings").click();
+      await page.locator("#danger-tab").click();
       await page.locator("#showDanger").check();
       await expect(page.locator(".flatpickr-input")).toHaveCount(2);
     });
@@ -634,6 +638,7 @@ test.describe("PlanMyDay - Regression", () => {
     test("dev mode not visible without ?dev=true", async ({ page }) => {
       await page.goto("/");
       await page.getByTitle("Settings").click();
+      await page.locator("#danger-tab").click();
       await page.locator("#showDanger").check();
       await expect(page.locator(".flatpickr-input")).toHaveCount(0);
     });
@@ -647,7 +652,7 @@ test.describe("PlanMyDay - Regression", () => {
       await seedTodayList(page);
       await page.evaluate(() => localStorage.setItem("planmydays_splitList", "true"));
       await page.reload();
-      const tabs = page.locator("button.btn-sm").filter({ hasText: /Progress|Maintenance/ });
+      const tabs = page.locator("button.nav-link").filter({ hasText: /Progress|Maintenance/ });
       await expect(tabs).toHaveCount(2);
     });
 
@@ -655,7 +660,7 @@ test.describe("PlanMyDay - Regression", () => {
       await seedTodayList(page);
       await page.evaluate(() => localStorage.setItem("planmydays_splitList", "true"));
       await page.reload();
-      await page.locator("button.btn-sm").filter({ hasText: "Maintenance" }).click();
+      await page.locator("button.nav-link").filter({ hasText: "Maintenance" }).click();
       await expect(page.getByText("Laundry")).toBeVisible();
       await expect(page.getByText("Report")).not.toBeVisible();
     });
@@ -679,7 +684,7 @@ test.describe("PlanMyDay - Regression", () => {
       await cards.nth(1).dragTo(cards.nth(0));
 
       // Switch to maintenance tab — Laundry should still be present
-      await page.locator("button.btn-sm").filter({ hasText: "Maintenance" }).click();
+      await page.locator("button.nav-link").filter({ hasText: "Maintenance" }).click();
       await expect(page.locator(".today-drag-card h4").filter({ hasText: "Laundry" })).toBeVisible();
     });
 
@@ -716,7 +721,7 @@ test.describe("PlanMyDay - Regression", () => {
       }, { stream, ds });
       await page.reload();
 
-      const tabBar = page.locator("button.btn-sm").filter({ hasText: "Progress" });
+      const tabBar = page.locator("button.nav-link").filter({ hasText: "Progress" });
       await expect(tabBar).toBeVisible();
 
       // Verify the tab bar is within the viewport (not pushed below the fold)
@@ -803,6 +808,7 @@ test.describe("PlanMyDay - Regression", () => {
 
     test("suffix start dropdown exists in settings after hide done", async ({ page }) => {
       await page.getByTitle("Settings").click();
+      await page.locator("#schedule-tab").click();
       const suffixStartSel = page.locator("#suffixStartSelector");
       await expect(suffixStartSel).toBeVisible();
     });
@@ -854,6 +860,7 @@ test.describe("PlanMyDay - Regression", () => {
 
     test("suffix start setting persists via settings page", async ({ page }) => {
       await page.getByTitle("Settings").click();
+      await page.locator("#schedule-tab").click();
       await page.locator("#suffixStartSelector").selectOption("1");
       const val = await page.evaluate(() => localStorage.getItem("planmydays_suffixStart"));
       expect(val).toBe("1");
@@ -975,7 +982,9 @@ test.describe("PlanMyDay - Regression", () => {
     });
 
     test("skip adhoc confirm uncheck disables feature", async ({ page }) => {
+      await page.locator("#danger-tab").click();
       await page.locator("#showDanger").check();
+      await page.locator("#general-tab").click();
       await page.locator("#skipAdhocConfirm").waitFor({ state: "visible" });
       await page.locator("#skipAdhocConfirm").check();
       await page.locator("#skipAdhocConfirm").uncheck();
@@ -984,12 +993,14 @@ test.describe("PlanMyDay - Regression", () => {
     });
 
     test("jan1 selector persists value", async ({ page }) => {
+      await page.locator("#schedule-tab").click();
       await page.locator("#jan1Selector").selectOption("1");
       const val = await page.evaluate(() => localStorage.getItem("planmydays_jan1"));
       expect(val).toBe("1");
     });
 
     test("monday selector persists value", async ({ page }) => {
+      await page.locator("#schedule-tab").click();
       await page.locator("#mondaySelector").selectOption("0");
       const val = await page.evaluate(() => localStorage.getItem("planmydays_monday"));
       expect(val).toBe("0");
@@ -1004,7 +1015,9 @@ test.describe("PlanMyDay - Regression", () => {
     });
 
     test("skip adhoc confirm toggle works", async ({ page }) => {
+      await page.locator("#danger-tab").click();
       await page.locator("#showDanger").check();
+      await page.locator("#general-tab").click();
       await page.locator("#skipAdhocConfirm").waitFor({ state: "visible" });
       await page.locator("#skipAdhocConfirm").check();
       const val = await page.evaluate(() => localStorage.getItem("planmydays_skipAdhocConfirm"));
@@ -1014,6 +1027,7 @@ test.describe("PlanMyDay - Regression", () => {
     test("danger zone toggle shows dev rows in dev mode", async ({ page }) => {
       await page.goto("/?dev=true");
       await page.getByTitle("Settings").click();
+      await page.locator("#danger-tab").click();
       await page.locator("#showDanger").check();
       await expect(page.locator("#devTodayRow")).toBeVisible();
       await expect(page.locator("#devLastGenRow")).toBeVisible();
@@ -1294,6 +1308,7 @@ test.describe("PlanMyDay - Regression", () => {
     test("dev mode today changes date displayed", async ({ page }) => {
       await page.goto("/?dev=true");
       await page.getByTitle("Settings").click();
+      await page.locator("#danger-tab").click();
       await page.locator("#showDanger").check();
       const todayInput = page.locator(".flatpickr-input").first();
       await todayInput.click();
@@ -1632,6 +1647,7 @@ test.describe("PlanMyDay - Regression", () => {
       await seedTodayList(page);
       await page.reload();
       await page.getByTitle("Settings").click();
+      await page.locator("#danger-tab").click();
       await page.locator("#showDanger").check();
       await page.locator("#regenerateTilesRow").waitFor({ state: "visible" });
       await page.getByRole("button", { name: "Regenerate Today's Tiles" }).click();
@@ -1650,6 +1666,7 @@ test.describe("PlanMyDay - Regression", () => {
       });
       await page.reload();
       await page.getByTitle("Settings").click();
+      await page.locator("#danger-tab").click();
       await page.locator("#showDanger").check();
       await page.locator("#clearAllDataRow").waitFor({ state: "visible" });
       await page.getByRole("button", { name: "Clear All Data" }).click();
@@ -1887,6 +1904,7 @@ test.describe("PlanMyDay - Regression", () => {
       await page.goto("/?dev=true");
       await page.reload();
       await page.getByTitle("Settings").click();
+      await page.locator("#danger-tab").click();
       await page.locator("#showDanger").check();
       await page.locator("#devTodayRow").waitFor({ state: "visible" });
       await expect(page.locator(".flatpickr-input")).toHaveCount(2);
@@ -1984,6 +2002,7 @@ test.describe("PlanMyDay - Regression", () => {
       });
       await page.reload();
       await page.getByTitle("Settings").click();
+      await page.locator("#danger-tab").click();
       await page.locator("#showDanger").check();
       await page.locator("#regenerateTilesRow").waitFor({ state: "visible" });
       await page.getByRole("button", { name: "Regenerate Today's Tiles" }).click();

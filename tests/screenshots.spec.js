@@ -156,7 +156,7 @@ test.describe("PlanMyDay - Screenshots", () => {
     await page.reload();
     await setTheme(page);
     await page.waitForSelector(".today-drag-card");
-    await page.locator("button.btn-sm").filter({ hasText: "Maintenance" }).click();
+    await page.locator("button.nav-link").filter({ hasText: "Maintenance" }).click();
     await page.waitForTimeout(300);
     await page.screenshot({ path: path.join(SCREENSHOT_DIR, "main-view-split-maintenance.png"), fullPage: false });
   });
@@ -196,6 +196,7 @@ test.describe("PlanMyDay - Screenshots", () => {
     await setTheme(page);
     await page.getByTitle("Settings").click();
     await page.waitForSelector("#settingsPage:not(.d-none)");
+    await page.locator("#danger-tab").click();
     await page.locator("#showDanger").check();
     await page.waitForTimeout(300);
     await page.screenshot({ path: path.join(SCREENSHOT_DIR, "settings-danger.png"), fullPage: false });
