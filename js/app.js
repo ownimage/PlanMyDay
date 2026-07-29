@@ -294,7 +294,7 @@ function renderMain() {
           <div class="d-flex align-items-center gap-2 mb-1">
             <h4 class="mb-0" style="${isDone ? 'text-decoration:line-through' : ''}">${escapeHtml(job.title)}${suffixLabel ? ` <span class="badge bg-secondary">${escapeHtml(suffixLabel.trim())}</span>` : ""}</h4>
           </div>
-          <div class="text-secondary small">${escapeHtml(streamTitle)} <span class="badge bg-${(stream.tab || "progress") === "progress" ? "primary" : "secondary"}">${escapeHtml(stream.tab || "progress")}</span></div>
+          <div class="small">${escapeHtml(streamTitle)} <span class="badge bg-${(stream.tab || "progress") === "progress" ? "primary" : "info"}">${escapeHtml(stream.tab || "progress")}</span></div>
           ${job.description ? `<div class="mt-1 text-secondary small">${escapeHtml(job.description)}</div>` : ""}
         </div>
       </div>
@@ -608,7 +608,7 @@ function renderStreamsEditor() {
         <div class="drag-handle text-secondary" style="cursor:grab;font-size:1.3rem;line-height:1">&#9776;</div>
         <div style="width:40px;height:40px;flex-shrink:0">${streamImgUrl ? `<img src="${streamImgUrl}" class="date-img" style="max-width:40px;max-height:40px">` : ""}</div>
         <div class="fw-bold editor-title">${escapeHtml(t.title)}</div>
-        <span class="badge bg-${(t.tab || "progress") === "progress" ? "primary" : "secondary"} ms-auto">${escapeHtml(t.tab || "progress")}</span>
+        <span class="badge bg-${(t.tab || "progress") === "progress" ? "primary" : "info"} ms-auto">${escapeHtml(t.tab || "progress")}</span>
       </div>
       <div class="d-flex gap-2">
         <button class="btn btn-primary editor-btn" style="flex:1" onclick="editStream(${realIdx})">Edit</button>

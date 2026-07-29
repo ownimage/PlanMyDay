@@ -870,7 +870,7 @@ test.describe("PlanMyDay - Regression", () => {
       await expect(page.locator("h4").filter({ hasText: "Report" })).toBeVisible();
       const progressBadge = page.locator(".badge.bg-primary").filter({ hasText: "progress" });
       await expect(progressBadge.first()).toBeVisible();
-      const maintenanceBadge = page.locator(".badge.bg-secondary").filter({ hasText: "maintenance" });
+      const maintenanceBadge = page.locator(".badge.bg-info").filter({ hasText: "maintenance" });
       await expect(maintenanceBadge.first()).toBeVisible();
     });
   });
