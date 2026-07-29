@@ -110,8 +110,8 @@ function renderImagesEditor() {
           </div>
         </div>
         <div class="d-flex gap-2 mt-3">
-          <button class="btn btn-success editor-btn" onclick="doneImageEdit(${editingImageIndex})">OK</button>
-          <button class="btn btn-secondary editor-btn ms-auto" onclick="cancelImageEdit()">Cancel</button>
+          <button class="btn btn-success editor-btn flex-fill" onclick="doneImageEdit(${editingImageIndex})">OK</button>
+          <button class="btn btn-secondary editor-btn flex-fill" onclick="cancelImageEdit()">Cancel</button>
         </div>
       </div>
     `;
