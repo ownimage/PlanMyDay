@@ -443,8 +443,28 @@ body.auto-hide-menu #mainNav.nav-hidden ~ .container-fluid {
 }
 
 #settingsPage {
-  height: calc(100vh - 56px);
   padding-top: 20px;
+  padding-bottom: 20px;
+}
+.nav-tabs-info .nav-link.active {
+  font-weight: 700;
+  background-color: var(--bs-info);
+  border-color: var(--bs-info);
+  color: var(--bs-dark);
+}
+.nav-tabs-info .nav-link.active:hover {
+  background-color: var(--bs-info);
+  border-color: var(--bs-info);
+  color: var(--bs-dark);
+}
+.nav-tabs-info .nav-link:hover {
+  border-color: var(--bs-gray-300);
+  isolation: isolate;
+}
+#settingsPage .tab-content {
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--bs-border-color);
 }
 
 #streamsEditor .editor-title {

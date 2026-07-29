@@ -233,16 +233,22 @@ function renderMain() {
 
   if (splitList) {
     const tab = container.dataset.todayTab || "progress";
-    const tabBar = document.createElement("div");
-    tabBar.className = "d-flex gap-2 mb-3 flex-shrink-0";
+    const tabWrapper = document.createElement("div");
+    tabWrapper.className = "mb-3 border-bottom flex-shrink-0";
+    const tabBar = document.createElement("ul");
+    tabBar.className = "nav nav-tabs border-bottom-0 nav-tabs-info";
     ["progress", "maintenance"].forEach(t => {
+      const li = document.createElement("li");
+      li.className = "nav-item";
       const btn = document.createElement("button");
-      btn.className = `btn btn-sm ${t === tab ? "btn-primary" : "btn-secondary"}`;
+      btn.className = `nav-link ${t === tab ? "active" : ""}`;
       btn.textContent = t.charAt(0).toUpperCase() + t.slice(1);
       btn.onclick = function() { container.dataset.todayTab = t; renderMain(); };
-      tabBar.appendChild(btn);
+      li.appendChild(btn);
+      tabBar.appendChild(li);
     });
-    container.appendChild(tabBar);
+    tabWrapper.appendChild(tabBar);
+    container.appendChild(tabWrapper);
 
     jobsToRender = allJobs.filter(({ streamIdx }) => {
       const s = streams[streamIdx];
@@ -296,7 +302,7 @@ function renderMain() {
           </div>
           <div class="d-flex justify-content-between align-items-center">
             <span class="small">${escapeHtml(streamTitle)}</span>
-            <span class="badge rounded-pill bg-${(stream.tab || "progress") === "progress" ? "success" : "info"}">${escapeHtml(stream.tab || "progress")}</span>
+            <span class="badge rounded-pill bg-${(stream.tab || "progress") === "progress" ? "success" : "warning"}">${escapeHtml(stream.tab || "progress")}</span>
           </div>
           ${job.description ? `<div class="mt-1 text-secondary small">${escapeHtml(job.description)}</div>` : ""}
         </div>
@@ -611,7 +617,7 @@ function renderStreamsEditor() {
         <div class="drag-handle text-secondary" style="cursor:grab;font-size:1.3rem;line-height:1">&#9776;</div>
         <div style="width:40px;height:40px;flex-shrink:0">${streamImgUrl ? `<img src="${streamImgUrl}" class="date-img" style="max-width:40px;max-height:40px">` : ""}</div>
         <div class="fw-bold editor-title">${escapeHtml(t.title)}</div>
-        <span class="badge bg-${(t.tab || "progress") === "progress" ? "success" : "info"} ms-auto">${escapeHtml(t.tab || "progress")}</span>
+        <span class="badge bg-${(t.tab || "progress") === "progress" ? "success" : "warning"} ms-auto">${escapeHtml(t.tab || "progress")}</span>
       </div>
       <div class="d-flex gap-2">
         <button class="btn btn-primary editor-btn" style="flex:1" onclick="editStream(${realIdx})">Edit</button>

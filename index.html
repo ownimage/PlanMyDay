@@ -109,209 +109,236 @@
 
     <!-- SETTINGS PAGE -->
     <div id="settingsPage" class="d-none">
-      <h2 class="mb-3">Settings</h2>
-
-      <div class="d-flex gap-2 mb-3">
-        <button class="btn btn-success editor-btn btn-wide ms-auto" onclick="closeSettings()">Done</button>
+      <div class="d-flex align-items-center mb-3">
+        <h2 class="mb-0">Settings</h2>
+        <button class="btn btn-success editor-btn ms-auto" onclick="closeSettings()">Done</button>
       </div>
 
-      <div class="row mb-3 align-items-center col-md-8">
-        <div class="col-4 text-end"><label class="form-label mb-0">Theme</label></div>
-        <div class="col-8">
-          <select id="themeSelector" class="form-select" onchange="changeTheme(this.value)">
-            <option value="cerulean">Cerulean (light)</option>
-            <option value="cosmo">Cosmo (light)</option>
-            <option value="cyborg">Cyborg (dark)</option>
-            <option value="darkly" selected>Darkly (dark)</option>
-            <option value="flatly">Flatly (light)</option>
-            <option value="journal">Journal (light)</option>
-            <option value="litera">Litera (light)</option>
-            <option value="lumen">Lumen (light)</option>
-            <option value="lux">Lux (light)</option>
-            <option value="materia">Materia (light)</option>
-            <option value="minty">Minty (light)</option>
-            <option value="morph">Morph (light)</option>
-            <option value="pulse">Pulse (light)</option>
-            <option value="quartz">Quartz (light)</option>
-            <option value="sandstone">Sandstone (light)</option>
-            <option value="simplex">Simplex (light)</option>
-            <option value="sketchy">Sketchy (light)</option>
-            <option value="slate">Slate (dark)</option>
-            <option value="solar">Solar (dark)</option>
-            <option value="spacelab">Spacelab (light)</option>
-            <option value="superhero">Superhero (dark)</option>
-            <option value="united">United (light)</option>
-            <option value="vapor">Vapor (dark)</option>
-            <option value="yeti">Yeti (light)</option>
-            <option value="zephyr">Zephyr (light)</option>
-          </select>
-        </div>
-      </div>
+      <ul class="nav nav-tabs nav-tabs-info" id="settingsTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+          <button class="nav-link active" id="general-tab" data-bs-toggle="tab" data-bs-target="#general" type="button" role="tab" aria-controls="general" aria-selected="true">General</button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link" id="schedule-tab" data-bs-toggle="tab" data-bs-target="#schedule" type="button" role="tab" aria-controls="schedule" aria-selected="false">Schedule</button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link" id="danger-tab" data-bs-toggle="tab" data-bs-target="#danger" type="button" role="tab" aria-controls="danger" aria-selected="false">Danger</button>
+        </li>
+      </ul>
 
-      <div class="row mb-4 align-items-center col-md-8">
-        <div class="col-4 text-end"><label class="form-label mb-0">Font size</label></div>
-        <div class="col-8">
-          <select id="fontSizeSelector" class="form-select" onchange="changeFontSize(this.value)">
-            <option value="xsmall">Extra small</option>
-            <option value="small">Small</option>
-            <option value="normal">Normal</option>
-            <option value="large">Large</option>
-            <option value="xlarge">Extra large</option>
-            <option value="jumbo">Jumbo</option>
-          </select>
-        </div>
-      </div>
+      <div class="tab-content flex-grow-1" id="settingsTabsContent">
 
-      <div class="row mb-4 align-items-center col-md-8">
-        <div class="col-4 text-end"><label class="form-label mb-0">Icon size</label></div>
-        <div class="col-8">
-          <select id="iconSizeSelector" class="form-select" onchange="changeIconSize(this.value)">
-            <option value="small">Small (64x64)</option>
-            <option value="medium">Medium (80x80)</option>
-            <option value="large">Large (100x100)</option>
-          </select>
-        </div>
-      </div>
+        <!-- General -->
+        <div class="tab-pane fade show active" id="general" role="tabpanel" aria-labelledby="general-tab">
+          <div class="row mb-3 align-items-center col-md-8 mt-3">
+            <div class="col-4 text-end"><label class="form-label mb-0">Theme</label></div>
+            <div class="col-8">
+              <select id="themeSelector" class="form-select" onchange="changeTheme(this.value)">
+                <option value="cerulean">Cerulean (light)</option>
+                <option value="cosmo">Cosmo (light)</option>
+                <option value="cyborg">Cyborg (dark)</option>
+                <option value="darkly" selected>Darkly (dark)</option>
+                <option value="flatly">Flatly (light)</option>
+                <option value="journal">Journal (light)</option>
+                <option value="litera">Litera (light)</option>
+                <option value="lumen">Lumen (light)</option>
+                <option value="lux">Lux (light)</option>
+                <option value="materia">Materia (light)</option>
+                <option value="minty">Minty (light)</option>
+                <option value="morph">Morph (light)</option>
+                <option value="pulse">Pulse (light)</option>
+                <option value="quartz">Quartz (light)</option>
+                <option value="sandstone">Sandstone (light)</option>
+                <option value="simplex">Simplex (light)</option>
+                <option value="sketchy">Sketchy (light)</option>
+                <option value="slate">Slate (dark)</option>
+                <option value="solar">Solar (dark)</option>
+                <option value="spacelab">Spacelab (light)</option>
+                <option value="superhero">Superhero (dark)</option>
+                <option value="united">United (light)</option>
+                <option value="vapor">Vapor (dark)</option>
+                <option value="yeti">Yeti (light)</option>
+                <option value="zephyr">Zephyr (light)</option>
+              </select>
+            </div>
+          </div>
 
-      <div class="row mb-4 align-items-center col-md-8">
-        <div class="col-4 text-end"><label class="form-label mb-0">Tile density</label></div>
-        <div class="col-8">
-          <select id="densitySelector" class="form-select" onchange="changeDensity(this.value)">
-            <option value="normal">Normal</option>
-            <option value="compact">Compact</option>
-          </select>
-        </div>
-      </div>
+          <div class="row mb-4 align-items-center col-md-8">
+            <div class="col-4 text-end"><label class="form-label mb-0">Font size</label></div>
+            <div class="col-8">
+              <select id="fontSizeSelector" class="form-select" onchange="changeFontSize(this.value)">
+                <option value="xsmall">Extra small</option>
+                <option value="small">Small</option>
+                <option value="normal">Normal</option>
+                <option value="large">Large</option>
+                <option value="xlarge">Extra large</option>
+                <option value="jumbo">Jumbo</option>
+              </select>
+            </div>
+          </div>
 
-      <div class="row mb-4 align-items-center col-md-8">
-        <div class="col-4 text-end"><label class="form-label mb-0">Split list</label></div>
-        <div class="col-8">
-          <div class="form-check form-switch mt-1">
-            <input id="splitList" class="form-check-input" type="checkbox" onchange="changeSplitList(this.checked)">
+          <div class="row mb-4 align-items-center col-md-8">
+            <div class="col-4 text-end"><label class="form-label mb-0">Icon size</label></div>
+            <div class="col-8">
+              <select id="iconSizeSelector" class="form-select" onchange="changeIconSize(this.value)">
+                <option value="small">Small (64x64)</option>
+                <option value="medium">Medium (80x80)</option>
+                <option value="large">Large (100x100)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="row mb-4 align-items-center col-md-8">
+            <div class="col-4 text-end"><label class="form-label mb-0">Tile density</label></div>
+            <div class="col-8">
+              <select id="densitySelector" class="form-select" onchange="changeDensity(this.value)">
+                <option value="normal">Normal</option>
+                <option value="compact">Compact</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="row mb-4 align-items-center col-md-8">
+            <div class="col-4 text-end"><label class="form-label mb-0">Split list</label></div>
+            <div class="col-8">
+              <div class="form-check form-switch mt-1">
+                <input id="splitList" class="form-check-input" type="checkbox" onchange="changeSplitList(this.checked)">
+              </div>
+            </div>
+          </div>
+
+          <div class="row mb-4 align-items-center col-md-8">
+            <div class="col-4 text-end"><label class="form-label mb-0">Auto-hide menu</label></div>
+            <div class="col-8">
+              <div class="form-check form-switch mt-1">
+                <input id="autoHideMenu" class="form-check-input" type="checkbox" onchange="changeAutoHideMenu(this.checked)">
+              </div>
+            </div>
+          </div>
+
+          <div class="row mb-4 align-items-center col-md-8">
+            <div class="col-4 text-end"><label class="form-label mb-0">Hide done</label></div>
+            <div class="col-8">
+              <div class="form-check form-switch mt-1">
+                <input id="hideDone" class="form-check-input" type="checkbox" onchange="changeHideDone(this.checked)">
+              </div>
+            </div>
+          </div>
+
+          <div class="row mb-4 align-items-center col-md-8">
+            <div class="col-4 text-end"><label class="form-label mb-0">Auto Ad Hoc</label></div>
+            <div class="col-8">
+              <div class="form-check form-switch mt-1">
+                <input id="skipAdhocConfirm" class="form-check-input" type="checkbox" onchange="changeSkipAdhocConfirm(this.checked)">
+              </div>
+            </div>
           </div>
         </div>
-      </div>
 
-      <div class="row mb-4 align-items-center col-md-8">
-        <div class="col-4 text-end"><label class="form-label mb-0">Auto-hide menu</label></div>
-        <div class="col-8">
-          <div class="form-check form-switch mt-1">
-            <input id="autoHideMenu" class="form-check-input" type="checkbox" onchange="changeAutoHideMenu(this.checked)">
+        <!-- Schedule -->
+        <div class="tab-pane fade" id="schedule" role="tabpanel" aria-labelledby="schedule-tab">
+          <div class="row mb-4 align-items-center col-md-8 mt-3">
+            <div class="col-4 text-end"><label class="form-label mb-0">Suffix start</label></div>
+            <div class="col-8">
+              <select id="suffixStartSelector" class="form-select" onchange="changeSuffixStart(this.value)">
+                <option value="0">0</option>
+                <option value="1">1</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="row mb-4 align-items-center col-md-8">
+            <div class="col-4 text-end"><label class="form-label mb-0">1 Jan</label></div>
+            <div class="col-8">
+              <select id="jan1Selector" class="form-select" onchange="changeJan1(this.value)">
+                <option value="1">1</option>
+                <option value="0">0</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="row mb-4 align-items-center col-md-8">
+            <div class="col-4 text-end"><label class="form-label mb-0">Monday</label></div>
+            <div class="col-8">
+              <select id="mondaySelector" class="form-select" onchange="changeMonday(this.value)">
+                <option value="1">1</option>
+                <option value="0">0</option>
+              </select>
+            </div>
           </div>
         </div>
-      </div>
 
-      <div class="row mb-4 align-items-center col-md-8">
-        <div class="col-4 text-end"><label class="form-label mb-0">Hide done</label></div>
-        <div class="col-8">
-          <div class="form-check form-switch mt-1">
-            <input id="hideDone" class="form-check-input" type="checkbox" onchange="changeHideDone(this.checked)">
+        <!-- Danger -->
+        <div class="tab-pane fade" id="danger" role="tabpanel" aria-labelledby="danger-tab">
+          <div class="row mb-4 align-items-center col-md-8 mt-3">
+            <div class="col-4 text-end"><label class="form-label mb-0">Show danger</label></div>
+            <div class="col-8">
+              <div class="form-check form-switch mt-1">
+                <input id="showDanger" class="form-check-input" type="checkbox" onchange="changeShowDanger(this.checked)">
+              </div>
+            </div>
+          </div>
+
+          <div id="regenerateTilesRow" class="row mb-4 align-items-center col-md-8 d-none">
+            <div class="col-4 text-end"></div>
+            <div class="col-8">
+              <button class="btn btn-primary editor-btn btn-wide w-100" onclick="regenerateTiles()">Regenerate Today's Tiles</button>
+            </div>
+          </div>
+
+          <div id="clearAllDataRow" class="row mb-4 align-items-center col-md-8 d-none">
+            <div class="col-4 text-end"></div>
+            <div class="col-8">
+              <button class="btn btn-danger editor-btn btn-wide w-100" onclick="confirmClearAllData()">Clear All Data</button>
+            </div>
+          </div>
+          <div id="refreshAppRow" class="row mb-2 align-items-center col-md-8 d-none">
+            <div class="col-4 text-end"></div>
+            <div class="col-8">
+              <button class="btn btn-warning editor-btn btn-wide w-100" onclick="location.reload()">Refresh App</button>
+            </div>
+          </div>
+          <div id="uploadStandardImagesRow" class="row mb-2 align-items-center col-md-8 d-none">
+            <div class="col-4 text-end"></div>
+            <div class="col-8">
+              <button class="btn btn-primary editor-btn btn-wide w-100" onclick="uploadStandardImages()">Upload Standard Images</button>
+            </div>
+          </div>
+          <div id="devTodayRow" class="row mb-2 align-items-center col-md-8 d-none">
+            <div class="col-4 text-end"><label class="form-label mb-0">Dev Today</label></div>
+            <div class="col-8">
+              <input class="form-control" id="devTodayInput" placeholder="Pick a date">
+            </div>
+          </div>
+          <div id="devLastGenRow" class="row mb-2 align-items-center col-md-8 d-none">
+            <div class="col-4 text-end"><label class="form-label mb-0">Dev Last Gen</label></div>
+            <div class="col-8">
+              <input class="form-control" id="devLastGenInput" placeholder="Pick a date">
+            </div>
           </div>
         </div>
+
       </div>
 
-      <div class="row mb-4 align-items-center col-md-8">
-        <div class="col-4 text-end"><label class="form-label mb-0">Suffix start</label></div>
-        <div class="col-8">
-          <select id="suffixStartSelector" class="form-select" onchange="changeSuffixStart(this.value)">
-            <option value="0">0</option>
-            <option value="1">1</option>
-          </select>
-        </div>
-      </div>
-
-      <div class="row mb-4 align-items-center col-md-8">
-        <div class="col-4 text-end"><label class="form-label mb-0">1 Jan</label></div>
-        <div class="col-8">
-          <select id="jan1Selector" class="form-select" onchange="changeJan1(this.value)">
-            <option value="1">1</option>
-            <option value="0">0</option>
-          </select>
-        </div>
-      </div>
-
-      <div class="row mb-4 align-items-center col-md-8">
-        <div class="col-4 text-end"><label class="form-label mb-0">Monday</label></div>
-        <div class="col-8">
-          <select id="mondaySelector" class="form-select" onchange="changeMonday(this.value)">
-            <option value="1">1</option>
-            <option value="0">0</option>
-          </select>
-        </div>
-      </div>
-
-      <div class="row mb-4 align-items-center col-md-8">
-        <div class="col-4 text-end"><label class="form-label mb-0">Auto Ad Hoc</label></div>
-        <div class="col-8">
-          <div class="form-check form-switch mt-1">
-            <input id="skipAdhocConfirm" class="form-check-input" type="checkbox" onchange="changeSkipAdhocConfirm(this.checked)">
+      <div class="mt-3">
+        <div class="row align-items-center col-md-8 mb-3">
+          <div class="col-4 text-end"></div>
+          <div class="col-8">
+            <a href="https://buymeacoffee.com/ownimage" target="_blank" rel="noopener">
+              <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height:50px">
+            </a>
           </div>
         </div>
-      </div>
 
-      <div class="mt-4 row align-items-center col-md-8">
-        <div class="col-4 text-end"></div>
-        <div class="col-8">
-          <a href="https://buymeacoffee.com/ownimage" target="_blank" rel="noopener">
-            <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height:50px">
-          </a>
-        </div>
-      </div>
-
-      <div class="mt-4 row mb-4 align-items-center col-md-8">
-        <div class="col-4 text-end"><label class="form-label mb-0">Share app</label></div>
-        <div class="col-8">
-          <div id="shareQrCode" style="background:white;padding:10px;display:inline-block;border-radius:8px;"></div>
-        </div>
-      </div>
-
-      <div class="row mb-4 align-items-center col-md-8">
-        <div class="col-4 text-end"><label class="form-label mb-0">Show danger</label></div>
-        <div class="col-8">
-          <div class="form-check form-switch mt-1">
-            <input id="showDanger" class="form-check-input" type="checkbox" onchange="changeShowDanger(this.checked)">
+        <div class="row mb-4 align-items-center col-md-8">
+          <div class="col-4 text-end"><label class="form-label mb-0">Share app</label></div>
+          <div class="col-8">
+            <div id="shareQrCode" style="background:white;padding:10px;display:inline-block;border-radius:8px;"></div>
           </div>
         </div>
-      </div>
 
-      <div id="regenerateTilesRow" class="mt-4 row align-items-center col-md-8 d-none">
-        <div class="col-4 text-end"></div>
-        <div class="col-8">
-          <button class="btn btn-primary editor-btn btn-wide w-100" onclick="regenerateTiles()">Regenerate Today's Tiles</button>
-        </div>
+        <div class="mt-5 small build-number">Build <span id="buildNumber"></span></div>
       </div>
-
-      <div id="clearAllDataRow" class="mt-4 row align-items-center col-md-8 d-none">
-        <div class="col-4 text-end"></div>
-        <div class="col-8">
-          <button class="btn btn-danger editor-btn btn-wide w-100" onclick="confirmClearAllData()">Clear All Data</button>
-        </div>
-      </div>
-      <div id="refreshAppRow" class="mt-2 row align-items-center col-md-8 d-none">
-        <div class="col-4 text-end"></div>
-        <div class="col-8">
-          <button class="btn btn-warning editor-btn btn-wide w-100" onclick="location.reload()">Refresh App</button>
-        </div>
-      </div>
-      <div id="uploadStandardImagesRow" class="mt-2 row align-items-center col-md-8 d-none">
-        <div class="col-4 text-end"></div>
-        <div class="col-8">
-          <button class="btn btn-primary editor-btn btn-wide w-100" onclick="uploadStandardImages()">Upload Standard Images</button>
-        </div>
-      </div>
-      <div id="devTodayRow" class="mt-2 row align-items-center col-md-8 d-none">
-        <div class="col-4 text-end"><label class="form-label mb-0">Dev Today</label></div>
-        <div class="col-8">
-          <input class="form-control" id="devTodayInput" placeholder="Pick a date">
-        </div>
-      </div>
-      <div id="devLastGenRow" class="mt-2 row align-items-center col-md-8 d-none">
-        <div class="col-4 text-end"><label class="form-label mb-0">Dev Last Gen</label></div>
-        <div class="col-8">
-          <input class="form-control" id="devLastGenInput" placeholder="Pick a date">
-        </div>
-      </div>
-      <div class="mt-5 small build-number">Build <span id="buildNumber"></span></div>
     </div>
     <script>document.getElementById("buildNumber").textContent = BUILD_NUMBER;</script>
     <!-- hidden sample data for icons, loaded on first visit -->
