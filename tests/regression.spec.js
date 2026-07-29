@@ -489,10 +489,11 @@ test.describe("PlanMyDay - Regression", () => {
       await page.getByRole("button", { name: "Add Image" }).click();
       await page.locator("#imageEditModal").waitFor({ state: "visible" });
       const nameInput = page.locator("#imageEditModalBody input:not([type])");
-      await nameInput.waitFor({ state: "visible" });
+      await expect(nameInput).toBeVisible();
       await nameInput.fill("TestImage");
       await page.locator("#imageEditModal .btn-success").click();
-      await expect(page.getByText("TestImage").first()).toBeVisible();
+      await page.locator("#imageEditModal").waitFor({ state: "hidden" });
+      await expect(page.locator(".card:has-text('TestImage')")).toBeVisible();
     });
 
     test("can cancel adding a new image", async ({ page }) => {
@@ -612,7 +613,7 @@ test.describe("PlanMyDay - Regression", () => {
 
     test("clear button resets picker search", async ({ page }) => {
       await page.locator(".image-picker-search").fill("PickTest");
-      await page.getByRole("button", { name: "Clear" }).click();
+      await page.locator("#imagePickerModal button:has-text('Clear')").click();
       const val = await page.locator(".image-picker-search").inputValue();
       expect(val).toBe("");
     });
@@ -1234,7 +1235,8 @@ test.describe("PlanMyDay - Regression", () => {
 
     test("clear button resets picker search", async ({ page }) => {
       await page.locator(".image-picker-search").fill("PickMeToo");
-      await page.getByRole("button", { name: "Clear" }).click();
+      await page.locator(".image-picker-item:has-text('PickMeToo')").waitFor({ state: "visible" });
+      await page.locator("#imagePickerModal button:has-text('Clear')").click();
       await expect(page.locator(".image-picker-item").filter({ hasText: /^PickMe$/ })).toBeVisible();
     });
 
