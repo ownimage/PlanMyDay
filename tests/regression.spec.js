@@ -107,7 +107,7 @@ test.describe("PlanMyDay - Regression", () => {
       test.setTimeout(30000);
       await page.getByText("+ Add job").click();
       await page.locator("#jobEditModal").waitFor({ state: "visible" });
-      await page.locator("#jobEditModal .btn-secondary").filter({ hasText: "Cancel" }).click();
+      await page.locator("#jobEditCancelBtn").click();
       await expect(page.locator("#jobEditModal")).not.toBeVisible({ timeout: 15000 });
     });
 
@@ -117,7 +117,7 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#jobEditModal").waitFor({ state: "visible" });
       await page.locator("#jobEditModalBody .form-control").first().fill("Test Ad Hoc");
       await page.locator("#jobEditModalBody textarea").first().fill("Test description");
-      await page.locator("#jobEditModal .btn-success").filter({ hasText: "OK" }).click();
+      await page.locator("#jobEditOkBtn").click();
       await page.locator("#jobEditModal").waitFor({ state: "hidden" });
       await expect(page.locator("h4").filter({ hasText: "Test Ad Hoc" })).toBeVisible();
     });
@@ -146,8 +146,8 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator(".job-view-btn").first().click();
       await expect(page.locator("#jobEditModal")).toBeVisible();
       await expect(page.locator("#jobEditModalTitle")).toHaveText("View Job");
-      await expect(page.locator("#jobEditModalFooter .btn-success")).toHaveText("OK");
-      await expect(page.locator("#jobEditModalFooter .btn-primary")).toHaveText("Edit");
+      await expect(page.locator("#btnViewJobOk")).toHaveText("OK");
+      await expect(page.locator("#btnViewJobEdit")).toHaveText("Edit");
       const titleInput = page.locator("#jobEditModalBody .form-control").first();
       await expect(titleInput).toHaveValue("Report");
       await expect(page.locator("#jobEditModalBody input:read-only, #jobEditModalBody select:disabled, #jobEditModalBody textarea:read-only, #jobEditModalBody input[type=checkbox]:disabled").first()).toBeVisible();
@@ -158,7 +158,7 @@ test.describe("PlanMyDay - Regression", () => {
       await page.reload();
       await page.locator(".job-view-btn").first().click();
       await page.locator("#jobEditModal").waitFor({ state: "visible" });
-      await page.locator("#jobEditModalFooter .btn-success").click();
+      await page.locator("#btnViewJobOk").click();
       await page.locator("#jobEditModal").waitFor({ state: "hidden", timeout: 5000 });
     });
 
@@ -168,9 +168,9 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator(".job-view-btn").first().click();
       await page.locator("#jobEditModal").waitFor({ state: "visible" });
       await expect(page.locator("#jobEditModalTitle")).toHaveText("View Job");
-      await page.locator("#jobEditModalFooter .btn-primary").filter({ hasText: "Edit" }).click();
+      await page.locator("#btnViewJobEdit").filter({ hasText: "Edit" }).click();
       await expect(page.locator("#jobEditModalTitle")).toHaveText("Edit Job");
-      await expect(page.locator("#jobEditModalFooter .btn-success")).toHaveText("OK");
+      await expect(page.locator("#jobEditOkBtn")).toHaveText("OK");
       const titleInput = page.locator("#jobEditModalBody .form-control").first();
       await expect(titleInput).toHaveValue("Report");
       await expect(titleInput).toBeEditable();
@@ -208,10 +208,10 @@ test.describe("PlanMyDay - Regression", () => {
       await expect(page.locator("h4").filter({ hasText: "Report" })).toBeVisible();
       await page.locator(".job-view-btn").first().click();
       await page.locator("#jobEditModal").waitFor({ state: "visible" });
-      await page.locator("#jobEditModalFooter .btn-primary").filter({ hasText: "Edit" }).click();
+      await page.locator("#btnViewJobEdit").filter({ hasText: "Edit" }).click();
       await expect(page.locator("#jobEditModalTitle")).toHaveText("Edit Job");
       await page.evaluate(() => jobField("sleepUntil", "2099-12-31"));
-      await page.locator("#jobEditModalFooter .btn-success").filter({ hasText: "OK" }).click();
+      await page.locator("#jobEditOkBtn").click();
       await page.locator("#jobEditModal").waitFor({ state: "hidden" });
       await expect(page.locator("h4").filter({ hasText: "Report" })).not.toBeVisible({ timeout: 5000 });
       await expect(page.locator("h4").filter({ hasText: "Laundry" })).toBeVisible();
@@ -231,7 +231,7 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#jobEditModal").waitFor({ state: "visible" });
       await expect(page.locator("#jobEditModalTitle")).toHaveText("View Job");
       await expect(page.locator("#jobSleepUntil")).toHaveValue("");
-      await page.locator("#jobEditModalFooter .btn-primary").filter({ hasText: "Edit" }).click();
+      await page.locator("#btnViewJobEdit").filter({ hasText: "Edit" }).click();
       await expect(page.locator("#jobEditModalTitle")).toHaveText("Edit Job");
       await expect(page.locator("#jobSleepUntil")).toHaveValue("");
     });
@@ -441,7 +441,7 @@ test.describe("PlanMyDay - Regression", () => {
       const titleInput = page.locator("#streamEditModalBody input[value=\"Work\"]");
       await expect(titleInput).toBeVisible();
       await titleInput.fill("Work Updated");
-      await page.locator("#streamEditModal .btn-success").filter({ hasText: "OK" }).click();
+      await page.locator("#btnStreamEditOk").first().click();
       await page.locator("#streamEditModal").waitFor({ state: "hidden" });
       await expect(page.getByText("Work Updated")).toBeVisible();
     });
@@ -450,7 +450,7 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#streamEditorList .btn-primary").filter({ hasText: "Edit" }).first().click();
       await page.locator("#streamEditModal").waitFor({ state: "visible" });
       await page.locator("#streamEditModalBody input").first().fill("Cancelled");
-      await page.locator("#streamEditModal .btn-secondary").filter({ hasText: "Cancel" }).click();
+      await page.locator("#btnStreamEditCancel").click();
       await page.waitForTimeout(300);
       await page.locator("#streamEditModal").waitFor({ state: "hidden" });
       await page.locator("#streamEditorList .editor-title").filter({ hasText: "Work" }).waitFor({ state: "visible" });
@@ -526,7 +526,7 @@ test.describe("PlanMyDay - Regression", () => {
       await page.getByRole("button", { name: "Add Job" }).click();
       await page.locator("#jobEditModal").waitFor({ state: "visible" });
       await page.locator("#jobEditModalBody .form-control").first().fill("New Job Test");
-      await page.locator("#jobEditModal .btn-success").filter({ hasText: "OK" }).click();
+      await page.locator("#jobEditOkBtn").click();
       await page.locator("#jobsList").waitFor({ state: "visible" });
       await expect(page.getByText("New Job Test")).toBeVisible();
     });
@@ -535,7 +535,7 @@ test.describe("PlanMyDay - Regression", () => {
       test.setTimeout(30000);
       await page.getByRole("button", { name: "Add Job" }).click();
       await page.locator("#jobEditModal").waitFor({ state: "visible" });
-      await page.locator("#jobEditModal .btn-secondary").filter({ hasText: "Cancel" }).click();
+      await page.locator("#jobEditCancelBtn").click();
       await expect(page.locator("#jobEditModal")).not.toBeVisible({ timeout: 15000 });
     });
 
@@ -553,7 +553,7 @@ test.describe("PlanMyDay - Regression", () => {
 
     test("schedule modal opens from job edit", async ({ page }) => {
       await page.locator("#jobsList .btn-primary").filter({ hasText: "Edit" }).first().click();
-      await page.getByText("Change").click();
+      await page.getByText("Change").nth(1).click();
       await expect(page.locator("#scheduleModal")).toBeVisible();
     });
 
@@ -561,7 +561,7 @@ test.describe("PlanMyDay - Regression", () => {
       test.setTimeout(30000);
       await page.locator("#jobsList .btn-primary").filter({ hasText: "Edit" }).first().click();
       await page.locator("#jobEditModal").waitFor({ state: "visible" });
-      await page.getByText("Change").click();
+      await page.getByText("Change").nth(1).click();
       await page.locator("#scheduleModal").waitFor({ state: "visible" });
       await page.locator("#schedDays").check();
       await expect(page.locator("#schedDaysOptions")).toBeVisible();
@@ -591,7 +591,7 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("a.dropdown-item").filter({ hasText: "Streams" }).click();
       await page.locator("#streamEditorList .btn-info").filter({ hasText: "Jobs" }).first().click();
       await page.locator("#jobsList .btn-primary").filter({ hasText: "Edit" }).first().click();
-      await page.getByText("Change").click();
+      await page.getByText("Change").nth(1).click();
     });
 
     test("every day radio option works", async ({ page }) => {
@@ -642,14 +642,14 @@ test.describe("PlanMyDay - Regression", () => {
       const nameInput = page.locator("#imageEditModalBody input:not([type])");
       await expect(nameInput).toBeVisible();
       await nameInput.fill("TestImage");
-      await page.locator("#imageEditModal .btn-success").click();
+      await page.locator("#btnImageEditOk").click();
       await expect(page.locator(".card:has-text('TestImage')")).toBeVisible({ timeout: 15000 });
     });
 
     test("can cancel adding a new image", async ({ page }) => {
       await page.getByRole("button", { name: "Add Image" }).click();
       await page.locator("#imageEditModal").waitFor({ state: "visible" });
-      await page.locator("#imageEditModal .btn-secondary").filter({ hasText: "Cancel" }).click();
+      await page.locator("#btnImageEditCancel").click();
       await expect(page.locator("#imageEditModal")).not.toBeVisible();
     });
 
@@ -658,7 +658,7 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#imageEditModal").waitFor({ state: "visible" });
       await page.locator("#imageEditModalBody .form-control:not(.form-control-sm)").waitFor({ state: "visible" });
       await page.locator("#imageEditModalBody .form-control:not(.form-control-sm)").fill("MyImg");
-      await page.locator("#imageEditModal .btn-success").click();
+      await page.locator("#btnImageEditOk").click();
       await page.locator("#imageEditModal").waitFor({ state: "hidden" });
       await page.locator(".card:has-text('MyImg') .btn-info").filter({ hasText: "Duplicate" }).click();
       await expect(page.locator("#imageEditModalBody .form-control:not(.form-control-sm)")).toHaveValue("MyImg 2");
@@ -669,7 +669,7 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#imageEditModal").waitFor({ state: "visible" });
       await page.locator("#imageEditModalBody .form-control:not(.form-control-sm)").waitFor({ state: "visible" });
       await page.locator("#imageEditModalBody .form-control:not(.form-control-sm)").fill("DelImg");
-      await page.locator("#imageEditModal .btn-success").click();
+      await page.locator("#btnImageEditOk").click();
       await page.locator("#imageEditModal").waitFor({ state: "hidden" });
       await page.locator(".card:has-text('DelImg')").waitFor({ state: "visible" });
       await page.locator(".card:has-text('DelImg') .btn-danger").filter({ hasText: "Delete" }).click();
@@ -681,8 +681,8 @@ test.describe("PlanMyDay - Regression", () => {
     test("upload button exists on edit modal", async ({ page }) => {
       await page.getByRole("button", { name: "Add Image" }).click();
       await page.locator("#imageEditModal").waitFor({ state: "visible" });
-      await page.locator("#imageEditModal .btn-primary").filter({ hasText: "Upload" }).waitFor({ state: "visible" });
-      await expect(page.locator("#imageEditModal .btn-primary").filter({ hasText: "Upload" })).toBeVisible();
+      await page.locator("#btnImageUpload").waitFor({ state: "visible" });
+      await expect(page.locator("#btnImageUpload")).toBeVisible();
     });
 
     test("search filters the image list", async ({ page }) => {
@@ -690,7 +690,7 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#imageEditModal").waitFor({ state: "visible" });
       await page.locator("#imageEditModalBody .form-control:not(.form-control-sm)").waitFor({ state: "visible" });
       await page.locator("#imageEditModalBody .form-control:not(.form-control-sm)").fill("FilterMe");
-      await page.locator("#imageEditModal .btn-success").click();
+      await page.locator("#btnImageEditOk").click();
       await page.locator("#imageEditModal").waitFor({ state: "hidden" });
       await page.locator('#imageFilters input[type="search"]').fill("FilterMe");
       await expect(page.getByText("FilterMe")).toBeVisible();
@@ -919,7 +919,7 @@ test.describe("PlanMyDay - Regression", () => {
       await page.getByText("+ Add job").click();
       await page.locator("#jobEditModal").waitFor({ state: "visible" });
       await page.locator("#jobEditModalBody .form-control").first().fill("AdHocJob");
-      await page.locator("#jobEditModal .btn-success").filter({ hasText: "OK" }).click();
+      await page.locator("#jobEditOkBtn").click();
       await page.locator("#jobEditModal").waitFor({ state: "hidden" });
       await page.evaluate(() => {
         const cb = document.querySelector('.job-checkbox');
@@ -934,7 +934,7 @@ test.describe("PlanMyDay - Regression", () => {
       await page.getByText("+ Add job").click();
       await page.locator("#jobEditModal").waitFor({ state: "visible" });
       await page.locator("#jobEditModalBody .form-control").first().fill("SkipMe");
-      await page.locator("#jobEditModal .btn-success").filter({ hasText: "OK" }).click();
+      await page.locator("#jobEditOkBtn").click();
       await page.locator("#jobEditModal").waitFor({ state: "hidden" });
       await expect(page.getByText("SkipMe")).toBeVisible();
       await page.evaluate(() => {
@@ -1216,7 +1216,7 @@ test.describe("PlanMyDay - Regression", () => {
       test.setTimeout(30000);
       await page.locator("#jobsList .btn-primary").filter({ hasText: "Edit" }).first().click();
       await page.locator("#jobEditModal").waitFor({ state: "visible" });
-      await page.locator("#jobEditModal .btn-secondary").filter({ hasText: "Cancel" }).click();
+      await page.locator("#jobEditCancelBtn").click();
       await expect(page.locator("#jobEditModal")).not.toBeVisible({ timeout: 20000 });
     });
 
@@ -1230,10 +1230,10 @@ test.describe("PlanMyDay - Regression", () => {
       await page.getByRole("button", { name: "Add Job" }).click();
       await page.locator("#jobEditModal").waitFor({ state: "visible" });
       await page.locator("#jobEditModalBody .form-control").first().fill("WeekendJob");
-      await page.getByText("Change").click();
+      await page.getByText("Change").nth(1).click();
       await page.locator("#schedWeekends").check();
       await page.locator("#scheduleModal .btn-primary").click();
-      await page.locator("#jobEditModal .btn-success").filter({ hasText: "OK" }).click();
+      await page.locator("#jobEditOkBtn").click();
       await expect(page.getByText("WeekendJob")).toBeVisible();
     });
 
@@ -1241,11 +1241,11 @@ test.describe("PlanMyDay - Regression", () => {
       await page.getByRole("button", { name: "Add Job" }).click();
       await page.locator("#jobEditModal").waitFor({ state: "visible" });
       await page.locator("#jobEditModalBody .form-control").first().fill("MonthlyJob");
-      await page.getByText("Change").click();
+      await page.getByText("Change").nth(1).click();
       await page.locator("#schedMonthly").check();
       await expect(page.locator("#schedMonthlyOptions")).toBeVisible();
       await page.locator("#scheduleModal .btn-primary").click();
-      await page.locator("#jobEditModal .btn-success").filter({ hasText: "OK" }).click();
+      await page.locator("#jobEditOkBtn").click();
       await expect(page.getByText("MonthlyJob")).toBeVisible();
     });
 
@@ -1260,7 +1260,7 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#jobTimeHour").waitFor({ state: "visible" });
       await page.locator("#jobTimeHour").selectOption("14");
       await page.locator("#jobTimeMin").selectOption("30");
-      await page.locator("#jobEditModal .btn-success").filter({ hasText: "OK" }).click();
+      await page.locator("#jobEditOkBtn").click();
       await page.locator("#jobEditModal").waitFor({ state: "hidden", timeout: 15000 });
       const badge = page.locator(".badge.bg-secondary").filter({ hasText: "14:30" });
       await expect(badge).toBeVisible();
@@ -1324,7 +1324,7 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#jobsList .btn-primary").filter({ hasText: "Edit" }).first().click();
       await page.locator("#jobEditModal").waitFor({ state: "visible" });
       await page.getByRole("combobox").first().selectOption("1");
-      await page.locator("#jobEditModal .btn-success").filter({ hasText: "OK" }).click();
+      await page.locator("#jobEditOkBtn").click();
       await page.locator("#jobEditModal").waitFor({ state: "hidden", timeout: 15000 });
       const streams = await page.evaluate(() => JSON.parse(localStorage.getItem("planmydays_streams")));
       expect(streams[0].jobs.length).toBe(0);
@@ -1332,7 +1332,7 @@ test.describe("PlanMyDay - Regression", () => {
       expect(streams[1].jobs[0].title).toBe("Report");
     });
 
-    test("choosing image in job edit modal shows remove button", async ({ page }) => {
+    test("change button opens image picker and shows selected name", async ({ page }) => {
       test.setTimeout(30000);
       const svg = "data:image/svg+xml," + encodeURIComponent('<svg stroke="#000000" fill="#ffffff" stroke-width="2" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100"/></svg>');
       await page.addInitScript((svgData) => {
@@ -1349,11 +1349,11 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#streamEditorList .btn-info").filter({ hasText: "Jobs" }).first().click();
       await page.getByRole("button", { name: "Add Job" }).click();
       await page.locator("#jobEditModal").waitFor({ state: "visible" });
-      await page.getByRole("button", { name: "Choose" }).click();
+      await page.getByRole("button", { name: "Change" }).first().click();
       await page.locator("#imagePickerModal").waitFor({ state: "visible" });
       await page.locator(".image-picker-item").first().click();
       await page.locator("#imagePickerModal").waitFor({ state: "hidden" });
-      await expect(page.locator("#jobEditModalBody .btn-danger").filter({ hasText: "Remove" })).toBeVisible();
+      await expect(page.locator("#jobImageName")).toHaveText("TestImg");
     });
   });
 
@@ -1529,7 +1529,7 @@ test.describe("PlanMyDay - Regression", () => {
 
     test("weekdays schedule option", async ({ page }) => {
       await page.locator("#jobsList .btn-primary").filter({ hasText: "Edit" }).first().click();
-      await page.getByText("Change").click();
+      await page.getByText("Change").nth(1).click();
       await page.locator("#schedWeekdays").check();
       await page.locator("#scheduleModal .btn-primary").click();
       await expect(page.locator("#jobScheduleText")).toContainText("Weekdays");
@@ -1537,7 +1537,7 @@ test.describe("PlanMyDay - Regression", () => {
 
     test("specific days schedule", async ({ page }) => {
       await page.locator("#jobsList .btn-primary").filter({ hasText: "Edit" }).first().click();
-      await page.getByText("Change").click();
+      await page.getByText("Change").nth(1).click();
       await page.locator("#schedDays").check();
       await page.locator("#schedDay0").check();
       await page.locator("#schedDay6").check();
@@ -1548,7 +1548,7 @@ test.describe("PlanMyDay - Regression", () => {
 
     test("monthly schedule option", async ({ page }) => {
       await page.locator("#jobsList .btn-primary").filter({ hasText: "Edit" }).first().click();
-      await page.getByText("Change").click();
+      await page.getByText("Change").nth(1).click();
       await page.locator("#schedMonthly").check();
       await page.locator("#schedMonthlyDay").selectOption("15");
       await page.locator("#scheduleModal .btn-primary").click();
@@ -1557,7 +1557,7 @@ test.describe("PlanMyDay - Regression", () => {
 
     test("every n days option shows ndays options", async ({ page }) => {
       await page.locator("#jobsList .btn-primary").filter({ hasText: "Edit" }).first().click();
-      await page.getByText("Change").click();
+      await page.getByText("Change").nth(1).click();
       await page.locator("#schedNDays").check();
       await expect(page.locator("#schedNDaysOptions")).toBeVisible();
       await expect(page.locator("#schedNInterval")).toBeVisible();
@@ -1567,7 +1567,7 @@ test.describe("PlanMyDay - Regression", () => {
     test("every n days schedule shows correct text", async ({ page }) => {
       await page.locator("#jobsList .btn-primary").filter({ hasText: "Edit" }).first().click();
       await page.locator("#jobEditModal").waitFor({ state: "visible" });
-      await page.getByText("Change").click();
+      await page.getByText("Change").nth(1).click();
       await page.locator("#scheduleModal").waitFor({ state: "visible" });
       await page.locator("#schedNDays").check();
       await page.locator("#schedNInterval").selectOption("3");
@@ -1579,7 +1579,7 @@ test.describe("PlanMyDay - Regression", () => {
 
     test("every n days shows next due display", async ({ page }) => {
       await page.locator("#jobsList .btn-primary").filter({ hasText: "Edit" }).first().click();
-      await page.getByText("Change").click();
+      await page.getByText("Change").nth(1).click();
       await page.locator("#schedNDays").check();
       await expect(page.locator("#schedNextDue")).not.toBeEmpty();
     });
@@ -1625,7 +1625,7 @@ test.describe("PlanMyDay - Regression", () => {
         const input = document.querySelector('#imageEditModalBody .form-control:not(.form-control-sm)');
         if (input) { input.value = "ChangedName"; input.dispatchEvent(new Event('input', { bubbles: true })); }
       });
-      await page.locator("#imageEditModal .btn-secondary").filter({ hasText: "Cancel" }).click();
+      await page.locator("#btnImageEditCancel").click();
       await page.waitForTimeout(300);
       const restored = await page.evaluate(() => {
         const images = JSON.parse(localStorage.getItem("planmydays_images") || "[]");
@@ -1730,7 +1730,7 @@ test.describe("PlanMyDay - Regression", () => {
       await page.getByText("+ Add job").click();
       await page.locator("#jobEditModal").waitFor({ state: "visible" });
       await page.locator("#jobEditModalBody .form-control").first().fill("RemoveMe");
-      await page.locator("#jobEditModal .btn-success").filter({ hasText: "OK" }).click();
+      await page.locator("#jobEditOkBtn").click();
       await page.locator("#jobEditModal").waitFor({ state: "hidden" });
       await page.locator("#todayCardList").waitFor({ state: "visible" });
       await page.locator('.job-checkbox').first().check();
@@ -2452,7 +2452,7 @@ test.describe("PlanMyDay - Regression", () => {
       await expect(page.locator("#streamEditorList .editor-title").filter({ hasText: "MyStream" })).toBeVisible();
       await page.getByRole("button", { name: "Add Stream" }).click();
       await expect(page.locator("#streamEditModal")).toBeVisible();
-      await page.locator("#streamEditModal .btn-secondary").filter({ hasText: "Cancel" }).click();
+      await page.locator("#btnStreamEditCancel").click();
       await expect(page.locator("#streamEditModal")).not.toBeVisible({ timeout: 15000 });
       await expect(page.locator("#streamEditorList")).toBeVisible();
     });
@@ -2505,7 +2505,7 @@ test.describe("PlanMyDay - Regression", () => {
       await page.getByRole("button", { name: "Add Job" }).click();
       await page.locator("#jobEditModal").waitFor({ state: "visible" });
       await page.locator("#jobEditModalBody .form-control").first().fill("NewTask");
-      await page.locator("#jobEditModal .btn-success").filter({ hasText: "OK" }).click();
+      await page.locator("#jobEditOkBtn").click();
       await expect(page.getByText("NewTask")).toBeVisible();
     });
   });
@@ -2556,7 +2556,7 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#streamEditorList .btn-info").filter({ hasText: "Jobs" }).first().click();
       await page.locator("#jobsList .btn-primary").filter({ hasText: "Edit" }).first().click();
       await page.locator("#jobEditModal").waitFor({ state: "visible" });
-      await page.getByRole("button", { name: "Choose" }).click();
+      await page.getByRole("button", { name: "Change" }).first().click();
       await page.locator("#imagePickerModal").waitFor({ state: "visible" });
       await expect(page.locator("#imagePickerModal")).toBeVisible();
       await page.locator(".image-picker-item").first().waitFor({ state: "visible" });
@@ -2589,7 +2589,7 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#streamEditorList .btn-info").filter({ hasText: "Jobs" }).first().click();
       await page.getByRole("button", { name: "Add Job" }).click();
       await page.locator("#jobEditModal").waitFor({ state: "visible" });
-      await page.getByRole("button", { name: "Choose" }).click();
+      await page.getByRole("button", { name: "Change" }).first().click();
       await page.locator("#imagePickerModal").waitFor({ state: "visible" });
       await expect(page.locator("#imagePickerModal")).toBeVisible();
       await page.locator(".image-picker-item").first().waitFor({ state: "visible" });
@@ -2623,7 +2623,7 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#streamEditorList .btn-info").filter({ hasText: "Jobs" }).first().click();
       await page.locator("#jobsList .btn-primary").filter({ hasText: "Edit" }).first().click();
       await page.locator("#jobEditModal").waitFor({ state: "visible" });
-      await page.getByRole("button", { name: "Choose" }).click();
+      await page.getByRole("button", { name: "Change" }).first().click();
       await page.locator("#imagePickerModal").waitFor({ state: "visible" });
       await page.evaluate(() => new Promise(resolve => {
         const el = document.getElementById("imagePickerModal");
@@ -2653,7 +2653,7 @@ test.describe("PlanMyDay - Regression", () => {
       await page.reload();
       await page.getByText("+ Add job").click();
       await page.locator("#jobEditModal").waitFor({ state: "visible" });
-      await page.getByRole("button", { name: "Choose" }).click();
+      await page.getByRole("button", { name: "Change" }).first().click();
       await page.locator("#imagePickerModal").waitFor({ state: "visible" });
       await expect(page.locator("#imagePickerModal")).toBeVisible();
       await page.locator(".image-picker-item").first().waitFor({ state: "visible" });

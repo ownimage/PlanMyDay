@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -14,7 +14,7 @@
   <link id="bootstrap-theme-css" href="https://cdn.jsdelivr.net/npm/bootswatch@5.3.3/dist/darkly/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css">
   <link rel="stylesheet" href="css/styles.css">
-  <script>const BUILD_NUMBER = "202607301430";</script>
+  <script>const BUILD_NUMBER = "202607301715";</script>
 </head>
 
 <body>
@@ -22,7 +22,7 @@
   <!-- FIXED TOOLBAR -->
   <nav id="mainNav" class="navbar navbar-expand px-3 py-2 gap-1 flex-wrap">
 
-    <button class="btn p-1 me-1" onclick="openSettings()" title="Settings">
+    <button id="btnSettings" class="btn p-1 me-1" onclick="openSettings()" title="Settings">
       <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="currentColor" viewBox="0 0 16 16">
         <path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z"/>
         <path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52l-.094-.319zm-2.633.283c.246-.835 1.428-.835 1.674 0l.094.319a1.873 1.873 0 0 0 2.693 1.115l.291-.16c.764-.415 1.6.42 1.184 1.185l-.159.292a1.873 1.873 0 0 0 1.116 2.692l.318.094c.835.246.835 1.428 0 1.674l-.319.094a1.873 1.873 0 0 0-1.115 2.693l.16.291c.415.764-.42 1.6-1.185 1.184l-.291-.159a1.873 1.873 0 0 0-2.693 1.116l-.094.318c-.246.835-1.428.835-1.674 0l-.094-.319a1.873 1.873 0 0 0-2.692-1.115l-.292.16c-.764.415-1.6-.42-1.184-1.185l.159-.291A1.873 1.873 0 0 0 1.945 8.93l-.319-.094c-.835-.246-.835-1.428 0-1.674l.319-.094A1.873 1.873 0 0 0 3.06 4.377l-.16-.292c-.415-.764.42-1.6 1.185-1.184l.292.159a1.873 1.873 0 0 0 2.692-1.115l.094-.319z"/>
@@ -30,14 +30,14 @@
     </button>
 
     <div class="dropdown">
-      <button class="btn btn-sm dropdown-toggle" data-bs-toggle="dropdown">Edit</button>
+      <button id="btnEditMenu" class="btn btn-sm dropdown-toggle" data-bs-toggle="dropdown">Edit</button>
       <ul class="dropdown-menu">
         <li><a class="dropdown-item" onclick="openStreamsEditor()">Streams</a></li>
         <li><a class="dropdown-item" onclick="openImagesEditor()">Images</a></li>
       </ul>
     </div>
     <div class="dropdown">
-      <button class="btn btn-sm dropdown-toggle" data-bs-toggle="dropdown">Import/Export</button>
+      <button id="btnImportExport" class="btn btn-sm dropdown-toggle" data-bs-toggle="dropdown">Import/Export</button>
       <ul class="dropdown-menu">
         <li><a class="dropdown-item" onclick="exportData()">Export</a></li>
         <li><a class="dropdown-item" onclick="importData()">Import</a></li>
@@ -90,18 +90,18 @@
         <div class="modal-content">
           <div class="modal-header">
             <h3 class="modal-title">Choose Image</h3>
-            <button type="button" class="btn-close" onclick="closeImagePicker()"></button>
+            <button id="btnImagePickerClose" type="button" class="btn-close" onclick="closeImagePicker()"></button>
           </div>
           <div class="modal-body">
             <div class="mb-3 d-flex gap-2">
               <input class="form-control image-picker-search" type="search" placeholder="Search images by name..." oninput="filterImagePicker(this.value)">
-              <button class="btn btn-outline-secondary" onclick="clearImagePickerFilter()">Clear</button>
+              <button id="btnImagePickerClear" class="btn btn-outline-secondary" onclick="clearImagePickerFilter()">Clear</button>
             </div>
             <div class="image-picker-list d-flex flex-wrap" style="gap:8px;min-height:120px"></div>
           </div>
           <div class="modal-footer">
-            <button class="btn btn-secondary" onclick="selectImagePickerItem(null)">No Image</button>
-            <button class="btn btn-outline-secondary" onclick="closeImagePicker()">Cancel</button>
+            <button id="btnImagePickerNoImage" class="btn btn-secondary" onclick="selectImagePickerItem(null)">No Image</button>
+            <button id="btnImagePickerCancel" class="btn btn-outline-secondary" onclick="closeImagePicker()">Cancel</button>
           </div>
         </div>
       </div>
@@ -111,7 +111,7 @@
     <div id="settingsPage" class="d-none">
       <div class="d-flex align-items-center mb-3">
         <h2 class="mb-0">Settings</h2>
-        <button class="btn btn-success editor-btn ms-auto" onclick="closeSettings()">Done</button>
+        <button id="btnSettingsDone" class="btn btn-success editor-btn ms-auto" onclick="closeSettings()">Done</button>
       </div>
 
       <ul class="nav nav-tabs nav-tabs-info" id="settingsTabs" role="tablist">
@@ -288,26 +288,26 @@
           <div id="regenerateTilesRow" class="row mb-4 align-items-center col-md-8 d-none">
             <div class="col-4 text-end"></div>
             <div class="col-8">
-              <button class="btn btn-primary editor-btn btn-wide w-100" onclick="regenerateTiles()">Regenerate Today's Tiles</button>
+              <button id="btnRegenerateTiles" class="btn btn-primary editor-btn btn-wide w-100" onclick="regenerateTiles()">Regenerate Today's Tiles</button>
             </div>
           </div>
 
           <div id="clearAllDataRow" class="row mb-4 align-items-center col-md-8 d-none">
             <div class="col-4 text-end"></div>
             <div class="col-8">
-              <button class="btn btn-danger editor-btn btn-wide w-100" onclick="confirmClearAllData()">Clear All Data</button>
+              <button id="btnClearAllData" class="btn btn-danger editor-btn btn-wide w-100" onclick="confirmClearAllData()">Clear All Data</button>
             </div>
           </div>
           <div id="refreshAppRow" class="row mb-2 align-items-center col-md-8 d-none">
             <div class="col-4 text-end"></div>
             <div class="col-8">
-              <button class="btn btn-warning editor-btn btn-wide w-100" onclick="location.reload()">Refresh App</button>
+              <button id="btnRefreshApp" class="btn btn-warning editor-btn btn-wide w-100" onclick="location.reload()">Refresh App</button>
             </div>
           </div>
           <div id="uploadStandardImagesRow" class="row mb-2 align-items-center col-md-8 d-none">
             <div class="col-4 text-end"></div>
             <div class="col-8">
-              <button class="btn btn-primary editor-btn btn-wide w-100" onclick="uploadStandardImages()">Upload Standard Images</button>
+              <button id="btnUploadImages" class="btn btn-primary editor-btn btn-wide w-100" onclick="uploadStandardImages()">Upload Standard Images</button>
             </div>
           </div>
           <div id="devTodayRow" class="row mb-2 align-items-center col-md-8 d-none">
@@ -359,7 +359,7 @@
           <p class="mb-3 fs-5" id="deleteConfirmMessage">Delete this item?</p>
         </div>
         <div class="modal-footer justify-content-center border-0 pt-2">
-          <button class="btn btn-secondary editor-btn flex-fill" data-bs-dismiss="modal">Cancel</button>
+          <button id="btnDeleteCancel" class="btn btn-secondary editor-btn flex-fill" data-bs-dismiss="modal">Cancel</button>
           <button class="btn btn-danger editor-btn flex-fill" id="deleteConfirmBtn">Delete</button>
         </div>
       </div>
@@ -372,7 +372,7 @@
       <div class="modal-content">
         <div class="modal-header">
           <h3 class="modal-title">Schedule</h3>
-          <button type="button" class="btn-close" onclick="closeScheduleModal()"></button>
+          <button id="btnScheduleClose" type="button" class="btn-close" onclick="closeScheduleModal()"></button>
         </div>
         <div class="modal-body">
           <div class="mb-3">
@@ -425,8 +425,8 @@
           </div>
         </div>
         <div class="modal-footer">
-          <button class="btn btn-secondary editor-btn flex-fill" onclick="closeScheduleModal()">Cancel</button>
-          <button class="btn btn-primary editor-btn flex-fill" onclick="saveScheduleModal()">OK</button>
+          <button id="btnScheduleCancel" class="btn btn-secondary editor-btn flex-fill" onclick="closeScheduleModal()">Cancel</button>
+          <button id="btnScheduleOk" class="btn btn-primary editor-btn flex-fill" onclick="saveScheduleModal()">OK</button>
         </div>
       </div>
     </div>
@@ -444,12 +444,12 @@
       <div class="modal-content">
         <div class="modal-header">
           <h3 class="modal-title" id="streamEditModalTitle">Edit Stream</h3>
-          <button type="button" class="btn-close" onclick="cancelEdit()"></button>
+          <button id="btnStreamEditClose" type="button" class="btn-close" onclick="cancelEdit()"></button>
         </div>
         <div class="modal-body" id="streamEditModalBody"></div>
         <div class="modal-footer">
-          <button class="btn btn-secondary editor-btn flex-fill" onclick="cancelEdit()">Cancel</button>
-          <button class="btn btn-success editor-btn flex-fill" onclick="doneEdit()">OK</button>
+          <button id="btnStreamEditCancel" class="btn btn-secondary editor-btn flex-fill" onclick="cancelEdit()">Cancel</button>
+          <button id="btnStreamEditOk" class="btn btn-success editor-btn flex-fill" onclick="doneEdit()">OK</button>
         </div>
       </div>
     </div>
@@ -461,11 +461,11 @@
       <div class="modal-content">
         <div class="modal-header">
           <h3 class="modal-title" id="jobEditModalTitle">Edit Job</h3>
-          <button type="button" class="btn-close" onclick="cancelJobEdit()"></button>
+          <button id="btnJobEditClose" type="button" class="btn-close" onclick="cancelJobEdit()"></button>
         </div>
         <div class="modal-body" id="jobEditModalBody"></div>
         <div class="modal-footer" id="jobEditModalFooter">
-          <button class="btn btn-secondary editor-btn flex-fill" onclick="cancelJobEdit()">Cancel</button>
+          <button id="btnJobEditCancel" class="btn btn-secondary editor-btn flex-fill" onclick="cancelJobEdit()">Cancel</button>
           <button class="btn btn-success editor-btn flex-fill" onclick="doneJobEdit()">OK</button>
         </div>
       </div>
@@ -478,7 +478,7 @@
       <div class="modal-content">
         <div class="modal-header">
           <h3 class="modal-title" id="imageEditModalTitle">Edit Image</h3>
-          <button type="button" class="btn-close" onclick="cancelImageEdit()"></button>
+          <button id="btnImageEditClose" type="button" class="btn-close" onclick="cancelImageEdit()"></button>
         </div>
         <div class="modal-body" id="imageEditModalBody"></div>
       </div>

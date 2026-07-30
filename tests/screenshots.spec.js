@@ -301,7 +301,7 @@ test.describe("PlanMyDay - Screenshots", () => {
     await page.waitForSelector("#jobsList .card");
     await page.locator("#jobsList .card").first().getByRole("button", { name: "Edit" }).click();
     await page.locator("#jobEditModal").waitFor({ state: "visible" });
-    await page.getByText("Change").click();
+    await page.locator("#btnScheduleChange").click();
     await page.locator("#scheduleModal").waitFor({ state: "visible" });
     await page.waitForTimeout(300);
   }

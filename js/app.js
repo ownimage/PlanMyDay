@@ -184,6 +184,7 @@ function renderMain() {
   headingRow.appendChild(dateHeading);
   const addBtn = document.createElement("button");
   addBtn.className = "btn btn-primary editor-btn ms-auto";
+  addBtn.id = "btnAddCard";
   addBtn.innerHTML = "&#43; Add job";
   addBtn.onclick = function() { addTodayCardWithModal(); };
   headingRow.appendChild(addBtn);
@@ -467,8 +468,8 @@ function showAddCardForm() {
       <textarea class="form-control" id="newCardDesc" placeholder="Description (optional)" rows="2"></textarea>
     </div>
     <div class="d-flex gap-2">
-      <button class="btn btn-primary editor-btn" onclick="addTodayCard()">Add</button>
-      <button class="btn btn-secondary editor-btn" onclick="document.getElementById('addCardForm').classList.add('d-none')">Cancel</button>
+      <button class="btn btn-primary editor-btn" id="btnAddJobInline" onclick="addTodayCard()">Add</button>
+      <button class="btn btn-secondary editor-btn" id="btnCancelInline" onclick="document.getElementById('addCardForm').classList.add('d-none')">Cancel</button>
     </div>
   `;
 }
@@ -571,8 +572,8 @@ function getStreamEditFormHTML(data) {
           ${getImageDataUrl(data.image) ? `<img src="${getImageDataUrl(data.image)}" class="date-img" style="max-width:50px;max-height:50px">` : `<span class="text-secondary small">none</span>`}
         </div>
         <span class="small text-secondary" id="streamImageName">${escapeHtml(data.image || "")}</span>
-        <button class="btn btn-primary btn-sm" onclick="openImagePicker(function(name){ editField('image', name); updateStreamImagePreview(name); })">Choose</button>
-        ${data.image ? `<button class="btn btn-danger btn-sm" onclick="editField('image','');updateStreamImagePreview(null)">Remove</button>` : ""}
+        <button class="btn btn-primary btn-sm" id="btnStreamImageChoose" onclick="openImagePicker(function(name){ editField('image', name); updateStreamImagePreview(name); })">Choose</button>
+        ${data.image ? `<button class="btn btn-danger btn-sm" id="btnStreamImageRemove" onclick="editField('image','');updateStreamImagePreview(null)">Remove</button>` : ""}
       </div>
     </div>
   `;
@@ -694,8 +695,8 @@ function renderStreamsEditor() {
 
   topTile.innerHTML = `
     <div class="d-flex gap-2">
-      <button class="btn btn-primary editor-btn btn-wide" onclick="addNewStream()">Add Stream</button>
-      <button class="btn btn-success editor-btn btn-wide ms-auto" onclick="closeStreamsEditor()">Done</button>
+      <button class="btn btn-primary editor-btn btn-wide" id="btnAddStream" onclick="addNewStream()">Add Stream</button>
+      <button class="btn btn-success editor-btn btn-wide ms-auto" id="btnStreamsDone" onclick="closeStreamsEditor()">Done</button>
     </div>
   `;
   updateNavState();
@@ -976,8 +977,8 @@ function renderJobsEditor() {
 
   topTile.innerHTML = `
     <div class="d-flex gap-2">
-      <button class="btn btn-primary editor-btn btn-wide" onclick="addNewJob()">Add Job</button>
-      <button class="btn btn-success editor-btn btn-wide ms-auto" onclick="closeJobsEditor()">Done</button>
+      <button class="btn btn-primary editor-btn btn-wide" id="btnAddJob" onclick="addNewJob()">Add Job</button>
+      <button class="btn btn-success editor-btn btn-wide ms-auto" id="btnJobsDone" onclick="closeJobsEditor()">Done</button>
     </div>
   `;
   updateNavState();
@@ -1234,8 +1235,7 @@ function getJobEditFormHTML(data, readOnly) {
           <div>
             <div id="jobImageName">${escapeHtml(data.image || "")}</div>
             <div class="d-flex gap-1 mt-1">
-              <button class="btn btn-primary btn-sm" ${disabled} onclick="openImagePicker(function(name){ jobField('image', name); updateJobImagePreview(name); })">Choose</button>
-              <button class="btn btn-danger btn-sm ${data.image ? "" : "d-none"}" id="jobImageRemoveBtn" ${disabled} onclick="jobField('image','');updateJobImagePreview(null)">Remove</button>
+              <button class="btn btn-primary btn-sm" id="btnJobImageChange" ${disabled} onclick="openImagePicker(function(name){ jobField('image', name); updateJobImagePreview(name); })">Change</button>
             </div>
           </div>
         </div>
@@ -1275,7 +1275,7 @@ function getJobEditFormHTML(data, readOnly) {
       <label class="form-label">Schedule</label>
       <div class="d-flex align-items-center gap-2">
         <span id="jobScheduleText">${escapeHtml(getScheduleText(data.schedule))}</span>
-        <button class="btn btn-primary btn-sm" ${disabled} onclick="openScheduleModal()">Change</button>
+        <button class="btn btn-primary btn-sm" id="btnScheduleChange" ${disabled} onclick="openScheduleModal()">Change</button>
       </div>
     </div>
     <div class="row mb-2">
@@ -1322,9 +1322,9 @@ function showJobEditModal(readOnly) {
   document.getElementById("jobEditModalBody").innerHTML = getJobEditFormHTML(data, readOnly);
   const footer = document.getElementById("jobEditModalFooter");
   if (readOnly) {
-    footer.innerHTML = '<button class="btn btn-primary editor-btn flex-fill" onclick="editJobFromView()">Edit</button><button class="btn btn-success editor-btn flex-fill" onclick="cancelJobEdit()">OK</button>';
+    footer.innerHTML = '<button class="btn btn-primary editor-btn flex-fill" id="btnViewJobEdit" onclick="editJobFromView()">Edit</button><button class="btn btn-success editor-btn flex-fill" id="btnViewJobOk" onclick="cancelJobEdit()">OK</button>';
   } else {
-    footer.innerHTML = '<button class="btn btn-secondary editor-btn flex-fill" onclick="cancelJobEdit()">Cancel</button><button class="btn btn-success editor-btn flex-fill" id="jobEditOkBtn" onclick="doneJobEdit()">OK</button>';
+    footer.innerHTML = '<button class="btn btn-secondary editor-btn flex-fill" id="jobEditCancelBtn" onclick="cancelJobEdit()">Cancel</button><button class="btn btn-success editor-btn flex-fill" id="jobEditOkBtn" onclick="doneJobEdit()">OK</button>';
     updateJobEditOkBtn();
   }
   const fpInput = document.getElementById("jobSleepUntil");
@@ -1349,7 +1349,7 @@ function editJobFromView() {
   if (!jobsBuffer) return;
   document.getElementById("jobEditModalTitle").textContent = "Edit Job";
   document.getElementById("jobEditModalBody").innerHTML = getJobEditFormHTML(jobsBuffer, false);
-  document.getElementById("jobEditModalFooter").innerHTML = '<button class="btn btn-secondary editor-btn flex-fill" onclick="cancelJobEdit()">Cancel</button><button class="btn btn-success editor-btn flex-fill" id="jobEditOkBtn" onclick="doneJobEdit()">OK</button>';
+  document.getElementById("jobEditModalFooter").innerHTML = '<button class="btn btn-secondary editor-btn flex-fill" id="jobEditCancelBtn" onclick="cancelJobEdit()">Cancel</button><button class="btn btn-success editor-btn flex-fill" id="jobEditOkBtn" onclick="doneJobEdit()">OK</button>';
   updateJobEditOkBtn();
   const fpInput = document.getElementById("jobSleepUntil");
   if (fpInput) {
@@ -1724,3 +1724,10 @@ document.addEventListener("DOMContentLoaded", () => {
     pullDist = 0;
   }, { passive: true });
 })();
+
+
+
+
+
+
+

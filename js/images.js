@@ -85,7 +85,7 @@ function renderImagesEditor() {
             ? `<img src="${img.data}" class="date-img">`
             : `<div class="date-img d-flex align-items-center justify-content-center text-secondary border rounded">No image</div>`
           }
-          <button class="btn btn-primary btn-sm text-nowrap" onclick="openImageUpload(${editingImageIndex})">Upload</button>
+          <button id="btnImageUpload" class="btn btn-primary btn-sm text-nowrap" onclick="openImageUpload(${editingImageIndex})">Upload</button>
         </div>
         <div class="d-flex flex-column gap-2">
           <div class="d-flex gap-2 align-items-center">
@@ -110,8 +110,8 @@ function renderImagesEditor() {
           </div>
         </div>
         <div class="d-flex gap-2 mt-3">
-          <button class="btn btn-success editor-btn flex-fill" onclick="doneImageEdit(${editingImageIndex})">OK</button>
-          <button class="btn btn-secondary editor-btn flex-fill" onclick="cancelImageEdit()">Cancel</button>
+          <button id="btnImageEditOk" class="btn btn-success editor-btn flex-fill" onclick="doneImageEdit(${editingImageIndex})">OK</button>
+          <button id="btnImageEditCancel" class="btn btn-secondary editor-btn flex-fill" onclick="cancelImageEdit()">Cancel</button>
         </div>
       </div>
     `;
@@ -174,8 +174,8 @@ function renderImagesEditor() {
 
   topTile.innerHTML = `
     <div class="d-flex gap-2">
-      <button class="btn btn-primary editor-btn btn-wide" onclick="addNewImage()">Add Image</button>
-      <button class="btn btn-success editor-btn btn-wide ms-auto" onclick="closeImagesEditor()">Done</button>
+      <button id="btnAddImage" class="btn btn-primary editor-btn btn-wide" onclick="addNewImage()">Add Image</button>
+      <button id="btnImagesDone" class="btn btn-success editor-btn btn-wide ms-auto" onclick="closeImagesEditor()">Done</button>
     </div>
   `;
 
@@ -183,7 +183,7 @@ function renderImagesEditor() {
   filterEl.innerHTML = `
     <div class="d-flex gap-2 align-items-center">
       <input class="form-control" type="search" placeholder="Search image names..." value="${escapeHtml(imageNameSearch)}" oninput="setImageNameSearch(this.value)">
-      <button class="btn btn-outline-secondary btn-sm" onclick="imageNameSearch='';imagesPage=0;renderImagesEditor()">Clear</button>
+      <button id="btnImageFilterClear" class="btn btn-outline-secondary btn-sm" onclick="imageNameSearch='';imagesPage=0;renderImagesEditor()">Clear</button>
     </div>
   `;
   updateNavState();
