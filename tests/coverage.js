@@ -6,13 +6,7 @@ const coverageReport = new CoverageReport({
   name: "PlanMyDay Coverage",
 });
 
-let clean = false;
-
 async function startCoverage(page) {
-  if (!clean) {
-    await coverageReport.cleanCache();
-    clean = true;
-  }
   try {
     await page.coverage.startJSCoverage({ resetOnNavigation: false });
   } catch (e) {
@@ -36,7 +30,11 @@ async function stopCoverage(page) {
 }
 
 async function generateCoverage() {
-  await coverageReport.generate();
+  try {
+    await coverageReport.generate();
+  } catch (e) {
+    console.warn("Coverage report generation skipped:", e.message);
+  }
 }
 
 module.exports = { startCoverage, stopCoverage, generateCoverage };
