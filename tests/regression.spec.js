@@ -1104,6 +1104,95 @@ test.describe("PlanMyDay - Regression", () => {
     });
   });
 
+  // ── Stream Selector in Job Edit ───────────────────────────────
+
+  test.describe("Stream Selector in Job Edit", () => {
+
+    test.beforeEach(async ({ page }) => {
+      await startCoverage(page);
+      await page.goto("/");
+      await page.evaluate(() => {
+        localStorage.setItem("planmydays_streams", JSON.stringify([
+          {
+            id: "stream_1", title: "Work", tab: "progress", image: "", sequence: 1,
+            jobs: [{ id: "job_1", title: "Report", active: true, frequency: "daily", sequence: 1, suffix: false, dayType: "dayOfYear", mod: "" }]
+          },
+          {
+            id: "stream_2", title: "Chores", tab: "maintenance", image: "", sequence: 2, jobs: []
+          }
+        ]));
+      });
+      await page.reload();
+      await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
+      await page.locator("a.dropdown-item").filter({ hasText: "Streams" }).click();
+      await page.locator("#streamEditorList .btn-info").filter({ hasText: "Jobs" }).first().click();
+      await page.locator("#jobsEditor").waitFor({ state: "visible" });
+    });
+
+    test("stream selector appears in add job modal", async ({ page }) => {
+      await page.getByRole("button", { name: "Add Job" }).click();
+      await page.locator("#jobEditModal").waitFor({ state: "visible" });
+      await expect(page.getByRole("combobox").first()).toBeVisible();
+    });
+
+    test("stream selector appears in edit job modal", async ({ page }) => {
+      await page.locator("#jobsList .btn-primary").filter({ hasText: "Edit" }).first().click();
+      await page.locator("#jobEditModal").waitFor({ state: "visible" });
+      await expect(page.getByRole("combobox").first()).toBeVisible();
+    });
+
+    test("stream selector defaults to current stream", async ({ page }) => {
+      await page.locator("#jobsList .btn-primary").filter({ hasText: "Edit" }).first().click();
+      await page.locator("#jobEditModal").waitFor({ state: "visible" });
+      const selected = await page.getByRole("combobox").first().inputValue();
+      expect(selected).toBe("0");
+    });
+
+    test("stream selector shows all stream names", async ({ page }) => {
+      await page.locator("#jobsList .btn-primary").filter({ hasText: "Edit" }).first().click();
+      await page.locator("#jobEditModal").waitFor({ state: "visible" });
+      const options = page.getByRole("combobox").first().locator("option");
+      await expect(options).toHaveCount(2);
+      await expect(options.nth(0)).toHaveText("Work");
+      await expect(options.nth(1)).toHaveText("Chores");
+    });
+
+    test("changing stream and saving moves job to new stream", async ({ page }) => {
+      await page.locator("#jobsList .btn-primary").filter({ hasText: "Edit" }).first().click();
+      await page.locator("#jobEditModal").waitFor({ state: "visible" });
+      await page.getByRole("combobox").first().selectOption("1");
+      await page.locator("#jobEditModal .btn-success").filter({ hasText: "OK" }).click();
+      await page.locator("#jobEditModal").waitFor({ state: "hidden" });
+      const streams = await page.evaluate(() => JSON.parse(localStorage.getItem("planmydays_streams")));
+      expect(streams[0].jobs.length).toBe(0);
+      expect(streams[1].jobs.length).toBe(1);
+      expect(streams[1].jobs[0].title).toBe("Report");
+    });
+
+    test("choosing image in job edit modal shows remove button", async ({ page }) => {
+      const svg = "data:image/svg+xml," + encodeURIComponent('<svg stroke="#000000" fill="#ffffff" stroke-width="2" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100"/></svg>');
+      await page.addInitScript((svgData) => {
+        localStorage.setItem("planmydays_images", JSON.stringify([{ name: "TestImg", data: svgData }]));
+        localStorage.setItem("planmydays_streams", JSON.stringify([
+          { id: "stream_1", title: "Work", tab: "progress", image: "", sequence: 1,
+            jobs: [{ id: "job_1", title: "Report", active: true, frequency: "daily", sequence: 1, suffix: false, dayType: "dayOfYear", mod: "" }]
+          }
+        ]));
+      }, svg);
+      await page.goto("/");
+      await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
+      await page.locator("a.dropdown-item").filter({ hasText: "Streams" }).click();
+      await page.locator("#streamEditorList .btn-info").filter({ hasText: "Jobs" }).first().click();
+      await page.getByRole("button", { name: "Add Job" }).click();
+      await page.locator("#jobEditModal").waitFor({ state: "visible" });
+      await page.getByRole("button", { name: "Choose" }).click();
+      await page.locator("#imagePickerModal").waitFor({ state: "visible" });
+      await page.locator(".image-picker-item").first().click();
+      await page.locator("#imagePickerModal").waitFor({ state: "hidden" });
+      await expect(page.locator("#jobEditModalBody .btn-danger").filter({ hasText: "Remove" })).toBeVisible();
+    });
+  });
+
   // ── Image Editing UI ────────────────────────────────────────
 
   test.describe("Image Editing UI", () => {

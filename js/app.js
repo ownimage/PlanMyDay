@@ -721,15 +721,34 @@ function updateStreamImagePreview(name) {
 function updateJobImagePreview(name) {
   const preview = document.getElementById("jobImagePreview");
   const nameEl = document.getElementById("jobImageName");
+  const removeBtn = document.getElementById("jobImageRemoveBtn");
   if (!preview) return;
   const url = getImageDataUrl(name);
   if (url) {
-    preview.innerHTML = `<img src="${url}" class="date-img" style="max-width:50px;max-height:50px">`;
+    preview.innerHTML = `<img src="${url}" class="date-img" style="max-width:45px;max-height:45px">`;
     if (nameEl) nameEl.textContent = name;
+    if (removeBtn) removeBtn.classList.remove("d-none");
   } else {
     preview.innerHTML = `<span class="text-secondary small">none</span>`;
     if (nameEl) nameEl.textContent = "";
+    if (removeBtn) removeBtn.classList.add("d-none");
   }
+}
+function updateJobStreamPreview() {
+  const preview = document.getElementById("jobStreamPreview");
+  if (!preview) return;
+  const streams = loadStreams();
+  const stream = streams[jobsTargetStreamIndex >= 0 ? jobsTargetStreamIndex : jobsStreamIndex];
+  const url = getImageDataUrl(stream?.image);
+  if (url) {
+    preview.innerHTML = `<img src="${url}" class="date-img" style="max-width:45px;max-height:45px">`;
+  } else {
+    preview.innerHTML = `<span class="text-secondary small" style="font-size:0.6rem">none</span>`;
+  }
+}
+function jobChangeStream(newIdx) {
+  jobsTargetStreamIndex = newIdx;
+  updateJobStreamPreview();
 }
 
 function editStream(index) {
@@ -797,9 +816,10 @@ let jobsStreamIndex = -1;
 let jobsEditingIdx = -1;
 let jobsBuffer = null;
 let isNewJob = false;
+let jobsTargetStreamIndex = -1;
 
 function openJobsEditor(streamIdx) {
-  jobsEditingIdx = -1; jobsBuffer = null; isNewJob = false;
+  jobsEditingIdx = -1; jobsBuffer = null; isNewJob = false; jobsTargetStreamIndex = -1;
   jobsStreamIndex = streamIdx;
   document.getElementById("streamsEditorHeader").classList.add("d-none");
   document.getElementById("streamEditorList").classList.add("d-none");
@@ -818,7 +838,7 @@ function closeJobsEditor() {
   document.getElementById("addStreamTile").classList.remove("d-none");
   document.getElementById("addStreamTileTop").classList.remove("d-none");
   document.getElementById("streamEditorFilters").classList.remove("d-none");
-  jobsStreamIndex = -1; jobsEditingIdx = -1; jobsBuffer = null; isNewJob = false;
+  jobsStreamIndex = -1; jobsEditingIdx = -1; jobsBuffer = null; isNewJob = false; jobsTargetStreamIndex = -1;
   renderStreamsEditor();
 }
 
@@ -1075,6 +1095,9 @@ function shouldShowJobToday(job) {
 }
 
 function getJobEditFormHTML(data) {
+  const streams = loadStreams();
+  const currentStream = streams[jobsTargetStreamIndex >= 0 ? jobsTargetStreamIndex : jobsStreamIndex] || {};
+  const streamImgUrl = getImageDataUrl(currentStream.image);
   return `
     <div class="row mb-1">
       <div class="col">
@@ -1090,15 +1113,36 @@ function getJobEditFormHTML(data) {
     <div class="mb-2">
       <input class="form-control" value="${escapeHtml(data.title || "")}" oninput="jobField('title', this.value)">
     </div>
-    <div class="mb-2">
-      <label class="form-label">Image</label>
-      <div class="d-flex align-items-center gap-2">
-        <div style="width:50px;height:50px;border:1px solid var(--bs-border-color);border-radius:6px;overflow:hidden;display:flex;align-items:center;justify-content:center;flex-shrink:0" id="jobImagePreview">
-          ${getImageDataUrl(data.image) ? `<img src="${getImageDataUrl(data.image)}" class="date-img" style="max-width:50px;max-height:50px">` : `<span class="text-secondary small">none</span>`}
+    <div class="row mb-2">
+      <div class="col-md-6 mb-2 mb-md-0">
+        <label class="form-label">Stream</label>
+        <div class="d-flex align-items-center gap-2">
+          <div style="width:45px;height:45px;border:1px solid var(--bs-border-color);border-radius:6px;overflow:hidden;display:flex;align-items:center;justify-content:center;flex-shrink:0" id="jobStreamPreview">
+            ${streamImgUrl ? `<img src="${streamImgUrl}" class="date-img" style="max-width:45px;max-height:45px">` : `<span class="text-secondary small" style="font-size:0.6rem">none</span>`}
+          </div>
+          <select class="form-select" onchange="jobChangeStream(parseInt(this.value))">
+            ${streams.map((s, i) => `
+              <option value="${i}" ${i === (jobsTargetStreamIndex >= 0 ? jobsTargetStreamIndex : jobsStreamIndex) ? "selected" : ""}>
+                ${escapeHtml(s.title)}
+              </option>
+            `).join("")}
+          </select>
         </div>
-        <span class="small text-secondary" id="jobImageName">${escapeHtml(data.image || "")}</span>
-        <button class="btn btn-primary btn-sm" onclick="openImagePicker(function(name){ jobField('image', name); updateJobImagePreview(name); })">Choose</button>
-        ${data.image ? `<button class="btn btn-danger btn-sm" onclick="jobField('image','');updateJobImagePreview(null)">Remove</button>` : ""}
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Image</label>
+        <div class="d-flex align-items-center gap-2">
+          <div style="width:45px;height:45px;border:1px solid var(--bs-border-color);border-radius:6px;overflow:hidden;display:flex;align-items:center;justify-content:center;flex-shrink:0" id="jobImagePreview">
+            ${getImageDataUrl(data.image) ? `<img src="${getImageDataUrl(data.image)}" class="date-img" style="max-width:45px;max-height:45px">` : `<span class="text-secondary small">none</span>`}
+          </div>
+          <div>
+            <div id="jobImageName">${escapeHtml(data.image || "")}</div>
+            <div class="d-flex gap-1 mt-1">
+              <button class="btn btn-primary btn-sm" onclick="openImagePicker(function(name){ jobField('image', name); updateJobImagePreview(name); })">Choose</button>
+              <button class="btn btn-danger btn-sm ${data.image ? "" : "d-none"}" id="jobImageRemoveBtn" onclick="jobField('image','');updateJobImagePreview(null)">Remove</button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
     <div class="mb-2">
@@ -1175,6 +1219,7 @@ function showJobEditModal() {
   const data = jobsBuffer;
   const title = isNewJob ? "Add Job" : "Edit Job";
   document.getElementById("jobEditModalTitle").textContent = title;
+  jobsTargetStreamIndex = jobsStreamIndex;
   document.getElementById("jobEditModalBody").innerHTML = getJobEditFormHTML(data);
   const fpInput = document.getElementById("jobSleepUntil");
   if (fpInput) {
@@ -1215,7 +1260,7 @@ function cancelJobEdit() {
     streams[jobsStreamIndex].jobs = jobs;
     saveStreams(streams);
   }
-  jobsEditingIdx = -1; jobsBuffer = null; isNewJob = false;
+  jobsEditingIdx = -1; jobsBuffer = null; isNewJob = false; jobsTargetStreamIndex = -1;
   if (fromMain) { renderMain(); } else { renderJobsEditor(); }
 }
 
@@ -1224,15 +1269,26 @@ function doneJobEdit() {
   let savedId = null;
   if (jobsEditingIdx >= 0 && jobsBuffer) {
     const streams = loadStreams();
-    const jobs = streams[jobsStreamIndex].jobs || [];
     savedId = jobsBuffer.id;
-    jobs[jobsEditingIdx] = jobsBuffer;
-    streams[jobsStreamIndex].jobs = jobs;
+    if (jobsTargetStreamIndex >= 0 && jobsTargetStreamIndex !== jobsStreamIndex) {
+      const oldJobs = streams[jobsStreamIndex].jobs || [];
+      oldJobs.splice(jobsEditingIdx, 1);
+      oldJobs.forEach((j, i) => j.sequence = i + 1);
+      streams[jobsStreamIndex].jobs = oldJobs;
+      const newJobs = streams[jobsTargetStreamIndex].jobs || [];
+      jobsBuffer.sequence = newJobs.length + 1;
+      newJobs.push(jobsBuffer);
+      streams[jobsTargetStreamIndex].jobs = newJobs;
+    } else {
+      const jobs = streams[jobsStreamIndex].jobs || [];
+      jobs[jobsEditingIdx] = jobsBuffer;
+      streams[jobsStreamIndex].jobs = jobs;
+    }
     saveStreams(streams);
   }
   const modal = bootstrap.Modal.getInstance(document.getElementById("jobEditModal"));
   if (modal) modal.hide();
-  jobsEditingIdx = -1; jobsBuffer = null; isNewJob = false;
+  jobsEditingIdx = -1; jobsBuffer = null; isNewJob = false; jobsTargetStreamIndex = -1;
   if (fromMain) {
     const streams = loadStreams();
     const order = loadTodayOrder() || [];
