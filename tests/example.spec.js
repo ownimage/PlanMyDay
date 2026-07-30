@@ -14,6 +14,7 @@ test.describe("Plan My Day", () => {
 
     await page.getByTitle("Settings").click();
     await expect(page.locator("#settingsPage")).toBeVisible();
+    await page.locator("#appearance-tab").click();
     await expect(page.locator("#themeSelector")).toBeVisible();
   });
 

@@ -277,6 +277,66 @@ test.describe("PlanMyDay - Screenshots", () => {
     await page.screenshot({ path: path.join(SCREENSHOT_DIR, "edit-job.png"), fullPage: false });
   });
 
+  async function openScheduleModalFromJobEdit(page) {
+    await page.evaluate((data) => {
+      localStorage.setItem("planmydays_streams", JSON.stringify(data));
+    }, TEST_STREAMS);
+    await page.reload();
+    await setTheme(page);
+    await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
+    await page.locator("a.dropdown-item").filter({ hasText: "Streams" }).click();
+    await page.waitForSelector("#streamEditorList .card");
+    await page.locator("#streamEditorList .card").first().getByRole("button", { name: "Jobs" }).click();
+    await page.waitForSelector("#jobsList .card");
+    await page.locator("#jobsList .card").first().getByRole("button", { name: "Edit" }).click();
+    await page.locator("#jobEditModal").waitFor({ state: "visible" });
+    await page.getByText("Change").click();
+    await page.locator("#scheduleModal").waitFor({ state: "visible" });
+    await page.waitForTimeout(300);
+  }
+
+  test("schedule modal - every day", async ({ page }) => {
+    await openScheduleModalFromJobEdit(page);
+    await page.locator("#schedDaily").check();
+    await page.waitForTimeout(300);
+    await page.screenshot({ path: path.join(SCREENSHOT_DIR, "schedule-every-day.png"), fullPage: false });
+  });
+
+  test("schedule modal - every n days", async ({ page }) => {
+    await openScheduleModalFromJobEdit(page);
+    await page.locator("#schedNDays").check();
+    await page.waitForTimeout(300);
+    await page.screenshot({ path: path.join(SCREENSHOT_DIR, "schedule-every-n-days.png"), fullPage: false });
+  });
+
+  test("schedule modal - weekdays", async ({ page }) => {
+    await openScheduleModalFromJobEdit(page);
+    await page.locator("#schedWeekdays").check();
+    await page.waitForTimeout(300);
+    await page.screenshot({ path: path.join(SCREENSHOT_DIR, "schedule-weekdays.png"), fullPage: false });
+  });
+
+  test("schedule modal - weekends", async ({ page }) => {
+    await openScheduleModalFromJobEdit(page);
+    await page.locator("#schedWeekends").check();
+    await page.waitForTimeout(300);
+    await page.screenshot({ path: path.join(SCREENSHOT_DIR, "schedule-weekends.png"), fullPage: false });
+  });
+
+  test("schedule modal - specific days", async ({ page }) => {
+    await openScheduleModalFromJobEdit(page);
+    await page.locator("#schedDays").check();
+    await page.waitForTimeout(300);
+    await page.screenshot({ path: path.join(SCREENSHOT_DIR, "schedule-specific-days.png"), fullPage: false });
+  });
+
+  test("schedule modal - day of month", async ({ page }) => {
+    await openScheduleModalFromJobEdit(page);
+    await page.locator("#schedMonthly").check();
+    await page.waitForTimeout(300);
+    await page.screenshot({ path: path.join(SCREENSHOT_DIR, "schedule-day-of-month.png"), fullPage: false });
+  });
+
   test("images editor", async ({ page }) => {
     await page.reload();
     await setTheme(page);

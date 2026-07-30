@@ -999,6 +999,28 @@ function formatDate(dateStr) {
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
+function getDaysSinceEpoch(date) {
+  return Math.floor(date.getTime() / 86400000);
+}
+
+function getNextDueText(interval, offset) {
+  const today = getTodayDate();
+  const todayEpoch = getDaysSinceEpoch(today);
+  for (let i = 0; i <= 7; i++) {
+    const checkDay = todayEpoch + i;
+    if ((checkDay - offset) % interval === 0) {
+      if (i === 0) return "next due: today";
+      if (i === 1) return "next due: tomorrow";
+      const dueDate = new Date(today);
+      dueDate.setDate(dueDate.getDate() + i);
+      const dayNames = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+      const monthNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+      return "next due: " + dayNames[dueDate.getDay()] + ", " + monthNames[dueDate.getMonth()] + " " + dueDate.getDate();
+    }
+  }
+  return "";
+}
+
 function getScheduleText(schedule) {
   if (!schedule) return "Every day";
   const s = schedule.type || "daily";
@@ -1010,6 +1032,7 @@ function getScheduleText(schedule) {
     return (schedule.days || []).map(d => names[d]).join(", ");
   }
   if (s === "monthly") return (schedule.date || 1) + "th of every month";
+  if (s === "ndays") return "Every " + (schedule.interval || 2) + " day(s)";
   return "Every day";
 }
 
@@ -1020,6 +1043,7 @@ function openScheduleModal() {
   document.querySelectorAll('input[name="scheduleType"]').forEach(r => r.checked = r.value === s.type);
   document.getElementById("schedDaysOptions").classList.toggle("d-none", s.type !== "days");
   document.getElementById("schedMonthlyOptions").classList.toggle("d-none", s.type !== "monthly");
+  document.getElementById("schedNDaysOptions").classList.toggle("d-none", s.type !== "ndays");
   for (let i = 0; i < 7; i++) {
     document.getElementById("schedDay" + i).checked = (s.days || []).includes(i);
   }
@@ -1032,6 +1056,26 @@ function openScheduleModal() {
     if (i === (s.date || 1)) opt.selected = true;
     mSel.appendChild(opt);
   }
+  const intervalSel = document.getElementById("schedNInterval");
+  intervalSel.innerHTML = "";
+  for (let i = 2; i <= 7; i++) {
+    const opt = document.createElement("option");
+    opt.value = i;
+    opt.textContent = i;
+    if (i === (s.interval || 2)) opt.selected = true;
+    intervalSel.appendChild(opt);
+  }
+  const curInterval = s.interval || 2;
+  const offsetSel = document.getElementById("schedNOffset");
+  offsetSel.innerHTML = "";
+  for (let i = 0; i < curInterval; i++) {
+    const opt = document.createElement("option");
+    opt.value = i;
+    opt.textContent = i;
+    if (i === (s.offset ?? 0)) opt.selected = true;
+    offsetSel.appendChild(opt);
+  }
+  if (s.type === "ndays") onScheduleNDaysChange();
   const modalEl = document.getElementById("scheduleModal");
   modalEl.addEventListener("show.bs.modal", function boostZ() {
     modalEl.removeEventListener("show.bs.modal", boostZ);
@@ -1058,6 +1102,24 @@ function onScheduleTypeChange() {
   const type = val ? val.value : "daily";
   document.getElementById("schedDaysOptions").classList.toggle("d-none", type !== "days");
   document.getElementById("schedMonthlyOptions").classList.toggle("d-none", type !== "monthly");
+  document.getElementById("schedNDaysOptions").classList.toggle("d-none", type !== "ndays");
+  if (type === "ndays") onScheduleNDaysChange();
+}
+
+function onScheduleNDaysChange() {
+  const interval = parseInt(document.getElementById("schedNInterval").value, 10) || 2;
+  const offsetSel = document.getElementById("schedNOffset");
+  const currentOffset = parseInt(offsetSel.value, 10) || 0;
+  offsetSel.innerHTML = "";
+  for (let i = 0; i < interval; i++) {
+    const opt = document.createElement("option");
+    opt.value = i;
+    opt.textContent = i;
+    if (i === Math.min(currentOffset, interval - 1)) opt.selected = true;
+    offsetSel.appendChild(opt);
+  }
+  const offset = parseInt(offsetSel.value, 10) || 0;
+  document.getElementById("schedNextDue").textContent = getNextDueText(interval, offset);
 }
 
 function saveScheduleModal() {
@@ -1071,6 +1133,9 @@ function saveScheduleModal() {
     if (schedule.days.length === 0) schedule = { type: "daily" };
   } else if (type === "monthly") {
     schedule.date = parseInt(document.getElementById("schedMonthlyDay").value, 10) || 1;
+  } else if (type === "ndays") {
+    schedule.interval = parseInt(document.getElementById("schedNInterval").value, 10) || 2;
+    schedule.offset = parseInt(document.getElementById("schedNOffset").value, 10) || 0;
   }
   jobField("schedule", schedule);
   const el = document.getElementById("jobScheduleText");
@@ -1091,6 +1156,12 @@ function shouldShowJobToday(job) {
   if (type === "weekends") { const d = now.getDay(); return d === 0 || d === 6; }
   if (type === "days") return (s.days || []).includes(now.getDay());
   if (type === "monthly") return now.getDate() === (s.date || 1);
+  if (type === "ndays") {
+    const interval = s.interval || 2;
+    const offset = s.offset ?? 0;
+    const daysSinceEpoch = getDaysSinceEpoch(now);
+    return ((daysSinceEpoch - offset) % interval + interval) % interval === 0;
+  }
   return true;
 }
 
@@ -1463,12 +1534,8 @@ function closeSettings() {
 }
 
 function regenerateTiles() {
-  const order = loadTodayOrder() || [];
   const streams = loadStreams();
-  const validIds = new Set();
-  streams.forEach(t => (t.jobs || []).forEach(j => validIds.add(j.id)));
-  const clean = order.filter(id => validIds.has(id));
-  const merged = addScheduleJobsToOrder(clean);
+  const merged = addScheduleJobsToOrder([]);
   saveTodayOrder(merged);
   saveCompletedJobs([]);
   localStorage.setItem("planmydays_last_gen", getTodayStr());

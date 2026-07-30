@@ -193,13 +193,14 @@ test.describe("PlanMyDay - Regression", () => {
 
     test("shows all main settings controls", async ({ page }) => {
       await page.getByTitle("Settings").click();
+      await expect(page.locator("#splitList")).toBeVisible();
+      await expect(page.locator("#autoHideMenu")).toBeVisible();
+      await expect(page.locator("#hideDone")).toBeVisible();
+      await page.locator("#appearance-tab").click();
       await expect(page.locator("#themeSelector")).toBeVisible();
       await expect(page.locator("#fontSizeSelector")).toBeVisible();
       await expect(page.locator("#iconSizeSelector")).toBeVisible();
       await expect(page.locator("#densitySelector")).toBeVisible();
-      await expect(page.locator("#splitList")).toBeVisible();
-      await expect(page.locator("#autoHideMenu")).toBeVisible();
-      await expect(page.locator("#hideDone")).toBeVisible();
       await page.locator("#schedule-tab").click();
       await expect(page.locator("#jan1Selector")).toBeVisible();
       await expect(page.locator("#mondaySelector")).toBeVisible();
@@ -223,6 +224,7 @@ test.describe("PlanMyDay - Regression", () => {
 
     test("font size selector changes body class", async ({ page }) => {
       await page.getByTitle("Settings").click();
+      await page.locator("#appearance-tab").click();
       await page.locator("#fontSizeSelector").selectOption("small");
       const hasClass = await page.evaluate(() => document.body.classList.contains("font-size-small"));
       expect(hasClass).toBe(true);
@@ -230,6 +232,7 @@ test.describe("PlanMyDay - Regression", () => {
 
     test("icon size selector changes body class", async ({ page }) => {
       await page.getByTitle("Settings").click();
+      await page.locator("#appearance-tab").click();
       await page.locator("#iconSizeSelector").selectOption("small");
       const hasClass = await page.evaluate(() => document.body.classList.contains("icon-size-small"));
       expect(hasClass).toBe(true);
@@ -237,6 +240,7 @@ test.describe("PlanMyDay - Regression", () => {
 
     test("density selector changes body class", async ({ page }) => {
       await page.getByTitle("Settings").click();
+      await page.locator("#appearance-tab").click();
       await page.locator("#densitySelector").selectOption("compact");
       const hasClass = await page.evaluate(() => document.body.classList.contains("compact"));
       expect(hasClass).toBe(true);
@@ -309,6 +313,7 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#streamEditModal").waitFor({ state: "visible" });
       await page.locator("#streamEditModalBody input").first().fill("Cancelled");
       await page.locator("#streamEditModal .btn-secondary").filter({ hasText: "Cancel" }).click();
+      await page.waitForTimeout(300);
       await page.locator("#streamEditModal").waitFor({ state: "hidden" });
       await page.locator("#streamEditorList .editor-title").filter({ hasText: "Work" }).waitFor({ state: "visible" });
       await expect(page.getByText("Cancelled")).not.toBeVisible();
@@ -927,6 +932,7 @@ test.describe("PlanMyDay - Regression", () => {
     });
 
     test("theme selector changes theme", async ({ page }) => {
+      await page.locator("#appearance-tab").click();
       await page.locator("#themeSelector").selectOption("solar");
       const val = await page.evaluate(() => localStorage.getItem("planmydays_theme"));
       expect(val).toBe("solar");
@@ -945,6 +951,7 @@ test.describe("PlanMyDay - Regression", () => {
     });
 
     test("font size normal removes size class", async ({ page }) => {
+      await page.locator("#appearance-tab").click();
       await page.locator("#fontSizeSelector").selectOption("small");
       await page.locator("#fontSizeSelector").selectOption("normal");
       const hasSmall = await page.evaluate(() => document.body.classList.contains("font-size-small"));
@@ -952,6 +959,7 @@ test.describe("PlanMyDay - Regression", () => {
     });
 
     test("icon size medium and large change body class", async ({ page }) => {
+      await page.locator("#appearance-tab").click();
       await page.locator("#iconSizeSelector").selectOption("medium");
       let hasClass = await page.evaluate(() => document.body.classList.contains("icon-size-medium"));
       expect(hasClass).toBe(true);
@@ -961,6 +969,7 @@ test.describe("PlanMyDay - Regression", () => {
     });
 
     test("density normal removes compact class", async ({ page }) => {
+      await page.locator("#appearance-tab").click();
       await page.locator("#densitySelector").selectOption("compact");
       await page.locator("#densitySelector").selectOption("normal");
       const hasCompact = await page.evaluate(() => document.body.classList.contains("compact"));
@@ -1396,6 +1405,32 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#scheduleModal .btn-primary").click();
       await expect(page.locator("#jobScheduleText")).toContainText("15th");
     });
+
+    test("every n days option shows ndays options", async ({ page }) => {
+      await page.locator("#jobsList .btn-primary").filter({ hasText: "Edit" }).first().click();
+      await page.getByText("Change").click();
+      await page.locator("#schedNDays").check();
+      await expect(page.locator("#schedNDaysOptions")).toBeVisible();
+      await expect(page.locator("#schedNInterval")).toBeVisible();
+      await expect(page.locator("#schedNOffset")).toBeVisible();
+    });
+
+    test("every n days schedule shows correct text", async ({ page }) => {
+      await page.locator("#jobsList .btn-primary").filter({ hasText: "Edit" }).first().click();
+      await page.getByText("Change").click();
+      await page.locator("#schedNDays").check();
+      await page.locator("#schedNInterval").selectOption("3");
+      await page.locator("#schedNOffset").selectOption("1");
+      await page.locator("#scheduleModal .btn-primary").click();
+      await expect(page.locator("#jobScheduleText")).toContainText("Every 3 day(s)");
+    });
+
+    test("every n days shows next due display", async ({ page }) => {
+      await page.locator("#jobsList .btn-primary").filter({ hasText: "Edit" }).first().click();
+      await page.getByText("Change").click();
+      await page.locator("#schedNDays").check();
+      await expect(page.locator("#schedNextDue")).not.toBeEmpty();
+    });
   });
 
   // ── Dev Mode UI ─────────────────────────────────────────────
@@ -1732,6 +1767,38 @@ test.describe("PlanMyDay - Regression", () => {
       await page.reload();
       await expect(page.getByText("MonthlyJobHide")).not.toBeVisible();
     });
+
+    test("every n days schedule shows on correct day based on epoch", async ({ page }) => {
+      await page.evaluate(() => {
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        const ys = yesterday.getFullYear() + "-" + String(yesterday.getMonth()+1).padStart(2,"0") + "-" + String(yesterday.getDate()).padStart(2,"0");
+        const todayEpoch = Math.floor(new Date().getTime() / 86400000);
+        const interval = 2;
+        const offset = 0;
+        const matches = ((todayEpoch + offset) % interval + interval) % interval === 0;
+        localStorage.setItem("planmydays_streams", JSON.stringify([{
+          id: "stream_1", title: "Test", tab: "progress", image: "", sequence: 1,
+          jobs: [{
+            id: "job_1", title: "NDaysJob", active: true, frequency: "daily",
+            sequence: 1, schedule: { type: "ndays", interval: interval, offset: offset }, suffix: false, dayType: "dayOfYear", mod: ""
+          }]
+        }]));
+        localStorage.setItem("planmydays_today_order", JSON.stringify([]));
+        localStorage.setItem("planmydays_last_gen", ys);
+        localStorage.setItem("planmydays_completed", JSON.stringify([]));
+      });
+      await page.reload();
+      const todayEpoch = Math.floor(new Date().getTime() / 86400000);
+      const interval = 2;
+      const offset = 0;
+      const matches = ((todayEpoch + offset) % interval + interval) % interval === 0;
+      if (matches) {
+        await expect(page.getByText("NDaysJob")).toBeVisible();
+      } else {
+        await expect(page.getByText("NDaysJob")).not.toBeVisible();
+      }
+    });
   });
 
   // ── Data Danger Zone ───────────────────────────────────────
@@ -1748,6 +1815,211 @@ test.describe("PlanMyDay - Regression", () => {
       await page.getByRole("button", { name: "Regenerate Today's Tiles" }).click();
       await page.waitForTimeout(800);
       await expect(page.getByText("Report").first()).toBeVisible();
+    });
+
+    test("regenerate tiles respects every n days schedule", async ({ page }) => {
+      await page.evaluate(() => {
+        const today = new Date();
+        const ts = today.getFullYear() + "-" + String(today.getMonth()+1).padStart(2,"0") + "-" + String(today.getDate()).padStart(2,"0");
+        const todayEpoch = Math.floor(today.getTime() / 86400000);
+        const matchesToday = ((todayEpoch - 0) % 2 + 2) % 2 === 0;
+        localStorage.setItem("planmydays_streams", JSON.stringify([{
+          id: "stream_1", title: "Test", tab: "progress", image: "", sequence: 1,
+          jobs: [{
+            id: "job_1", title: "NDaysRegen", active: true, frequency: "daily",
+            sequence: 1, schedule: { type: "ndays", interval: 2, offset: 0 }, suffix: false, dayType: "dayOfYear", mod: ""
+          }]
+        }]));
+        localStorage.setItem("planmydays_today_order", JSON.stringify(["job_1"]));
+        localStorage.setItem("planmydays_last_gen", ts);
+        localStorage.setItem("planmydays_completed", JSON.stringify([]));
+        localStorage.setItem("planmydays_scheduleTestMatches", matchesToday ? "true" : "false");
+      });
+      await page.reload();
+      await page.getByTitle("Settings").click();
+      await page.locator("#danger-tab").click();
+      await page.locator("#showDanger").check();
+      await page.locator("#regenerateTilesRow").waitFor({ state: "visible" });
+      await page.getByRole("button", { name: "Regenerate Today's Tiles" }).click();
+      await page.waitForTimeout(500);
+      const matches = await page.evaluate(() => localStorage.getItem("planmydays_scheduleTestMatches") === "true");
+      if (matches) {
+        await expect(page.getByText("NDaysRegen")).toBeVisible();
+      } else {
+        await expect(page.getByText("NDaysRegen")).not.toBeVisible();
+      }
+    });
+
+    test("regenerate tiles respects weekdays schedule", async ({ page }) => {
+      await page.evaluate(() => {
+        const today = new Date();
+        const ts = today.getFullYear() + "-" + String(today.getMonth()+1).padStart(2,"0") + "-" + String(today.getDate()).padStart(2,"0");
+        const day = today.getDay();
+        const isWeekday = day >= 1 && day <= 5;
+        localStorage.setItem("planmydays_streams", JSON.stringify([{
+          id: "stream_1", title: "Test", tab: "progress", image: "", sequence: 1,
+          jobs: [{
+            id: "job_1", title: "WeekdayRegen", active: true, frequency: "daily",
+            sequence: 1, schedule: { type: "weekdays" }, suffix: false, dayType: "dayOfYear", mod: ""
+          }]
+        }]));
+        localStorage.setItem("planmydays_today_order", JSON.stringify(["job_1"]));
+        localStorage.setItem("planmydays_last_gen", ts);
+        localStorage.setItem("planmydays_completed", JSON.stringify([]));
+        localStorage.setItem("planmydays_scheduleTestMatches", isWeekday ? "true" : "false");
+      });
+      await page.reload();
+      await page.getByTitle("Settings").click();
+      await page.locator("#danger-tab").click();
+      await page.locator("#showDanger").check();
+      await page.locator("#regenerateTilesRow").waitFor({ state: "visible" });
+      await page.getByRole("button", { name: "Regenerate Today's Tiles" }).click();
+      await page.waitForTimeout(500);
+      const matches = await page.evaluate(() => localStorage.getItem("planmydays_scheduleTestMatches") === "true");
+      if (matches) {
+        await expect(page.getByText("WeekdayRegen")).toBeVisible();
+      } else {
+        await expect(page.getByText("WeekdayRegen")).not.toBeVisible();
+      }
+    });
+
+    test("regenerate tiles respects weekends schedule", async ({ page }) => {
+      await page.evaluate(() => {
+        const today = new Date();
+        const ts = today.getFullYear() + "-" + String(today.getMonth()+1).padStart(2,"0") + "-" + String(today.getDate()).padStart(2,"0");
+        const day = today.getDay();
+        const isWeekend = day === 0 || day === 6;
+        localStorage.setItem("planmydays_streams", JSON.stringify([{
+          id: "stream_1", title: "Test", tab: "progress", image: "", sequence: 1,
+          jobs: [{
+            id: "job_1", title: "WeekendRegen", active: true, frequency: "daily",
+            sequence: 1, schedule: { type: "weekends" }, suffix: false, dayType: "dayOfYear", mod: ""
+          }]
+        }]));
+        localStorage.setItem("planmydays_today_order", JSON.stringify(["job_1"]));
+        localStorage.setItem("planmydays_last_gen", ts);
+        localStorage.setItem("planmydays_completed", JSON.stringify([]));
+        localStorage.setItem("planmydays_scheduleTestMatches", isWeekend ? "true" : "false");
+      });
+      await page.reload();
+      await page.getByTitle("Settings").click();
+      await page.locator("#danger-tab").click();
+      await page.locator("#showDanger").check();
+      await page.locator("#regenerateTilesRow").waitFor({ state: "visible" });
+      await page.getByRole("button", { name: "Regenerate Today's Tiles" }).click();
+      await page.waitForTimeout(500);
+      const matches = await page.evaluate(() => localStorage.getItem("planmydays_scheduleTestMatches") === "true");
+      if (matches) {
+        await expect(page.getByText("WeekendRegen")).toBeVisible();
+      } else {
+        await expect(page.getByText("WeekendRegen")).not.toBeVisible();
+      }
+    });
+
+    test("regenerate tiles respects specific days schedule", async ({ page }) => {
+      await page.evaluate(() => {
+        const today = new Date();
+        const ts = today.getFullYear() + "-" + String(today.getMonth()+1).padStart(2,"0") + "-" + String(today.getDate()).padStart(2,"0");
+        const day = today.getDay();
+        localStorage.setItem("planmydays_streams", JSON.stringify([{
+          id: "stream_1", title: "Test", tab: "progress", image: "", sequence: 1,
+          jobs: [{
+            id: "job_1", title: "SpecificDayRegen", active: true, frequency: "daily",
+            sequence: 1, schedule: { type: "days", days: [day] }, suffix: false, dayType: "dayOfYear", mod: ""
+          }]
+        }]));
+        localStorage.setItem("planmydays_today_order", JSON.stringify(["job_1"]));
+        localStorage.setItem("planmydays_last_gen", ts);
+        localStorage.setItem("planmydays_completed", JSON.stringify([]));
+      });
+      await page.reload();
+      await page.getByTitle("Settings").click();
+      await page.locator("#danger-tab").click();
+      await page.locator("#showDanger").check();
+      await page.locator("#regenerateTilesRow").waitFor({ state: "visible" });
+      await page.getByRole("button", { name: "Regenerate Today's Tiles" }).click();
+      await page.waitForTimeout(500);
+      await expect(page.getByText("SpecificDayRegen")).toBeVisible();
+    });
+
+    test("regenerate tiles respects specific days schedule mismatch", async ({ page }) => {
+      await page.evaluate(() => {
+        const today = new Date();
+        const ts = today.getFullYear() + "-" + String(today.getMonth()+1).padStart(2,"0") + "-" + String(today.getDate()).padStart(2,"0");
+        const day = today.getDay();
+        const wrongDay = day === 0 ? 1 : 0;
+        localStorage.setItem("planmydays_streams", JSON.stringify([{
+          id: "stream_1", title: "Test", tab: "progress", image: "", sequence: 1,
+          jobs: [{
+            id: "job_1", title: "SpecificDayMismatch", active: true, frequency: "daily",
+            sequence: 1, schedule: { type: "days", days: [wrongDay] }, suffix: false, dayType: "dayOfYear", mod: ""
+          }]
+        }]));
+        localStorage.setItem("planmydays_today_order", JSON.stringify(["job_1"]));
+        localStorage.setItem("planmydays_last_gen", ts);
+        localStorage.setItem("planmydays_completed", JSON.stringify([]));
+      });
+      await page.reload();
+      await page.getByTitle("Settings").click();
+      await page.locator("#danger-tab").click();
+      await page.locator("#showDanger").check();
+      await page.locator("#regenerateTilesRow").waitFor({ state: "visible" });
+      await page.getByRole("button", { name: "Regenerate Today's Tiles" }).click();
+      await page.waitForTimeout(500);
+      await expect(page.getByText("SpecificDayMismatch")).not.toBeVisible();
+    });
+
+    test("regenerate tiles respects day of month schedule", async ({ page }) => {
+      await page.evaluate(() => {
+        const today = new Date();
+        const ts = today.getFullYear() + "-" + String(today.getMonth()+1).padStart(2,"0") + "-" + String(today.getDate()).padStart(2,"0");
+        const dateNum = today.getDate();
+        localStorage.setItem("planmydays_streams", JSON.stringify([{
+          id: "stream_1", title: "Test", tab: "progress", image: "", sequence: 1,
+          jobs: [{
+            id: "job_1", title: "MonthlyRegen", active: true, frequency: "daily",
+            sequence: 1, schedule: { type: "monthly", date: dateNum }, suffix: false, dayType: "dayOfYear", mod: ""
+          }]
+        }]));
+        localStorage.setItem("planmydays_today_order", JSON.stringify(["job_1"]));
+        localStorage.setItem("planmydays_last_gen", ts);
+        localStorage.setItem("planmydays_completed", JSON.stringify([]));
+      });
+      await page.reload();
+      await page.getByTitle("Settings").click();
+      await page.locator("#danger-tab").click();
+      await page.locator("#showDanger").check();
+      await page.locator("#regenerateTilesRow").waitFor({ state: "visible" });
+      await page.getByRole("button", { name: "Regenerate Today's Tiles" }).click();
+      await page.waitForTimeout(500);
+      await expect(page.getByText("MonthlyRegen")).toBeVisible();
+    });
+
+    test("regenerate tiles respects day of month schedule mismatch", async ({ page }) => {
+      await page.evaluate(() => {
+        const today = new Date();
+        const ts = today.getFullYear() + "-" + String(today.getMonth()+1).padStart(2,"0") + "-" + String(today.getDate()).padStart(2,"0");
+        const dateNum = today.getDate();
+        const wrongDate = dateNum === 1 ? 15 : 1;
+        localStorage.setItem("planmydays_streams", JSON.stringify([{
+          id: "stream_1", title: "Test", tab: "progress", image: "", sequence: 1,
+          jobs: [{
+            id: "job_1", title: "MonthlyMismatch", active: true, frequency: "daily",
+            sequence: 1, schedule: { type: "monthly", date: wrongDate }, suffix: false, dayType: "dayOfYear", mod: ""
+          }]
+        }]));
+        localStorage.setItem("planmydays_today_order", JSON.stringify(["job_1"]));
+        localStorage.setItem("planmydays_last_gen", ts);
+        localStorage.setItem("planmydays_completed", JSON.stringify([]));
+      });
+      await page.reload();
+      await page.getByTitle("Settings").click();
+      await page.locator("#danger-tab").click();
+      await page.locator("#showDanger").check();
+      await page.locator("#regenerateTilesRow").waitFor({ state: "visible" });
+      await page.getByRole("button", { name: "Regenerate Today's Tiles" }).click();
+      await page.waitForTimeout(500);
+      await expect(page.getByText("MonthlyMismatch")).not.toBeVisible();
     });
 
     test("clear all data removes everything", async ({ page }) => {

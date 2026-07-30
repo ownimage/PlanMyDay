@@ -381,6 +381,20 @@
               <label class="form-check-label" for="schedDaily">Every day</label>
             </div>
             <div class="form-check mb-2">
+              <input class="form-check-input" type="radio" name="scheduleType" id="schedNDays" value="ndays" onchange="onScheduleTypeChange()">
+              <label class="form-check-label" for="schedNDays">Every n days</label>
+            </div>
+            <div id="schedNDaysOptions" class="d-none ms-4 mb-2">
+              <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
+                <label class="form-label mb-0">Every</label>
+                <select class="form-select" id="schedNInterval" onchange="onScheduleNDaysChange()" style="width:auto;min-width:60px"></select>
+                <label class="form-label mb-0">day(s)</label>
+                <label class="form-label mb-0 ms-2">Offset</label>
+                <select class="form-select" id="schedNOffset" onchange="onScheduleNDaysChange()" style="width:auto;min-width:60px"></select>
+              </div>
+              <div id="schedNextDue" class="text-muted small"></div>
+            </div>
+            <div class="form-check mb-2">
               <input class="form-check-input" type="radio" name="scheduleType" id="schedWeekdays" value="weekdays" onchange="onScheduleTypeChange()">
               <label class="form-check-label" for="schedWeekdays">Weekdays (Mon&ndash;Fri)</label>
             </div>
