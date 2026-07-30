@@ -1114,7 +1114,7 @@ function getJobEditFormHTML(data) {
       <input class="form-control" value="${escapeHtml(data.title || "")}" oninput="jobField('title', this.value)">
     </div>
     <div class="row mb-2">
-      <div class="col-md-6 mb-2 mb-md-0">
+      <div class="col-6">
         <label class="form-label">Stream</label>
         <div class="d-flex align-items-center gap-2">
           <div style="width:45px;height:45px;border:1px solid var(--bs-border-color);border-radius:6px;overflow:hidden;display:flex;align-items:center;justify-content:center;flex-shrink:0" id="jobStreamPreview">
@@ -1129,7 +1129,7 @@ function getJobEditFormHTML(data) {
           </select>
         </div>
       </div>
-      <div class="col-md-6">
+      <div class="col-6">
         <label class="form-label">Image</label>
         <div class="d-flex align-items-center gap-2">
           <div style="width:45px;height:45px;border:1px solid var(--bs-border-color);border-radius:6px;overflow:hidden;display:flex;align-items:center;justify-content:center;flex-shrink:0" id="jobImagePreview">
