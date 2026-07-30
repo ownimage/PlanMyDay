@@ -144,7 +144,8 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator(".job-view-btn").first().click();
       await expect(page.locator("#jobEditModal")).toBeVisible();
       await expect(page.locator("#jobEditModalTitle")).toHaveText("View Job");
-      await expect(page.locator("#jobEditModalFooter .btn-secondary")).toHaveText("Close");
+      await expect(page.locator("#jobEditModalFooter .btn-success")).toHaveText("OK");
+      await expect(page.locator("#jobEditModalFooter .btn-primary")).toHaveText("Edit");
       const titleInput = page.locator("#jobEditModalBody .form-control").first();
       await expect(titleInput).toHaveValue("Report");
       await expect(page.locator("#jobEditModalBody input:read-only, #jobEditModalBody select:disabled, #jobEditModalBody textarea:read-only, #jobEditModalBody input[type=checkbox]:disabled").first()).toBeVisible();
@@ -155,8 +156,22 @@ test.describe("PlanMyDay - Regression", () => {
       await page.reload();
       await page.locator(".job-view-btn").first().click();
       await page.locator("#jobEditModal").waitFor({ state: "visible" });
-      await page.locator("#jobEditModalFooter .btn-secondary").click();
+      await page.locator("#jobEditModalFooter .btn-success").click();
       await page.locator("#jobEditModal").waitFor({ state: "hidden", timeout: 5000 });
+    });
+
+    test("edit button in view modal switches to editable mode", async ({ page }) => {
+      await seedTodayList(page);
+      await page.reload();
+      await page.locator(".job-view-btn").first().click();
+      await page.locator("#jobEditModal").waitFor({ state: "visible" });
+      await expect(page.locator("#jobEditModalTitle")).toHaveText("View Job");
+      await page.locator("#jobEditModalFooter .btn-primary").filter({ hasText: "Edit" }).click();
+      await expect(page.locator("#jobEditModalTitle")).toHaveText("Edit Job");
+      await expect(page.locator("#jobEditModalFooter .btn-success")).toHaveText("OK");
+      const titleInput = page.locator("#jobEditModalBody .form-control").first();
+      await expect(titleInput).toHaveValue("Report");
+      await expect(titleInput).toBeEditable();
     });
 
     test("view button renders regardless of badge text", async ({ page }) => {
@@ -170,6 +185,53 @@ test.describe("PlanMyDay - Regression", () => {
         const badge = cards.nth(i).locator(".badge.rounded-pill");
         await expect(badge).toBeVisible();
       }
+    });
+
+    test("job with future sleepUntil is hidden from main screen", async ({ page }) => {
+      await seedTodayList(page);
+      await page.evaluate(() => {
+        const streams = JSON.parse(localStorage.getItem("planmydays_streams"));
+        streams[0].jobs[0].sleepUntil = "2099-12-31";
+        localStorage.setItem("planmydays_streams", JSON.stringify(streams));
+      });
+      await page.reload();
+      await expect(page.locator("#todayCardList")).toBeVisible();
+      await expect(page.locator("h4").filter({ hasText: "Report" })).not.toBeVisible();
+      await expect(page.locator("h4").filter({ hasText: "Laundry" })).toBeVisible();
+    });
+
+    test("setting sleepUntil to future via edit removes job from main screen", async ({ page }) => {
+      await seedTodayList(page);
+      await page.reload();
+      await expect(page.locator("h4").filter({ hasText: "Report" })).toBeVisible();
+      await page.locator(".job-view-btn").first().click();
+      await page.locator("#jobEditModal").waitFor({ state: "visible" });
+      await page.locator("#jobEditModalFooter .btn-primary").filter({ hasText: "Edit" }).click();
+      await expect(page.locator("#jobEditModalTitle")).toHaveText("Edit Job");
+      await page.evaluate(() => jobField("sleepUntil", "2099-12-31"));
+      await page.locator("#jobEditModalFooter .btn-success").filter({ hasText: "OK" }).click();
+      await page.locator("#jobEditModal").waitFor({ state: "hidden" });
+      await expect(page.locator("h4").filter({ hasText: "Report" })).not.toBeVisible({ timeout: 5000 });
+      await expect(page.locator("h4").filter({ hasText: "Laundry" })).toBeVisible();
+    });
+
+    test("past sleepUntil is blanked when viewing job from main screen", async ({ page }) => {
+      await seedTodayList(page);
+      const pastDate = "2020-01-01";
+      await page.evaluate((pd) => {
+        const streams = JSON.parse(localStorage.getItem("planmydays_streams"));
+        streams[0].jobs[0].sleepUntil = pd;
+        localStorage.setItem("planmydays_streams", JSON.stringify(streams));
+      }, pastDate);
+      await page.reload();
+      await expect(page.locator("h4").filter({ hasText: "Report" })).toBeVisible();
+      await page.locator(".job-view-btn").first().click();
+      await page.locator("#jobEditModal").waitFor({ state: "visible" });
+      await expect(page.locator("#jobEditModalTitle")).toHaveText("View Job");
+      await expect(page.locator("#jobSleepUntil")).toHaveValue("");
+      await page.locator("#jobEditModalFooter .btn-primary").filter({ hasText: "Edit" }).click();
+      await expect(page.locator("#jobEditModalTitle")).toHaveText("Edit Job");
+      await expect(page.locator("#jobSleepUntil")).toHaveValue("");
     });
     
   });

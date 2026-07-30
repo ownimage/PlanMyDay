@@ -260,6 +260,17 @@ test.describe("PlanMyDay - Screenshots", () => {
     await page.screenshot({ path: path.join(SCREENSHOT_DIR, "stream-add-job.png"), fullPage: false });
   });
 
+  test("view job modal", async ({ page }) => {
+    await seedMainView(page);
+    await page.reload();
+    await setTheme(page);
+    await page.waitForSelector(".today-drag-card");
+    await page.locator(".job-view-btn").first().click();
+    await page.locator("#jobEditModal").waitFor({ state: "visible" });
+    await page.waitForTimeout(400);
+    await page.screenshot({ path: path.join(SCREENSHOT_DIR, "view-job.png"), fullPage: false });
+  });
+
   test("edit job modal", async ({ page }) => {
     await page.evaluate((data) => {
       localStorage.setItem("planmydays_streams", JSON.stringify(data));

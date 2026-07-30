@@ -205,7 +205,7 @@ function renderMain() {
   const allJobs = [];
   streams.forEach((t, streamIdx) => {
     (t.jobs || []).forEach((j, jobIdx) => {
-      if (j.active !== false && todaySet.has(j.id)) {
+      if (j.active !== false && todaySet.has(j.id) && shouldShowJobToday(j)) {
         allJobs.push({ job: j, streamTitle: t.title, streamIdx, jobIdx });
       }
     });
@@ -1297,7 +1297,7 @@ function showJobEditModal(readOnly) {
   document.getElementById("jobEditModalBody").innerHTML = getJobEditFormHTML(data, readOnly);
   const footer = document.getElementById("jobEditModalFooter");
   if (readOnly) {
-    footer.innerHTML = '<button class="btn btn-secondary editor-btn flex-fill" onclick="cancelJobEdit()">Close</button>';
+    footer.innerHTML = '<button class="btn btn-primary editor-btn flex-fill" onclick="editJobFromView()">Edit</button><button class="btn btn-success editor-btn flex-fill" onclick="cancelJobEdit()">OK</button>';
   } else {
     footer.innerHTML = '<button class="btn btn-secondary editor-btn flex-fill" onclick="cancelJobEdit()">Cancel</button><button class="btn btn-success editor-btn flex-fill" onclick="doneJobEdit()">OK</button>';
   }
@@ -1318,6 +1318,25 @@ function showJobEditModal(readOnly) {
   new bootstrap.Modal(document.getElementById("jobEditModal")).show();
 }
 
+function editJobFromView() {
+  if (!jobsBuffer) return;
+  document.getElementById("jobEditModalTitle").textContent = "Edit Job";
+  document.getElementById("jobEditModalBody").innerHTML = getJobEditFormHTML(jobsBuffer, false);
+  document.getElementById("jobEditModalFooter").innerHTML = '<button class="btn btn-secondary editor-btn flex-fill" onclick="cancelJobEdit()">Cancel</button><button class="btn btn-success editor-btn flex-fill" onclick="doneJobEdit()">OK</button>';
+  const fpInput = document.getElementById("jobSleepUntil");
+  if (fpInput) {
+    if (fpInput._flatpickr) fpInput._flatpickr.destroy();
+    flatpickr(fpInput, {
+      dateFormat: "Y-m-d",
+      allowInput: true,
+      monthSelectorType: "dropdown",
+      onChange: function(selectedDates, dateStr) {
+        jobField("sleepUntil", dateStr);
+      }
+    });
+  }
+}
+
 function viewJobReadOnly(streamIdx, jobIdx) {
   const streams = loadStreams();
   const stream = streams[streamIdx];
@@ -1326,6 +1345,10 @@ function viewJobReadOnly(streamIdx, jobIdx) {
   const job = jobs[jobIdx];
   if (!job) return;
   jobsBuffer = JSON.parse(JSON.stringify(job));
+  if (jobsBuffer.sleepUntil) {
+    const today = getTodayStr();
+    if (jobsBuffer.sleepUntil < today) jobsBuffer.sleepUntil = "";
+  }
   jobsStreamIndex = streamIdx;
   jobsEditingIdx = jobIdx;
   isNewJob = false;
