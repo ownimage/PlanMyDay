@@ -374,18 +374,13 @@ body.auto-hide-menu #mainNav.nav-hidden ~ .container-fluid {
 }
 
 #streamsEditor {
-  display: flex;
-  flex-direction: column;
-  height: calc(100vh - 56px);
   padding-top: 20px;
 }
 #streamsEditorHeader {
   flex-shrink: 0;
 }
 #streamsEditor #streamEditorList {
-  flex: 1;
-  overflow-y: auto;
-  min-height: 0;
+  padding-bottom: 40px;
 }
 
 #imagesEditor {
@@ -506,6 +501,16 @@ body.compact .editor-btn {
 }
 .stream-drag-card .drag-handle:active {
   cursor: grabbing;
+}
+
+.job-drag-card.dragging {
+  opacity: 0.3;
+}
+.job-drag-card.drag-over-top {
+  border-top: 3px solid var(--bs-primary) !important;
+}
+.job-drag-card.drag-over-bottom {
+  border-bottom: 3px solid var(--bs-primary) !important;
 }
 
 /* Flatpickr dark theme arrow fixes */

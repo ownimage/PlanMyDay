@@ -99,6 +99,56 @@ function addTouchDnD(container, cardSelector, getSrcId, reorderCallback) {
   }, { passive: true });
 }
 
+var _jobDnDSetup = false;
+var _jobDragSrcIdx = -1;
+var _jobDragSrcStreamIdx = -1;
+
+function setupJobDnD(list) {
+  if (_jobDnDSetup) return;
+  _jobDnDSetup = true;
+
+  list.addEventListener("dragstart", function(e) {
+    var card = e.target.closest(".job-drag-card");
+    if (!card || card.getAttribute("draggable") === "false") return;
+    _jobDragSrcIdx = parseInt(card.dataset.jobIdx);
+    _jobDragSrcStreamIdx = parseInt(card.dataset.streamIdx);
+    card.classList.add("dragging");
+    e.dataTransfer.effectAllowed = "move";
+  });
+  list.addEventListener("dragend", function(e) {
+    list.querySelectorAll(".job-drag-card").forEach(function(c) { c.classList.remove("dragging", "drag-over-top", "drag-over-bottom"); });
+  });
+  list.addEventListener("dragover", function(e) {
+    e.preventDefault();
+    var target = e.target.closest(".job-drag-card");
+    if (!target || _jobDragSrcIdx < 0 || target.getAttribute("draggable") === "false") return;
+    if (String(target.dataset.streamIdx) !== String(_jobDragSrcStreamIdx)) return;
+    list.querySelectorAll(".job-drag-card").forEach(function(c) { c.classList.remove("drag-over-top", "drag-over-bottom"); });
+    var rect = target.getBoundingClientRect();
+    target.classList.add(e.clientY < rect.top + rect.height / 2 ? "drag-over-top" : "drag-over-bottom");
+  });
+  list.addEventListener("drop", function(e) {
+    e.preventDefault();
+    list.querySelectorAll(".job-drag-card").forEach(function(c) { c.classList.remove("drag-over-top", "drag-over-bottom"); });
+    var target = e.target.closest(".job-drag-card");
+    if (!target || _jobDragSrcIdx < 0 || target.getAttribute("draggable") === "false") return;
+    if (String(target.dataset.streamIdx) !== String(_jobDragSrcStreamIdx)) return;
+    var dropIdx = parseInt(target.dataset.jobIdx);
+    if (dropIdx === _jobDragSrcIdx) { _jobDragSrcIdx = -1; _jobDragSrcStreamIdx = -1; return; }
+    var streams = loadStreams();
+    var streamJobs = streams[_jobDragSrcStreamIdx].jobs || [];
+    var srcSeq = streamJobs[_jobDragSrcIdx].sequence || 0;
+    var dstSeq = streamJobs[dropIdx].sequence || 0;
+    streamJobs[_jobDragSrcIdx].sequence = dstSeq;
+    streamJobs[dropIdx].sequence = srcSeq;
+    streams[_jobDragSrcStreamIdx].jobs = streamJobs;
+    saveStreams(streams);
+    _jobDragSrcIdx = -1;
+    _jobDragSrcStreamIdx = -1;
+    renderStreamsEditor();
+  });
+}
+
 // JOB COMPLETION STORAGE
 function loadCompletedJobs() {
   const data = localStorage.getItem("planmydays_completed");
@@ -571,8 +621,7 @@ function getStreamEditFormHTML(data) {
           ${getImageDataUrl(data.image) ? `<img src="${getImageDataUrl(data.image)}" class="date-img" style="max-width:50px;max-height:50px">` : `<span class="text-secondary small">none</span>`}
         </div>
         <span class="small text-secondary" id="streamImageName">${escapeHtml(data.image || "")}</span>
-        <button class="btn btn-primary btn-sm" id="btnStreamImageChoose" onclick="openImagePicker(function(name){ editField('image', name); updateStreamImagePreview(name); })">Choose</button>
-        ${data.image ? `<button class="btn btn-danger btn-sm" id="btnStreamImageRemove" onclick="editField('image','');updateStreamImagePreview(null)">Remove</button>` : ""}
+        <button class="btn btn-primary btn-sm" id="btnStreamImageChoose" onclick="openImagePicker(function(name){ editField('image', name); updateStreamImagePreview(name); })">Change</button>
       </div>
     </div>
   `;
@@ -629,13 +678,17 @@ function renderStreamsEditor() {
     var headerHtml = '<h2 class="accordion-header d-flex align-items-center gap-2 p-2" id="streamHeading_' + realIdx + '">' +
       '<div class="drag-handle text-secondary" style="cursor:grab;font-size:1.3rem;line-height:1;flex-shrink:0">&#9776;</div>' +
       '<div style="width:40px;height:40px;flex-shrink:0">' + (streamImgUrl ? '<img src="' + streamImgUrl + '" class="date-img" style="max-width:40px;max-height:40px">' : '') + '</div>' +
-      '<button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#' + collapseId + '" aria-expanded="false" style="gap:0.5rem">' +
-        '<span class="fw-bold editor-title">' + escapeHtml(t.title) + '</span>' +
-        '<span class="badge bg-' + ((t.tab || "progress") === "progress" ? "success" : "primary") + '">' + escapeHtml(t.tab || "progress") + '</span>' +
-        (jobs.length > 0 ? '<span class="badge bg-secondary">' + jobs.length + ' job' + (jobs.length !== 1 ? 's' : '') + '</span>' : '') +
+      '<button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#' + collapseId + '" aria-expanded="false">' +
+        '<div style="display:flex;flex-direction:column;min-width:0;flex:1;gap:0.25rem">' +
+          '<span class="fw-bold editor-title">' + escapeHtml(t.title) + '</span>' +
+          '<div style="display:flex;gap:0.25rem">' +
+            '<span class="badge bg-' + ((t.tab || "progress") === "progress" ? "success" : "primary") + '">' + escapeHtml(t.tab || "progress") + '</span>' +
+            (jobs.length > 0 ? '<span class="badge bg-secondary">' + jobs.length + ' job' + (jobs.length !== 1 ? 's' : '') + '</span>' : '') +
+          '</div>' +
+        '</div>' +
       '</button>' +
       '<button class="btn btn-primary editor-btn flex-shrink-0" style="min-width:60px" onclick="event.stopPropagation(); editStream(' + realIdx + ')">Edit</button>' +
-      '<button class="btn btn-danger editor-btn flex-shrink-0" style="min-width:60px" onclick="event.stopPropagation(); confirmDeleteStream(' + realIdx + ')">Delete</button>' +
+      (jobs.length === 0 ? '<button class="btn btn-danger editor-btn flex-shrink-0" style="min-width:60px" onclick="event.stopPropagation(); confirmDeleteStream(' + realIdx + ')">Delete</button>' : '') +
     '</h2>';
 
     var bodyHtml = '<div id="' + collapseId + '" class="accordion-collapse collapse" data-bs-parent="#streamEditorList">' +
@@ -730,6 +783,9 @@ function renderStreamsEditor() {
     saveStreams(streams);
   });
 
+  // set up job DnD once (not re-added on each render)
+  setupJobDnD(list);
+
   topTile.innerHTML = '<div class="d-flex gap-2">' +
     '<button class="btn btn-primary editor-btn btn-wide" id="btnAddStream" onclick="addNewStream()">Add Stream</button>' +
     '<button class="btn btn-success editor-btn btn-wide ms-auto" id="btnStreamsDone" onclick="closeStreamsEditor()">Done</button>' +
@@ -739,8 +795,12 @@ function renderStreamsEditor() {
   expandedStreams.forEach(function(idx) {
     var collapseEl = document.getElementById("streamCollapse_" + idx);
     if (collapseEl) {
-      var bsCollapse = new bootstrap.Collapse(collapseEl, { toggle: false });
-      bsCollapse.show();
+      collapseEl.classList.add("show");
+    }
+    var btn = document.querySelector('#streamEditorList [data-bs-target="#streamCollapse_' + idx + '"]');
+    if (btn) {
+      btn.classList.remove("collapsed");
+      btn.setAttribute("aria-expanded", "true");
     }
   });
 
@@ -748,24 +808,30 @@ function renderStreamsEditor() {
 }
 
 function renderJobsInAccordion(stream, jobs, streamIdx) {
-  var sorted = [].concat(jobs).sort(function(a, b) { return (a.sequence || 0) - (b.sequence || 0); });
+  var sorted = [].concat(jobs).sort(function(a, b) {
+    var aHasTime = a.time && a.time.trim() ? 0 : 1;
+    var bHasTime = b.time && b.time.trim() ? 0 : 1;
+    if (aHasTime !== bHasTime) return aHasTime - bHasTime;
+    return (a.sequence || 0) - (b.sequence || 0);
+  });
   return sorted.map(function(j) {
     var realIdx = jobs.indexOf(j);
     var scheduleText = getScheduleText(j.schedule);
     var jobImgUrl = getImageDataUrl(j.image);
-    return '<div class="card p-3 mb-2">' +
+    var hasTime = j.time && j.time.trim();
+    return '<div class="card p-3 mb-2 job-drag-card" draggable="' + (hasTime ? 'false' : 'true') + '" data-job-idx="' + realIdx + '" data-stream-idx="' + streamIdx + '" style="cursor:' + (hasTime ? 'default' : 'grab') + '">' +
       '<div class="d-flex align-items-center gap-2 mb-1">' +
         (jobImgUrl ? '<div style="width:40px;height:40px;flex-shrink:0"><img src="' + jobImgUrl + '" class="date-img" style="max-width:40px;max-height:40px"></div>' : '') +
         '<div class="fw-bold editor-title">' + escapeHtml(j.title) + (getJobSuffix(j) ? ' <span class="badge bg-secondary">' + escapeHtml(getJobSuffix(j).trim()) + '</span>' : '') + '</div>' +
       '</div>' +
-      '<div class="d-flex gap-2 align-items-center small text-secondary mb-2">' +
-        '<label class="form-check-label mb-0" style="cursor:pointer;display:flex;align-items:center;gap:4px">' +
+      '<div class="d-flex gap-2 align-items-center small mb-2">' +
+        '<label class="form-check-label mb-0 fw-bold" style="cursor:pointer;display:flex;align-items:center;gap:4px">' +
           '<input class="form-check-input active-toggle m-0 position-static" type="checkbox" data-job-idx="' + realIdx + '" data-stream-idx="' + streamIdx + '" ' + (j.active !== false ? "checked" : "") + ' style="cursor:pointer">' +
           'Active' +
         '</label>' +
         '<span class="badge bg-primary">' + escapeHtml(scheduleText) + '</span>' +
         (j.sleepUntil ? '<span class="badge bg-info">Sleep: ' + escapeHtml(formatDate(j.sleepUntil)) + '</span>' : '') +
-        (j.time ? '<span class="badge bg-secondary">' + escapeHtml(j.time) + '</span>' : '') +
+        (hasTime ? '<span class="badge bg-secondary">' + escapeHtml(j.time) + '</span>' : '') +
       '</div>' +
       (j.description ? '<div class="text-secondary small mb-2">' + escapeHtml(j.description.substring(0, 80)) + (j.description.length > 80 ? "..." : "") + '</div>' : '') +
       '<div class="d-flex gap-2">' +
@@ -844,7 +910,7 @@ function editStream(index) {
   var streams = loadStreams();
   editBuffer = JSON.parse(JSON.stringify(streams[index]));
   editingIndex = index; isNew = false;
-  renderStreamsEditor();
+  showStreamEditModal();
 }
 
 function cancelEdit() {
@@ -895,7 +961,7 @@ function addNewStream() {
   saveStreams(streams);
   editBuffer = JSON.parse(JSON.stringify(newStream));
   editingIndex = streams.length - 1; isNew = true;
-  renderStreamsEditor();
+  showStreamEditModal();
   var el = document.getElementById("streamsEditor");
   if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
 }
