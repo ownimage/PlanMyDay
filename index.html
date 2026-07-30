@@ -14,7 +14,7 @@
   <link id="bootstrap-theme-css" href="https://cdn.jsdelivr.net/npm/bootswatch@5.3.3/dist/darkly/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css">
   <link rel="stylesheet" href="css/styles.css">
-  <script>const BUILD_NUMBER = "202607301032";</script>
+  <script>const BUILD_NUMBER = "202607301051";</script>
 </head>
 
 <body>
@@ -119,6 +119,9 @@
           <button class="nav-link active" id="general-tab" data-bs-toggle="tab" data-bs-target="#general" type="button" role="tab" aria-controls="general" aria-selected="true">General</button>
         </li>
         <li class="nav-item" role="presentation">
+          <button class="nav-link" id="appearance-tab" data-bs-toggle="tab" data-bs-target="#appearance" type="button" role="tab" aria-controls="appearance" aria-selected="false">Appearance</button>
+        </li>
+        <li class="nav-item" role="presentation">
           <button class="nav-link" id="schedule-tab" data-bs-toggle="tab" data-bs-target="#schedule" type="button" role="tab" aria-controls="schedule" aria-selected="false">Schedule</button>
         </li>
         <li class="nav-item" role="presentation">
@@ -130,6 +133,45 @@
 
         <!-- General -->
         <div class="tab-pane fade show active" id="general" role="tabpanel" aria-labelledby="general-tab">
+          <div class="row mb-4 align-items-center col-md-8 mt-3">
+            <div class="col-4 text-end"><label class="form-label mb-0">Split list</label></div>
+            <div class="col-8">
+              <div class="form-check form-switch mt-1">
+                <input id="splitList" class="form-check-input" type="checkbox" onchange="changeSplitList(this.checked)">
+              </div>
+            </div>
+          </div>
+
+          <div class="row mb-4 align-items-center col-md-8">
+            <div class="col-4 text-end"><label class="form-label mb-0">Auto-hide menu</label></div>
+            <div class="col-8">
+              <div class="form-check form-switch mt-1">
+                <input id="autoHideMenu" class="form-check-input" type="checkbox" onchange="changeAutoHideMenu(this.checked)">
+              </div>
+            </div>
+          </div>
+
+          <div class="row mb-4 align-items-center col-md-8">
+            <div class="col-4 text-end"><label class="form-label mb-0">Hide done</label></div>
+            <div class="col-8">
+              <div class="form-check form-switch mt-1">
+                <input id="hideDone" class="form-check-input" type="checkbox" onchange="changeHideDone(this.checked)">
+              </div>
+            </div>
+          </div>
+
+          <div class="row mb-4 align-items-center col-md-8">
+            <div class="col-4 text-end"><label class="form-label mb-0">Auto Ad Hoc</label></div>
+            <div class="col-8">
+              <div class="form-check form-switch mt-1">
+                <input id="skipAdhocConfirm" class="form-check-input" type="checkbox" onchange="changeSkipAdhocConfirm(this.checked)">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Appearance -->
+        <div class="tab-pane fade" id="appearance" role="tabpanel" aria-labelledby="appearance-tab">
           <div class="row mb-3 align-items-center col-md-8 mt-3">
             <div class="col-4 text-end"><label class="form-label mb-0">Theme</label></div>
             <div class="col-8">
@@ -195,42 +237,6 @@
                 <option value="normal">Normal</option>
                 <option value="compact">Compact</option>
               </select>
-            </div>
-          </div>
-
-          <div class="row mb-4 align-items-center col-md-8">
-            <div class="col-4 text-end"><label class="form-label mb-0">Split list</label></div>
-            <div class="col-8">
-              <div class="form-check form-switch mt-1">
-                <input id="splitList" class="form-check-input" type="checkbox" onchange="changeSplitList(this.checked)">
-              </div>
-            </div>
-          </div>
-
-          <div class="row mb-4 align-items-center col-md-8">
-            <div class="col-4 text-end"><label class="form-label mb-0">Auto-hide menu</label></div>
-            <div class="col-8">
-              <div class="form-check form-switch mt-1">
-                <input id="autoHideMenu" class="form-check-input" type="checkbox" onchange="changeAutoHideMenu(this.checked)">
-              </div>
-            </div>
-          </div>
-
-          <div class="row mb-4 align-items-center col-md-8">
-            <div class="col-4 text-end"><label class="form-label mb-0">Hide done</label></div>
-            <div class="col-8">
-              <div class="form-check form-switch mt-1">
-                <input id="hideDone" class="form-check-input" type="checkbox" onchange="changeHideDone(this.checked)">
-              </div>
-            </div>
-          </div>
-
-          <div class="row mb-4 align-items-center col-md-8">
-            <div class="col-4 text-end"><label class="form-label mb-0">Auto Ad Hoc</label></div>
-            <div class="col-8">
-              <div class="form-check form-switch mt-1">
-                <input id="skipAdhocConfirm" class="form-check-input" type="checkbox" onchange="changeSkipAdhocConfirm(this.checked)">
-              </div>
             </div>
           </div>
         </div>
