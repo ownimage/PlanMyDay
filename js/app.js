@@ -993,6 +993,28 @@ function jobTimeChanged() {
   const m = document.getElementById("jobTimeMin").value;
   jobField("time", h && m ? h + ":" + m : "");
 }
+function clearSleepUntil() {
+  jobField("sleepUntil", "");
+  const fpInput = document.getElementById("jobSleepUntil");
+  if (fpInput) {
+    if (fpInput._flatpickr) fpInput._flatpickr.clear();
+    fpInput.value = "";
+  }
+  const btn = document.getElementById("jobSleepUntilClearBtn");
+  if (btn) btn.classList.add("d-none");
+}
+function updateJobEditOkBtn() {
+  const okBtn = document.getElementById("jobEditOkBtn");
+  if (!okBtn) return;
+  const title = document.getElementById("jobTitleInput");
+  okBtn.disabled = !title || !title.value.trim();
+}
+function updateSleepUntilClearBtn() {
+  const btn = document.getElementById("jobSleepUntilClearBtn");
+  if (!btn) return;
+  const val = document.getElementById("jobSleepUntil").value;
+  btn.classList.toggle("d-none", !val);
+}
 
 function formatDate(dateStr) {
   if (!dateStr) return "";
@@ -1185,7 +1207,7 @@ function getJobEditFormHTML(data, readOnly) {
       </div>
     </div>
     <div class="mb-2">
-      <input class="form-control" value="${escapeHtml(data.title || "")}" ${ro} oninput="jobField('title', this.value)">
+      <input class="form-control" id="jobTitleInput" value="${escapeHtml(data.title || "")}" ${ro} oninput="jobField('title', this.value);updateJobEditOkBtn()">
     </div>
     <div class="row mb-2">
       <div class="col-6">
@@ -1259,7 +1281,10 @@ function getJobEditFormHTML(data, readOnly) {
     <div class="row mb-2">
       <div class="col">
         <label class="form-label">Sleep Until</label>
-        <input class="form-control" id="jobSleepUntil" value="${escapeHtml(data.sleepUntil || "")}" ${ro} placeholder="Pick a date">
+        <div class="d-flex gap-2">
+          <input class="form-control" id="jobSleepUntil" value="${escapeHtml(data.sleepUntil || "")}" ${ro} placeholder="Pick a date">
+          <button class="btn btn-danger btn-sm ${data.sleepUntil ? "" : "d-none"}" id="jobSleepUntilClearBtn" ${disabled} onclick="clearSleepUntil()">Clear</button>
+        </div>
       </div>
     </div>
     <div class="row mb-2">
@@ -1299,7 +1324,8 @@ function showJobEditModal(readOnly) {
   if (readOnly) {
     footer.innerHTML = '<button class="btn btn-primary editor-btn flex-fill" onclick="editJobFromView()">Edit</button><button class="btn btn-success editor-btn flex-fill" onclick="cancelJobEdit()">OK</button>';
   } else {
-    footer.innerHTML = '<button class="btn btn-secondary editor-btn flex-fill" onclick="cancelJobEdit()">Cancel</button><button class="btn btn-success editor-btn flex-fill" onclick="doneJobEdit()">OK</button>';
+    footer.innerHTML = '<button class="btn btn-secondary editor-btn flex-fill" onclick="cancelJobEdit()">Cancel</button><button class="btn btn-success editor-btn flex-fill" id="jobEditOkBtn" onclick="doneJobEdit()">OK</button>';
+    updateJobEditOkBtn();
   }
   const fpInput = document.getElementById("jobSleepUntil");
   if (fpInput) {
@@ -1311,6 +1337,7 @@ function showJobEditModal(readOnly) {
         monthSelectorType: "dropdown",
         onChange: function(selectedDates, dateStr) {
           jobField("sleepUntil", dateStr);
+          updateSleepUntilClearBtn();
         }
       });
     }
@@ -1322,7 +1349,8 @@ function editJobFromView() {
   if (!jobsBuffer) return;
   document.getElementById("jobEditModalTitle").textContent = "Edit Job";
   document.getElementById("jobEditModalBody").innerHTML = getJobEditFormHTML(jobsBuffer, false);
-  document.getElementById("jobEditModalFooter").innerHTML = '<button class="btn btn-secondary editor-btn flex-fill" onclick="cancelJobEdit()">Cancel</button><button class="btn btn-success editor-btn flex-fill" onclick="doneJobEdit()">OK</button>';
+  document.getElementById("jobEditModalFooter").innerHTML = '<button class="btn btn-secondary editor-btn flex-fill" onclick="cancelJobEdit()">Cancel</button><button class="btn btn-success editor-btn flex-fill" id="jobEditOkBtn" onclick="doneJobEdit()">OK</button>';
+  updateJobEditOkBtn();
   const fpInput = document.getElementById("jobSleepUntil");
   if (fpInput) {
     if (fpInput._flatpickr) fpInput._flatpickr.destroy();
@@ -1332,6 +1360,7 @@ function editJobFromView() {
       monthSelectorType: "dropdown",
       onChange: function(selectedDates, dateStr) {
         jobField("sleepUntil", dateStr);
+        updateSleepUntilClearBtn();
       }
     });
   }
