@@ -184,7 +184,7 @@ function renderMain() {
   headingRow.appendChild(dateHeading);
   const addBtn = document.createElement("button");
   addBtn.className = "btn btn-primary editor-btn ms-auto";
-  addBtn.innerHTML = "&#43; Add card";
+  addBtn.innerHTML = "&#43; Add job";
   addBtn.onclick = function() { addTodayCardWithModal(); };
   headingRow.appendChild(addBtn);
   container.appendChild(headingRow);
@@ -203,10 +203,10 @@ function renderMain() {
   const todaySet = new Set(todayOrder);
 
   const allJobs = [];
-  streams.forEach(t => {
-    (t.jobs || []).forEach(j => {
+  streams.forEach((t, streamIdx) => {
+    (t.jobs || []).forEach((j, jobIdx) => {
       if (j.active !== false && todaySet.has(j.id)) {
-        allJobs.push({ job: j, streamTitle: t.title, streamIdx: streams.indexOf(t) });
+        allJobs.push({ job: j, streamTitle: t.title, streamIdx, jobIdx });
       }
     });
   });
@@ -272,7 +272,7 @@ function renderMain() {
     return;
   }
 
-  jobsToRender.forEach(({ job, streamTitle, streamIdx }) => {
+  jobsToRender.forEach(({ job, streamTitle, streamIdx, jobIdx }) => {
     const isDone = completed.includes(job.id);
     const streams = loadStreams();
     const stream = streams[streamIdx] || {};
@@ -300,9 +300,10 @@ function renderMain() {
           <div class="d-flex align-items-center gap-2 mb-1">
             <h4 class="mb-0" style="${isDone ? 'text-decoration:line-through' : ''}">${escapeHtml(job.title)}${suffixLabel ? ` <span class="badge bg-secondary">${escapeHtml(suffixLabel.trim())}</span>` : ""}</h4>
           </div>
-          <div class="d-flex justify-content-between align-items-center">
+          <div class="d-flex justify-content-between align-items-center position-relative">
             <span class="small">${escapeHtml(streamTitle)}</span>
-            <span class="badge rounded-pill bg-${(stream.tab || "progress") === "progress" ? "success" : "primary"}">${escapeHtml(stream.tab || "progress")}</span>
+            <button class="btn btn-primary position-absolute start-50 translate-middle-x job-view-btn" onclick="viewJobReadOnly(${streamIdx}, ${jobIdx})" title="View job" style="padding:0.35em 0.65em;font-size:0.75em;line-height:1;font-weight:700">View</button>
+            <span class="badge rounded-pill bg-${(stream.tab || "progress") === "progress" ? "success" : "warning"}">${escapeHtml(stream.tab || "progress")}</span>
           </div>
           ${job.description ? `<div class="mt-1 text-secondary small">${escapeHtml(job.description)}</div>` : ""}
         </div>
@@ -1165,10 +1166,12 @@ function shouldShowJobToday(job) {
   return true;
 }
 
-function getJobEditFormHTML(data) {
+function getJobEditFormHTML(data, readOnly) {
   const streams = loadStreams();
   const currentStream = streams[jobsTargetStreamIndex >= 0 ? jobsTargetStreamIndex : jobsStreamIndex] || {};
   const streamImgUrl = getImageDataUrl(currentStream.image);
+  const disabled = readOnly ? "disabled" : "";
+  const ro = readOnly ? "readonly" : "";
   return `
     <div class="row mb-1">
       <div class="col">
@@ -1176,13 +1179,13 @@ function getJobEditFormHTML(data) {
       </div>
       <div class="col-auto d-flex align-items-center">
         <div class="form-check mb-0">
-          <input class="form-check-input" type="checkbox" id="jobActiveCb" ${data.active !== false ? "checked" : ""} onchange="jobField('active', this.checked)">
+          <input class="form-check-input" type="checkbox" id="jobActiveCb" ${data.active !== false ? "checked" : ""} ${disabled} onchange="jobField('active', this.checked)">
           <label class="form-check-label" for="jobActiveCb">Active</label>
         </div>
       </div>
     </div>
     <div class="mb-2">
-      <input class="form-control" value="${escapeHtml(data.title || "")}" oninput="jobField('title', this.value)">
+      <input class="form-control" value="${escapeHtml(data.title || "")}" ${ro} oninput="jobField('title', this.value)">
     </div>
     <div class="row mb-2">
       <div class="col-6">
@@ -1191,7 +1194,7 @@ function getJobEditFormHTML(data) {
           <div style="width:45px;height:45px;border:1px solid var(--bs-border-color);border-radius:6px;overflow:hidden;display:flex;align-items:center;justify-content:center;flex-shrink:0" id="jobStreamPreview">
             ${streamImgUrl ? `<img src="${streamImgUrl}" class="date-img" style="max-width:45px;max-height:45px">` : `<span class="text-secondary small" style="font-size:0.6rem">none</span>`}
           </div>
-          <select class="form-select" onchange="jobChangeStream(parseInt(this.value))">
+          <select class="form-select" ${disabled} onchange="jobChangeStream(parseInt(this.value))">
             ${streams.map((s, i) => `
               <option value="${i}" ${i === (jobsTargetStreamIndex >= 0 ? jobsTargetStreamIndex : jobsStreamIndex) ? "selected" : ""}>
                 ${escapeHtml(s.title)}
@@ -1209,8 +1212,8 @@ function getJobEditFormHTML(data) {
           <div>
             <div id="jobImageName">${escapeHtml(data.image || "")}</div>
             <div class="d-flex gap-1 mt-1">
-              <button class="btn btn-primary btn-sm" onclick="openImagePicker(function(name){ jobField('image', name); updateJobImagePreview(name); })">Choose</button>
-              <button class="btn btn-danger btn-sm ${data.image ? "" : "d-none"}" id="jobImageRemoveBtn" onclick="jobField('image','');updateJobImagePreview(null)">Remove</button>
+              <button class="btn btn-primary btn-sm" ${disabled} onclick="openImagePicker(function(name){ jobField('image', name); updateJobImagePreview(name); })">Choose</button>
+              <button class="btn btn-danger btn-sm ${data.image ? "" : "d-none"}" id="jobImageRemoveBtn" ${disabled} onclick="jobField('image','');updateJobImagePreview(null)">Remove</button>
             </div>
           </div>
         </div>
@@ -1218,24 +1221,24 @@ function getJobEditFormHTML(data) {
     </div>
     <div class="mb-2">
       <label class="form-label">Description</label>
-      <textarea class="form-control" rows="3" oninput="jobField('description', this.value)">${escapeHtml(data.description || "")}</textarea>
+      <textarea class="form-control" rows="3" ${ro} oninput="jobField('description', this.value)">${escapeHtml(data.description || "")}</textarea>
     </div>
     <div class="row mb-2">
       <div class="col-auto d-flex align-items-center">
         <div class="form-check mb-0">
-          <input class="form-check-input" type="checkbox" id="jobSuffixCb" ${data.suffix ? "checked" : ""} onchange="jobField('suffix', this.checked)">
+          <input class="form-check-input" type="checkbox" id="jobSuffixCb" ${data.suffix ? "checked" : ""} ${disabled} onchange="jobField('suffix', this.checked)">
           <label class="form-check-label" for="jobSuffixCb">Suffix</label>
         </div>
       </div>
       <div class="col">
-        <select class="form-select" onchange="jobField('dayType', this.value)">
+        <select class="form-select" ${disabled} onchange="jobField('dayType', this.value)">
           <option value="dayOfYear" ${(data.dayType || "dayOfYear") === "dayOfYear" ? "selected" : ""}>Day of Year</option>
           <option value="dayOfMonth" ${data.dayType === "dayOfMonth" ? "selected" : ""}>Day of Month</option>
           <option value="dayOfWeek" ${data.dayType === "dayOfWeek" ? "selected" : ""}>Day of Week</option>
         </select>
       </div>
       <div class="col">
-        <select class="form-select" onchange="jobField('mod', this.value)">
+        <select class="form-select" ${disabled} onchange="jobField('mod', this.value)">
           <option value="" ${!data.mod ? "selected" : ""}>None</option>
           <option value="2" ${data.mod === "2" ? "selected" : ""}>2</option>
           <option value="3" ${data.mod === "3" ? "selected" : ""}>3</option>
@@ -1250,20 +1253,20 @@ function getJobEditFormHTML(data) {
       <label class="form-label">Schedule</label>
       <div class="d-flex align-items-center gap-2">
         <span id="jobScheduleText">${escapeHtml(getScheduleText(data.schedule))}</span>
-        <button class="btn btn-primary btn-sm" onclick="openScheduleModal()">Change</button>
+        <button class="btn btn-primary btn-sm" ${disabled} onclick="openScheduleModal()">Change</button>
       </div>
     </div>
     <div class="row mb-2">
       <div class="col">
         <label class="form-label">Sleep Until</label>
-        <input class="form-control" id="jobSleepUntil" value="${escapeHtml(data.sleepUntil || "")}" placeholder="Pick a date">
+        <input class="form-control" id="jobSleepUntil" value="${escapeHtml(data.sleepUntil || "")}" ${ro} placeholder="Pick a date">
       </div>
     </div>
     <div class="row mb-2">
       <div class="col">
         <label class="form-label">Schedule Time</label>
         <div class="d-flex gap-2">
-          <select class="form-select" id="jobTimeHour" onchange="jobTimeChanged()" style="width:auto">
+          <select class="form-select" id="jobTimeHour" ${disabled} onchange="jobTimeChanged()" style="width:auto">
             <option value="" ${!data.time ? "selected" : ""}>-</option>
             ${Array.from({length: 24}, (_, i) => {
               const h = String(i).padStart(2, "0");
@@ -1272,7 +1275,7 @@ function getJobEditFormHTML(data) {
             }).join("")}
           </select>
           <span class="align-self-center">:</span>
-          <select class="form-select" id="jobTimeMin" onchange="jobTimeChanged()" style="width:auto">
+          <select class="form-select" id="jobTimeMin" ${disabled} onchange="jobTimeChanged()" style="width:auto">
             <option value="" ${!data.time ? "selected" : ""}>-</option>
             <option value="00" ${data.time && data.time.split(":")[1] === "00" ? "selected" : ""}>00</option>
             <option value="15" ${data.time && data.time.split(":")[1] === "15" ? "selected" : ""}>15</option>
@@ -1285,26 +1288,48 @@ function getJobEditFormHTML(data) {
   `;
 }
 
-function showJobEditModal() {
+function showJobEditModal(readOnly) {
   if (!jobsBuffer) return;
   const data = jobsBuffer;
-  const title = isNewJob ? "Add Job" : "Edit Job";
+  const title = readOnly ? "View Job" : (isNewJob ? "Add Job" : "Edit Job");
   document.getElementById("jobEditModalTitle").textContent = title;
   jobsTargetStreamIndex = jobsStreamIndex;
-  document.getElementById("jobEditModalBody").innerHTML = getJobEditFormHTML(data);
+  document.getElementById("jobEditModalBody").innerHTML = getJobEditFormHTML(data, readOnly);
+  const footer = document.getElementById("jobEditModalFooter");
+  if (readOnly) {
+    footer.innerHTML = '<button class="btn btn-secondary editor-btn flex-fill" onclick="cancelJobEdit()">Close</button>';
+  } else {
+    footer.innerHTML = '<button class="btn btn-secondary editor-btn flex-fill" onclick="cancelJobEdit()">Cancel</button><button class="btn btn-success editor-btn flex-fill" onclick="doneJobEdit()">OK</button>';
+  }
   const fpInput = document.getElementById("jobSleepUntil");
   if (fpInput) {
     if (fpInput._flatpickr) fpInput._flatpickr.destroy();
-    flatpickr(fpInput, {
-      dateFormat: "Y-m-d",
-      allowInput: true,
-      monthSelectorType: "dropdown",
-      onChange: function(selectedDates, dateStr) {
-        jobField("sleepUntil", dateStr);
-      }
-    });
+    if (!readOnly) {
+      flatpickr(fpInput, {
+        dateFormat: "Y-m-d",
+        allowInput: true,
+        monthSelectorType: "dropdown",
+        onChange: function(selectedDates, dateStr) {
+          jobField("sleepUntil", dateStr);
+        }
+      });
+    }
   }
   new bootstrap.Modal(document.getElementById("jobEditModal")).show();
+}
+
+function viewJobReadOnly(streamIdx, jobIdx) {
+  const streams = loadStreams();
+  const stream = streams[streamIdx];
+  if (!stream) return;
+  const jobs = stream.jobs || [];
+  const job = jobs[jobIdx];
+  if (!job) return;
+  jobsBuffer = JSON.parse(JSON.stringify(job));
+  jobsStreamIndex = streamIdx;
+  jobsEditingIdx = jobIdx;
+  isNewJob = false;
+  showJobEditModal(true);
 }
 
 function editJob(index) {

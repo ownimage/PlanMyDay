@@ -177,7 +177,7 @@ test.describe("PlanMyDay - Screenshots", () => {
     await seedMainView(page);
     await page.reload();
     await setTheme(page);
-    await page.getByText("+ Add card").click();
+    await page.getByText("+ Add job").click();
     await page.locator("#jobEditModal").waitFor({ state: "visible" });
     await page.waitForTimeout(400);
     await page.screenshot({ path: path.join(SCREENSHOT_DIR, "main-screen-add-job.png"), fullPage: false });

@@ -98,20 +98,20 @@ test.describe("PlanMyDay - Regression", () => {
     });
 
     test("add card opens job edit modal", async ({ page }) => {
-      await page.getByText("+ Add card").click();
+      await page.getByText("+ Add job").click();
       await expect(page.locator("#jobEditModal")).toBeVisible();
       await expect(page.locator("#jobEditModalTitle")).toHaveText("Add Job");
     });
 
     test("can cancel adding an adhoc card", async ({ page }) => {
-      await page.getByText("+ Add card").click();
+      await page.getByText("+ Add job").click();
       await page.locator("#jobEditModal").waitFor({ state: "visible" });
       await page.locator("#jobEditModal .btn-secondary").filter({ hasText: "Cancel" }).click();
       await expect(page.locator("#jobEditModal")).not.toBeVisible();
     });
 
     test("can add an adhoc card", async ({ page }) => {
-      await page.getByText("+ Add card").click();
+      await page.getByText("+ Add job").click();
       await page.locator("#jobEditModal").waitFor({ state: "visible" });
       await page.locator("#jobEditModalBody .form-control").first().fill("Test Ad Hoc");
       await page.locator("#jobEditModalBody textarea").first().fill("Test description");
@@ -127,7 +127,51 @@ test.describe("PlanMyDay - Regression", () => {
       await cb.check();
       await expect(cb).toBeChecked();
     });
-   
+
+    test("view button appears on job cards", async ({ page }) => {
+      await seedTodayList(page);
+      await page.reload();
+      await expect(page.locator("#todayCardList")).toBeVisible();
+      const viewBtns = page.locator(".job-view-btn");
+      await expect(viewBtns.first()).toBeVisible();
+      await expect(await viewBtns.count()).toBeGreaterThanOrEqual(2);
+    });
+
+    test("view button opens read-only modal with job data", async ({ page }) => {
+      await seedTodayList(page);
+      await page.reload();
+      await expect(page.locator("#todayCardList")).toBeVisible();
+      await page.locator(".job-view-btn").first().click();
+      await expect(page.locator("#jobEditModal")).toBeVisible();
+      await expect(page.locator("#jobEditModalTitle")).toHaveText("View Job");
+      await expect(page.locator("#jobEditModalFooter .btn-secondary")).toHaveText("Close");
+      const titleInput = page.locator("#jobEditModalBody .form-control").first();
+      await expect(titleInput).toHaveValue("Report");
+      await expect(page.locator("#jobEditModalBody input:read-only, #jobEditModalBody select:disabled, #jobEditModalBody textarea:read-only, #jobEditModalBody input[type=checkbox]:disabled").first()).toBeVisible();
+    });
+
+    test("read-only modal closes with close button", async ({ page }) => {
+      await seedTodayList(page);
+      await page.reload();
+      await page.locator(".job-view-btn").first().click();
+      await page.locator("#jobEditModal").waitFor({ state: "visible" });
+      await page.locator("#jobEditModalFooter .btn-secondary").click();
+      await page.locator("#jobEditModal").waitFor({ state: "hidden", timeout: 5000 });
+    });
+
+    test("view button renders regardless of badge text", async ({ page }) => {
+      await seedTodayList(page);
+      await page.reload();
+      const cards = page.locator("#todayCardList .card");
+      const cardCount = await cards.count();
+      for (let i = 0; i < cardCount; i++) {
+        const btn = cards.nth(i).locator(".job-view-btn");
+        await expect(btn).toBeVisible();
+        const badge = cards.nth(i).locator(".badge.rounded-pill");
+        await expect(badge).toBeVisible();
+      }
+    });
+    
   });
 
   // ── Navigation ─────────────────────────────────────────────
@@ -772,7 +816,7 @@ test.describe("PlanMyDay - Regression", () => {
   test.describe("Ad Hoc Workflow", () => {
 
     test("checking adhoc shows remove confirmation", async ({ page }) => {
-      await page.getByText("+ Add card").click();
+      await page.getByText("+ Add job").click();
       await page.locator("#jobEditModal").waitFor({ state: "visible" });
       await page.locator("#jobEditModalBody .form-control").first().fill("AdHocJob");
       await page.locator("#jobEditModal .btn-success").filter({ hasText: "OK" }).click();
@@ -787,7 +831,7 @@ test.describe("PlanMyDay - Regression", () => {
     test("skip adhoc confirm setting works", async ({ page }) => {
       await page.evaluate(() => localStorage.setItem("planmydays_skipAdhocConfirm", "true"));
       await page.reload();
-      await page.getByText("+ Add card").click();
+      await page.getByText("+ Add job").click();
       await page.locator("#jobEditModal").waitFor({ state: "visible" });
       await page.locator("#jobEditModalBody .form-control").first().fill("SkipMe");
       await page.locator("#jobEditModal .btn-success").filter({ hasText: "OK" }).click();
@@ -890,7 +934,7 @@ test.describe("PlanMyDay - Regression", () => {
       await expect(page.locator("h4").filter({ hasText: "Report" })).toBeVisible();
       const progressBadge = page.locator(".badge.bg-success").filter({ hasText: "progress" });
       await expect(progressBadge.first()).toBeVisible();
-      const maintenanceBadge = page.locator(".badge.bg-primary").filter({ hasText: "maintenance" });
+      const maintenanceBadge = page.locator(".badge.bg-warning").filter({ hasText: "maintenance" });
       await expect(maintenanceBadge.first()).toBeVisible();
     });
   });
@@ -1575,7 +1619,7 @@ test.describe("PlanMyDay - Regression", () => {
   test.describe("Ad Hoc Confirm Removal", () => {
 
     test("confirming removal deletes adhoc job", async ({ page }) => {
-      await page.getByText("+ Add card").click();
+      await page.getByText("+ Add job").click();
       await page.locator("#jobEditModal").waitFor({ state: "visible" });
       await page.locator("#jobEditModalBody .form-control").first().fill("RemoveMe");
       await page.locator("#jobEditModal .btn-success").filter({ hasText: "OK" }).click();
@@ -2495,7 +2539,7 @@ test.describe("PlanMyDay - Regression", () => {
         ]));
       });
       await page.reload();
-      await page.getByText("+ Add card").click();
+      await page.getByText("+ Add job").click();
       await page.locator("#jobEditModal").waitFor({ state: "visible" });
       await page.getByRole("button", { name: "Choose" }).click();
       await page.locator("#imagePickerModal").waitFor({ state: "visible" });
