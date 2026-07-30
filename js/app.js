@@ -36,7 +36,6 @@ function saveStreams(streams) {
 function hideAllEditors() {
   document.getElementById("countdownContainer").classList.remove("d-none");
   document.getElementById("streamsEditor").classList.add("d-none");
-  document.getElementById("jobsEditor").classList.add("d-none");
   document.getElementById("imagesEditor").classList.add("d-none");
   document.getElementById("settingsPage").classList.add("d-none");
 }
@@ -586,7 +585,14 @@ function renderStreamsEditor() {
   const filterEl = document.getElementById("streamEditorFilters");
   const singleEditor = document.getElementById("singleStreamEditor");
 
-  document.getElementById("jobsEditor").classList.add("d-none");
+  // remember which accordion items are expanded
+  var expandedStreams = [];
+  var openCollapses = list.querySelectorAll(".accordion-collapse.show");
+  for (var ec = 0; ec < openCollapses.length; ec++) {
+    var m = openCollapses[ec].id.match(/streamCollapse_(\d+)/);
+    if (m) expandedStreams.push(parseInt(m[1]));
+  }
+
   list.innerHTML = ""; addTile.innerHTML = ""; topTile.innerHTML = ""; filterEl.innerHTML = ""; singleEditor.innerHTML = "";
 
   const streams = loadStreams();
@@ -604,102 +610,183 @@ function renderStreamsEditor() {
   topTile.classList.remove("d-none"); filterEl.classList.remove("d-none");
   singleEditor.classList.add("d-none");
 
-  const sorted = [...streams].sort((a, b) => (a.sequence || 0) - (b.sequence || 0));
+  list.className = "accordion";
+  list.setAttribute("id", "streamEditorList");
 
-  sorted.forEach((t, displayIdx) => {
-    const realIdx = streams.indexOf(t);
-    const streamImgUrl = getImageDataUrl(t.image);
+  var sorted = [].concat(streams).sort(function(a, b) { return (a.sequence || 0) - (b.sequence || 0); });
 
-    const card = document.createElement("div");
-    card.className = "card p-3 mb-3 stream-drag-card";
-    card.draggable = true;
-    card.dataset.index = realIdx;
-    card.innerHTML = `
-      <div class="d-flex align-items-center gap-2 mb-2">
-        <div class="drag-handle text-secondary" style="cursor:grab;font-size:1.3rem;line-height:1">&#9776;</div>
-        <div style="width:40px;height:40px;flex-shrink:0">${streamImgUrl ? `<img src="${streamImgUrl}" class="date-img" style="max-width:40px;max-height:40px">` : ""}</div>
-        <div class="fw-bold editor-title">${escapeHtml(t.title)}</div>
-        <span class="badge bg-${(t.tab || "progress") === "progress" ? "success" : "primary"} ms-auto">${escapeHtml(t.tab || "progress")}</span>
-      </div>
-      <div class="d-flex gap-2">
-        <button class="btn btn-primary editor-btn" style="flex:1" onclick="editStream(${realIdx})">Edit</button>
-        <button class="btn btn-info editor-btn" style="flex:1" onclick="openJobsEditor(${realIdx})">Jobs</button>
-        <button class="btn btn-danger editor-btn" style="flex:1" onclick="confirmDeleteStream(${realIdx})">Delete</button>
-      </div>
-    `;
-    list.appendChild(card);
+  sorted.forEach(function(t, displayIdx) {
+    var realIdx = streams.indexOf(t);
+    var streamImgUrl = getImageDataUrl(t.image);
+    var jobs = t.jobs || [];
+    var collapseId = "streamCollapse_" + realIdx;
+
+    var item = document.createElement("div");
+    item.className = "accordion-item stream-accordion-item stream-drag-card mb-2";
+    item.draggable = true;
+    item.dataset.index = realIdx;
+
+    var headerHtml = '<h2 class="accordion-header d-flex align-items-center gap-2 p-2" id="streamHeading_' + realIdx + '">' +
+      '<div class="drag-handle text-secondary" style="cursor:grab;font-size:1.3rem;line-height:1;flex-shrink:0">&#9776;</div>' +
+      '<div style="width:40px;height:40px;flex-shrink:0">' + (streamImgUrl ? '<img src="' + streamImgUrl + '" class="date-img" style="max-width:40px;max-height:40px">' : '') + '</div>' +
+      '<button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#' + collapseId + '" aria-expanded="false" style="gap:0.5rem">' +
+        '<span class="fw-bold editor-title">' + escapeHtml(t.title) + '</span>' +
+        '<span class="badge bg-' + ((t.tab || "progress") === "progress" ? "success" : "primary") + '">' + escapeHtml(t.tab || "progress") + '</span>' +
+        (jobs.length > 0 ? '<span class="badge bg-secondary">' + jobs.length + ' job' + (jobs.length !== 1 ? 's' : '') + '</span>' : '') +
+      '</button>' +
+      '<button class="btn btn-primary editor-btn flex-shrink-0" style="min-width:60px" onclick="event.stopPropagation(); editStream(' + realIdx + ')">Edit</button>' +
+      '<button class="btn btn-danger editor-btn flex-shrink-0" style="min-width:60px" onclick="event.stopPropagation(); confirmDeleteStream(' + realIdx + ')">Delete</button>' +
+    '</h2>';
+
+    var bodyHtml = '<div id="' + collapseId + '" class="accordion-collapse collapse" data-bs-parent="#streamEditorList">' +
+      '<div class="accordion-body stream-accordion-body">' +
+        (jobs.length > 0 ? renderJobsInAccordion(t, jobs, realIdx) : '<div class="text-secondary small mb-2">No jobs</div>') +
+        '<button class="btn btn-primary btn-sm" onclick="addNewJobForStream(' + realIdx + ')">Add Job</button>' +
+      '</div>' +
+    '</div>';
+
+    item.innerHTML = headerHtml + bodyHtml;
+    list.appendChild(item);
   });
 
-    // drag and drop handlers
-    let dragSrcIndex = -1;
-    list.addEventListener("dragstart", e => {
-      const card = e.target.closest(".stream-drag-card");
-      if (!card) return;
-      dragSrcIndex = parseInt(card.dataset.index);
-      card.classList.add("dragging");
-      e.dataTransfer.effectAllowed = "move";
-    });
-    list.addEventListener("dragend", e => {
-      document.querySelectorAll(".stream-drag-card").forEach(c => c.classList.remove("dragging", "drag-over-top", "drag-over-bottom"));
-    });
-    list.addEventListener("dragover", e => {
-      e.preventDefault();
-      const target = e.target.closest(".stream-drag-card");
-      if (!target || dragSrcIndex < 0) return;
-      document.querySelectorAll(".stream-drag-card").forEach(c => c.classList.remove("drag-over-top", "drag-over-bottom"));
-      const rect = target.getBoundingClientRect();
-      target.classList.add(e.clientY < rect.top + rect.height / 2 ? "drag-over-top" : "drag-over-bottom");
-    });
-    list.addEventListener("drop", e => {
-      e.preventDefault();
-      document.querySelectorAll(".stream-drag-card").forEach(c => c.classList.remove("drag-over-top", "drag-over-bottom"));
-      const target = e.target.closest(".stream-drag-card");
-      if (!target || dragSrcIndex < 0) return;
-      const dropIndex = parseInt(target.dataset.index);
-      if (dropIndex === dragSrcIndex) { dragSrcIndex = -1; return; }
-      const streams = loadStreams();
-      const [moved] = streams.splice(dragSrcIndex, 1);
-      const rect = target.getBoundingClientRect();
-      const above = e.clientY < rect.top + rect.height / 2;
-      let insertAt;
-      if (dragSrcIndex < dropIndex) {
-        const actualDropIdx = dropIndex - 1;
-        insertAt = above ? actualDropIdx : actualDropIdx + 1;
-      } else {
-        insertAt = above ? dropIndex : dropIndex + 1;
-      }
-      streams.splice(insertAt, 0, moved);
-      streams.forEach((t, i) => t.sequence = i + 1);
-      saveStreams(streams);
-      dragSrcIndex = -1;
-      renderStreamsEditor();
-    });
+  // stream drag and drop handlers
+  var dragSrcIndex = -1;
+  list.addEventListener("dragstart", function(e) {
+    var card = e.target.closest(".stream-drag-card");
+    if (!card) return;
+    // ignore drags inside accordion body (job cards)
+    if (card.closest(".accordion-body")) return;
+    dragSrcIndex = parseInt(card.dataset.index);
+    card.classList.add("dragging");
+    e.dataTransfer.effectAllowed = "move";
+  });
+  list.addEventListener("dragend", function(e) {
+    document.querySelectorAll(".stream-drag-card").forEach(function(c) { c.classList.remove("dragging", "drag-over-top", "drag-over-bottom"); });
+  });
+  list.addEventListener("dragover", function(e) {
+    e.preventDefault();
+    var target = e.target.closest(".stream-drag-card");
+    if (!target || dragSrcIndex < 0) return;
+    // ignore drag targets inside accordion bodies
+    if (target.closest(".accordion-body")) return;
+    document.querySelectorAll(".stream-drag-card").forEach(function(c) { c.classList.remove("drag-over-top", "drag-over-bottom"); });
+    var rect = target.getBoundingClientRect();
+    target.classList.add(e.clientY < rect.top + rect.height / 2 ? "drag-over-top" : "drag-over-bottom");
+  });
+  list.addEventListener("drop", function(e) {
+    e.preventDefault();
+    document.querySelectorAll(".stream-drag-card").forEach(function(c) { c.classList.remove("drag-over-top", "drag-over-bottom"); });
+    var target = e.target.closest(".stream-drag-card");
+    if (!target || dragSrcIndex < 0) return;
+    if (target.closest(".accordion-body")) return;
+    var dropIndex = parseInt(target.dataset.index);
+    if (dropIndex === dragSrcIndex) { dragSrcIndex = -1; return; }
+    var s = loadStreams();
+    var moved = s.splice(dragSrcIndex, 1)[0];
+    var rect = target.getBoundingClientRect();
+    var above = e.clientY < rect.top + rect.height / 2;
+    var insertAt;
+    if (dragSrcIndex < dropIndex) {
+      var actualDropIdx = dropIndex - 1;
+      insertAt = above ? actualDropIdx : actualDropIdx + 1;
+    } else {
+      insertAt = above ? dropIndex : dropIndex + 1;
+    }
+    s.splice(insertAt, 0, moved);
+    s.forEach(function(t, i) { t.sequence = i + 1; });
+    saveStreams(s);
+    dragSrcIndex = -1;
+    renderStreamsEditor();
+  });
 
-    // touch DnD fallback for iOS
-    addTouchDnD(list, ".stream-drag-card", c => parseInt(c.dataset.index), (srcIdx, dstIdx, above) => {
-      if (srcIdx === dstIdx) return;
-      const s = loadStreams();
-      const [moved] = s.splice(srcIdx, 1);
-      let insertAt;
-      if (srcIdx < dstIdx) {
-        const actualDropIdx = dstIdx - 1;
-        insertAt = above ? actualDropIdx : actualDropIdx + 1;
-      } else {
-        insertAt = above ? dstIdx : dstIdx + 1;
-      }
-      s.splice(insertAt, 0, moved);
-      s.forEach((t, i) => t.sequence = i + 1);
-      saveStreams(s);
-      renderStreamsEditor();
-    });
+  // touch DnD fallback for iOS
+  addTouchDnD(list, ".stream-drag-card", function(c) {
+    if (c.closest(".accordion-body")) return -1;
+    return parseInt(c.dataset.index);
+  }, function(srcIdx, dstIdx, above) {
+    if (srcIdx === dstIdx || srcIdx < 0) return;
+    var s = loadStreams();
+    var moved = s.splice(srcIdx, 1)[0];
+    var insertAt;
+    if (srcIdx < dstIdx) {
+      insertAt = above ? dstIdx - 1 : dstIdx + 1;
+    } else {
+      insertAt = above ? dstIdx : dstIdx + 1;
+    }
+    s.splice(insertAt, 0, moved);
+    s.forEach(function(t, i) { t.sequence = i + 1; });
+    saveStreams(s);
+    renderStreamsEditor();
+  });
 
-  topTile.innerHTML = `
-    <div class="d-flex gap-2">
-      <button class="btn btn-primary editor-btn btn-wide" id="btnAddStream" onclick="addNewStream()">Add Stream</button>
-      <button class="btn btn-success editor-btn btn-wide ms-auto" id="btnStreamsDone" onclick="closeStreamsEditor()">Done</button>
-    </div>
-  `;
+  // delegated active toggle handler for jobs
+  list.addEventListener("change", function(e) {
+    if (!e.target.classList.contains("active-toggle")) return;
+    var jobIdx = parseInt(e.target.dataset.jobIdx);
+    var streamIdx = parseInt(e.target.dataset.streamIdx);
+    var streams = loadStreams();
+    var jobs = streams[streamIdx].jobs || [];
+    if (jobs[jobIdx]) jobs[jobIdx].active = e.target.checked;
+    saveStreams(streams);
+  });
+
+  topTile.innerHTML = '<div class="d-flex gap-2">' +
+    '<button class="btn btn-primary editor-btn btn-wide" id="btnAddStream" onclick="addNewStream()">Add Stream</button>' +
+    '<button class="btn btn-success editor-btn btn-wide ms-auto" id="btnStreamsDone" onclick="closeStreamsEditor()">Done</button>' +
+  '</div>';
+
+  // restore previously expanded accordion items
+  expandedStreams.forEach(function(idx) {
+    var collapseEl = document.getElementById("streamCollapse_" + idx);
+    if (collapseEl) {
+      var bsCollapse = new bootstrap.Collapse(collapseEl, { toggle: false });
+      bsCollapse.show();
+    }
+  });
+
   updateNavState();
+}
+
+function renderJobsInAccordion(stream, jobs, streamIdx) {
+  var sorted = [].concat(jobs).sort(function(a, b) { return (a.sequence || 0) - (b.sequence || 0); });
+  return sorted.map(function(j) {
+    var realIdx = jobs.indexOf(j);
+    var scheduleText = getScheduleText(j.schedule);
+    var jobImgUrl = getImageDataUrl(j.image);
+    return '<div class="card p-3 mb-2">' +
+      '<div class="d-flex align-items-center gap-2 mb-1">' +
+        (jobImgUrl ? '<div style="width:40px;height:40px;flex-shrink:0"><img src="' + jobImgUrl + '" class="date-img" style="max-width:40px;max-height:40px"></div>' : '') +
+        '<div class="fw-bold editor-title">' + escapeHtml(j.title) + (getJobSuffix(j) ? ' <span class="badge bg-secondary">' + escapeHtml(getJobSuffix(j).trim()) + '</span>' : '') + '</div>' +
+      '</div>' +
+      '<div class="d-flex gap-2 align-items-center small text-secondary mb-2">' +
+        '<label class="form-check-label mb-0" style="cursor:pointer;display:flex;align-items:center;gap:4px">' +
+          '<input class="form-check-input active-toggle m-0 position-static" type="checkbox" data-job-idx="' + realIdx + '" data-stream-idx="' + streamIdx + '" ' + (j.active !== false ? "checked" : "") + ' style="cursor:pointer">' +
+          'Active' +
+        '</label>' +
+        '<span class="badge bg-primary">' + escapeHtml(scheduleText) + '</span>' +
+        (j.sleepUntil ? '<span class="badge bg-info">Sleep: ' + escapeHtml(formatDate(j.sleepUntil)) + '</span>' : '') +
+        (j.time ? '<span class="badge bg-secondary">' + escapeHtml(j.time) + '</span>' : '') +
+      '</div>' +
+      (j.description ? '<div class="text-secondary small mb-2">' + escapeHtml(j.description.substring(0, 80)) + (j.description.length > 80 ? "..." : "") + '</div>' : '') +
+      '<div class="d-flex gap-2">' +
+        '<button class="btn btn-primary editor-btn flex-fill" onclick="editJobInAccordion(' + streamIdx + ', ' + realIdx + ')">Edit</button>' +
+        '<button class="btn btn-danger editor-btn flex-fill" onclick="confirmDeleteJobInAccordion(' + streamIdx + ', ' + realIdx + ')">Delete</button>' +
+      '</div>' +
+    '</div>';
+  }).join("");
+}
+
+function addNewJobForStream(streamIdx) {
+  jobsStreamIndex = streamIdx;
+  addNewJob();
+}
+function editJobInAccordion(streamIdx, jobIdx) {
+  jobsStreamIndex = streamIdx;
+  editJob(jobIdx);
+}
+function confirmDeleteJobInAccordion(streamIdx, jobIdx) {
+  jobsStreamIndex = streamIdx;
+  confirmDeleteJob(jobIdx);
 }
 
 function editField(field, value) {
@@ -708,44 +795,44 @@ function editField(field, value) {
 }
 
 function updateStreamImagePreview(name) {
-  const preview = document.getElementById("streamImagePreview");
-  const nameEl = document.getElementById("streamImageName");
+  var preview = document.getElementById("streamImagePreview");
+  var nameEl = document.getElementById("streamImageName");
   if (!preview) return;
-  const url = getImageDataUrl(name);
+  var url = getImageDataUrl(name);
   if (url) {
-    preview.innerHTML = `<img src="${url}" class="date-img" style="max-width:50px;max-height:50px">`;
+    preview.innerHTML = '<img src="' + url + '" class="date-img" style="max-width:50px;max-height:50px">';
     if (nameEl) nameEl.textContent = name;
   } else {
-    preview.innerHTML = `<span class="text-secondary small">none</span>`;
+    preview.innerHTML = '<span class="text-secondary small">none</span>';
     if (nameEl) nameEl.textContent = "";
   }
 }
 function updateJobImagePreview(name) {
-  const preview = document.getElementById("jobImagePreview");
-  const nameEl = document.getElementById("jobImageName");
-  const removeBtn = document.getElementById("jobImageRemoveBtn");
+  var preview = document.getElementById("jobImagePreview");
+  var nameEl = document.getElementById("jobImageName");
+  var removeBtn = document.getElementById("jobImageRemoveBtn");
   if (!preview) return;
-  const url = getImageDataUrl(name);
+  var url = getImageDataUrl(name);
   if (url) {
-    preview.innerHTML = `<img src="${url}" class="date-img" style="max-width:45px;max-height:45px">`;
+    preview.innerHTML = '<img src="' + url + '" class="date-img" style="max-width:45px;max-height:45px">';
     if (nameEl) nameEl.textContent = name;
     if (removeBtn) removeBtn.classList.remove("d-none");
   } else {
-    preview.innerHTML = `<span class="text-secondary small">none</span>`;
+    preview.innerHTML = '<span class="text-secondary small">none</span>';
     if (nameEl) nameEl.textContent = "";
     if (removeBtn) removeBtn.classList.add("d-none");
   }
 }
 function updateJobStreamPreview() {
-  const preview = document.getElementById("jobStreamPreview");
+  var preview = document.getElementById("jobStreamPreview");
   if (!preview) return;
-  const streams = loadStreams();
-  const stream = streams[jobsTargetStreamIndex >= 0 ? jobsTargetStreamIndex : jobsStreamIndex];
-  const url = getImageDataUrl(stream?.image);
+  var streams = loadStreams();
+  var stream = streams[jobsTargetStreamIndex >= 0 ? jobsTargetStreamIndex : jobsStreamIndex];
+  var url = getImageDataUrl(stream && stream.image);
   if (url) {
-    preview.innerHTML = `<img src="${url}" class="date-img" style="max-width:45px;max-height:45px">`;
+    preview.innerHTML = '<img src="' + url + '" class="date-img" style="max-width:45px;max-height:45px">';
   } else {
-    preview.innerHTML = `<span class="text-secondary small" style="font-size:0.6rem">none</span>`;
+    preview.innerHTML = '<span class="text-secondary small" style="font-size:0.6rem">none</span>';
   }
 }
 function jobChangeStream(newIdx) {
@@ -754,17 +841,17 @@ function jobChangeStream(newIdx) {
 }
 
 function editStream(index) {
-  const streams = loadStreams();
+  var streams = loadStreams();
   editBuffer = JSON.parse(JSON.stringify(streams[index]));
   editingIndex = index; isNew = false;
   renderStreamsEditor();
 }
 
 function cancelEdit() {
-  const modal = bootstrap.Modal.getInstance(document.getElementById("streamEditModal"));
+  var modal = bootstrap.Modal.getInstance(document.getElementById("streamEditModal"));
   if (modal) modal.hide();
   if (isNew && editingIndex >= 0) {
-    const streams = loadStreams();
+    var streams = loadStreams();
     streams.splice(editingIndex, 1);
     saveStreams(streams);
   }
@@ -773,9 +860,9 @@ function cancelEdit() {
 }
 
 function doneEdit() {
-  const modal = bootstrap.Modal.getInstance(document.getElementById("streamEditModal"));
+  var modal = bootstrap.Modal.getInstance(document.getElementById("streamEditModal"));
   if (editingIndex >= 0 && editBuffer) {
-    const streams = loadStreams();
+    var streams = loadStreams();
     streams[editingIndex] = editBuffer;
     saveStreams(streams);
   }
@@ -786,12 +873,12 @@ function doneEdit() {
 
 function confirmDeleteStream(index) {
   editingIndex = index;
-  const modalEl = document.getElementById("deleteConfirmModal");
+  var modalEl = document.getElementById("deleteConfirmModal");
   document.getElementById("deleteConfirmMessage").textContent = 'Delete this stream?';
   document.getElementById("deleteConfirmBtn").onclick = function() {
-    const streams = loadStreams();
+    var streams = loadStreams();
     streams.splice(index, 1);
-    streams.forEach((t, i) => t.sequence = i + 1);
+    streams.forEach(function(t, i) { t.sequence = i + 1; });
     saveStreams(streams);
     bootstrap.Modal.getInstance(modalEl).hide();
     editingIndex = -1; editBuffer = null; isNew = false;
@@ -801,193 +888,28 @@ function confirmDeleteStream(index) {
 }
 
 function addNewStream() {
-  const streams = loadStreams();
-  const seq = streams.length + 1;
-  const newStream = { title: "New Stream", sequence: seq, description: "", jobs: [], tab: "progress" };
+  var streams = loadStreams();
+  var seq = streams.length + 1;
+  var newStream = { title: "New Stream", sequence: seq, description: "", jobs: [], tab: "progress" };
   streams.push(newStream);
   saveStreams(streams);
   editBuffer = JSON.parse(JSON.stringify(newStream));
   editingIndex = streams.length - 1; isNew = true;
   renderStreamsEditor();
-  const el = document.getElementById("streamsEditor");
+  var el = document.getElementById("streamsEditor");
   if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 // JOBS EDITOR
-let jobsStreamIndex = -1;
-let jobsEditingIdx = -1;
-let jobsBuffer = null;
-let isNewJob = false;
-let jobsTargetStreamIndex = -1;
-
-function openJobsEditor(streamIdx) {
-  jobsEditingIdx = -1; jobsBuffer = null; isNewJob = false; jobsTargetStreamIndex = -1;
-  jobsStreamIndex = streamIdx;
-  document.getElementById("streamsEditorHeader").classList.add("d-none");
-  document.getElementById("streamEditorList").classList.add("d-none");
-  document.getElementById("addStreamTile").classList.add("d-none");
-  document.getElementById("addStreamTileTop").classList.add("d-none");
-  document.getElementById("streamEditorFilters").classList.add("d-none");
-  document.getElementById("singleStreamEditor").classList.add("d-none");
-  document.getElementById("jobsEditor").classList.remove("d-none");
-  renderJobsEditor();
-}
-
-function closeJobsEditor() {
-  document.getElementById("jobsEditor").classList.add("d-none");
-  document.getElementById("streamsEditorHeader").classList.remove("d-none");
-  document.getElementById("streamEditorList").classList.remove("d-none");
-  document.getElementById("addStreamTile").classList.remove("d-none");
-  document.getElementById("addStreamTileTop").classList.remove("d-none");
-  document.getElementById("streamEditorFilters").classList.remove("d-none");
-  jobsStreamIndex = -1; jobsEditingIdx = -1; jobsBuffer = null; isNewJob = false; jobsTargetStreamIndex = -1;
-  renderStreamsEditor();
-}
-
-function renderJobsEditor() {
-  const streams = loadStreams();
-  const stream = streams[jobsStreamIndex];
-  if (!stream) { closeJobsEditor(); return; }
-
-  const jobs = stream.jobs || [];
-  const header = document.getElementById("jobsEditorHeader");
-  const list = document.getElementById("jobsList");
-  const addTile = document.getElementById("addJobTile");
-  const topTile = document.getElementById("addJobTileTop");
-  const singleEditor = document.getElementById("singleJobEditor");
-
-  list.innerHTML = ""; addTile.innerHTML = ""; topTile.innerHTML = ""; singleEditor.innerHTML = "";
-
-  const streamImgUrl = getImageDataUrl(stream.image);
-  document.getElementById("jobsEditorTitle").innerHTML = `Stream: ${streamImgUrl ? `<img src="${streamImgUrl}" class="date-img mx-1" style="max-width:32px;max-height:32px;vertical-align:middle">` : ""}${escapeHtml(stream.title)}`;
-
-  list.classList.remove("d-none"); addTile.classList.remove("d-none");
-  topTile.classList.remove("d-none"); singleEditor.classList.add("d-none");
-
-  const sorted = [...jobs].sort((a, b) => (a.sequence || 0) - (b.sequence || 0));
-
-  sorted.forEach((j, displayIdx) => {
-    const realIdx = jobs.indexOf(j);
-    const scheduleText = getScheduleText(j.schedule);
-    const jobImgUrl = getImageDataUrl(j.image);
-    const card = document.createElement("div");
-    card.className = "card p-3 mb-3 stream-drag-card";
-    card.draggable = true;
-    card.dataset.index = realIdx;
-    card.innerHTML = `
-      <div class="d-flex align-items-center gap-2 mb-1">
-        <div class="drag-handle text-secondary" style="cursor:grab;font-size:1.3rem;line-height:1">&#9776;</div>
-        ${jobImgUrl ? `<div style="width:40px;height:40px;flex-shrink:0"><img src="${jobImgUrl}" class="date-img" style="max-width:40px;max-height:40px"></div>` : ""}
-        <div class="fw-bold editor-title">${escapeHtml(j.title)}${getJobSuffix(j) ? ` <span class="badge bg-secondary">${escapeHtml(getJobSuffix(j).trim())}</span>` : ""}</div>
-      </div>
-      <div class="d-flex gap-2 align-items-center small text-secondary mb-2">
-        <label class="form-check-label mb-0" style="cursor:pointer;display:flex;align-items:center;gap:4px">
-          <input class="form-check-input active-toggle m-0 position-static" type="checkbox" data-job-idx="${realIdx}" ${j.active !== false ? "checked" : ""} style="cursor:pointer">
-          Active
-        </label>
-        <span class="badge bg-primary">${escapeHtml(scheduleText)}</span>
-        ${j.sleepUntil ? `<span class="badge bg-info">Sleep: ${escapeHtml(formatDate(j.sleepUntil))}</span>` : ""}
-        ${j.time ? `<span class="badge bg-secondary">${escapeHtml(j.time)}</span>` : ""}
-      </div>
-      ${j.description ? `<div class="text-secondary small mb-2">${escapeHtml(j.description.substring(0, 80))}${j.description.length > 80 ? "..." : ""}</div>` : ""}
-      <div class="d-flex gap-2">
-        <button class="btn btn-primary editor-btn flex-fill" onclick="editJob(${realIdx})">Edit</button>
-        <button class="btn btn-danger editor-btn flex-fill" onclick="confirmDeleteJob(${realIdx})">Delete</button>
-      </div>
-    `;
-    list.appendChild(card);
-  });
-
-  // active toggle handler
-  list.querySelectorAll(".active-toggle").forEach(cb => {
-    cb.addEventListener("change", function() {
-      const idx = parseInt(this.dataset.jobIdx);
-      const streams = loadStreams();
-      const jobs = streams[jobsStreamIndex].jobs || [];
-      if (jobs[idx]) jobs[idx].active = this.checked;
-      saveStreams(streams);
-      renderJobsEditor();
-    });
-  });
-
-  // job drag and drop
-  let jobDragSrc = -1;
-  list.addEventListener("dragstart", e => {
-    const card = e.target.closest(".stream-drag-card");
-    if (!card) return;
-    jobDragSrc = parseInt(card.dataset.index);
-    card.classList.add("dragging");
-    e.dataTransfer.effectAllowed = "move";
-  });
-  list.addEventListener("dragend", e => {
-    list.querySelectorAll(".stream-drag-card").forEach(c => c.classList.remove("dragging", "drag-over-top", "drag-over-bottom"));
-  });
-  list.addEventListener("dragover", e => {
-    e.preventDefault();
-    const target = e.target.closest(".stream-drag-card");
-    if (!target || jobDragSrc < 0) return;
-    list.querySelectorAll(".stream-drag-card").forEach(c => c.classList.remove("drag-over-top", "drag-over-bottom"));
-    const rect = target.getBoundingClientRect();
-    target.classList.add(e.clientY < rect.top + rect.height / 2 ? "drag-over-top" : "drag-over-bottom");
-  });
-  list.addEventListener("drop", e => {
-    e.preventDefault();
-    list.querySelectorAll(".stream-drag-card").forEach(c => c.classList.remove("drag-over-top", "drag-over-bottom"));
-    const target = e.target.closest(".stream-drag-card");
-    if (!target || jobDragSrc < 0) return;
-    const dropIndex = parseInt(target.dataset.index);
-    if (dropIndex === jobDragSrc) { jobDragSrc = -1; return; }
-    const streams = loadStreams();
-    const jobs = streams[jobsStreamIndex].jobs || [];
-    const [moved] = jobs.splice(jobDragSrc, 1);
-    const rect = target.getBoundingClientRect();
-    const above = e.clientY < rect.top + rect.height / 2;
-    let insertAt;
-    if (jobDragSrc < dropIndex) {
-      insertAt = above ? dropIndex - 1 : dropIndex;
-    } else {
-      insertAt = above ? dropIndex : dropIndex + 1;
-    }
-    jobs.splice(insertAt, 0, moved);
-    jobs.forEach((jb, i) => jb.sequence = i + 1);
-    streams[jobsStreamIndex].jobs = jobs;
-    saveStreams(streams);
-    jobDragSrc = -1;
-    renderJobsEditor();
-  });
-
-  // touch DnD fallback for iOS
-  addTouchDnD(list, ".stream-drag-card", c => parseInt(c.dataset.index), (srcIdx, dstIdx, above) => {
-    if (srcIdx === dstIdx) return;
-    const streams = loadStreams();
-    const jobs = streams[jobsStreamIndex].jobs || [];
-    const [moved] = jobs.splice(srcIdx, 1);
-    let insertAt;
-    if (srcIdx < dstIdx) {
-      insertAt = above ? dstIdx - 1 : dstIdx;
-    } else {
-      insertAt = above ? dstIdx : dstIdx + 1;
-    }
-    jobs.splice(insertAt, 0, moved);
-    jobs.forEach((jb, i) => jb.sequence = i + 1);
-    streams[jobsStreamIndex].jobs = jobs;
-    saveStreams(streams);
-    renderJobsEditor();
-  });
-
-  topTile.innerHTML = `
-    <div class="d-flex gap-2">
-      <button class="btn btn-primary editor-btn btn-wide" id="btnAddJob" onclick="addNewJob()">Add Job</button>
-      <button class="btn btn-success editor-btn btn-wide ms-auto" id="btnJobsDone" onclick="closeJobsEditor()">Done</button>
-    </div>
-  `;
-  updateNavState();
-}
+var jobsStreamIndex = -1;
+var jobsEditingIdx = -1;
+var jobsBuffer = null;
+var isNewJob = false;
+var jobsTargetStreamIndex = -1;
 
 function jobField(field, value) {
   if (!jobsBuffer) return;
   jobsBuffer[field] = value;
-  if (field === "active") renderJobsEditor();
 }
 function jobTimeChanged() {
   const h = document.getElementById("jobTimeHour").value;
@@ -1385,101 +1307,99 @@ function viewJobReadOnly(streamIdx, jobIdx) {
 }
 
 function editJob(index) {
-  const streams = loadStreams();
-  const jobs = streams[jobsStreamIndex].jobs || [];
+  var streams = loadStreams();
+  var jobs = streams[jobsStreamIndex].jobs || [];
   jobsBuffer = JSON.parse(JSON.stringify(jobs[index]));
   if (jobsBuffer.sleepUntil) {
-    const today = getTodayStr();
+    var today = getTodayStr();
     if (jobsBuffer.sleepUntil < today) jobsBuffer.sleepUntil = "";
   }
   jobsEditingIdx = index; isNewJob = false;
-  renderJobsEditor();
   showJobEditModal();
 }
 
 function cancelJobEdit() {
-  const modal = bootstrap.Modal.getInstance(document.getElementById("jobEditModal"));
+  var modal = bootstrap.Modal.getInstance(document.getElementById("jobEditModal"));
   if (modal) modal.hide();
-  const fromMain = document.getElementById("jobsEditor").classList.contains("d-none");
+  var fromMain = document.getElementById("streamsEditor").classList.contains("d-none");
   if (isNewJob && jobsEditingIdx >= 0) {
-    const streams = loadStreams();
-    const jobs = streams[jobsStreamIndex].jobs || [];
+    var streams = loadStreams();
+    var jobs = streams[jobsStreamIndex].jobs || [];
     jobs.splice(jobsEditingIdx, 1);
     streams[jobsStreamIndex].jobs = jobs;
     saveStreams(streams);
   }
   jobsEditingIdx = -1; jobsBuffer = null; isNewJob = false; jobsTargetStreamIndex = -1;
-  if (fromMain) { renderMain(); } else { renderJobsEditor(); }
+  if (fromMain) { renderMain(); } else { renderStreamsEditor(); }
 }
 
 function doneJobEdit() {
-  const fromMain = document.getElementById("jobsEditor").classList.contains("d-none");
-  let savedId = null;
+  var fromMain = document.getElementById("streamsEditor").classList.contains("d-none");
+  var savedId = null;
   if (jobsEditingIdx >= 0 && jobsBuffer) {
-    const streams = loadStreams();
+    var streams = loadStreams();
     savedId = jobsBuffer.id;
     if (jobsTargetStreamIndex >= 0 && jobsTargetStreamIndex !== jobsStreamIndex) {
-      const oldJobs = streams[jobsStreamIndex].jobs || [];
+      var oldJobs = streams[jobsStreamIndex].jobs || [];
       oldJobs.splice(jobsEditingIdx, 1);
-      oldJobs.forEach((j, i) => j.sequence = i + 1);
+      oldJobs.forEach(function(j, i) { j.sequence = i + 1; });
       streams[jobsStreamIndex].jobs = oldJobs;
-      const newJobs = streams[jobsTargetStreamIndex].jobs || [];
+      var newJobs = streams[jobsTargetStreamIndex].jobs || [];
       jobsBuffer.sequence = newJobs.length + 1;
       newJobs.push(jobsBuffer);
       streams[jobsTargetStreamIndex].jobs = newJobs;
     } else {
-      const jobs = streams[jobsStreamIndex].jobs || [];
+      var jobs = streams[jobsStreamIndex].jobs || [];
       jobs[jobsEditingIdx] = jobsBuffer;
       streams[jobsStreamIndex].jobs = jobs;
     }
     saveStreams(streams);
   }
-  const modal = bootstrap.Modal.getInstance(document.getElementById("jobEditModal"));
+  var modal = bootstrap.Modal.getInstance(document.getElementById("jobEditModal"));
   if (modal) modal.hide();
   jobsEditingIdx = -1; jobsBuffer = null; isNewJob = false; jobsTargetStreamIndex = -1;
   if (fromMain) {
-    const streams = loadStreams();
-    const order = loadTodayOrder() || [];
-    const allActive = [];
-    streams.forEach(t => { (t.jobs || []).forEach(j => { if (j.active !== false) allActive.push(j.id); }); });
-    const remaining = allActive.filter(id => order.includes(id));
+    var streams = loadStreams();
+    var order = loadTodayOrder() || [];
+    var allActive = [];
+    streams.forEach(function(t) { (t.jobs || []).forEach(function(j) { if (j.active !== false) allActive.push(j.id); }); });
+    var remaining = allActive.filter(function(id) { return order.includes(id); });
     if (savedId && !remaining.includes(savedId)) remaining.push(savedId);
     saveTodayOrder(remaining);
     renderMain();
   } else {
-    renderJobsEditor();
+    renderStreamsEditor();
   }
 }
 
 function confirmDeleteJob(index) {
   jobsEditingIdx = index;
-  const modalEl = document.getElementById("deleteConfirmModal");
+  var modalEl = document.getElementById("deleteConfirmModal");
   document.getElementById("deleteConfirmMessage").textContent = 'Delete this job?';
   document.getElementById("deleteConfirmBtn").onclick = function() {
-    const streams = loadStreams();
-    const jobs = streams[jobsStreamIndex].jobs || [];
+    var streams = loadStreams();
+    var jobs = streams[jobsStreamIndex].jobs || [];
     jobs.splice(index, 1);
-    jobs.forEach((j, i) => j.sequence = i + 1);
+    jobs.forEach(function(j, i) { j.sequence = i + 1; });
     streams[jobsStreamIndex].jobs = jobs;
     saveStreams(streams);
     bootstrap.Modal.getInstance(modalEl).hide();
     jobsEditingIdx = -1; jobsBuffer = null; isNewJob = false;
-    renderJobsEditor();
+    renderStreamsEditor();
   };
   new bootstrap.Modal(modalEl).show();
 }
 
 function addNewJob() {
-  const streams = loadStreams();
-  const jobs = streams[jobsStreamIndex].jobs || [];
-  const seq = jobs.length + 1;
-  const newJob = { id: "job_" + Date.now(), title: "New Job", sequence: seq, description: "", active: true, frequency: "daily", time: "", sleepUntil: "", schedule: { type: "daily" } };
+  var streams = loadStreams();
+  var jobs = streams[jobsStreamIndex].jobs || [];
+  var seq = jobs.length + 1;
+  var newJob = { id: "job_" + Date.now(), title: "New Job", sequence: seq, description: "", active: true, frequency: "daily", time: "", sleepUntil: "", schedule: { type: "daily" } };
   jobs.push(newJob);
   streams[jobsStreamIndex].jobs = jobs;
   saveStreams(streams);
   jobsBuffer = JSON.parse(JSON.stringify(newJob));
   jobsEditingIdx = jobs.length - 1; isNewJob = true;
-  renderJobsEditor();
   showJobEditModal();
 }
 

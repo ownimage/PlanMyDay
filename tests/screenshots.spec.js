@@ -209,8 +209,8 @@ test.describe("PlanMyDay - Screenshots", () => {
     await page.reload();
     await setTheme(page);
     await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
-    await page.locator("a.dropdown-item").filter({ hasText: "Streams" }).click();
-    await page.waitForSelector("#streamEditorList .card");
+    await page.locator("a.dropdown-item").filter({ hasText: "Jobs" }).click();
+    await page.waitForSelector("#streamEditorList .accordion-item");
     await page.screenshot({ path: path.join(SCREENSHOT_DIR, "edit-streams.png"), fullPage: false });
   });
 
@@ -221,8 +221,8 @@ test.describe("PlanMyDay - Screenshots", () => {
     await page.reload();
     await setTheme(page);
     await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
-    await page.locator("a.dropdown-item").filter({ hasText: "Streams" }).click();
-    await page.waitForSelector("#streamEditorList .card");
+    await page.locator("a.dropdown-item").filter({ hasText: "Jobs" }).click();
+    await page.waitForSelector("#streamEditorList .accordion-item");
     await page.getByRole("button", { name: "Add Stream" }).click();
     await page.locator("#streamEditModal").waitFor({ state: "visible" });
     await page.waitForTimeout(400);
@@ -236,10 +236,11 @@ test.describe("PlanMyDay - Screenshots", () => {
     await page.reload();
     await setTheme(page);
     await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
-    await page.locator("a.dropdown-item").filter({ hasText: "Streams" }).click();
-    await page.waitForSelector("#streamEditorList .card");
-    await page.locator("#streamEditorList .card").first().getByRole("button", { name: "Jobs" }).click();
-    await page.waitForSelector("#jobsList .card");
+    await page.locator("a.dropdown-item").filter({ hasText: "Jobs" }).click();
+    await page.waitForSelector("#streamEditorList .accordion-item");
+    await page.locator("#streamEditorList .accordion-button").first().click();
+    await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible", timeout: 5000 });
+    await page.waitForSelector("#streamEditorList .accordion-body .card");
     await page.screenshot({ path: path.join(SCREENSHOT_DIR, "stream-job-list.png"), fullPage: false });
   });
 
@@ -250,10 +251,10 @@ test.describe("PlanMyDay - Screenshots", () => {
     await page.reload();
     await setTheme(page);
     await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
-    await page.locator("a.dropdown-item").filter({ hasText: "Streams" }).click();
-    await page.waitForSelector("#streamEditorList .card");
-    await page.locator("#streamEditorList .card").first().getByRole("button", { name: "Jobs" }).click();
-    await page.waitForSelector("#jobsList .card");
+    await page.locator("a.dropdown-item").filter({ hasText: "Jobs" }).click();
+    await page.waitForSelector("#streamEditorList .accordion-item");
+    await page.locator("#streamEditorList .accordion-button").first().click();
+    await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible", timeout: 5000 });
     await page.getByRole("button", { name: "Add Job" }).click();
     await page.locator("#jobEditModal").waitFor({ state: "visible" });
     await page.waitForTimeout(400);
@@ -278,11 +279,11 @@ test.describe("PlanMyDay - Screenshots", () => {
     await page.reload();
     await setTheme(page);
     await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
-    await page.locator("a.dropdown-item").filter({ hasText: "Streams" }).click();
-    await page.waitForSelector("#streamEditorList .card");
-    await page.locator("#streamEditorList .card").first().getByRole("button", { name: "Jobs" }).click();
-    await page.waitForSelector("#jobsList .card");
-    await page.locator("#jobsList .card").first().getByRole("button", { name: "Edit" }).click();
+    await page.locator("a.dropdown-item").filter({ hasText: "Jobs" }).click();
+    await page.waitForSelector("#streamEditorList .accordion-item");
+    await page.locator("#streamEditorList .accordion-button").first().click();
+    await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible", timeout: 5000 });
+    await page.locator("#streamEditorList .accordion-body .card").first().getByRole("button", { name: "Edit" }).click();
     await page.locator("#jobEditModal").waitFor({ state: "visible" });
     await page.waitForTimeout(400);
     await page.screenshot({ path: path.join(SCREENSHOT_DIR, "edit-job.png"), fullPage: false });
@@ -295,11 +296,11 @@ test.describe("PlanMyDay - Screenshots", () => {
     await page.reload();
     await setTheme(page);
     await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
-    await page.locator("a.dropdown-item").filter({ hasText: "Streams" }).click();
-    await page.waitForSelector("#streamEditorList .card");
-    await page.locator("#streamEditorList .card").first().getByRole("button", { name: "Jobs" }).click();
-    await page.waitForSelector("#jobsList .card");
-    await page.locator("#jobsList .card").first().getByRole("button", { name: "Edit" }).click();
+    await page.locator("a.dropdown-item").filter({ hasText: "Jobs" }).click();
+    await page.waitForSelector("#streamEditorList .accordion-item");
+    await page.locator("#streamEditorList .accordion-button").first().click();
+    await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible", timeout: 5000 });
+    await page.locator("#streamEditorList .accordion-body .card").first().getByRole("button", { name: "Edit" }).click();
     await page.locator("#jobEditModal").waitFor({ state: "visible" });
     await page.locator("#btnScheduleChange").click();
     await page.locator("#scheduleModal").waitFor({ state: "visible" });

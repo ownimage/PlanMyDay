@@ -201,11 +201,6 @@ body.font-size-xsmall #streamsEditor .form-control,
 body.font-size-xsmall #streamsEditor .form-select,
 body.font-size-xsmall #countdownContainer,
 body.font-size-xsmall #countdownContainer .btn,
-body.font-size-xsmall #jobsEditor,
-body.font-size-xsmall #jobsEditor .btn,
-body.font-size-xsmall #jobsEditor .form-label,
-body.font-size-xsmall #jobsEditor .form-control,
-body.font-size-xsmall #jobsEditor .form-select,
 body.font-size-xsmall #imagesEditor,
 body.font-size-xsmall #imagesEditor .btn,
 body.font-size-xsmall #imagesEditor .form-label,
@@ -230,11 +225,6 @@ body.font-size-small #streamsEditor .form-control,
 body.font-size-small #streamsEditor .form-select,
 body.font-size-small #countdownContainer,
 body.font-size-small #countdownContainer .btn,
-body.font-size-small #jobsEditor,
-body.font-size-small #jobsEditor .btn,
-body.font-size-small #jobsEditor .form-label,
-body.font-size-small #jobsEditor .form-control,
-body.font-size-small #jobsEditor .form-select,
 body.font-size-small #imagesEditor,
 body.font-size-small #imagesEditor .btn,
 body.font-size-small #imagesEditor .form-label,
@@ -259,11 +249,6 @@ body.font-size-large #streamsEditor .form-control,
 body.font-size-large #streamsEditor .form-select,
 body.font-size-large #countdownContainer,
 body.font-size-large #countdownContainer .btn,
-body.font-size-large #jobsEditor,
-body.font-size-large #jobsEditor .btn,
-body.font-size-large #jobsEditor .form-label,
-body.font-size-large #jobsEditor .form-control,
-body.font-size-large #jobsEditor .form-select,
 body.font-size-large #imagesEditor,
 body.font-size-large #imagesEditor .btn,
 body.font-size-large #imagesEditor .form-label,
@@ -288,11 +273,6 @@ body.font-size-xlarge #streamsEditor .form-control,
 body.font-size-xlarge #streamsEditor .form-select,
 body.font-size-xlarge #countdownContainer,
 body.font-size-xlarge #countdownContainer .btn,
-body.font-size-xlarge #jobsEditor,
-body.font-size-xlarge #jobsEditor .btn,
-body.font-size-xlarge #jobsEditor .form-label,
-body.font-size-xlarge #jobsEditor .form-control,
-body.font-size-xlarge #jobsEditor .form-select,
 body.font-size-xlarge #imagesEditor,
 body.font-size-xlarge #imagesEditor .btn,
 body.font-size-xlarge #imagesEditor .form-label,
@@ -317,11 +297,6 @@ body.font-size-jumbo #streamsEditor .form-control,
 body.font-size-jumbo #streamsEditor .form-select,
 body.font-size-jumbo #countdownContainer,
 body.font-size-jumbo #countdownContainer .btn,
-body.font-size-jumbo #jobsEditor,
-body.font-size-jumbo #jobsEditor .btn,
-body.font-size-jumbo #jobsEditor .form-label,
-body.font-size-jumbo #jobsEditor .form-control,
-body.font-size-jumbo #jobsEditor .form-select,
 body.font-size-jumbo #imagesEditor,
 body.font-size-jumbo #imagesEditor .btn,
 body.font-size-jumbo #imagesEditor .form-label,
@@ -428,18 +403,22 @@ body.auto-hide-menu #mainNav.nav-hidden ~ .container-fluid {
   min-height: 0;
 }
 
-#jobsEditor {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-height: 0;
+.stream-accordion-item {
+  border: 1px solid var(--bs-border-color);
+  border-radius: 0.375rem;
 }
-#jobsEditorHeader {
-  flex-shrink: 0;
+.stream-accordion-item .accordion-header {
+  gap: 0.5rem;
+  flex-wrap: wrap;
 }
-#jobsEditor #jobsList {
+.stream-accordion-item .accordion-button {
   flex: 1;
-  min-height: 0;
+  min-width: 0;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+}
+.stream-accordion-body .card {
+  border-width: 1px;
 }
 
 #settingsPage {
