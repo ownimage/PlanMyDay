@@ -5,10 +5,10 @@ module.exports = defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: 4,
+  workers: '100%',
   quiet: true,
   retries: 2,
-  reporter: "html",
+  reporter: "list",
   use: {
     baseURL: "http://localhost:8080",
     trace: "on-first-retry",
@@ -20,7 +20,7 @@ module.exports = defineConfig({
     },
   ],
   webServer: {
-    command: 'C:\\git\\PlanMyDay\\venv\\Scripts\\python.exe -m http.server 8080',
+    command: 'python -m http.server 8080',
     url: "http://localhost:8080",
     reuseExistingServer: !process.env.CI,
   },
