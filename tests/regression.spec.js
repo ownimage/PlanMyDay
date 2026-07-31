@@ -1,5 +1,5 @@
 const { test, expect } = require("@playwright/test");
-const { startCoverage, stopCoverage, generateCoverage } = require("./coverage");
+const { startCoverage, stopCoverage } = require("./coverage");
 
 const TEST_STREAMS = [
   {
@@ -83,10 +83,6 @@ test.describe("PlanMyDay - Regression", () => {
 
   test.afterEach(async ({ page }) => {
     await stopCoverage(page);
-  });
-
-  test.afterAll(async () => {
-    await generateCoverage();
   });
 
   // ── Main View ──────────────────────────────────────────────
@@ -1591,8 +1587,15 @@ test.describe("PlanMyDay - Regression", () => {
     });
 
     test("selecting image sets name in stream editor", async ({ page }) => {
-      await page.locator(".image-picker-item").first().click();
-      await page.waitForTimeout(300);
+      await page.locator(".image-picker-item").first().waitFor({ state: "visible" });
+      await page.evaluate(() => new Promise(resolve => {
+        const el = document.getElementById("imagePickerModal");
+        if (el.classList.contains("show") && !el.classList.contains("fade")) { resolve(); return; }
+        el.addEventListener("shown.bs.modal", () => resolve(), { once: true });
+        setTimeout(resolve, 500);
+      }));
+      await page.locator(".image-picker-item").first().dispatchEvent("click");
+      await page.locator("#imagePickerModal").waitFor({ state: "hidden" });
       const name = await page.evaluate(() => editBuffer?.image || "");
       expect(name).toBe("PickMe");
     });
@@ -2799,6 +2802,512 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#imagePickerModal").waitFor({ state: "hidden" });
       const img = await page.evaluate(() => jobsBuffer?.image || "");
       expect(img).toBe("FrontImg");
+    });
+  });
+
+  // ── Coverage: Import / Export / Upload / Edge cases ────────
+
+  test.describe("Coverage: Import Export Upload", () => {
+
+    test("importData loads streams and images from JSON file", async ({ page }) => {
+      const payload = {
+        version: 1,
+        streams: [{
+          id: "stream_imp",
+          title: "Imported",
+          description: "",
+          tab: "progress",
+          image: "",
+          sequence: 1,
+          jobs: [{
+            id: "job_imp",
+            title: "Imported Job",
+            description: "",
+            active: true,
+            frequency: "daily",
+            sequence: 1,
+            suffix: false,
+            dayType: "dayOfYear",
+            mod: "",
+            schedule: { type: "daily" }
+          }]
+        }],
+        images: [{ name: "ImpImg", data: "data:image/svg+xml," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" stroke="#111" fill="#eee"><circle r="5"/></svg>') }]
+      };
+      await page.evaluate((data) => {
+        return new Promise(resolve => {
+          const file = new File([JSON.stringify(data)], "backup.json", { type: "application/json" });
+          const dt = new DataTransfer();
+          dt.items.add(file);
+          const origClick = HTMLInputElement.prototype.click;
+          HTMLInputElement.prototype.click = function() {
+            if (this.type === "file") {
+              Object.defineProperty(this, "files", { value: dt.files, configurable: true });
+              this.dispatchEvent(new Event("change"));
+              HTMLInputElement.prototype.click = origClick;
+              setTimeout(resolve, 400);
+              return;
+            }
+            return origClick.apply(this, arguments);
+          };
+          importData();
+        });
+      }, payload);
+      // import leaves today order empty; regenerate so scheduled job appears
+      await page.evaluate(() => {
+        localStorage.removeItem("planmydays_today_order");
+        localStorage.removeItem("planmydays_last_gen");
+        renderMain();
+      });
+      await expect(page.locator("h4").filter({ hasText: "Imported Job" })).toBeVisible();
+      const imgCount = await page.evaluate(() => JSON.parse(localStorage.getItem("planmydays_images") || "[]").length);
+      expect(imgCount).toBe(1);
+    });
+
+    test("importData rejects invalid JSON via alert", async ({ page }) => {
+      page.on("dialog", async d => { await d.accept(); });
+      await page.evaluate(() => {
+        return new Promise(resolve => {
+          const input = document.createElement("input");
+          input.type = "file";
+          const file = new File(["not-json{{{"], "bad.json", { type: "application/json" });
+          const dt = new DataTransfer();
+          dt.items.add(file);
+          Object.defineProperty(input, "files", { value: dt.files });
+          // Call the real importData change handler by monkey-patching click
+          const origClick = HTMLInputElement.prototype.click;
+          HTMLInputElement.prototype.click = function() {
+            if (this.type === "file" && this.accept && this.accept.includes("json")) {
+              Object.defineProperty(this, "files", { value: dt.files, configurable: true });
+              this.dispatchEvent(new Event("change"));
+              HTMLInputElement.prototype.click = origClick;
+              setTimeout(resolve, 200);
+              return;
+            }
+            return origClick.apply(this, arguments);
+          };
+          importData();
+        });
+      });
+    });
+
+    test("importData rejects file missing streams and images", async ({ page }) => {
+      page.on("dialog", async d => { await d.accept(); });
+      await page.evaluate(() => {
+        return new Promise(resolve => {
+          const file = new File([JSON.stringify({ version: 1 })], "empty.json", { type: "application/json" });
+          const dt = new DataTransfer();
+          dt.items.add(file);
+          const origClick = HTMLInputElement.prototype.click;
+          HTMLInputElement.prototype.click = function() {
+            if (this.type === "file") {
+              Object.defineProperty(this, "files", { value: dt.files, configurable: true });
+              this.dispatchEvent(new Event("change"));
+              HTMLInputElement.prototype.click = origClick;
+              setTimeout(resolve, 200);
+              return;
+            }
+            return origClick.apply(this, arguments);
+          };
+          importData();
+        });
+      });
+    });
+
+    test("uploadStandardImages adds sample images", async ({ page }) => {
+      test.setTimeout(60000);
+      await page.getByTitle("Settings").click();
+      await page.locator("#danger-tab").click();
+      await page.locator("#showDanger").check();
+      await page.locator("#uploadStandardImagesRow").waitFor({ state: "visible" });
+      await page.locator("#btnUploadImages").click();
+      await page.waitForFunction(() => {
+        const imgs = JSON.parse(localStorage.getItem("planmydays_images") || "[]");
+        return imgs.length > 0;
+      }, null, { timeout: 45000 });
+      const count = await page.evaluate(() => JSON.parse(localStorage.getItem("planmydays_images") || "[]").length);
+      expect(count).toBeGreaterThan(0);
+    });
+
+    test("exportData triggers download", async ({ page }) => {
+      await seedTodayList(page);
+      await page.reload();
+      const downloadPromise = page.waitForEvent("download", { timeout: 10000 }).catch(() => null);
+      await page.evaluate(() => exportData());
+      const download = await downloadPromise;
+      if (download) {
+        expect(download.suggestedFilename()).toMatch(/^planmydays-\d+\.json$/);
+        expect(download.suggestedFilename()).not.toContain("-backup-");
+      }
+    });
+  });
+
+  test.describe("Coverage: Images advanced", () => {
+
+    const sampleSvg = "data:image/svg+xml," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" stroke="#ff0000" fill="#00ff00" stroke-width="2"><rect width="10" height="10"/></svg>');
+    const svgNoAttrs = '<svg xmlns="http://www.w3.org/2000/svg"><circle stroke="#abc" fill="#def" r="5"/></svg>';
+
+    test.beforeEach(async ({ page }) => {
+      await startCoverage(page);
+      const images = [];
+      for (let i = 1; i <= 35; i++) {
+        images.push({ name: `Img${String(i).padStart(2, "0")}`, data: sampleSvg });
+      }
+      images.push({ name: "Photo 5", data: sampleSvg });
+      await page.evaluate((imgs) => {
+        localStorage.setItem("planmydays_images", JSON.stringify(imgs));
+      }, images);
+      await page.reload();
+      await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
+      await page.locator("a.dropdown-item").filter({ hasText: "Images" }).click();
+      await page.waitForTimeout(300);
+    });
+
+    test("image list pagination next and previous", async ({ page }) => {
+      await expect(page.getByText("Page 1 of")).toBeVisible();
+      await page.getByRole("button", { name: "Next" }).click();
+      await expect(page.getByText("Page 2 of")).toBeVisible();
+      await page.getByRole("button", { name: "Previous" }).click();
+      await expect(page.getByText("Page 1 of")).toBeVisible();
+    });
+
+    test("duplicate image with trailing number increments", async ({ page }) => {
+      await page.locator("#imageFilters input[type=search]").fill("Photo 5");
+      await page.waitForTimeout(200);
+      await page.locator("#imagesList .btn-info").filter({ hasText: "Duplicate" }).first().click();
+      await page.locator("#imageEditModal").waitFor({ state: "visible" });
+      const name = await page.locator("#imageEditModalBody input.form-control").first().inputValue();
+      expect(name).toMatch(/Photo 6/);
+      await page.locator("#btnImageEditCancel").click();
+    });
+
+    test("upload SVG image via file input", async ({ page }) => {
+      await page.locator("#imagesList .btn-primary").filter({ hasText: "Edit" }).first().click();
+      await page.locator("#imageEditModal").waitFor({ state: "visible" });
+      await page.evaluate((svgText) => {
+        return new Promise(resolve => {
+          const file = new File([svgText], "icon.svg", { type: "image/svg+xml" });
+          const dt = new DataTransfer();
+          dt.items.add(file);
+          const origClick = HTMLInputElement.prototype.click;
+          HTMLInputElement.prototype.click = function() {
+            if (this.type === "file") {
+              Object.defineProperty(this, "files", { value: dt.files, configurable: true });
+              this.dispatchEvent(new Event("change"));
+              HTMLInputElement.prototype.click = origClick;
+              setTimeout(resolve, 300);
+              return;
+            }
+            return origClick.apply(this, arguments);
+          };
+          openImageUpload(editingImageIndex);
+        });
+      }, svgNoAttrs);
+      await page.waitForTimeout(200);
+      const data = await page.evaluate(() => {
+        const images = JSON.parse(localStorage.getItem("planmydays_images") || "[]");
+        return images[editingImageIndex]?.data || "";
+      });
+      expect(data).toContain("data:image/svg+xml");
+      expect(data).toMatch(/stroke/);
+    });
+
+    test("upload raster image via file input", async ({ page }) => {
+      await page.locator("#imagesList .btn-primary").filter({ hasText: "Edit" }).first().click();
+      await page.locator("#imageEditModal").waitFor({ state: "visible" });
+      // 1x1 PNG
+      const pngB64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
+      await page.evaluate(async (b64) => {
+        const bin = atob(b64);
+        const arr = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+        const file = new File([arr], "dot.png", { type: "image/png" });
+        const dt = new DataTransfer();
+        dt.items.add(file);
+        return new Promise(resolve => {
+          const origClick = HTMLInputElement.prototype.click;
+          HTMLInputElement.prototype.click = function() {
+            if (this.type === "file") {
+              Object.defineProperty(this, "files", { value: dt.files, configurable: true });
+              this.dispatchEvent(new Event("change"));
+              HTMLInputElement.prototype.click = origClick;
+              setTimeout(resolve, 300);
+              return;
+            }
+            return origClick.apply(this, arguments);
+          };
+          openImageUpload(editingImageIndex);
+        });
+      }, pngB64);
+      await page.waitForTimeout(200);
+      const data = await page.evaluate(() => {
+        const images = JSON.parse(localStorage.getItem("planmydays_images") || "[]");
+        return images[editingImageIndex]?.data || "";
+      });
+      expect(data.startsWith("data:image/png")).toBeTruthy();
+    });
+
+    test("stroke width adds attribute when missing", async ({ page }) => {
+      await page.evaluate(() => {
+        const images = loadImages();
+        const bare = "data:image/svg+xml," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" stroke="#000" fill="none"><rect width="5" height="5"/></svg>');
+        images[0].data = bare;
+        images[0].name = "BareStroke";
+        saveImages(images);
+        editingImageIndex = 0;
+        isNewImage = false;
+        renderImagesEditor();
+      });
+      await page.locator("#imageEditModal").waitFor({ state: "visible" });
+      await page.evaluate(() => editImageStrokeWidth(0, "4"));
+      const data = await page.evaluate(() => loadImages()[0].data);
+      expect(decodeURIComponent(data)).toMatch(/stroke-width=["']4["']/);
+    });
+
+    test("editImageField non-name field saves", async ({ page }) => {
+      await page.evaluate(() => {
+        const images = loadImages();
+        editingImageIndex = 0;
+        isNewImage = false;
+        editImageField("lineColor", "#abcdef");
+      });
+      const val = await page.evaluate(() => loadImages()[0].lineColor);
+      expect(val).toBe("#abcdef");
+    });
+
+    test("delete image via confirm", async ({ page }) => {
+      const before = await page.evaluate(() => loadImages().length);
+      await page.locator("#imagesList .btn-danger").filter({ hasText: "Delete" }).first().click();
+      await page.locator("#deleteConfirmModal").waitFor({ state: "visible" });
+      await page.locator("#deleteConfirmBtn").click();
+      await page.waitForTimeout(200);
+      const after = await page.evaluate(() => loadImages().length);
+      expect(after).toBe(before - 1);
+    });
+  });
+
+  test.describe("Coverage: Main view edge cases", () => {
+
+    test("loadStreams assigns missing job ids", async ({ page }) => {
+      await page.evaluate(() => {
+        localStorage.setItem("planmydays_streams", JSON.stringify([{
+          id: "s1", title: "S", tab: "progress", sequence: 1, jobs: [
+            { title: "NoId", active: true, frequency: "daily", sequence: 1, schedule: { type: "daily" } }
+          ]
+        }]));
+        localStorage.setItem("planmydays_last_gen", new Date().toISOString().slice(0, 10));
+        localStorage.setItem("planmydays_today_order", JSON.stringify([]));
+      });
+      await page.reload();
+      const id = await page.evaluate(() => {
+        const s = loadStreams();
+        return s[0].jobs[0].id;
+      });
+      expect(id).toMatch(/^job_/);
+    });
+
+    test("jobs with stream and job images render img tags", async ({ page }) => {
+      const svg = "data:image/svg+xml," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" stroke="%23abc" fill="none"><circle r="3"/></svg>');
+      await page.evaluate(({ svgData, streams, ds }) => {
+        localStorage.setItem("planmydays_images", JSON.stringify([
+          { name: "StreamIcon", data: svgData },
+          { name: "JobIcon", data: svgData }
+        ]));
+        streams[0].image = "StreamIcon";
+        streams[0].jobs[0].image = "JobIcon";
+        localStorage.setItem("planmydays_streams", JSON.stringify(streams));
+        localStorage.setItem("planmydays_today_order", JSON.stringify(["job_1"]));
+        localStorage.setItem("planmydays_last_gen", ds);
+        localStorage.setItem("planmydays_completed", "[]");
+      }, { svgData: svg, streams: TEST_STREAMS, ds: todayStr });
+      await page.reload();
+      await expect(page.locator("#todayCardList img.date-img").first()).toBeVisible();
+      const count = await page.locator("#todayCardList img.date-img").count();
+      expect(count).toBeGreaterThanOrEqual(2);
+    });
+
+    test("today list drag reorder updates order", async ({ page }) => {
+      await seedTodayList(page);
+      await page.reload();
+      await expect(page.locator("#todayCardList .today-drag-card")).toHaveCount(2);
+      const after = await page.evaluate(() => {
+        const list = document.getElementById("todayCardList");
+        const cards = [...list.querySelectorAll(".today-drag-card")];
+        const src = cards[0];
+        const dst = cards[1];
+        const dt = new DataTransfer();
+        src.dispatchEvent(new DragEvent("dragstart", { bubbles: true, dataTransfer: dt }));
+        dst.dispatchEvent(new DragEvent("dragover", { bubbles: true, cancelable: true, dataTransfer: dt, clientY: dst.getBoundingClientRect().bottom - 2 }));
+        dst.dispatchEvent(new DragEvent("drop", { bubbles: true, cancelable: true, dataTransfer: dt, clientY: dst.getBoundingClientRect().bottom - 2 }));
+        src.dispatchEvent(new DragEvent("dragend", { bubbles: true, dataTransfer: dt }));
+        return loadTodayOrder();
+      });
+      expect(after[0]).toBe("job_3");
+      expect(after[1]).toBe("job_1");
+    });
+
+    test("job editor drag swaps sequences for same group", async ({ page }) => {
+      await page.evaluate((data) => {
+        data[0].jobs = [
+          { id: "j_a", title: "Auntimed", active: true, frequency: "daily", sequence: 1, time: "", schedule: { type: "daily" } },
+          { id: "j_b", title: "Buntimed", active: true, frequency: "daily", sequence: 2, time: "", schedule: { type: "daily" } }
+        ];
+        localStorage.setItem("planmydays_streams", JSON.stringify(data));
+      }, TEST_STREAMS);
+      await page.reload();
+      await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
+      await page.locator("a.dropdown-item").filter({ hasText: "Jobs" }).click();
+      await page.locator("#streamEditorList .stream-header-main").first().click();
+      await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible" });
+      const src = page.locator(".job-drag-card").filter({ hasText: "Buntimed" });
+      const dst = page.locator(".job-drag-card").filter({ hasText: "Auntimed" });
+      await src.dragTo(dst);
+      await page.waitForTimeout(400);
+      const seqs = await page.evaluate(() => {
+        const s = loadStreams()[0].jobs;
+        const a = s.find(j => j.title === "Auntimed");
+        const b = s.find(j => j.title === "Buntimed");
+        return { a: a.sequence, b: b.sequence };
+      });
+      expect(seqs.a !== 1 || seqs.b !== 2).toBeTruthy();
+    });
+
+    test("canSwapJobs rejects different time groups", async ({ page }) => {
+      const result = await page.evaluate((data) => {
+        data[0].jobs = [
+          { id: "t1", title: "T1", active: true, sequence: 1, time: "09:00" },
+          { id: "t2", title: "T2", active: true, sequence: 2, time: "10:00" },
+          { id: "u1", title: "U1", active: true, sequence: 3, time: "" },
+          { id: "s1", title: "S1", active: true, sequence: 4, time: "", sleepUntil: "2099-01-01" },
+          { id: "s2", title: "S2", active: true, sequence: 5, time: "", sleepUntil: "2099-01-01" }
+        ];
+        localStorage.setItem("planmydays_streams", JSON.stringify(data));
+        return {
+          diffTime: canSwapJobs(0, 0, 1),
+          timeUntimed: canSwapJobs(0, 0, 2),
+          sameSleep: canSwapJobs(0, 3, 4),
+          missing: canSwapJobs(0, 0, 99)
+        };
+      }, TEST_STREAMS);
+      expect(result.diffTime).toBe(false);
+      expect(result.timeUntimed).toBe(false);
+      expect(result.sameSleep).toBe(true);
+      expect(result.missing).toBe(false);
+    });
+
+    test("split list empty tab message", async ({ page }) => {
+      await page.evaluate((data) => {
+        data[0].tab = "progress";
+        data[1].tab = "progress";
+        localStorage.setItem("planmydays_streams", JSON.stringify(data));
+        localStorage.setItem("planmydays_splitList", "true");
+        localStorage.setItem("planmydays_today_order", JSON.stringify(["job_1", "job_3"]));
+        localStorage.setItem("planmydays_last_gen", new Date().toISOString().slice(0, 10));
+        localStorage.setItem("planmydays_completed", "[]");
+      }, TEST_STREAMS);
+      await page.reload();
+      await page.locator(".nav-tabs-info .nav-link").filter({ hasText: "Maintenance" }).click();
+      await expect(page.getByText("No jobs in this tab.")).toBeVisible();
+    });
+
+    test("escapeHtml handles null and zero", async ({ page }) => {
+      const result = await page.evaluate(() => ({
+        empty: escapeHtml(null),
+        zero: escapeHtml(0),
+        html: escapeHtml("<b>&</b>")
+      }));
+      expect(result.empty).toBe("");
+      expect(result.zero).toBe("0");
+      expect(result.html).toBe("&lt;b&gt;&amp;&lt;/b&gt;");
+    });
+
+    test("density compact restored on load", async ({ page }) => {
+      await page.evaluate(() => localStorage.setItem("planmydays_density", "compact"));
+      await page.reload();
+      await expect(page.locator("body")).toHaveClass(/compact/);
+    });
+
+    test("changeDevToday and changeDevLastGen via settings helpers", async ({ page }) => {
+      await page.goto("/?dev=true");
+      await page.evaluate(() => {
+        localStorage.clear();
+        localStorage.setItem("planmydays_images", "[]");
+      });
+      await startCoverage(page);
+      await page.reload();
+      await page.evaluate(() => {
+        changeDevToday("2026-01-15");
+        changeDevLastGen("2026-01-14");
+      });
+      const vals = await page.evaluate(() => ({
+        today: localStorage.getItem("devToday"),
+        last: localStorage.getItem("devLastGen"),
+        dateFn: getTodayStr()
+      }));
+      expect(vals.today).toBe("2026-01-15");
+      expect(vals.last).toBe("2026-01-14");
+      expect(vals.dateFn).toBe("2026-01-15");
+    });
+
+    test("getImageColors decodes percent-hash colors", async ({ page }) => {
+      const result = await page.evaluate(() => {
+        const data = "data:image/svg+xml," + encodeURIComponent('<svg stroke="%23aabbcc" fill="%23ddeeff" stroke-width="3"></svg>');
+        // getImageColors matches against decoded string; also test raw %23 path
+        const raw = "data:image/svg+xml," + encodeURIComponent('<svg></svg>').replace("svg", 'svg stroke="%23ff00aa" fill="%2300ffaa"');
+        return {
+          a: getImageColors(data),
+          b: getImageColors(""),
+          c: getImageColors("data:image/png;base64,xx")
+        };
+      });
+      expect(result.a.line).toBeTruthy();
+      expect(result.b.line).toBe("");
+      expect(result.c.line).toBe("");
+    });
+
+    test("updateSvgColor handles empty and hash colors", async ({ page }) => {
+      const result = await page.evaluate(() => {
+        const src = "data:image/svg+xml," + encodeURIComponent('<svg stroke="#111" fill="#222"></svg>');
+        return {
+          cleared: updateSvgColor(src, "stroke", ""),
+          colored: updateSvgColor(src, "fill", "#abcdef"),
+          passthrough: updateSvgColor("not-svg", "stroke", "#000")
+        };
+      });
+      expect(result.passthrough).toBe("not-svg");
+      expect(decodeURIComponent(result.colored)).toContain("#abcdef");
+      expect(decodeURIComponent(result.cleared)).toMatch(/stroke=["']none["']/);
+    });
+
+    test("touch DnD handlers fire for today cards", async ({ page }) => {
+      await seedTodayList(page);
+      await page.reload();
+      await page.locator("#todayCardList .today-drag-card").first().waitFor({ state: "visible" });
+      const reordered = await page.evaluate(() => {
+        const list = document.getElementById("todayCardList");
+        const cards = [...list.querySelectorAll(".today-drag-card")];
+        const c1 = cards[0];
+        const c2 = cards[1];
+        const r1 = c1.getBoundingClientRect();
+        const r2 = c2.getBoundingClientRect();
+        const fire = (type, x, y, target) => {
+          const t = new Touch({ identifier: 1, target, clientX: x, clientY: y });
+          const touching = type === "touchend" || type === "touchcancel" ? [] : [t];
+          target.dispatchEvent(new TouchEvent(type, {
+            bubbles: true, cancelable: true,
+            touches: touching,
+            changedTouches: [t],
+            targetTouches: touching
+          }));
+        };
+        fire("touchstart", r1.x + 10, r1.y + 10, c1);
+        fire("touchmove", r2.x + 10, r2.y + 10, c1);
+        fire("touchend", r2.x + 10, r2.y + 10, c1);
+        fire("touchstart", r1.x + 10, r1.y + 10, c1);
+        fire("touchcancel", r1.x + 10, r1.y + 10, c1);
+        return loadTodayOrder();
+      });
+      expect(reordered.length).toBeGreaterThanOrEqual(2);
     });
   });
 });

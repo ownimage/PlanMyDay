@@ -33,13 +33,6 @@ function saveStreams(streams) {
   localStorage.setItem("planmydays_streams", JSON.stringify(streams));
 }
 
-function hideAllEditors() {
-  document.getElementById("countdownContainer").classList.remove("d-none");
-  document.getElementById("streamsEditor").classList.add("d-none");
-  document.getElementById("imagesEditor").classList.add("d-none");
-  document.getElementById("settingsPage").classList.add("d-none");
-}
-
 function updateNavState() {
   const nav = document.getElementById("mainNav");
   if (nav) nav.classList.toggle("nav-inactive", false);
@@ -258,12 +251,6 @@ function renderMain() {
   addBtn.onclick = function() { addTodayCardWithModal(); };
   headingRow.appendChild(addBtn);
   container.appendChild(headingRow);
-
-  // inline add form (hidden initially)
-  const addForm = document.createElement("div");
-  addForm.id = "addCardForm";
-  addForm.className = "card p-3 mb-3 d-none flex-shrink-0";
-  container.appendChild(addForm);
 
   ensureTodayList();
 
@@ -522,49 +509,6 @@ function markJobDone(jobId, cbRef) {
   });
 
   updateNavState();
-}
-
-function showAddCardForm() {
-  const form = document.getElementById("addCardForm");
-  if (!form) return;
-  form.classList.toggle("d-none");
-  if (form.classList.contains("d-none")) return;
-  form.innerHTML = `
-    <div class="mb-2">
-      <input class="form-control" id="newCardTitle" placeholder="Job title" value="">
-    </div>
-    <div class="mb-2">
-      <textarea class="form-control" id="newCardDesc" placeholder="Description (optional)" rows="2"></textarea>
-    </div>
-    <div class="d-flex gap-2">
-      <button class="btn btn-primary editor-btn" id="btnAddJobInline" onclick="addTodayCard()">Add</button>
-      <button class="btn btn-secondary editor-btn" id="btnCancelInline" onclick="document.getElementById('addCardForm').classList.add('d-none')">Cancel</button>
-    </div>
-  `;
-}
-
-function addTodayCard() {
-  const title = document.getElementById("newCardTitle").value.trim();
-  if (!title) return;
-  const desc = document.getElementById("newCardDesc").value.trim();
-  const streams = loadStreams();
-  let stream = streams.find(t => t.title === "Ad Hoc");
-  if (!stream) {
-    stream = { title: "Ad Hoc", sequence: streams.length + 1, jobs: [] };
-    streams.push(stream);
-  }
-  const jobs = stream.jobs || [];
-  const newJob = { id: "job_" + Date.now(), title, sequence: jobs.length + 1, description: desc, active: true, frequency: "daily" };
-  jobs.push(newJob);
-  stream.jobs = jobs;
-  saveStreams(streams);
-  const order = loadTodayOrder() || [];
-  const allActive = [];
-  streams.forEach(t => { (t.jobs || []).forEach(j => { if (j.active !== false) allActive.push(j.id); }); });
-  const remaining = allActive.filter(id => order.includes(id));
-  remaining.push(newJob.id);
-  saveTodayOrder(remaining);
-  renderMain();
 }
 
 function addTodayCardWithModal() {

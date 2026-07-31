@@ -1,4 +1,4 @@
-const BUILD_NUMBER = "202607062100";
+importScripts("js/build-number.js");
 
 const CACHE = "planmydays-" + BUILD_NUMBER;
 
@@ -9,6 +9,7 @@ const PRECACHE_URLS = [
   "icon.svg",
   "sampleImages.json",
   "css/styles.css",
+  "js/build-number.js",
   "js/settings.js",
   "js/app.js",
   "js/images.js"
