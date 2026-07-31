@@ -1798,6 +1798,18 @@ document.addEventListener("DOMContentLoaded", () => {
   if (typeof seedSampleImages === "function") seedSampleImages();
 
   renderMain();
+
+  const streamEditorList = document.getElementById("streamEditorList");
+  if (streamEditorList) {
+    streamEditorList.addEventListener("shown.bs.collapse", function(e) {
+      const item = e.target.closest(".stream-accordion-item");
+      if (item) item.classList.add("expanded");
+    });
+    streamEditorList.addEventListener("hidden.bs.collapse", function(e) {
+      const item = e.target.closest(".stream-accordion-item");
+      if (item) item.classList.remove("expanded");
+    });
+  }
 });
 
 // PWA PULL-TO-REFRESH

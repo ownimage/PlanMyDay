@@ -146,11 +146,12 @@ const THEMES = Object.keys(THEME_CONFIG);
 
 async function setTheme(page, themeName) {
   const config = THEME_CONFIG[themeName] || THEME_CONFIG.darkly;
-  await page.evaluate(({ css, bsTheme }) => {
+  await page.evaluate(({ css, bsTheme, name }) => {
     const link = document.getElementById("bootstrap-theme-css");
     if (link) link.href = css;
     document.documentElement.setAttribute("data-bs-theme", bsTheme);
-  }, { css: config.css, bsTheme: config.bsTheme });
+    document.documentElement.setAttribute("data-theme", name);
+  }, { css: config.css, bsTheme: config.bsTheme, name: themeName });
 }
 
 async function screenshotAllThemes(page, fileName) {

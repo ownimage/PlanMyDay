@@ -349,7 +349,12 @@ body.auto-hide-menu #mainNav.nav-hidden ~ .container-fluid {
 }
 
 #mainNav {
+  background-color: var(--bs-body-bg);
   padding-top: env(safe-area-inset-top, 0);
+}
+[data-theme="minty"] #mainNav .btn,
+[data-theme="minty"] #mainNav .btn:hover {
+  color: var(--bs-emphasis-color);
 }
 body.auto-hide-menu .container-fluid {
   padding-top: calc(60px + env(safe-area-inset-top, 0));
@@ -456,6 +461,40 @@ body.auto-hide-menu #mainNav.nav-hidden ~ .container-fluid {
   border-radius: 0;
 }
 
+[data-theme="cerulean"] .stream-accordion-item.expanded .stream-accordion-header {
+  color: #fff;
+}
+[data-theme="cerulean"] .stream-accordion-item.expanded .drag-handle {
+  color: #fff;
+}
+[data-theme="cerulean"] .stream-accordion-item.expanded .stream-header-chevron {
+  filter: brightness(0) invert(1);
+}
+[data-theme="flatly"] .stream-accordion-item.expanded .stream-accordion-header {
+  color: #212529;
+}
+[data-theme="flatly"] .stream-accordion-item.expanded .drag-handle {
+  color: #212529;
+}
+[data-theme="journal"] .stream-accordion-item.expanded .stream-accordion-header {
+  color: #fff;
+}
+[data-theme="journal"] .stream-accordion-item.expanded .drag-handle {
+  color: #fff;
+}
+[data-theme="journal"] .stream-accordion-item.expanded .stream-header-chevron {
+  filter: brightness(0) invert(1);
+}
+[data-theme="materia"] .stream-accordion-item.expanded .stream-accordion-header {
+  color: #fff;
+}
+[data-theme="materia"] .stream-accordion-item.expanded .drag-handle {
+  color: #fff;
+}
+[data-theme="materia"] .stream-accordion-item.expanded .stream-header-chevron {
+  filter: brightness(0) invert(1);
+}
+
 #settingsPage {
   padding-top: 20px;
   padding-bottom: 20px;
@@ -474,6 +513,22 @@ body.auto-hide-menu #mainNav.nav-hidden ~ .container-fluid {
 .nav-tabs-info .nav-link:hover {
   border-color: var(--bs-gray-300);
   isolation: isolate;
+}
+[data-theme="cerulean"] .nav-tabs-info .nav-link.active,
+[data-theme="cerulean"] .nav-tabs-info .nav-link.active:hover {
+  color: #fff;
+}
+[data-theme="flatly"] .nav-tabs-info .nav-link.active,
+[data-theme="flatly"] .nav-tabs-info .nav-link.active:hover {
+  color: #212529;
+}
+[data-theme="journal"] .nav-tabs-info .nav-link.active,
+[data-theme="journal"] .nav-tabs-info .nav-link.active:hover {
+  color: #fff;
+}
+[data-theme="materia"] .nav-tabs-info .nav-link.active,
+[data-theme="materia"] .nav-tabs-info .nav-link.active:hover {
+  color: #fff;
 }
 #settingsPage .tab-content {
   margin-bottom: 1rem;
@@ -669,6 +724,13 @@ body.compact .editor-btn {
 }
 [data-bs-theme="dark"] .flatpickr-calendar .flatpickr-time .flatpickr-time-separator {
   color: var(--bs-body-color);
+}
+
+.modal-content {
+  background-color: var(--bs-body-bg);
+  background-image: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
 }
 
 

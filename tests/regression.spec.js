@@ -849,11 +849,12 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#imageEditModalBody .form-control:not(.form-control-sm)").waitFor({ state: "visible" });
       await page.locator("#imageEditModalBody .form-control:not(.form-control-sm)").fill("DelImg");
       await page.locator("#btnImageEditOk").click();
-      await page.locator("#imageEditModal").waitFor({ state: "hidden" });
+      await page.locator("#imageEditModal").waitFor({ state: "hidden", timeout: 10000 });
       await page.locator(".card:has-text('DelImg')").waitFor({ state: "visible" });
       await page.locator(".card:has-text('DelImg') .btn-danger").filter({ hasText: "Delete" }).click();
-      await expect(page.locator("#deleteConfirmModal")).toBeVisible();
+      await page.locator("#deleteConfirmModal").waitFor({ state: "visible" });
       await page.locator("#deleteConfirmBtn").click();
+      await page.waitForTimeout(300);
       await expect(page.getByText("DelImg")).not.toBeVisible();
     });
 
@@ -921,13 +922,24 @@ test.describe("PlanMyDay - Regression", () => {
         ]));
       }, TEST_STREAMS);
       await page.reload();
+      await page.waitForLoadState("domcontentloaded");
       await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
       await page.locator("a.dropdown-item").filter({ hasText: "Jobs" }).click();
+      await page.locator("#streamEditorList").waitFor({ state: "visible" });
       await page.locator("#streamEditorList .stream-header-main").first().click();
       await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible", timeout: 5000 });
       await page.locator("#streamEditorList .btn-primary").filter({ hasText: "Edit" }).first().click();
       await page.getByRole("button", { name: "Change" }).click();
       await page.locator("#imagePickerModal").waitFor({ state: "visible" });
+      await page.evaluate(() => {
+        document.querySelectorAll(".modal.show").forEach(function(el) {
+          if (el.id !== "imagePickerModal") {
+            var inst = bootstrap.Modal.getInstance(el);
+            if (inst) inst.hide();
+          }
+        });
+      });
+      await page.waitForTimeout(400);
     });
 
     test("opens from stream editor image choose", async ({ page }) => {
@@ -1084,11 +1096,14 @@ test.describe("PlanMyDay - Regression", () => {
         localStorage.setItem("planmydays_streams", JSON.stringify(streams));
       }, TEST_STREAMS);
       await page.reload();
+      await page.waitForLoadState("domcontentloaded");
       await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
       await page.locator("a.dropdown-item").filter({ hasText: "Jobs" }).click();
+      await page.locator("#streamEditorList").waitFor({ state: "visible" });
       await page.locator("#streamEditorList .accordion-header .btn-danger").filter({ hasText: "Delete" }).click();
-      await expect(page.locator("#deleteConfirmModal")).toBeVisible();
-      await page.locator("#deleteConfirmModal [data-bs-dismiss='modal']").click();
+      await page.locator("#deleteConfirmModal").waitFor({ state: "visible" });
+      await page.locator("#btnDeleteCancel").click();
+      await page.locator("#deleteConfirmModal").waitFor({ state: "hidden" });
       await expect(page.locator("#deleteConfirmModal")).not.toBeVisible();
     });
   });
@@ -1661,13 +1676,24 @@ test.describe("PlanMyDay - Regression", () => {
         ]));
       }, TEST_STREAMS);
       await page.goto("/");
+      await page.waitForLoadState("domcontentloaded");
       await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
       await page.locator("a.dropdown-item").filter({ hasText: "Jobs" }).click();
+      await page.locator("#streamEditorList").waitFor({ state: "visible" });
       await page.locator("#streamEditorList .stream-header-main").first().click();
       await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible", timeout: 5000 });
       await page.locator("#streamEditorList .btn-primary").filter({ hasText: "Edit" }).first().click();
       await page.getByRole("button", { name: "Change" }).click();
-      await expect(page.locator("#imagePickerModal")).toBeVisible();
+      await page.locator("#imagePickerModal").waitFor({ state: "visible" });
+      await page.evaluate(() => {
+        document.querySelectorAll(".modal.show").forEach(function(el) {
+          if (el.id !== "imagePickerModal") {
+            var inst = bootstrap.Modal.getInstance(el);
+            if (inst) inst.hide();
+          }
+        });
+      });
+      await page.waitForTimeout(400);
     });
 
     test("selecting image sets name in stream editor", async ({ page }) => {

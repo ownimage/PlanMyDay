@@ -34,6 +34,7 @@ function applyTheme(name) {
   const link = document.getElementById("bootstrap-theme-css");
   if (link) link.href = config.css;
   document.documentElement.setAttribute("data-bs-theme", config.bsTheme);
+  document.documentElement.setAttribute("data-theme", name);
   localStorage.setItem("planmydays_theme", name);
 }
 
