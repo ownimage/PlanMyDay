@@ -675,20 +675,22 @@ function renderStreamsEditor() {
     item.draggable = true;
     item.dataset.index = realIdx;
 
-    var headerHtml = '<h2 class="accordion-header d-flex align-items-center gap-2 p-2" id="streamHeading_' + realIdx + '">' +
-      '<div class="drag-handle text-secondary" style="cursor:grab;font-size:1.3rem;line-height:1;flex-shrink:0">&#9776;</div>' +
-      '<div style="width:40px;height:40px;flex-shrink:0">' + (streamImgUrl ? '<img src="' + streamImgUrl + '" class="date-img" style="max-width:40px;max-height:40px">' : '') + '</div>' +
-      '<button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#' + collapseId + '" aria-expanded="false">' +
-        '<div style="display:flex;flex-direction:column;min-width:0;flex:1;gap:0.25rem">' +
+    var headerHtml = '<h2 class="accordion-header" id="streamHeading_' + realIdx + '">' +
+      '<button class="accordion-button collapsed accordion-full-btn w-100 p-2" type="button" data-bs-toggle="collapse" data-bs-target="#' + collapseId + '" aria-expanded="false">' +
+        '<div class="drag-handle text-secondary flex-shrink-0" style="cursor:grab;font-size:1.3rem;line-height:1">&#9776;</div>' +
+        '<div style="width:40px;height:40px;flex-shrink:0" class="mx-2">' + (streamImgUrl ? '<img src="' + streamImgUrl + '" class="date-img" style="max-width:40px;max-height:40px">' : '') + '</div>' +
+        '<div style="display:flex;flex-direction:column;min-width:0;flex:1;gap:0.25rem" class="me-2">' +
           '<span class="fw-bold editor-title">' + escapeHtml(t.title) + '</span>' +
           '<div style="display:flex;gap:0.25rem">' +
             '<span class="badge bg-' + ((t.tab || "progress") === "progress" ? "success" : "primary") + '">' + escapeHtml(t.tab || "progress") + '</span>' +
             (jobs.length > 0 ? '<span class="badge bg-secondary">' + jobs.length + ' job' + (jobs.length !== 1 ? 's' : '') + '</span>' : '') +
           '</div>' +
         '</div>' +
+        '<div class="d-flex gap-1 flex-shrink-0 me-3">' +
+          '<button class="btn btn-primary editor-btn" style="min-width:50px" onclick="event.stopPropagation(); event.preventDefault(); editStream(' + realIdx + ')">Edit</button>' +
+          (jobs.length === 0 ? '<button class="btn btn-danger editor-btn" style="min-width:50px" onclick="event.stopPropagation(); event.preventDefault(); confirmDeleteStream(' + realIdx + ')">Delete</button>' : '') +
+        '</div>' +
       '</button>' +
-      '<button class="btn btn-primary editor-btn flex-shrink-0" style="min-width:60px" onclick="event.stopPropagation(); editStream(' + realIdx + ')">Edit</button>' +
-      (jobs.length === 0 ? '<button class="btn btn-danger editor-btn flex-shrink-0" style="min-width:60px" onclick="event.stopPropagation(); confirmDeleteStream(' + realIdx + ')">Delete</button>' : '') +
     '</h2>';
 
     var bodyHtml = '<div id="' + collapseId + '" class="accordion-collapse collapse" data-bs-parent="#streamEditorList">' +
