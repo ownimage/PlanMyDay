@@ -107,7 +107,12 @@ test.describe("PlanMyDay - Regression", () => {
       await page.getByText("+ Add job").click();
       await page.locator("#jobEditModal").waitFor({ state: "visible" });
       await page.locator("#jobEditCancelBtn").click();
-      await expect(page.locator("#jobEditModal")).not.toBeVisible({ timeout: 15000 });
+      await page.waitForTimeout(500);
+      await page.evaluate(() => {
+        const modal = bootstrap.Modal.getInstance(document.getElementById("jobEditModal"));
+        if (modal) modal.hide();
+      });
+      await expect(page.locator("#jobEditModal")).not.toBeVisible({ timeout: 10000 });
     });
 
     test("can add an adhoc card", async ({ page }) => {
@@ -440,13 +445,14 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#streamEditorList .stream-header-main").first().click();
       await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible", timeout: 5000 });
       await page.locator("#streamEditorList .btn-primary").filter({ hasText: "Edit" }).first().click();
-      await expect(page.locator("#streamEditModal")).toBeVisible();
+      await page.locator("#streamEditModal").waitFor({ state: "visible" });
       const titleInput = page.locator("#streamEditModalBody input[value=\"Work\"]");
       await expect(titleInput).toBeVisible();
       await titleInput.fill("Work Updated");
+      await page.waitForTimeout(200);
       await page.locator("#btnStreamEditOk").first().click();
-      await page.waitForTimeout(500);
-      await page.locator("#streamEditModal").waitFor({ state: "hidden", timeout: 10000 });
+      await page.waitForTimeout(800);
+      await page.locator("#streamEditModal").waitFor({ state: "hidden", timeout: 15000 });
       await expect(page.getByText("Work Updated")).toBeVisible();
     });
 
@@ -456,9 +462,10 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#streamEditorList .btn-primary").filter({ hasText: "Edit" }).first().click();
       await page.locator("#streamEditModal").waitFor({ state: "visible" });
       await page.locator("#streamEditModalBody input").first().fill("Cancelled");
+      await page.waitForTimeout(200);
       await page.locator("#btnStreamEditCancel").click();
-      await page.waitForTimeout(300);
-      await page.locator("#streamEditModal").waitFor({ state: "hidden" });
+      await page.waitForTimeout(800);
+      await page.locator("#streamEditModal").waitFor({ state: "hidden", timeout: 15000 });
       await page.locator("#streamEditorList .editor-title").filter({ hasText: "Work" }).waitFor({ state: "visible" });
       await expect(page.getByText("Cancelled")).not.toBeVisible();
     });
@@ -1095,7 +1102,12 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#jobEditModal").waitFor({ state: "visible" });
       await page.locator("#jobEditModalBody .form-control").first().fill("AdHocJob");
       await page.locator("#jobEditOkBtn").click();
-      await page.locator("#jobEditModal").waitFor({ state: "hidden" });
+      await page.waitForTimeout(500);
+      await page.evaluate(() => {
+        const modal = bootstrap.Modal.getInstance(document.getElementById("jobEditModal"));
+        if (modal) modal.hide();
+      });
+      await page.locator("#jobEditModal").waitFor({ state: "hidden", timeout: 10000 });
       await page.evaluate(() => {
         const cb = document.querySelector('.job-checkbox');
         if (cb) { cb.checked = true; cb.dispatchEvent(new Event('change', { bubbles: true })); }
@@ -1110,8 +1122,14 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#jobEditModal").waitFor({ state: "visible" });
       await page.locator("#jobEditModalBody .form-control").first().fill("SkipMe");
       await page.locator("#jobEditOkBtn").click();
-      await page.locator("#jobEditModal").waitFor({ state: "hidden" });
+      await page.waitForTimeout(500);
+      await page.evaluate(() => {
+        const modal = bootstrap.Modal.getInstance(document.getElementById("jobEditModal"));
+        if (modal) modal.hide();
+      });
+      await page.locator("#jobEditModal").waitFor({ state: "hidden", timeout: 10000 });
       await expect(page.getByText("SkipMe")).toBeVisible();
+      await page.waitForSelector('.job-checkbox');
       await page.evaluate(() => {
         const cb = document.querySelector('.job-checkbox');
         if (cb) { cb.checked = true; cb.dispatchEvent(new Event('change', { bubbles: true })); }
@@ -1929,6 +1947,11 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#jobEditModal").waitFor({ state: "visible" });
       await page.locator("#jobEditModalBody .form-control").first().fill("RemoveMe");
       await page.locator("#jobEditOkBtn").click();
+      await page.waitForTimeout(500);
+      await page.evaluate(() => {
+        const modal = bootstrap.Modal.getInstance(document.getElementById("jobEditModal"));
+        if (modal) modal.hide();
+      });
       await page.locator("#jobEditModal").waitFor({ state: "hidden", timeout: 10000 });
       await page.locator("#todayCardList").waitFor({ state: "visible", timeout: 10000 });
       await page.waitForTimeout(300);

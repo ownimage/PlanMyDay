@@ -485,6 +485,7 @@ body.auto-hide-menu #mainNav.nav-hidden ~ .container-fluid {
   max-width: 90vw;
   width: 90vw;
   height: 90vh;
+  margin: 1.75rem auto;
 }
 #jobEditModal .modal-content {
   height: 100%;
