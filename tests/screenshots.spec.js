@@ -244,6 +244,8 @@ test.describe("PlanMyDay - Screenshots", () => {
     await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
     await page.locator("a.dropdown-item").filter({ hasText: "Jobs" }).click();
     await page.waitForSelector("#streamEditorList .accordion-item");
+    await page.locator("#streamEditorList .stream-header-main").first().click();
+    await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible", timeout: 5000 });
     await screenshotAllThemes(page, "edit-streams.png");
   });
 

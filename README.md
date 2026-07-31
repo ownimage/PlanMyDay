@@ -81,3 +81,13 @@ This captures 13 views with the Superhero theme:
 - `edit-streams.png`, `add-stream.png`
 - `stream-job-list.png`, `stream-add-job.png`, `edit-job.png`
 - `edit-images.png`
+
+### Screenshot viewer
+
+Browse all theme screenshots side by side in a browser:
+
+```bash
+node screenshots/viewer.js
+```
+
+Opens a local viewer at `http://localhost:3000` with accordion sections per theme, a unified horizontal scrollbar to compare screenshots across themes, and Open All / Collapse All buttons.
