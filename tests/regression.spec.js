@@ -152,10 +152,11 @@ test.describe("PlanMyDay - Regression", () => {
     test("read-only modal closes with close button", async ({ page }) => {
       await seedTodayList(page);
       await page.reload();
+      await expect(page.locator("#todayCardList")).toBeVisible();
       await page.locator(".job-view-btn").first().click();
-      await page.locator("#jobEditModal").waitFor({ state: "visible" });
+      await expect(page.locator("#jobEditModal")).toBeVisible();
       await page.locator("#btnViewJobOk").click();
-      await page.locator("#jobEditModal").waitFor({ state: "hidden", timeout: 5000 });
+      await expect(page.locator("#jobEditModal")).toBeHidden();
     });
 
     test("edit button in view modal switches to editable mode", async ({ page }) => {
@@ -932,11 +933,9 @@ test.describe("PlanMyDay - Regression", () => {
     });
 
     test("clear button resets picker search", async ({ page }) => {
-      test.setTimeout(30000);
       await page.locator(".image-picker-search").fill("PickTest");
-      await page.locator("#imagePickerModal button:has-text('Clear')").click();
-      const val = await page.locator(".image-picker-search").inputValue();
-      expect(val).toBe("");
+      await page.locator("#btnImagePickerClear").click();
+      await expect(page.locator(".image-picker-search")).toHaveValue("");
     });
 
     test("no image and cancel buttons exist", async ({ page }) => {

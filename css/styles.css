@@ -535,6 +535,10 @@ body.compact .editor-btn {
 .stream-drag-card.drag-over-bottom {
   border-bottom: 3px solid var(--bs-primary) !important;
 }
+.drag-handle {
+  color: var(--bs-body-color);
+  opacity: 0.55;
+}
 .stream-drag-card .drag-handle {
   cursor: grab;
   touch-action: none;
