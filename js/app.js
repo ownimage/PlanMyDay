@@ -1041,6 +1041,39 @@ function updateSleepUntilClearBtn() {
   btn.classList.toggle("d-none", !val);
 }
 
+function jobAddTask() {
+  if (!jobsBuffer) return;
+  if (!jobsBuffer.tasks) jobsBuffer.tasks = [];
+  jobsBuffer.tasks.push({ description: "", done: false });
+  renderJobTasks();
+}
+
+function jobDeleteTask(index) {
+  if (!jobsBuffer || !jobsBuffer.tasks) return;
+  jobsBuffer.tasks.splice(index, 1);
+  renderJobTasks();
+}
+
+function jobTaskField(index, field, value) {
+  if (!jobsBuffer || !jobsBuffer.tasks) return;
+  jobsBuffer.tasks[index][field] = value;
+}
+
+function renderJobTasks() {
+  var el = document.getElementById("jobTasksList");
+  if (!el || !jobsBuffer) return;
+  var tasks = jobsBuffer.tasks || [];
+  var html = "";
+  tasks.forEach(function(task, i) {
+    html += '<div class="d-flex align-items-center gap-2 mb-1 task-row">' +
+      '<input class="form-check-input task-done-cb" type="checkbox" id="taskDone' + i + '" ' + (task.done ? "checked" : "") + ' onchange="jobTaskField(' + i + ', \'done\', this.checked)">' +
+      '<input class="form-control task-desc-input" value="' + escapeHtml(task.description || "") + '" placeholder="Task description" oninput="jobTaskField(' + i + ', \'description\', this.value)">' +
+      '<button class="btn btn-sm btn-danger" onclick="jobDeleteTask(' + i + ')">&times;</button>' +
+      '</div>';
+  });
+  el.innerHTML = html;
+}
+
 function formatDate(dateStr) {
   if (!dateStr) return "";
   const d = new Date(dateStr + "T00:00:00");
@@ -1219,6 +1252,16 @@ function getJobEditFormHTML(data, readOnly) {
   const streamImgUrl = getImageDataUrl(currentStream.image);
   const disabled = readOnly ? "disabled" : "";
   const ro = readOnly ? "readonly" : "";
+  const tasks = data.tasks || [];
+  var tasksHTML = "";
+  tasks.forEach(function(task, i) {
+    tasksHTML += `
+      <div class="d-flex align-items-center gap-2 mb-1 task-row">
+        <input class="form-check-input task-done-cb" type="checkbox" ${task.done ? "checked" : ""} ${disabled} onchange="jobTaskField(${i}, 'done', this.checked)">
+        <input class="form-control task-desc-input" value="${escapeHtml(task.description || "")}" ${ro} placeholder="Task description" oninput="jobTaskField(${i}, 'description', this.value)">
+        <button class="btn btn-sm btn-danger" ${disabled} onclick="jobDeleteTask(${i})">&times;</button>
+      </div>`;
+  });
   return `
     <div class="row mb-1">
       <div class="col">
@@ -1234,103 +1277,128 @@ function getJobEditFormHTML(data, readOnly) {
     <div class="mb-2">
       <input class="form-control" id="jobTitleInput" value="${escapeHtml(data.title || "")}" ${ro} oninput="jobField('title', this.value);updateJobEditOkBtn()">
     </div>
-    <div class="row mb-2">
-      <div class="col-6">
-        <label class="form-label">Stream</label>
-        <div class="d-flex align-items-center gap-2">
-          <div style="width:45px;height:45px;border:1px solid var(--bs-border-color);border-radius:6px;overflow:hidden;display:flex;align-items:center;justify-content:center;flex-shrink:0" id="jobStreamPreview">
-            ${streamImgUrl ? `<img src="${streamImgUrl}" class="date-img" style="max-width:45px;max-height:45px">` : `<span class="text-secondary small" style="font-size:0.6rem">none</span>`}
+
+    <ul class="nav nav-tabs nav-tabs-info" id="jobEditTabs" role="tablist">
+      <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="jobGeneral-tab" data-bs-toggle="tab" data-bs-target="#jobGeneral" type="button" role="tab" aria-controls="jobGeneral" aria-selected="true">General</button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="jobSchedule-tab" data-bs-toggle="tab" data-bs-target="#jobSchedule" type="button" role="tab" aria-controls="jobSchedule" aria-selected="false">Schedule</button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="jobTasks-tab" data-bs-toggle="tab" data-bs-target="#jobTasks" type="button" role="tab" aria-controls="jobTasks" aria-selected="false">Tasks</button>
+      </li>
+    </ul>
+
+    <div class="tab-content" id="jobEditTabsContent">
+      <div class="tab-pane fade show active" id="jobGeneral" role="tabpanel" aria-labelledby="jobGeneral-tab">
+        <div class="row mb-2 mt-2">
+          <div class="col-6">
+            <label class="form-label">Stream</label>
+            <div class="d-flex align-items-center gap-2">
+              <div style="width:45px;height:45px;border:1px solid var(--bs-border-color);border-radius:6px;overflow:hidden;display:flex;align-items:center;justify-content:center;flex-shrink:0" id="jobStreamPreview">
+                ${streamImgUrl ? `<img src="${streamImgUrl}" class="date-img" style="max-width:45px;max-height:45px">` : `<span class="text-secondary small" style="font-size:0.6rem">none</span>`}
+              </div>
+              <select class="form-select" ${disabled} onchange="jobChangeStream(parseInt(this.value))">
+                ${streams.map((s, i) => `
+                  <option value="${i}" ${i === (jobsTargetStreamIndex >= 0 ? jobsTargetStreamIndex : jobsStreamIndex) ? "selected" : ""}>
+                    ${escapeHtml(s.title)}
+                  </option>
+                `).join("")}
+              </select>
+            </div>
           </div>
-          <select class="form-select" ${disabled} onchange="jobChangeStream(parseInt(this.value))">
-            ${streams.map((s, i) => `
-              <option value="${i}" ${i === (jobsTargetStreamIndex >= 0 ? jobsTargetStreamIndex : jobsStreamIndex) ? "selected" : ""}>
-                ${escapeHtml(s.title)}
-              </option>
-            `).join("")}
-          </select>
+          <div class="col-6">
+            <label class="form-label">Image</label>
+            <div class="d-flex align-items-center gap-2">
+              <div style="width:45px;height:45px;border:1px solid var(--bs-border-color);border-radius:6px;overflow:hidden;display:flex;align-items:center;justify-content:center;flex-shrink:0" id="jobImagePreview">
+                ${getImageDataUrl(data.image) ? `<img src="${getImageDataUrl(data.image)}" class="date-img" style="max-width:45px;max-height:45px">` : `<span class="text-secondary small">none</span>`}
+              </div>
+              <div>
+                <div id="jobImageName">${escapeHtml(data.image || "")}</div>
+                <div class="d-flex gap-1 mt-1">
+                  <button class="btn btn-primary btn-sm" id="btnJobImageChange" ${disabled} onclick="openImagePicker(function(name){ jobField('image', name); updateJobImagePreview(name); })">Change</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="mb-2">
+          <label class="form-label">Description</label>
+          <textarea class="form-control" rows="3" ${ro} oninput="jobField('description', this.value)">${escapeHtml(data.description || "")}</textarea>
+        </div>
+        <div class="row mb-2">
+          <div class="col-auto d-flex align-items-center">
+            <div class="form-check mb-0">
+              <input class="form-check-input" type="checkbox" id="jobSuffixCb" ${data.suffix ? "checked" : ""} ${disabled} onchange="jobField('suffix', this.checked)">
+              <label class="form-check-label" for="jobSuffixCb">Suffix</label>
+            </div>
+          </div>
+          <div class="col">
+            <select class="form-select" ${disabled} onchange="jobField('dayType', this.value)">
+              <option value="dayOfYear" ${(data.dayType || "dayOfYear") === "dayOfYear" ? "selected" : ""}>Day of Year</option>
+              <option value="dayOfMonth" ${data.dayType === "dayOfMonth" ? "selected" : ""}>Day of Month</option>
+              <option value="dayOfWeek" ${data.dayType === "dayOfWeek" ? "selected" : ""}>Day of Week</option>
+            </select>
+          </div>
+          <div class="col">
+            <select class="form-select" ${disabled} onchange="jobField('mod', this.value)">
+              <option value="" ${!data.mod ? "selected" : ""}>None</option>
+              <option value="2" ${data.mod === "2" ? "selected" : ""}>2</option>
+              <option value="3" ${data.mod === "3" ? "selected" : ""}>3</option>
+              <option value="4" ${data.mod === "4" ? "selected" : ""}>4</option>
+              <option value="5" ${data.mod === "5" ? "selected" : ""}>5</option>
+              <option value="6" ${data.mod === "6" ? "selected" : ""}>6</option>
+              <option value="7" ${data.mod === "7" ? "selected" : ""}>7</option>
+            </select>
+          </div>
         </div>
       </div>
-      <div class="col-6">
-        <label class="form-label">Image</label>
-        <div class="d-flex align-items-center gap-2">
-          <div style="width:45px;height:45px;border:1px solid var(--bs-border-color);border-radius:6px;overflow:hidden;display:flex;align-items:center;justify-content:center;flex-shrink:0" id="jobImagePreview">
-            ${getImageDataUrl(data.image) ? `<img src="${getImageDataUrl(data.image)}" class="date-img" style="max-width:45px;max-height:45px">` : `<span class="text-secondary small">none</span>`}
+      <div class="tab-pane fade" id="jobSchedule" role="tabpanel" aria-labelledby="jobSchedule-tab">
+        <div class="mb-2 mt-2">
+          <label class="form-label">Schedule</label>
+          <div class="d-flex align-items-center gap-2">
+            <span id="jobScheduleText">${escapeHtml(getScheduleText(data.schedule))}</span>
+            <button class="btn btn-primary btn-sm" id="btnScheduleChange" ${disabled} onclick="openScheduleModal()">Change</button>
           </div>
-          <div>
-            <div id="jobImageName">${escapeHtml(data.image || "")}</div>
-            <div class="d-flex gap-1 mt-1">
-              <button class="btn btn-primary btn-sm" id="btnJobImageChange" ${disabled} onclick="openImagePicker(function(name){ jobField('image', name); updateJobImagePreview(name); })">Change</button>
+        </div>
+        <div class="row mb-2">
+          <div class="col">
+            <label class="form-label">Sleep Until</label>
+            <div class="d-flex gap-2">
+              <input class="form-control" id="jobSleepUntil" value="${escapeHtml(data.sleepUntil || "")}" ${ro} placeholder="Pick a date">
+              <button class="btn btn-danger btn-sm ${data.sleepUntil ? "" : "d-none"}" id="jobSleepUntilClearBtn" ${disabled} onclick="clearSleepUntil()">Clear</button>
+            </div>
+          </div>
+        </div>
+        <div class="row mb-2">
+          <div class="col">
+            <label class="form-label">Schedule Time</label>
+            <div class="d-flex gap-2">
+              <select class="form-select" id="jobTimeHour" ${disabled} onchange="jobTimeChanged()" style="width:auto">
+                <option value="" ${!data.time ? "selected" : ""}>-</option>
+                ${Array.from({length: 24}, (_, i) => {
+                  const h = String(i).padStart(2, "0");
+                  const cur = data.time ? data.time.split(":")[0] : "";
+                  return `<option value="${h}" ${cur === h ? "selected" : ""}>${h}</option>`;
+                }).join("")}
+              </select>
+              <span class="align-self-center">:</span>
+              <select class="form-select" id="jobTimeMin" ${disabled} onchange="jobTimeChanged()" style="width:auto">
+                <option value="" ${!data.time ? "selected" : ""}>-</option>
+                <option value="00" ${data.time && data.time.split(":")[1] === "00" ? "selected" : ""}>00</option>
+                <option value="15" ${data.time && data.time.split(":")[1] === "15" ? "selected" : ""}>15</option>
+                <option value="30" ${data.time && data.time.split(":")[1] === "30" ? "selected" : ""}>30</option>
+                <option value="45" ${data.time && data.time.split(":")[1] === "45" ? "selected" : ""}>45</option>
+              </select>
             </div>
           </div>
         </div>
       </div>
-    </div>
-    <div class="mb-2">
-      <label class="form-label">Description</label>
-      <textarea class="form-control" rows="3" ${ro} oninput="jobField('description', this.value)">${escapeHtml(data.description || "")}</textarea>
-    </div>
-    <div class="row mb-2">
-      <div class="col-auto d-flex align-items-center">
-        <div class="form-check mb-0">
-          <input class="form-check-input" type="checkbox" id="jobSuffixCb" ${data.suffix ? "checked" : ""} ${disabled} onchange="jobField('suffix', this.checked)">
-          <label class="form-check-label" for="jobSuffixCb">Suffix</label>
-        </div>
-      </div>
-      <div class="col">
-        <select class="form-select" ${disabled} onchange="jobField('dayType', this.value)">
-          <option value="dayOfYear" ${(data.dayType || "dayOfYear") === "dayOfYear" ? "selected" : ""}>Day of Year</option>
-          <option value="dayOfMonth" ${data.dayType === "dayOfMonth" ? "selected" : ""}>Day of Month</option>
-          <option value="dayOfWeek" ${data.dayType === "dayOfWeek" ? "selected" : ""}>Day of Week</option>
-        </select>
-      </div>
-      <div class="col">
-        <select class="form-select" ${disabled} onchange="jobField('mod', this.value)">
-          <option value="" ${!data.mod ? "selected" : ""}>None</option>
-          <option value="2" ${data.mod === "2" ? "selected" : ""}>2</option>
-          <option value="3" ${data.mod === "3" ? "selected" : ""}>3</option>
-          <option value="4" ${data.mod === "4" ? "selected" : ""}>4</option>
-          <option value="5" ${data.mod === "5" ? "selected" : ""}>5</option>
-          <option value="6" ${data.mod === "6" ? "selected" : ""}>6</option>
-          <option value="7" ${data.mod === "7" ? "selected" : ""}>7</option>
-        </select>
-      </div>
-    </div>
-    <div class="mb-2">
-      <label class="form-label">Schedule</label>
-      <div class="d-flex align-items-center gap-2">
-        <span id="jobScheduleText">${escapeHtml(getScheduleText(data.schedule))}</span>
-        <button class="btn btn-primary btn-sm" id="btnScheduleChange" ${disabled} onclick="openScheduleModal()">Change</button>
-      </div>
-    </div>
-    <div class="row mb-2">
-      <div class="col">
-        <label class="form-label">Sleep Until</label>
-        <div class="d-flex gap-2">
-          <input class="form-control" id="jobSleepUntil" value="${escapeHtml(data.sleepUntil || "")}" ${ro} placeholder="Pick a date">
-          <button class="btn btn-danger btn-sm ${data.sleepUntil ? "" : "d-none"}" id="jobSleepUntilClearBtn" ${disabled} onclick="clearSleepUntil()">Clear</button>
-        </div>
-      </div>
-    </div>
-    <div class="row mb-2">
-      <div class="col">
-        <label class="form-label">Schedule Time</label>
-        <div class="d-flex gap-2">
-          <select class="form-select" id="jobTimeHour" ${disabled} onchange="jobTimeChanged()" style="width:auto">
-            <option value="" ${!data.time ? "selected" : ""}>-</option>
-            ${Array.from({length: 24}, (_, i) => {
-              const h = String(i).padStart(2, "0");
-              const cur = data.time ? data.time.split(":")[0] : "";
-              return `<option value="${h}" ${cur === h ? "selected" : ""}>${h}</option>`;
-            }).join("")}
-          </select>
-          <span class="align-self-center">:</span>
-          <select class="form-select" id="jobTimeMin" ${disabled} onchange="jobTimeChanged()" style="width:auto">
-            <option value="" ${!data.time ? "selected" : ""}>-</option>
-            <option value="00" ${data.time && data.time.split(":")[1] === "00" ? "selected" : ""}>00</option>
-            <option value="15" ${data.time && data.time.split(":")[1] === "15" ? "selected" : ""}>15</option>
-            <option value="30" ${data.time && data.time.split(":")[1] === "30" ? "selected" : ""}>30</option>
-            <option value="45" ${data.time && data.time.split(":")[1] === "45" ? "selected" : ""}>45</option>
-          </select>
+      <div class="tab-pane fade" id="jobTasks" role="tabpanel" aria-labelledby="jobTasks-tab">
+        <div class="mt-2">
+          <button class="btn btn-primary btn-sm mb-2" id="jobAddTaskBtn" ${disabled} onclick="jobAddTask()">Add Task</button>
+          <div id="jobTasksList">${tasksHTML}</div>
         </div>
       </div>
     </div>
@@ -1344,6 +1412,8 @@ function showJobEditModal(readOnly) {
   document.getElementById("jobEditModalTitle").textContent = title;
   jobsTargetStreamIndex = jobsStreamIndex;
   document.getElementById("jobEditModalBody").innerHTML = getJobEditFormHTML(data, readOnly);
+  const firstTab = document.querySelector("#jobEditTabs .nav-link");
+  if (firstTab) { new bootstrap.Tab(firstTab).show(); }
   const footer = document.getElementById("jobEditModalFooter");
   if (readOnly) {
     footer.innerHTML = '<button class="btn btn-primary editor-btn flex-fill" id="btnViewJobEdit" onclick="editJobFromView()">Edit</button><button class="btn btn-success editor-btn flex-fill" id="btnViewJobOk" onclick="cancelJobEdit()">OK</button>';
@@ -1371,8 +1441,20 @@ function showJobEditModal(readOnly) {
 
 function editJobFromView() {
   if (!jobsBuffer) return;
+  var activeTabId = null;
+  var activeTab = document.querySelector("#jobEditTabs .nav-link.active");
+  if (activeTab) {
+    activeTabId = activeTab.id;
+  }
   document.getElementById("jobEditModalTitle").textContent = "Edit Job";
   document.getElementById("jobEditModalBody").innerHTML = getJobEditFormHTML(jobsBuffer, false);
+  if (activeTabId) {
+    var tabEl = document.getElementById(activeTabId);
+    if (tabEl) { new bootstrap.Tab(tabEl).show(); }
+  } else {
+    var firstTab = document.querySelector("#jobEditTabs .nav-link");
+    if (firstTab) { new bootstrap.Tab(firstTab).show(); }
+  }
   document.getElementById("jobEditModalFooter").innerHTML = '<button class="btn btn-secondary editor-btn flex-fill" id="jobEditCancelBtn" onclick="cancelJobEdit()">Cancel</button><button class="btn btn-success editor-btn flex-fill" id="jobEditOkBtn" onclick="doneJobEdit()">OK</button>';
   updateJobEditOkBtn();
   const fpInput = document.getElementById("jobSleepUntil");
@@ -1506,7 +1588,7 @@ function addNewJob() {
   var streams = loadStreams();
   var jobs = streams[jobsStreamIndex].jobs || [];
   var seq = jobs.length + 1;
-  var newJob = { id: "job_" + Date.now(), title: "New Job", sequence: seq, description: "", active: true, frequency: "daily", time: "", sleepUntil: "", schedule: { type: "daily" } };
+  var newJob = { id: "job_" + Date.now(), title: "New Job", sequence: seq, description: "", active: true, frequency: "daily", time: "", sleepUntil: "", schedule: { type: "daily" }, tasks: [] };
   jobs.push(newJob);
   streams[jobsStreamIndex].jobs = jobs;
   saveStreams(streams);

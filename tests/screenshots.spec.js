@@ -20,7 +20,8 @@ const TEST_STREAMS = [
         sequence: 1,
         suffix: true,
         dayType: "dayOfYear",
-        mod: ""
+        mod: "",
+        tasks: []
       },
       {
         id: "job_2",
@@ -31,7 +32,8 @@ const TEST_STREAMS = [
         sequence: 2,
         suffix: false,
         dayType: "dayOfYear",
-        mod: ""
+        mod: "",
+        tasks: []
       }
     ]
   },
@@ -52,7 +54,8 @@ const TEST_STREAMS = [
         sequence: 1,
         suffix: false,
         dayType: "dayOfYear",
-        mod: ""
+        mod: "",
+        tasks: []
       },
       {
         id: "job_5",
@@ -63,7 +66,8 @@ const TEST_STREAMS = [
         sequence: 2,
         suffix: false,
         dayType: "dayOfYear",
-        mod: "1"
+        mod: "1",
+        tasks: []
       }
     ]
   },
@@ -85,6 +89,7 @@ const TEST_STREAMS = [
         suffix: false,
         dayType: "dayOfYear",
         mod: "",
+        tasks: [],
         sleepUntil: "",
         time: "07:00"
       },
@@ -97,7 +102,8 @@ const TEST_STREAMS = [
         sequence: 2,
         suffix: false,
         dayType: "dayOfYear",
-        mod: ""
+        mod: "",
+        tasks: []
       }
     ]
   }
@@ -331,6 +337,7 @@ test.describe("PlanMyDay - Screenshots", () => {
     await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible", timeout: 5000 });
     await page.locator("#streamEditorList .accordion-body .card").first().getByRole("button", { name: "Edit" }).click();
     await page.locator("#jobEditModal").waitFor({ state: "visible" });
+    await page.locator("#jobSchedule-tab").click();
     await page.locator("#btnScheduleChange").click();
     await page.locator("#scheduleModal").waitFor({ state: "visible" });
     await page.waitForTimeout(300);
@@ -384,5 +391,48 @@ test.describe("PlanMyDay - Screenshots", () => {
     await page.locator("a.dropdown-item").filter({ hasText: "Images" }).click();
     await page.waitForSelector("#imagesList .card");
     await screenshotAllThemes(page, "edit-images.png");
+  });
+
+  async function openJobEditWithTasks(page) {
+    await page.evaluate((data) => {
+      var streams = JSON.parse(JSON.stringify(data));
+      streams[0].jobs[0].tasks = [
+        { description: "Check deployment logs", done: true },
+        { description: "Update test fixtures", done: false },
+        { description: "Review pull request", done: false }
+      ];
+      streams[0].jobs[0].time = "09:00";
+      streams[0].jobs[0].sleepUntil = "";
+      streams[0].jobs[0].description = "Complete weekly development report with metrics and analysis";
+      localStorage.setItem("planmydays_streams", JSON.stringify(streams));
+    }, TEST_STREAMS);
+    await page.reload();
+    await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
+    await page.locator("a.dropdown-item").filter({ hasText: "Jobs" }).click();
+    await page.waitForSelector("#streamEditorList .accordion-item");
+    await page.locator("#streamEditorList .stream-header-main").first().click();
+    await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible", timeout: 5000 });
+    await page.locator("#streamEditorList .accordion-body .card").first().getByRole("button", { name: "Edit" }).click();
+    await page.locator("#jobEditModal").waitFor({ state: "visible" });
+    await page.waitForTimeout(400);
+  }
+
+  test("job edit modal - general tab", async ({ page }) => {
+    await openJobEditWithTasks(page);
+    await screenshotAllThemes(page, "job-edit-general.png");
+  });
+
+  test("job edit modal - schedule tab", async ({ page }) => {
+    await openJobEditWithTasks(page);
+    await page.locator("#jobSchedule-tab").click();
+    await page.waitForTimeout(300);
+    await screenshotAllThemes(page, "job-edit-schedule.png");
+  });
+
+  test("job edit modal - tasks tab", async ({ page }) => {
+    await openJobEditWithTasks(page);
+    await page.locator("#jobTasks-tab").click();
+    await page.waitForTimeout(300);
+    await screenshotAllThemes(page, "job-edit-tasks.png");
   });
 });

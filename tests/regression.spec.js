@@ -19,7 +19,8 @@ const TEST_STREAMS = [
         sequence: 1,
         suffix: true,
         dayType: "dayOfYear",
-        mod: ""
+        mod: "",
+        tasks: []
       },
       {
         id: "job_2",
@@ -30,7 +31,8 @@ const TEST_STREAMS = [
         sequence: 2,
         suffix: false,
         dayType: "dayOfYear",
-        mod: ""
+        mod: "",
+        tasks: []
       }
     ]
   },
@@ -51,7 +53,8 @@ const TEST_STREAMS = [
         sequence: 1,
         suffix: false,
         dayType: "dayOfYear",
-        mod: ""
+        mod: "",
+        tasks: []
       }
     ]
   }
@@ -244,6 +247,7 @@ test.describe("PlanMyDay - Regression", () => {
         }
         updateSleepUntilClearBtn();
       });
+      await page.locator("#jobSchedule-tab").click();
       await expect(page.locator("#jobSleepUntil")).toHaveValue("2099-12-31");
       const clearBtn = page.locator("#jobSleepUntilClearBtn");
       await expect(clearBtn).toBeVisible();
@@ -601,6 +605,7 @@ test.describe("PlanMyDay - Regression", () => {
 
     test("schedule modal opens from job edit", async ({ page }) => {
       await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().click();
+      await page.locator("#jobSchedule-tab").click();
       await page.getByText("Change").nth(1).click();
       await expect(page.locator("#scheduleModal")).toBeVisible();
     });
@@ -609,6 +614,7 @@ test.describe("PlanMyDay - Regression", () => {
       test.setTimeout(30000);
       await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().click();
       await page.locator("#jobEditModal").waitFor({ state: "visible" });
+      await page.locator("#jobSchedule-tab").click();
       await page.getByText("Change").nth(1).click();
       await page.locator("#scheduleModal").waitFor({ state: "visible" });
       await page.locator("#schedDays").check();
@@ -626,8 +632,8 @@ test.describe("PlanMyDay - Regression", () => {
     test("timed jobs appear before untimed jobs", async ({ page }) => {
       await page.evaluate(() => {
         var streams = JSON.parse(localStorage.getItem("planmydays_streams"));
-        streams[0].jobs.push({ id: "job_late", title: "LateJob", active: true, frequency: "daily", sequence: 99, time: "", suffix: false, dayType: "dayOfYear", mod: "" });
-        streams[0].jobs.push({ id: "job_early", title: "EarlyJob", active: true, frequency: "daily", sequence: 1, time: "08:00", suffix: false, dayType: "dayOfYear", mod: "" });
+        streams[0].jobs.push({ id: "job_late", title: "LateJob", active: true, frequency: "daily", sequence: 99, time: "", suffix: false, dayType: "dayOfYear", mod: "", tasks: [] });
+        streams[0].jobs.push({ id: "job_early", title: "EarlyJob", active: true, frequency: "daily", sequence: 1, time: "08:00", suffix: false, dayType: "dayOfYear", mod: "", tasks: [] });
         localStorage.setItem("planmydays_streams", JSON.stringify(streams));
       });
       await page.reload();
@@ -642,7 +648,7 @@ test.describe("PlanMyDay - Regression", () => {
     test("all job tiles are draggable", async ({ page }) => {
       await page.evaluate(() => {
         var streams = JSON.parse(localStorage.getItem("planmydays_streams"));
-        streams[0].jobs.push({ id: "job_timed", title: "TimedJob", active: true, frequency: "daily", sequence: 99, time: "09:00", suffix: false, dayType: "dayOfYear", mod: "" });
+        streams[0].jobs.push({ id: "job_timed", title: "TimedJob", active: true, frequency: "daily", sequence: 99, time: "09:00", suffix: false, dayType: "dayOfYear", mod: "", tasks: [] });
         localStorage.setItem("planmydays_streams", JSON.stringify(streams));
       });
       await page.reload();
@@ -669,8 +675,8 @@ test.describe("PlanMyDay - Regression", () => {
     test("touch reorder swaps job sequences via drag handle", async ({ page }) => {
       await page.evaluate(() => {
         var streams = JSON.parse(localStorage.getItem("planmydays_streams"));
-        streams[0].jobs.push({ id: "job_drag1", title: "DragMe1", active: true, frequency: "daily", sequence: 99, time: "", suffix: false, dayType: "dayOfYear", mod: "" });
-        streams[0].jobs.push({ id: "job_drag2", title: "DragMe2", active: true, frequency: "daily", sequence: 100, time: "", suffix: false, dayType: "dayOfYear", mod: "" });
+        streams[0].jobs.push({ id: "job_drag1", title: "DragMe1", active: true, frequency: "daily", sequence: 99, time: "", suffix: false, dayType: "dayOfYear", mod: "", tasks: [] });
+        streams[0].jobs.push({ id: "job_drag2", title: "DragMe2", active: true, frequency: "daily", sequence: 100, time: "", suffix: false, dayType: "dayOfYear", mod: "", tasks: [] });
         localStorage.setItem("planmydays_streams", JSON.stringify(streams));
       });
       await page.reload();
@@ -720,8 +726,8 @@ test.describe("PlanMyDay - Regression", () => {
       // add extra untimed jobs for drag test
       await page.evaluate(() => {
         var streams = JSON.parse(localStorage.getItem("planmydays_streams"));
-        streams[0].jobs.push({ id: "job_drag1", title: "DragMe1", active: true, frequency: "daily", sequence: 99, time: "", suffix: false, dayType: "dayOfYear", mod: "" });
-        streams[0].jobs.push({ id: "job_drag2", title: "DragMe2", active: true, frequency: "daily", sequence: 100, time: "", suffix: false, dayType: "dayOfYear", mod: "" });
+        streams[0].jobs.push({ id: "job_drag1", title: "DragMe1", active: true, frequency: "daily", sequence: 99, time: "", suffix: false, dayType: "dayOfYear", mod: "", tasks: [] });
+        streams[0].jobs.push({ id: "job_drag2", title: "DragMe2", active: true, frequency: "daily", sequence: 100, time: "", suffix: false, dayType: "dayOfYear", mod: "", tasks: [] });
         localStorage.setItem("planmydays_streams", JSON.stringify(streams));
       });
       await page.reload();
@@ -756,6 +762,7 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#streamEditorList .stream-header-main").first().click();
       await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible", timeout: 5000 });
       await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().click();
+      await page.locator("#jobSchedule-tab").click();
       await page.getByText("Change").nth(1).click();
     });
 
@@ -1020,7 +1027,8 @@ test.describe("PlanMyDay - Regression", () => {
         sequence: i,
         suffix: false,
         dayType: "dayOfYear",
-        mod: ""
+        mod: "",
+        tasks: []
       }));
       const stream = {
         id: "tab_test_stream",
@@ -1143,7 +1151,7 @@ test.describe("PlanMyDay - Regression", () => {
         const ds = now.getFullYear() + "-" + String(now.getMonth()+1).padStart(2,"0") + "-" + String(now.getDate()).padStart(2,"0");
         localStorage.setItem("planmydays_streams", JSON.stringify([{
           id: "stream_1", title: "Test", tab: "progress", image: "", sequence: 1,
-          jobs: [{ id: "job_1", title: "SuffixJob", active: true, frequency: "daily", sequence: 1, suffix: true, dayType: "dayOfYear", mod: "" }]
+          jobs: [{ id: "job_1", title: "SuffixJob", active: true, frequency: "daily", sequence: 1, suffix: true, dayType: "dayOfYear", mod: "", tasks: [] }]
         }]));
         localStorage.setItem("planmydays_today_order", JSON.stringify(["job_1"]));
         localStorage.setItem("planmydays_last_gen", ds);
@@ -1165,7 +1173,7 @@ test.describe("PlanMyDay - Regression", () => {
         const ds = now.getFullYear() + "-" + String(now.getMonth()+1).padStart(2,"0") + "-" + String(now.getDate()).padStart(2,"0");
         localStorage.setItem("planmydays_streams", JSON.stringify([{
           id: "stream_1", title: "Test", tab: "progress", image: "", sequence: 1,
-          jobs: [{ id: "job_1", title: "SuffixPlus1", active: true, frequency: "daily", sequence: 1, suffix: true, dayType: "dayOfYear", mod: "" }]
+          jobs: [{ id: "job_1", title: "SuffixPlus1", active: true, frequency: "daily", sequence: 1, suffix: true, dayType: "dayOfYear", mod: "", tasks: [] }]
         }]));
         localStorage.setItem("planmydays_today_order", JSON.stringify(["job_1"]));
         localStorage.setItem("planmydays_last_gen", ds);
@@ -1398,6 +1406,7 @@ test.describe("PlanMyDay - Regression", () => {
       await page.getByRole("button", { name: "Add Job" }).first().click();
       await page.locator("#jobEditModal").waitFor({ state: "visible" });
       await page.locator("#jobEditModalBody .form-control").first().fill("WeekendJob");
+      await page.locator("#jobSchedule-tab").click();
       await page.getByText("Change").nth(1).click();
       await page.locator("#schedWeekends").check();
       await page.locator("#scheduleModal .btn-primary").click();
@@ -1409,6 +1418,7 @@ test.describe("PlanMyDay - Regression", () => {
       await page.getByRole("button", { name: "Add Job" }).first().click();
       await page.locator("#jobEditModal").waitFor({ state: "visible" });
       await page.locator("#jobEditModalBody .form-control").first().fill("MonthlyJob");
+      await page.locator("#jobSchedule-tab").click();
       await page.getByText("Change").nth(1).click();
       await page.locator("#schedMonthly").check();
       await expect(page.locator("#schedMonthlyOptions")).toBeVisible();
@@ -1419,12 +1429,14 @@ test.describe("PlanMyDay - Regression", () => {
 
     test("sleep until input exists in job edit", async ({ page }) => {
       await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().click();
+      await page.locator("#jobSchedule-tab").click();
       await expect(page.locator("#jobSleepUntil")).toBeVisible();
     });
 
     test("edit job and change schedule time", async ({ page }) => {
       await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().click();
       await page.locator("#jobEditModal").waitFor({ state: "visible" });
+      await page.locator("#jobSchedule-tab").click();
       await page.locator("#jobTimeHour").waitFor({ state: "visible" });
       await page.locator("#jobTimeHour").selectOption("14");
       await page.locator("#jobTimeMin").selectOption("30");
@@ -1446,7 +1458,7 @@ test.describe("PlanMyDay - Regression", () => {
         localStorage.setItem("planmydays_streams", JSON.stringify([
           {
             id: "stream_1", title: "Work", tab: "progress", image: "", sequence: 1,
-            jobs: [{ id: "job_1", title: "Report", active: true, frequency: "daily", sequence: 1, suffix: false, dayType: "dayOfYear", mod: "" }]
+            jobs: [{ id: "job_1", title: "Report", active: true, frequency: "daily", sequence: 1, suffix: false, dayType: "dayOfYear", mod: "", tasks: [] }]
           },
           {
             id: "stream_2", title: "Chores", tab: "maintenance", image: "", sequence: 2, jobs: []
@@ -1507,7 +1519,7 @@ test.describe("PlanMyDay - Regression", () => {
         localStorage.setItem("planmydays_images", JSON.stringify([{ name: "TestImg", data: svgData }]));
         localStorage.setItem("planmydays_streams", JSON.stringify([
           { id: "stream_1", title: "Work", tab: "progress", image: "", sequence: 1,
-            jobs: [{ id: "job_1", title: "Report", active: true, frequency: "daily", sequence: 1, suffix: false, dayType: "dayOfYear", mod: "" }]
+            jobs: [{ id: "job_1", title: "Report", active: true, frequency: "daily", sequence: 1, suffix: false, dayType: "dayOfYear", mod: "", tasks: [] }]
           }
         ]));
       }, svg);
@@ -1709,6 +1721,7 @@ test.describe("PlanMyDay - Regression", () => {
 
     test("weekdays schedule option", async ({ page }) => {
       await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().click();
+      await page.locator("#jobSchedule-tab").click();
       await page.getByText("Change").nth(1).click();
       await page.locator("#schedWeekdays").check();
       await page.locator("#scheduleModal .btn-primary").click();
@@ -1717,6 +1730,7 @@ test.describe("PlanMyDay - Regression", () => {
 
     test("specific days schedule", async ({ page }) => {
       await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().click();
+      await page.locator("#jobSchedule-tab").click();
       await page.getByText("Change").nth(1).click();
       await page.locator("#schedDays").check();
       await page.locator("#schedDay0").check();
@@ -1728,6 +1742,7 @@ test.describe("PlanMyDay - Regression", () => {
 
     test("monthly schedule option", async ({ page }) => {
       await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().click();
+      await page.locator("#jobSchedule-tab").click();
       await page.getByText("Change").nth(1).click();
       await page.locator("#schedMonthly").check();
       await page.locator("#schedMonthlyDay").selectOption("15");
@@ -1737,6 +1752,7 @@ test.describe("PlanMyDay - Regression", () => {
 
     test("every n days option shows ndays options", async ({ page }) => {
       await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().click();
+      await page.locator("#jobSchedule-tab").click();
       await page.getByText("Change").nth(1).click();
       await page.locator("#schedNDays").check();
       await expect(page.locator("#schedNDaysOptions")).toBeVisible();
@@ -1747,6 +1763,7 @@ test.describe("PlanMyDay - Regression", () => {
     test("every n days schedule shows correct text", async ({ page }) => {
       await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().click();
       await page.locator("#jobEditModal").waitFor({ state: "visible" });
+      await page.locator("#jobSchedule-tab").click();
       await page.getByText("Change").nth(1).click();
       await page.locator("#scheduleModal").waitFor({ state: "visible" });
       await page.locator("#schedNDays").check();
@@ -1759,6 +1776,7 @@ test.describe("PlanMyDay - Regression", () => {
 
     test("every n days shows next due display", async ({ page }) => {
       await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().click();
+      await page.locator("#jobSchedule-tab").click();
       await page.getByText("Change").nth(1).click();
       await page.locator("#schedNDays").check();
       await expect(page.locator("#schedNextDue")).not.toBeEmpty();
@@ -1954,7 +1972,7 @@ test.describe("PlanMyDay - Regression", () => {
           id: "stream_1", title: "Test", tab: "progress", image: "", sequence: 1,
           jobs: [{
             id: "job_1", title: "FutureJob", active: true, frequency: "daily",
-            sequence: 1, sleepUntil: ds, suffix: false, dayType: "dayOfYear", mod: ""
+            sequence: 1, sleepUntil: ds, suffix: false, dayType: "dayOfYear", mod: "", tasks: []
           }]
         }]));
         localStorage.setItem("planmydays_today_order", JSON.stringify([]));
@@ -1977,7 +1995,7 @@ test.describe("PlanMyDay - Regression", () => {
           id: "stream_1", title: "Test", tab: "progress", image: "", sequence: 1,
           jobs: [{
             id: "job_1", title: "PastSleepJob", active: true, frequency: "daily",
-            sequence: 1, sleepUntil: ys, suffix: false, dayType: "dayOfYear", mod: ""
+            sequence: 1, sleepUntil: ys, suffix: false, dayType: "dayOfYear", mod: "", tasks: []
           }]
         }]));
         localStorage.setItem("planmydays_today_order", JSON.stringify([]));
@@ -1997,7 +2015,7 @@ test.describe("PlanMyDay - Regression", () => {
           id: "stream_1", title: "Test", tab: "progress", image: "", sequence: 1,
           jobs: [{
             id: "job_1", title: "WeekendOnly", active: true, frequency: "daily",
-            sequence: 1, schedule: { type: "weekends" }, suffix: false, dayType: "dayOfYear", mod: ""
+            sequence: 1, schedule: { type: "weekends" }, suffix: false, dayType: "dayOfYear", mod: "", tasks: []
           }]
         }]));
         localStorage.setItem("planmydays_today_order", JSON.stringify([]));
@@ -2022,7 +2040,7 @@ test.describe("PlanMyDay - Regression", () => {
           id: "stream_1", title: "Test", tab: "progress", image: "", sequence: 1,
           jobs: [{
             id: "job_1", title: "WeekdayOnly", active: true, frequency: "daily",
-            sequence: 1, schedule: { type: "weekdays" }, suffix: false, dayType: "dayOfYear", mod: ""
+            sequence: 1, schedule: { type: "weekdays" }, suffix: false, dayType: "dayOfYear", mod: "", tasks: []
           }]
         }]));
         localStorage.setItem("planmydays_today_order", JSON.stringify([]));
@@ -2048,7 +2066,7 @@ test.describe("PlanMyDay - Regression", () => {
           id: "stream_1", title: "Test", tab: "progress", image: "", sequence: 1,
           jobs: [{
             id: "job_1", title: "SpecificDayJob", active: true, frequency: "daily",
-            sequence: 1, schedule: { type: "days", days: [todayNum] }, suffix: false, dayType: "dayOfYear", mod: ""
+            sequence: 1, schedule: { type: "days", days: [todayNum] }, suffix: false, dayType: "dayOfYear", mod: "", tasks: []
           }]
         }]));
         localStorage.setItem("planmydays_today_order", JSON.stringify([]));
@@ -2070,7 +2088,7 @@ test.describe("PlanMyDay - Regression", () => {
           id: "stream_1", title: "Test", tab: "progress", image: "", sequence: 1,
           jobs: [{
             id: "job_1", title: "MonthlyJobShow", active: true, frequency: "daily",
-            sequence: 1, schedule: { type: "monthly", date: todayDate }, suffix: false, dayType: "dayOfYear", mod: ""
+            sequence: 1, schedule: { type: "monthly", date: todayDate }, suffix: false, dayType: "dayOfYear", mod: "", tasks: []
           }]
         }]));
         localStorage.setItem("planmydays_today_order", JSON.stringify([]));
@@ -2092,7 +2110,7 @@ test.describe("PlanMyDay - Regression", () => {
           id: "stream_1", title: "Test", tab: "progress", image: "", sequence: 1,
           jobs: [{
             id: "job_1", title: "MonthlyJobHide", active: true, frequency: "daily",
-            sequence: 1, schedule: { type: "monthly", date: wrongDate }, suffix: false, dayType: "dayOfYear", mod: ""
+            sequence: 1, schedule: { type: "monthly", date: wrongDate }, suffix: false, dayType: "dayOfYear", mod: "", tasks: []
           }]
         }]));
         localStorage.setItem("planmydays_today_order", JSON.stringify([]));
@@ -2116,7 +2134,7 @@ test.describe("PlanMyDay - Regression", () => {
           id: "stream_1", title: "Test", tab: "progress", image: "", sequence: 1,
           jobs: [{
             id: "job_1", title: "NDaysJob", active: true, frequency: "daily",
-            sequence: 1, schedule: { type: "ndays", interval: interval, offset: offset }, suffix: false, dayType: "dayOfYear", mod: ""
+            sequence: 1, schedule: { type: "ndays", interval: interval, offset: offset }, suffix: false, dayType: "dayOfYear", mod: "", tasks: []
           }]
         }]));
         localStorage.setItem("planmydays_today_order", JSON.stringify([]));
@@ -2162,7 +2180,7 @@ test.describe("PlanMyDay - Regression", () => {
           id: "stream_1", title: "Test", tab: "progress", image: "", sequence: 1,
           jobs: [{
             id: "job_1", title: "NDaysRegen", active: true, frequency: "daily",
-            sequence: 1, schedule: { type: "ndays", interval: 2, offset: 0 }, suffix: false, dayType: "dayOfYear", mod: ""
+            sequence: 1, schedule: { type: "ndays", interval: 2, offset: 0 }, suffix: false, dayType: "dayOfYear", mod: "", tasks: []
           }]
         }]));
         localStorage.setItem("planmydays_today_order", JSON.stringify(["job_1"]));
@@ -2195,7 +2213,7 @@ test.describe("PlanMyDay - Regression", () => {
           id: "stream_1", title: "Test", tab: "progress", image: "", sequence: 1,
           jobs: [{
             id: "job_1", title: "WeekdayRegen", active: true, frequency: "daily",
-            sequence: 1, schedule: { type: "weekdays" }, suffix: false, dayType: "dayOfYear", mod: ""
+            sequence: 1, schedule: { type: "weekdays" }, suffix: false, dayType: "dayOfYear", mod: "", tasks: []
           }]
         }]));
         localStorage.setItem("planmydays_today_order", JSON.stringify(["job_1"]));
@@ -2228,7 +2246,7 @@ test.describe("PlanMyDay - Regression", () => {
           id: "stream_1", title: "Test", tab: "progress", image: "", sequence: 1,
           jobs: [{
             id: "job_1", title: "WeekendRegen", active: true, frequency: "daily",
-            sequence: 1, schedule: { type: "weekends" }, suffix: false, dayType: "dayOfYear", mod: ""
+            sequence: 1, schedule: { type: "weekends" }, suffix: false, dayType: "dayOfYear", mod: "", tasks: []
           }]
         }]));
         localStorage.setItem("planmydays_today_order", JSON.stringify(["job_1"]));
@@ -2260,7 +2278,7 @@ test.describe("PlanMyDay - Regression", () => {
           id: "stream_1", title: "Test", tab: "progress", image: "", sequence: 1,
           jobs: [{
             id: "job_1", title: "SpecificDayRegen", active: true, frequency: "daily",
-            sequence: 1, schedule: { type: "days", days: [day] }, suffix: false, dayType: "dayOfYear", mod: ""
+            sequence: 1, schedule: { type: "days", days: [day] }, suffix: false, dayType: "dayOfYear", mod: "", tasks: []
           }]
         }]));
         localStorage.setItem("planmydays_today_order", JSON.stringify(["job_1"]));
@@ -2287,7 +2305,7 @@ test.describe("PlanMyDay - Regression", () => {
           id: "stream_1", title: "Test", tab: "progress", image: "", sequence: 1,
           jobs: [{
             id: "job_1", title: "SpecificDayMismatch", active: true, frequency: "daily",
-            sequence: 1, schedule: { type: "days", days: [wrongDay] }, suffix: false, dayType: "dayOfYear", mod: ""
+            sequence: 1, schedule: { type: "days", days: [wrongDay] }, suffix: false, dayType: "dayOfYear", mod: "", tasks: []
           }]
         }]));
         localStorage.setItem("planmydays_today_order", JSON.stringify(["job_1"]));
@@ -2313,7 +2331,7 @@ test.describe("PlanMyDay - Regression", () => {
           id: "stream_1", title: "Test", tab: "progress", image: "", sequence: 1,
           jobs: [{
             id: "job_1", title: "MonthlyRegen", active: true, frequency: "daily",
-            sequence: 1, schedule: { type: "monthly", date: dateNum }, suffix: false, dayType: "dayOfYear", mod: ""
+            sequence: 1, schedule: { type: "monthly", date: dateNum }, suffix: false, dayType: "dayOfYear", mod: "", tasks: []
           }]
         }]));
         localStorage.setItem("planmydays_today_order", JSON.stringify(["job_1"]));
@@ -2340,7 +2358,7 @@ test.describe("PlanMyDay - Regression", () => {
           id: "stream_1", title: "Test", tab: "progress", image: "", sequence: 1,
           jobs: [{
             id: "job_1", title: "MonthlyMismatch", active: true, frequency: "daily",
-            sequence: 1, schedule: { type: "monthly", date: wrongDate }, suffix: false, dayType: "dayOfYear", mod: ""
+            sequence: 1, schedule: { type: "monthly", date: wrongDate }, suffix: false, dayType: "dayOfYear", mod: "", tasks: []
           }]
         }]));
         localStorage.setItem("planmydays_today_order", JSON.stringify(["job_1"]));
@@ -2485,7 +2503,7 @@ test.describe("PlanMyDay - Regression", () => {
         const ys = yesterday.getFullYear() + "-" + String(yesterday.getMonth()+1).padStart(2,"0") + "-" + String(yesterday.getDate()).padStart(2,"0");
         localStorage.setItem("planmydays_streams", JSON.stringify([{
           id: "stream_1", title: "Test", tab: "progress", image: "", sequence: 1,
-          jobs: [{ id: "job_1", title: "CarryOverJob", active: true, frequency: "daily", sequence: 1, suffix: false, dayType: "dayOfYear", mod: "" }]
+          jobs: [{ id: "job_1", title: "CarryOverJob", active: true, frequency: "daily", sequence: 1, suffix: false, dayType: "dayOfYear", mod: "", tasks: [] }]
         }]));
         localStorage.setItem("planmydays_today_order", JSON.stringify(["job_1"]));
         localStorage.setItem("planmydays_last_gen", ys);
@@ -2506,7 +2524,7 @@ test.describe("PlanMyDay - Regression", () => {
         const ds = now.getFullYear() + "-" + String(now.getMonth()+1).padStart(2,"0") + "-" + String(now.getDate()).padStart(2,"0");
         localStorage.setItem("planmydays_streams", JSON.stringify([{
           id: "stream_1", title: "Test", tab: "progress", image: "", sequence: 1,
-          jobs: [{ id: "job_1", title: "DomJob", active: true, frequency: "daily", sequence: 1, suffix: true, dayType: "dayOfMonth", mod: "" }]
+          jobs: [{ id: "job_1", title: "DomJob", active: true, frequency: "daily", sequence: 1, suffix: true, dayType: "dayOfMonth", mod: "", tasks: [] }]
         }]));
         localStorage.setItem("planmydays_today_order", JSON.stringify(["job_1"]));
         localStorage.setItem("planmydays_last_gen", ds);
@@ -2523,7 +2541,7 @@ test.describe("PlanMyDay - Regression", () => {
         const ds = now.getFullYear() + "-" + String(now.getMonth()+1).padStart(2,"0") + "-" + String(now.getDate()).padStart(2,"0");
         localStorage.setItem("planmydays_streams", JSON.stringify([{
           id: "stream_1", title: "Test", tab: "progress", image: "", sequence: 1,
-          jobs: [{ id: "job_1", title: "DowJob", active: true, frequency: "daily", sequence: 1, suffix: true, dayType: "dayOfWeek", mod: "" }]
+          jobs: [{ id: "job_1", title: "DowJob", active: true, frequency: "daily", sequence: 1, suffix: true, dayType: "dayOfWeek", mod: "", tasks: [] }]
         }]));
         localStorage.setItem("planmydays_today_order", JSON.stringify(["job_1"]));
         localStorage.setItem("planmydays_last_gen", ds);
@@ -2541,7 +2559,7 @@ test.describe("PlanMyDay - Regression", () => {
         const ds = now.getFullYear() + "-" + String(now.getMonth()+1).padStart(2,"0") + "-" + String(now.getDate()).padStart(2,"0");
         localStorage.setItem("planmydays_streams", JSON.stringify([{
           id: "stream_1", title: "Test", tab: "progress", image: "", sequence: 1,
-          jobs: [{ id: "job_1", title: "Jan1Job", active: true, frequency: "daily", sequence: 1, suffix: true, dayType: "dayOfYear", mod: "" }]
+          jobs: [{ id: "job_1", title: "Jan1Job", active: true, frequency: "daily", sequence: 1, suffix: true, dayType: "dayOfYear", mod: "", tasks: [] }]
         }]));
         localStorage.setItem("planmydays_today_order", JSON.stringify(["job_1"]));
         localStorage.setItem("planmydays_last_gen", ds);
@@ -2559,7 +2577,7 @@ test.describe("PlanMyDay - Regression", () => {
         const ds = now.getFullYear() + "-" + String(now.getMonth()+1).padStart(2,"0") + "-" + String(now.getDate()).padStart(2,"0");
         localStorage.setItem("planmydays_streams", JSON.stringify([{
           id: "stream_1", title: "Test", tab: "progress", image: "", sequence: 1,
-          jobs: [{ id: "job_1", title: "Mod2", active: true, frequency: "daily", sequence: 1, suffix: true, dayType: "dayOfYear", mod: "2" }]
+          jobs: [{ id: "job_1", title: "Mod2", active: true, frequency: "daily", sequence: 1, suffix: true, dayType: "dayOfYear", mod: "2", tasks: [] }]
         }]));
         localStorage.setItem("planmydays_today_order", JSON.stringify(["job_1"]));
         localStorage.setItem("planmydays_last_gen", ds);
@@ -2583,9 +2601,9 @@ test.describe("PlanMyDay - Regression", () => {
         localStorage.setItem("planmydays_streams", JSON.stringify([{
           id: "stream_1", title: "Test", tab: "progress", image: "", sequence: 1,
           jobs: [
-            { id: "job_1", title: "Late", active: true, frequency: "daily", sequence: 1, time: "15:00", suffix: false, dayType: "dayOfYear", mod: "" },
-            { id: "job_2", title: "Early", active: true, frequency: "daily", sequence: 2, time: "08:00", suffix: false, dayType: "dayOfYear", mod: "" },
-            { id: "job_3", title: "Mid", active: true, frequency: "daily", sequence: 3, time: "12:00", suffix: false, dayType: "dayOfYear", mod: "" }
+            { id: "job_1", title: "Late", active: true, frequency: "daily", sequence: 1, time: "15:00", suffix: false, dayType: "dayOfYear", mod: "", tasks: [] },
+            { id: "job_2", title: "Early", active: true, frequency: "daily", sequence: 2, time: "08:00", suffix: false, dayType: "dayOfYear", mod: "", tasks: [] },
+            { id: "job_3", title: "Mid", active: true, frequency: "daily", sequence: 3, time: "12:00", suffix: false, dayType: "dayOfYear", mod: "", tasks: [] }
           ]
         }]));
         localStorage.setItem("planmydays_today_order", JSON.stringify(["job_1", "job_2", "job_3"]));
@@ -2663,7 +2681,7 @@ test.describe("PlanMyDay - Regression", () => {
       await page.evaluate(() => {
         localStorage.setItem("planmydays_streams", JSON.stringify([{
           id: "stream_1", title: "Work", tab: "progress", image: "", sequence: 1,
-          jobs: [{ id: "job_1", title: "Task1", active: true, frequency: "daily", sequence: 1, suffix: false, dayType: "dayOfYear", mod: "" }]
+          jobs: [{ id: "job_1", title: "Task1", active: true, frequency: "daily", sequence: 1, suffix: false, dayType: "dayOfYear", mod: "", tasks: [] }]
         }]));
       });
       await page.reload();
@@ -2679,7 +2697,7 @@ test.describe("PlanMyDay - Regression", () => {
       await page.evaluate(() => {
         localStorage.setItem("planmydays_streams", JSON.stringify([{
           id: "stream_1", title: "Work", tab: "progress", image: "", sequence: 1,
-          jobs: [{ id: "job_1", title: "Existing", active: true, frequency: "daily", sequence: 1, suffix: false, dayType: "dayOfYear", mod: "" }]
+          jobs: [{ id: "job_1", title: "Existing", active: true, frequency: "daily", sequence: 1, suffix: false, dayType: "dayOfYear", mod: "", tasks: [] }]
         }]));
       });
       await page.reload();
@@ -2704,7 +2722,7 @@ test.describe("PlanMyDay - Regression", () => {
         const ys = yesterday.getFullYear() + "-" + String(yesterday.getMonth()+1).padStart(2,"0") + "-" + String(yesterday.getDate()).padStart(2,"0");
         localStorage.setItem("planmydays_streams", JSON.stringify([{
           id: "stream_1", title: "Test", tab: "progress", image: "", sequence: 1,
-          jobs: [{ id: "job_1", title: "RegenJob", active: true, frequency: "daily", sequence: 1, suffix: false, dayType: "dayOfYear", mod: "" }]
+          jobs: [{ id: "job_1", title: "RegenJob", active: true, frequency: "daily", sequence: 1, suffix: false, dayType: "dayOfYear", mod: "", tasks: [] }]
         }]));
         localStorage.setItem("planmydays_today_order", JSON.stringify(["job_1"]));
         localStorage.setItem("planmydays_last_gen", ys);
@@ -2728,7 +2746,7 @@ test.describe("PlanMyDay - Regression", () => {
       await page.evaluate(() => {
         localStorage.setItem("planmydays_streams", JSON.stringify([{
           id: "stream_1", title: "Work", tab: "progress", image: "", sequence: 1,
-          jobs: [{ id: "job_1", title: "Report", active: true, frequency: "daily", sequence: 1, suffix: false, dayType: "dayOfYear", mod: "" }]
+          jobs: [{ id: "job_1", title: "Report", active: true, frequency: "daily", sequence: 1, suffix: false, dayType: "dayOfYear", mod: "", tasks: [] }]
         }]));
         localStorage.setItem("planmydays_images", JSON.stringify([
           { name: "TestImg", data: "" },
@@ -2763,7 +2781,7 @@ test.describe("PlanMyDay - Regression", () => {
       await page.evaluate(() => {
         localStorage.setItem("planmydays_streams", JSON.stringify([{
           id: "stream_1", title: "Work", tab: "progress", image: "", sequence: 1,
-          jobs: [{ id: "job_1", title: "Existing", active: true, frequency: "daily", sequence: 1, suffix: false, dayType: "dayOfYear", mod: "" }]
+          jobs: [{ id: "job_1", title: "Existing", active: true, frequency: "daily", sequence: 1, suffix: false, dayType: "dayOfYear", mod: "", tasks: [] }]
         }]));
         localStorage.setItem("planmydays_images", JSON.stringify([
           { name: "AddJobImg", data: "" }
@@ -2797,7 +2815,7 @@ test.describe("PlanMyDay - Regression", () => {
       await page.evaluate(() => {
         localStorage.setItem("planmydays_streams", JSON.stringify([{
           id: "stream_1", title: "Work", tab: "progress", image: "", sequence: 1,
-          jobs: [{ id: "job_1", title: "Report", active: true, frequency: "daily", sequence: 1, suffix: false, dayType: "dayOfYear", mod: "" }]
+          jobs: [{ id: "job_1", title: "Report", active: true, frequency: "daily", sequence: 1, suffix: false, dayType: "dayOfYear", mod: "", tasks: [] }]
         }]));
         localStorage.setItem("planmydays_images", JSON.stringify([
           { name: "Apple", data: "" },
@@ -2883,6 +2901,7 @@ test.describe("PlanMyDay - Regression", () => {
             suffix: false,
             dayType: "dayOfYear",
             mod: "",
+            tasks: [],
             schedule: { type: "daily" }
           }]
         }],
@@ -3621,6 +3640,7 @@ test.describe("PlanMyDay - Regression", () => {
         showJobEditModal();
       }, TEST_STREAMS);
       await page.locator("#jobEditModal").waitFor({ state: "visible" });
+      await page.locator("#jobSchedule-tab").click();
       await page.locator("#btnScheduleChange").click();
       await page.locator("#scheduleModal").waitFor({ state: "visible" });
       await page.locator('input[name="scheduleType"][value="days"]').check();
@@ -3939,6 +3959,179 @@ test.describe("PlanMyDay - Regression", () => {
         updateSleepUntilClearBtn();
         updateJobEditOkBtn();
       });
+    });
+  });
+
+  // ── Job Edit Tabs ─────────────────────────────────────────
+
+  test.describe("Job Edit Tabs", () => {
+
+    test.beforeEach(async ({ page }) => {
+      await startCoverage(page);
+      await page.goto("/");
+      await page.evaluate((data) => {
+        localStorage.setItem("planmydays_streams", JSON.stringify(data));
+      }, TEST_STREAMS);
+      await page.reload();
+      await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
+      await page.locator("a.dropdown-item").filter({ hasText: "Jobs" }).click();
+      await page.locator("#streamEditorList .stream-header-main").first().click();
+      await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible", timeout: 5000 });
+    });
+
+    test("General tab is active by default", async ({ page }) => {
+      await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().click();
+      await page.locator("#jobEditModal").waitFor({ state: "visible" });
+      await expect(page.locator("#jobGeneral-tab")).toHaveClass(/active/);
+      await expect(page.locator("#jobGeneral")).toHaveClass(/show/);
+    });
+
+    test("Schedule tab switches correctly", async ({ page }) => {
+      await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().click();
+      await page.locator("#jobEditModal").waitFor({ state: "visible" });
+      await page.locator("#jobSchedule-tab").click();
+      await expect(page.locator("#jobSchedule-tab")).toHaveClass(/active/);
+      await expect(page.locator("#jobSchedule")).toHaveClass(/show/);
+      await expect(page.locator("#jobGeneral")).not.toHaveClass(/show/);
+    });
+
+    test("Tasks tab switches correctly", async ({ page }) => {
+      await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().click();
+      await page.locator("#jobEditModal").waitFor({ state: "visible" });
+      await page.locator("#jobTasks-tab").click();
+      await expect(page.locator("#jobTasks-tab")).toHaveClass(/active/);
+      await expect(page.locator("#jobTasks")).toHaveClass(/show/);
+      await page.locator("#jobAddTaskBtn").waitFor({ state: "visible" });
+    });
+
+    test("active tab persists when switching from view to edit", async ({ page }) => {
+      await seedTodayList(page);
+      await page.reload();
+      await page.locator(".job-view-btn").first().click();
+      await page.locator("#jobEditModal").waitFor({ state: "visible" });
+      await page.locator("#jobTasks-tab").click();
+      await expect(page.locator("#jobTasks-tab")).toHaveClass(/active/);
+      await page.locator("#btnViewJobEdit").filter({ hasText: "Edit" }).click();
+      await expect(page.locator("#jobEditModalTitle")).toHaveText("Edit Job");
+      await expect(page.locator("#jobTasks-tab")).toHaveClass(/active/);
+      await expect(page.locator("#jobTasks")).toHaveClass(/show/);
+    });
+
+    test("add task increases task count", async ({ page }) => {
+      await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().click();
+      await page.locator("#jobEditModal").waitFor({ state: "visible" });
+      await page.locator("#jobTasks-tab").click();
+      await page.locator("#jobAddTaskBtn").click();
+      await expect(page.locator(".task-row")).toHaveCount(1);
+      await page.locator("#jobAddTaskBtn").click();
+      await page.locator("#jobAddTaskBtn").click();
+      await expect(page.locator(".task-row")).toHaveCount(3);
+    });
+
+    test("task description is stored in jobsBuffer", async ({ page }) => {
+      await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().click();
+      await page.locator("#jobEditModal").waitFor({ state: "visible" });
+      await page.locator("#jobTasks-tab").click();
+      await page.locator("#jobAddTaskBtn").click();
+      await page.locator(".task-desc-input").first().fill("Check logs");
+      const tasks = await page.evaluate(() => jobsBuffer?.tasks);
+      expect(tasks).toHaveLength(1);
+      expect(tasks[0].description).toBe("Check logs");
+    });
+
+    test("task done checkbox toggles stored value", async ({ page }) => {
+      await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().click();
+      await page.locator("#jobEditModal").waitFor({ state: "visible" });
+      await page.locator("#jobTasks-tab").click();
+      await page.locator("#jobAddTaskBtn").click();
+      await page.locator(".task-done-cb").first().check();
+      const tasks = await page.evaluate(() => jobsBuffer?.tasks);
+      expect(tasks[0].done).toBe(true);
+      await page.locator(".task-done-cb").first().uncheck();
+      const tasks2 = await page.evaluate(() => jobsBuffer?.tasks);
+      expect(tasks2[0].done).toBe(false);
+    });
+
+    test("delete task removes it from list", async ({ page }) => {
+      await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().click();
+      await page.locator("#jobEditModal").waitFor({ state: "visible" });
+      await page.locator("#jobTasks-tab").click();
+      await page.locator("#jobAddTaskBtn").click();
+      await page.locator("#jobAddTaskBtn").click();
+      await expect(page.locator(".task-row")).toHaveCount(2);
+      await page.locator("#jobTasksList .btn-danger").first().click();
+      await expect(page.locator(".task-row")).toHaveCount(1);
+      const tasks = await page.evaluate(() => jobsBuffer?.tasks);
+      expect(tasks).toHaveLength(1);
+    });
+
+    test("tasks persist through save and reload", async ({ page }) => {
+      await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().click();
+      await page.locator("#jobEditModal").waitFor({ state: "visible" });
+      await page.locator("#jobTasks-tab").click();
+      await page.locator("#jobAddTaskBtn").click();
+      await page.locator(".task-desc-input").first().fill("Review PRs");
+      await page.locator(".task-done-cb").first().check();
+      await page.locator("#jobEditOkBtn").click();
+      await page.locator("#jobEditModal").waitFor({ state: "hidden", timeout: 15000 });
+      const savedTasks = await page.evaluate(() => {
+        const streams = JSON.parse(localStorage.getItem("planmydays_streams"));
+        return streams[0].jobs[0].tasks;
+      });
+      expect(savedTasks).toHaveLength(1);
+      expect(savedTasks[0].description).toBe("Review PRs");
+      expect(savedTasks[0].done).toBe(true);
+    });
+
+    test("newly created job has empty tasks array", async ({ page }) => {
+      await page.getByRole("button", { name: "Add Job" }).first().click();
+      await page.locator("#jobEditModal").waitFor({ state: "visible" });
+      const tasks = await page.evaluate(() => jobsBuffer?.tasks);
+      expect(tasks).toEqual([]);
+    });
+
+    test("add task renders task at top of list", async ({ page }) => {
+      await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().click();
+      await page.locator("#jobEditModal").waitFor({ state: "visible" });
+      await page.locator("#jobTasks-tab").click();
+      await page.locator("#jobAddTaskBtn").click();
+      await page.locator(".task-desc-input").first().fill("First task");
+      await page.locator("#jobAddTaskBtn").click();
+      await page.locator(".task-desc-input").last().fill("Second task");
+      const tasks = await page.evaluate(() => jobsBuffer?.tasks);
+      expect(tasks).toHaveLength(2);
+      expect(tasks[0].description).toBe("First task");
+      expect(tasks[1].description).toBe("Second task");
+    });
+
+    test("delete button on task row is btn-danger", async ({ page }) => {
+      await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().click();
+      await page.locator("#jobEditModal").waitFor({ state: "visible" });
+      await page.locator("#jobTasks-tab").click();
+      await page.locator("#jobAddTaskBtn").click();
+      await expect(page.locator("#jobTasksList .btn-danger")).toBeVisible();
+    });
+
+    test("add task button is btn-primary and at top", async ({ page }) => {
+      await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().click();
+      await page.locator("#jobEditModal").waitFor({ state: "visible" });
+      await page.locator("#jobTasks-tab").click();
+      await expect(page.locator("#jobAddTaskBtn")).toHaveClass(/btn-primary/);
+      await page.locator("#jobAddTaskBtn").click();
+      await page.locator("#jobAddTaskBtn").click();
+      const addBtnEl = page.locator("#jobAddTaskBtn");
+      const tasksListEl = page.locator("#jobTasksList");
+      const addBtnBox = await addBtnEl.boundingBox();
+      const tasksListBox = await tasksListEl.boundingBox();
+      expect(addBtnBox.y).toBeLessThan(tasksListBox.y);
+    });
+
+    test("tasks tab shows no tasks for job without tasks", async ({ page }) => {
+      await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().click();
+      await page.locator("#jobEditModal").waitFor({ state: "visible" });
+      await page.locator("#jobTasks-tab").click();
+      await expect(page.locator("#jobAddTaskBtn")).toBeVisible();
+      await expect(page.locator("#jobTasksList .task-row")).toHaveCount(0);
     });
   });
 });

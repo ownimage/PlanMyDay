@@ -481,6 +481,24 @@ body.auto-hide-menu #mainNav.nav-hidden ~ .container-fluid {
   border-bottom: 1px solid var(--bs-border-color);
 }
 
+#jobEditModal .modal-dialog {
+  max-width: 90vw;
+  width: 90vw;
+  height: 90vh;
+}
+#jobEditModal .modal-content {
+  height: 100%;
+  overflow: hidden;
+}
+#jobEditModal .modal-body {
+  overflow-y: auto;
+  flex: 1;
+}
+#jobEditModal #jobEditTabs {
+  border-bottom: 2px solid var(--bs-border-color);
+  margin-bottom: 0.5rem;
+}
+
 #streamsEditor .editor-title {
   font-weight: 800;
 }
