@@ -543,6 +543,11 @@ body.compact .editor-btn {
   cursor: grabbing;
 }
 
+.job-drag-card {
+  cursor: default;
+  user-select: none;
+  -webkit-user-select: none;
+}
 .job-drag-card.dragging {
   opacity: 0.3;
 }
@@ -551,6 +556,18 @@ body.compact .editor-btn {
 }
 .job-drag-card.drag-over-bottom {
   border-bottom: 3px solid var(--bs-primary) !important;
+}
+.job-drag-card .drag-handle {
+  cursor: grab;
+  touch-action: none;
+  -webkit-touch-callout: none;
+}
+.job-drag-card .drag-handle:active {
+  cursor: grabbing;
+}
+.today-drag-card .drag-handle {
+  touch-action: none;
+  -webkit-touch-callout: none;
 }
 
 /* Flatpickr dark theme arrow fixes */

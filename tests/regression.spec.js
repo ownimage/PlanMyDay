@@ -660,6 +660,61 @@ test.describe("PlanMyDay - Regression", () => {
       await expect(activeLabel).toHaveClass(/fw-bold/);
     });
 
+    test("job tiles have a drag handle for touch reorder", async ({ page }) => {
+      await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible", timeout: 5000 });
+      await expect(page.locator(".job-drag-card .drag-handle").first()).toBeVisible();
+    });
+
+    test("touch reorder swaps job sequences via drag handle", async ({ page }) => {
+      await page.evaluate(() => {
+        var streams = JSON.parse(localStorage.getItem("planmydays_streams"));
+        streams[0].jobs.push({ id: "job_drag1", title: "DragMe1", active: true, frequency: "daily", sequence: 99, time: "", suffix: false, dayType: "dayOfYear", mod: "" });
+        streams[0].jobs.push({ id: "job_drag2", title: "DragMe2", active: true, frequency: "daily", sequence: 100, time: "", suffix: false, dayType: "dayOfYear", mod: "" });
+        localStorage.setItem("planmydays_streams", JSON.stringify(streams));
+      });
+      await page.reload();
+      await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
+      await page.locator("a.dropdown-item").filter({ hasText: "Jobs" }).click();
+      await page.locator("#streamEditorList .stream-header-main").first().click();
+      await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible", timeout: 5000 });
+      const before = await page.evaluate(() => {
+        const jobs = loadStreams()[0].jobs;
+        return {
+          d1: jobs.find(j => j.id === "job_drag1").sequence,
+          d2: jobs.find(j => j.id === "job_drag2").sequence
+        };
+      });
+      await page.evaluate(() => {
+        const list = document.getElementById("streamEditorList");
+        const c1 = [...list.querySelectorAll(".job-drag-card")].find(c => c.textContent.includes("DragMe2"));
+        const c2 = [...list.querySelectorAll(".job-drag-card")].find(c => c.textContent.includes("DragMe1"));
+        const h1 = c1.querySelector(".drag-handle");
+        const r1 = h1.getBoundingClientRect();
+        const r2 = c2.getBoundingClientRect();
+        const fire = (type, x, y, target) => {
+          const t = new Touch({ identifier: 1, target, clientX: x, clientY: y });
+          const touching = type === "touchend" || type === "touchcancel" ? [] : [t];
+          target.dispatchEvent(new TouchEvent(type, {
+            bubbles: true, cancelable: true,
+            touches: touching, changedTouches: [t], targetTouches: touching
+          }));
+        };
+        fire("touchstart", r1.x + 2, r1.y + 2, h1);
+        fire("touchmove", r2.x + 10, r2.y + r2.height / 2, c2);
+        fire("touchend", r2.x + 10, r2.y + r2.height / 2, c2);
+      });
+      await page.waitForTimeout(300);
+      const after = await page.evaluate(() => {
+        const jobs = loadStreams()[0].jobs;
+        return {
+          d1: jobs.find(j => j.id === "job_drag1").sequence,
+          d2: jobs.find(j => j.id === "job_drag2").sequence
+        };
+      });
+      expect(after.d1).toBe(before.d2);
+      expect(after.d2).toBe(before.d1);
+    });
+
     test("accordion stays open after job drag reorder", async ({ page }) => {
       // add extra untimed jobs for drag test
       await page.evaluate(() => {

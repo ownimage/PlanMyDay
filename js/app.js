@@ -43,14 +43,31 @@ function escapeHtml(str) {
   return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
-// TOUCH DRAG AND DROP (iOS fallback)
-function addTouchDnD(container, cardSelector, getSrcId, reorderCallback) {
+// TOUCH DRAG AND DROP (iOS fallback — HTML5 DnD is not supported on iOS Safari)
+// options: { handleSelector, ignoreSelector }
+function addTouchDnD(container, cardSelector, getSrcId, reorderCallback, options) {
+  options = options || {};
   let touchSrc = null;
+  let touchCard = null;
+
+  function clearDragUi() {
+    container.querySelectorAll(cardSelector).forEach(c => c.classList.remove("dragging", "drag-over-top", "drag-over-bottom"));
+  }
 
   container.addEventListener("touchstart", e => {
+    if (options.ignoreSelector && e.target.closest(options.ignoreSelector)) return;
+    const onHandle = options.handleSelector && e.target.closest(options.handleSelector);
+    // Allow starting from a drag-handle even if it sits inside a button
+    if (!onHandle && e.target.closest("button, input, select, textarea, a, label")) return;
     const card = e.target.closest(cardSelector);
     if (!card) return;
-    touchSrc = getSrcId(card);
+    if (options.handleSelector && !onHandle) return;
+    // Handle must belong to this card
+    if (onHandle && !card.contains(onHandle)) return;
+    const id = getSrcId(card);
+    if (id === null || id === undefined || id === -1 || id === "") return;
+    touchSrc = id;
+    touchCard = card;
     card.classList.add("dragging");
   }, { passive: true });
 
@@ -61,40 +78,59 @@ function addTouchDnD(container, cardSelector, getSrcId, reorderCallback) {
     const el = document.elementFromPoint(touch.clientX, touch.clientY);
     const target = el ? el.closest(cardSelector) : null;
     if (!target) return;
+    if (options.ignoreSelector && target.closest(options.ignoreSelector) && !target.matches(cardSelector)) return;
     container.querySelectorAll(cardSelector).forEach(c => c.classList.remove("drag-over-top", "drag-over-bottom"));
     const rect = target.getBoundingClientRect();
     target.classList.add(touch.clientY < rect.top + rect.height / 2 ? "drag-over-top" : "drag-over-bottom");
   }, { passive: false });
 
   container.addEventListener("touchend", e => {
-    if (touchSrc === null || touchSrc === undefined) { touchSrc = null; return; }
-    container.querySelectorAll(cardSelector).forEach(c => c.classList.remove("dragging", "drag-over-top", "drag-over-bottom"));
+    if (touchSrc === null || touchSrc === undefined) { touchSrc = null; touchCard = null; return; }
+    clearDragUi();
     const touch = e.changedTouches[0];
     const el = document.elementFromPoint(touch.clientX, touch.clientY);
     const target = el ? el.closest(cardSelector) : null;
     if (target) {
       const dstSrc = getSrcId(target);
-      if (touchSrc !== dstSrc) {
+      if (dstSrc !== null && dstSrc !== undefined && dstSrc !== -1 && dstSrc !== "" && touchSrc !== dstSrc) {
         const rect = target.getBoundingClientRect();
         const above = touch.clientY < rect.top + rect.height / 2;
-        reorderCallback(touchSrc, dstSrc, above);
+        const src = touchSrc;
         touchSrc = null;
+        touchCard = null;
+        reorderCallback(src, dstSrc, above);
         return;
       }
     }
     touchSrc = null;
+    touchCard = null;
   }, { passive: true });
 
   container.addEventListener("touchcancel", () => {
     if (touchSrc === null || touchSrc === undefined) return;
-    container.querySelectorAll(cardSelector).forEach(c => c.classList.remove("dragging", "drag-over-top", "drag-over-bottom"));
+    clearDragUi();
     touchSrc = null;
+    touchCard = null;
   }, { passive: true });
 }
 
 var _jobDnDSetup = false;
 var _jobDragSrcIdx = -1;
 var _jobDragSrcStreamIdx = -1;
+
+function swapJobSequences(streamIdx, srcIdx, dstIdx) {
+  if (srcIdx === dstIdx) return false;
+  if (!canSwapJobs(streamIdx, srcIdx, dstIdx)) return false;
+  var streams = loadStreams();
+  var streamJobs = streams[streamIdx].jobs || [];
+  var srcSeq = streamJobs[srcIdx].sequence || 0;
+  var dstSeq = streamJobs[dstIdx].sequence || 0;
+  streamJobs[srcIdx].sequence = dstSeq;
+  streamJobs[dstIdx].sequence = srcSeq;
+  streams[streamIdx].jobs = streamJobs;
+  saveStreams(streams);
+  return true;
+}
 
 function setupJobDnD(list) {
   if (_jobDnDSetup) return;
@@ -103,6 +139,10 @@ function setupJobDnD(list) {
   list.addEventListener("dragstart", function(e) {
     var card = e.target.closest(".job-drag-card");
     if (!card) return;
+    if (e.target.closest("button, input, select, textarea, a, label")) {
+      e.preventDefault();
+      return;
+    }
     _jobDragSrcIdx = parseInt(card.dataset.jobIdx);
     _jobDragSrcStreamIdx = parseInt(card.dataset.streamIdx);
     card.classList.add("dragging");
@@ -128,20 +168,30 @@ function setupJobDnD(list) {
     if (!target || _jobDragSrcIdx < 0) return;
     if (String(target.dataset.streamIdx) !== String(_jobDragSrcStreamIdx)) return;
     var dropIdx = parseInt(target.dataset.jobIdx);
-    if (dropIdx === _jobDragSrcIdx) { _jobDragSrcIdx = -1; _jobDragSrcStreamIdx = -1; return; }
-    if (!canSwapJobs(_jobDragSrcStreamIdx, _jobDragSrcIdx, dropIdx)) return;
-    var streams = loadStreams();
-    var streamJobs = streams[_jobDragSrcStreamIdx].jobs || [];
-    var srcSeq = streamJobs[_jobDragSrcIdx].sequence || 0;
-    var dstSeq = streamJobs[dropIdx].sequence || 0;
-    streamJobs[_jobDragSrcIdx].sequence = dstSeq;
-    streamJobs[dropIdx].sequence = srcSeq;
-    streams[_jobDragSrcStreamIdx].jobs = streamJobs;
-    saveStreams(streams);
+    var srcIdx = _jobDragSrcIdx;
+    var streamIdx = _jobDragSrcStreamIdx;
     _jobDragSrcIdx = -1;
     _jobDragSrcStreamIdx = -1;
-    renderStreamsEditor();
+    if (swapJobSequences(streamIdx, srcIdx, dropIdx)) {
+      renderStreamsEditor();
+    }
   });
+
+  // iOS Safari does not support HTML5 DnD — touch fallback for job tiles
+  addTouchDnD(list, ".job-drag-card", function(c) {
+    return c.dataset.streamIdx + ":" + c.dataset.jobIdx;
+  }, function(srcKey, dstKey) {
+    var sp = String(srcKey).split(":");
+    var dp = String(dstKey).split(":");
+    var srcStream = parseInt(sp[0], 10);
+    var srcIdx = parseInt(sp[1], 10);
+    var dstStream = parseInt(dp[0], 10);
+    var dstIdx = parseInt(dp[1], 10);
+    if (srcStream !== dstStream) return;
+    if (swapJobSequences(srcStream, srcIdx, dstIdx)) {
+      renderStreamsEditor();
+    }
+  }, { handleSelector: ".drag-handle" });
 }
 
 function canSwapJobs(streamIdx, srcIdx, dstIdx) {
@@ -490,7 +540,7 @@ function markJobDone(jobId, cbRef) {
     renderMain();
   });
 
-  // touch DnD fallback for iOS
+  // touch DnD fallback for iOS (drag from handle so list can still scroll)
   addTouchDnD(cardContainer, ".today-drag-card", c => c.dataset.jobId, (srcId, dstId, above) => {
     const cards = [...cardContainer.querySelectorAll(".today-drag-card")];
     const visibleIds = cards.map(c => c.dataset.jobId);
@@ -506,7 +556,7 @@ function markJobDone(jobId, cbRef) {
     const mergedOrder = fullOrder.map(id => visibleSet.has(id) ? visibleIds[vi++] : id);
     saveTodayOrder(mergedOrder);
     renderMain();
-  });
+  }, { handleSelector: ".drag-handle" });
 
   updateNavState();
 }
@@ -719,9 +769,8 @@ function renderStreamsEditor() {
     renderStreamsEditor();
   });
 
-  // touch DnD fallback for iOS
+  // touch DnD fallback for iOS (ignore touches inside expanded job lists)
   addTouchDnD(list, ".stream-drag-card", function(c) {
-    if (c.closest(".accordion-body")) return -1;
     return parseInt(c.dataset.index);
   }, function(srcIdx, dstIdx, above) {
     if (srcIdx === dstIdx || srcIdx < 0) return;
@@ -737,7 +786,7 @@ function renderStreamsEditor() {
     s.forEach(function(t, i) { t.sequence = i + 1; });
     saveStreams(s);
     renderStreamsEditor();
-  });
+  }, { handleSelector: ".drag-handle", ignoreSelector: ".accordion-body" });
 
   // delegated active toggle handler for jobs
   list.addEventListener("change", function(e) {
@@ -807,8 +856,9 @@ function renderJobsInAccordion(stream, jobs, streamIdx) {
     var jobImgUrl = getImageDataUrl(j.image);
     var hasTime = j.time && j.time.trim();
     var hasSleep = j.sleepUntil && j.sleepUntil.trim();
-    return '<div class="card p-2 mb-0 job-drag-card" draggable="true" data-job-idx="' + realIdx + '" data-stream-idx="' + streamIdx + '" data-sleep="' + escapeHtml(j.sleepUntil || '') + '" data-time="' + escapeHtml(j.time || '') + '" style="cursor:grab">' +
+    return '<div class="card p-2 mb-0 job-drag-card" draggable="true" data-job-idx="' + realIdx + '" data-stream-idx="' + streamIdx + '" data-sleep="' + escapeHtml(j.sleepUntil || '') + '" data-time="' + escapeHtml(j.time || '') + '">' +
       '<div class="d-flex align-items-center gap-2">' +
+        '<div class="drag-handle text-secondary flex-shrink-0" style="cursor:grab;font-size:1.2rem;line-height:1;padding:0.15rem 0.25rem" aria-label="Drag to reorder">&#9776;</div>' +
         (jobImgUrl ? '<div style="width:32px;height:32px;flex-shrink:0"><img src="' + jobImgUrl + '" class="date-img" style="max-width:32px;max-height:32px"></div>' : '') +
         '<div class="fw-bold editor-title" style="min-width:0;flex:1">' + escapeHtml(j.title) + (getJobSuffix(j) ? ' <span class="badge bg-secondary">' + escapeHtml(getJobSuffix(j).trim()) + '</span>' : '') + '</div>' +
         '<button class="btn btn-primary btn-sm editor-btn flex-shrink-0 align-self-center ms-3" style="min-width:50px" onclick="editJobInAccordion(' + streamIdx + ', ' + realIdx + ')">Edit</button>' +
