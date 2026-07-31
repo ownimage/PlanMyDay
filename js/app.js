@@ -109,7 +109,7 @@ function setupJobDnD(list) {
 
   list.addEventListener("dragstart", function(e) {
     var card = e.target.closest(".job-drag-card");
-    if (!card || card.getAttribute("draggable") === "false") return;
+    if (!card) return;
     _jobDragSrcIdx = parseInt(card.dataset.jobIdx);
     _jobDragSrcStreamIdx = parseInt(card.dataset.streamIdx);
     card.classList.add("dragging");
@@ -121,8 +121,9 @@ function setupJobDnD(list) {
   list.addEventListener("dragover", function(e) {
     e.preventDefault();
     var target = e.target.closest(".job-drag-card");
-    if (!target || _jobDragSrcIdx < 0 || target.getAttribute("draggable") === "false") return;
+    if (!target || _jobDragSrcIdx < 0) return;
     if (String(target.dataset.streamIdx) !== String(_jobDragSrcStreamIdx)) return;
+    if (!canSwapJobs(_jobDragSrcStreamIdx, _jobDragSrcIdx, parseInt(target.dataset.jobIdx))) return;
     list.querySelectorAll(".job-drag-card").forEach(function(c) { c.classList.remove("drag-over-top", "drag-over-bottom"); });
     var rect = target.getBoundingClientRect();
     target.classList.add(e.clientY < rect.top + rect.height / 2 ? "drag-over-top" : "drag-over-bottom");
@@ -131,10 +132,11 @@ function setupJobDnD(list) {
     e.preventDefault();
     list.querySelectorAll(".job-drag-card").forEach(function(c) { c.classList.remove("drag-over-top", "drag-over-bottom"); });
     var target = e.target.closest(".job-drag-card");
-    if (!target || _jobDragSrcIdx < 0 || target.getAttribute("draggable") === "false") return;
+    if (!target || _jobDragSrcIdx < 0) return;
     if (String(target.dataset.streamIdx) !== String(_jobDragSrcStreamIdx)) return;
     var dropIdx = parseInt(target.dataset.jobIdx);
     if (dropIdx === _jobDragSrcIdx) { _jobDragSrcIdx = -1; _jobDragSrcStreamIdx = -1; return; }
+    if (!canSwapJobs(_jobDragSrcStreamIdx, _jobDragSrcIdx, dropIdx)) return;
     var streams = loadStreams();
     var streamJobs = streams[_jobDragSrcStreamIdx].jobs || [];
     var srcSeq = streamJobs[_jobDragSrcIdx].sequence || 0;
@@ -147,6 +149,24 @@ function setupJobDnD(list) {
     _jobDragSrcStreamIdx = -1;
     renderStreamsEditor();
   });
+}
+
+function canSwapJobs(streamIdx, srcIdx, dstIdx) {
+  var streams = loadStreams();
+  var jobs = streams[streamIdx].jobs || [];
+  var a = jobs[srcIdx];
+  var b = jobs[dstIdx];
+  if (!a || !b) return false;
+  var aSleep = a.sleepUntil && a.sleepUntil.trim();
+  var bSleep = b.sleepUntil && b.sleepUntil.trim();
+  var aTime = a.time && a.time.trim();
+  var bTime = b.time && b.time.trim();
+  var aGroup = aSleep ? 2 : (aTime ? 0 : 1);
+  var bGroup = bSleep ? 2 : (bTime ? 0 : 1);
+  if (aGroup !== bGroup) return false;
+  if (aGroup === 0) return aTime === bTime;
+  if (aGroup === 2) return aSleep === bSleep && aTime === bTime;
+  return true;
 }
 
 // JOB COMPLETION STORAGE
@@ -810,10 +830,31 @@ function renderStreamsEditor() {
 }
 
 function renderJobsInAccordion(stream, jobs, streamIdx) {
+  // rule 1: has sleepUntil → end (ordered by sleepUntil date, then time)
+  // rule 2: no sleepUntil, has time → start (ordered by time)
+  // rule 3: no sleepUntil, no time → middle (ordered by sequence)
   var sorted = [].concat(jobs).sort(function(a, b) {
-    var aHasTime = a.time && a.time.trim() ? 0 : 1;
-    var bHasTime = b.time && b.time.trim() ? 0 : 1;
-    if (aHasTime !== bHasTime) return aHasTime - bHasTime;
+    var aSleep = a.sleepUntil && a.sleepUntil.trim();
+    var bSleep = b.sleepUntil && b.sleepUntil.trim();
+    var aTime = a.time && a.time.trim();
+    var bTime = b.time && b.time.trim();
+    // groups: 0=rule2(noSleep+time), 1=rule3(noSleep+noTime), 2=rule1(sleepUntil)
+    var aGroup = aSleep ? 2 : (aTime ? 0 : 1);
+    var bGroup = bSleep ? 2 : (bTime ? 0 : 1);
+    if (aGroup !== bGroup) return aGroup - bGroup;
+    if (aGroup === 0) {
+      var t = aTime.localeCompare(bTime);
+      if (t !== 0) return t;
+      return (a.sequence || 0) - (b.sequence || 0);
+    }
+    if (aGroup === 2) {
+      var d = aSleep.localeCompare(bSleep);
+      if (d !== 0) return d;
+      if (aTime && bTime) return aTime.localeCompare(bTime);
+      if (aTime) return 1;
+      if (bTime) return -1;
+      return (a.sequence || 0) - (b.sequence || 0);
+    }
     return (a.sequence || 0) - (b.sequence || 0);
   });
   return sorted.map(function(j) {
@@ -821,11 +862,12 @@ function renderJobsInAccordion(stream, jobs, streamIdx) {
     var scheduleText = getScheduleText(j.schedule);
     var jobImgUrl = getImageDataUrl(j.image);
     var hasTime = j.time && j.time.trim();
-    return '<div class="card p-2 mb-0 job-drag-card" draggable="' + (hasTime ? 'false' : 'true') + '" data-job-idx="' + realIdx + '" data-stream-idx="' + streamIdx + '" style="cursor:' + (hasTime ? 'default' : 'grab') + '">' +
+    var hasSleep = j.sleepUntil && j.sleepUntil.trim();
+    return '<div class="card p-2 mb-0 job-drag-card" draggable="true" data-job-idx="' + realIdx + '" data-stream-idx="' + streamIdx + '" data-sleep="' + escapeHtml(j.sleepUntil || '') + '" data-time="' + escapeHtml(j.time || '') + '" style="cursor:grab">' +
       '<div class="d-flex align-items-center gap-2">' +
         (jobImgUrl ? '<div style="width:32px;height:32px;flex-shrink:0"><img src="' + jobImgUrl + '" class="date-img" style="max-width:32px;max-height:32px"></div>' : '') +
         '<div class="fw-bold editor-title" style="min-width:0;flex:1">' + escapeHtml(j.title) + (getJobSuffix(j) ? ' <span class="badge bg-secondary">' + escapeHtml(getJobSuffix(j).trim()) + '</span>' : '') + '</div>' +
-        '<button class="btn btn-primary btn-sm editor-btn flex-shrink-0" style="min-width:50px" onclick="editJobInAccordion(' + streamIdx + ', ' + realIdx + ')">Edit</button>' +
+        '<button class="btn btn-primary btn-sm editor-btn flex-shrink-0 align-self-center ms-3" style="min-width:50px" onclick="editJobInAccordion(' + streamIdx + ', ' + realIdx + ')">Edit</button>' +
       '</div>' +
       '<div class="d-flex align-items-center gap-2 mt-1 small">' +
         '<label class="form-check-label mb-0 fw-bold flex-shrink-0" style="cursor:pointer;display:flex;align-items:center;gap:2px">' +
@@ -833,7 +875,7 @@ function renderJobsInAccordion(stream, jobs, streamIdx) {
           'Active' +
         '</label>' +
         '<span class="badge bg-primary flex-shrink-0">' + escapeHtml(scheduleText) + '</span>' +
-        (j.sleepUntil ? '<span class="badge bg-info flex-shrink-0">Sleep: ' + escapeHtml(formatDate(j.sleepUntil)) + '</span>' : '') +
+        (hasSleep ? '<span class="badge bg-info flex-shrink-0">Sleep: ' + escapeHtml(formatDate(j.sleepUntil)) + '</span>' : '') +
         (hasTime ? '<span class="badge bg-secondary flex-shrink-0">' + escapeHtml(j.time) + '</span>' : '') +
       '</div>' +
     '</div>';

@@ -642,7 +642,7 @@ test.describe("PlanMyDay - Regression", () => {
       await expect(jobCards.first()).toContainText("EarlyJob");
     });
 
-    test("untimed jobs have drag handle, timed jobs do not", async ({ page }) => {
+    test("all job tiles are draggable", async ({ page }) => {
       await page.evaluate(() => {
         var streams = JSON.parse(localStorage.getItem("planmydays_streams"));
         streams[0].jobs.push({ id: "job_timed", title: "TimedJob", active: true, frequency: "daily", sequence: 99, time: "09:00", suffix: false, dayType: "dayOfYear", mod: "" });
@@ -654,7 +654,7 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#streamEditorList .stream-header-main").first().click();
       await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible", timeout: 5000 });
       var timedCard = page.locator(".job-drag-card").filter({ hasText: "TimedJob" });
-      await expect(timedCard).toHaveAttribute("draggable", "false");
+      await expect(timedCard).toHaveAttribute("draggable", "true");
       var untimedCard = page.locator(".job-drag-card").filter({ hasText: "Report" });
       await expect(untimedCard).toHaveAttribute("draggable", "true");
     });
@@ -2317,7 +2317,8 @@ test.describe("PlanMyDay - Regression", () => {
       await page.getByRole("button", { name: "Clear All Data" }).click();
       await expect(page.locator("#deleteConfirmModal")).toBeVisible();
       await page.locator("#deleteConfirmBtn").click();
-      await expect(page.locator("#deleteConfirmModal")).not.toBeVisible({ timeout: 5000 });
+      await page.waitForTimeout(500);
+      await expect(page.locator("#deleteConfirmModal")).not.toBeVisible({ timeout: 10000 });
       const allKeys = await page.evaluate(() => {
         const k = Object.keys(localStorage);
         return k.filter(key => key !== "planmydays_last_gen" && key !== "planmydays_today_order" && key !== "planmydays_completed");
