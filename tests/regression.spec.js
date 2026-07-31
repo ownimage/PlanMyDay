@@ -3310,4 +3310,581 @@ test.describe("PlanMyDay - Regression", () => {
       expect(reordered.length).toBeGreaterThanOrEqual(2);
     });
   });
+
+  // ── Coverage: Branch paths ─────────────────────────────────
+
+  test.describe("Coverage: Branch paths", () => {
+
+    test("touch DnD edge branches: no card, no target, same card, cancel idle", async ({ page }) => {
+      await seedTodayList(page);
+      await page.reload();
+      await page.locator("#todayCardList .today-drag-card").first().waitFor({ state: "visible" });
+      await page.evaluate(() => {
+        const list = document.getElementById("todayCardList");
+        const cards = [...list.querySelectorAll(".today-drag-card")];
+        const c1 = cards[0];
+        const c2 = cards[1];
+        const r1 = c1.getBoundingClientRect();
+        const r2 = c2.getBoundingClientRect();
+        const fire = (type, x, y, target) => {
+          const t = new Touch({ identifier: 1, target, clientX: x, clientY: y });
+          const touching = type === "touchend" || type === "touchcancel" ? [] : [t];
+          target.dispatchEvent(new TouchEvent(type, {
+            bubbles: true, cancelable: true,
+            touches: touching, changedTouches: [t], targetTouches: touching
+          }));
+        };
+        // touchstart on non-card (list itself)
+        fire("touchstart", 1, 1, list);
+        // touchmove/end/cancel with no active drag
+        fire("touchmove", 10, 10, list);
+        fire("touchend", 10, 10, list);
+        fire("touchcancel", 10, 10, list);
+        // start on card, move to empty space (no target)
+        fire("touchstart", r1.x + 5, r1.y + 5, c1);
+        fire("touchmove", 2, 2, document.body);
+        // move above midpoint vs below midpoint
+        fire("touchmove", r2.x + 5, r2.y + 2, c2);
+        fire("touchmove", r2.x + 5, r2.y + r2.height - 2, c2);
+        // end on same card (no reorder)
+        fire("touchend", r1.x + 5, r1.y + 5, c1);
+        // start and end with no target under finger
+        fire("touchstart", r1.x + 5, r1.y + 5, c1);
+        fire("touchend", 1, 1, document.body);
+        // start and cancel with active drag
+        fire("touchstart", r1.x + 5, r1.y + 5, c1);
+        fire("touchcancel", r1.x + 5, r1.y + 5, c1);
+      });
+    });
+
+    test("job DnD branch paths: wrong stream, same index, cannot swap, missing sequence", async ({ page }) => {
+      await page.evaluate((data) => {
+        data[0].jobs = [
+          { id: "j1", title: "TAuntimed", active: true, sequence: 1, time: "" },
+          { id: "j2", title: "TBuntimed", active: true, sequence: 2, time: "" },
+          { id: "j3", title: "TimedA", active: true, sequence: 3, time: "09:00" },
+          { id: "j4", title: "TimedB", active: true, time: "10:00" }
+        ];
+        data[1].jobs = [
+          { id: "j5", title: "OtherStream", active: true, sequence: 1, time: "" }
+        ];
+        localStorage.setItem("planmydays_streams", JSON.stringify(data));
+      }, TEST_STREAMS);
+      await page.reload();
+      await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
+      await page.locator("a.dropdown-item").filter({ hasText: "Jobs" }).click();
+      await page.locator("#streamEditorList .stream-header-main").first().click();
+      await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible" });
+      // expand second stream too for cross-stream target
+      await page.locator("#streamEditorList .stream-header-main").nth(1).click();
+      await page.waitForTimeout(200);
+
+      await page.evaluate(() => {
+        const list = document.getElementById("streamEditorList");
+        const untimed = [...list.querySelectorAll(".job-drag-card")].filter(c =>
+          c.textContent.includes("TAuntimed") || c.textContent.includes("TBuntimed") ||
+          c.textContent.includes("TimedA") || c.textContent.includes("TimedB") ||
+          c.textContent.includes("OtherStream")
+        );
+        const byTitle = (t) => untimed.find(c => c.textContent.includes(t));
+        const a = byTitle("TAuntimed");
+        const b = byTitle("TBuntimed");
+        const timedA = byTitle("TimedA");
+        const timedB = byTitle("TimedB");
+        const other = byTitle("OtherStream");
+        const dt = new DataTransfer();
+        const drag = (type, el, clientY) => {
+          const rect = el.getBoundingClientRect();
+          const y = clientY != null ? clientY : rect.top + rect.height / 2;
+          el.dispatchEvent(new DragEvent(type, {
+            bubbles: true, cancelable: true, dataTransfer: dt,
+            clientX: rect.left + 10, clientY: y
+          }));
+        };
+        // dragstart on non-card
+        list.dispatchEvent(new DragEvent("dragstart", { bubbles: true, dataTransfer: dt }));
+        // valid start then dragover top vs bottom
+        drag("dragstart", a);
+        drag("dragover", b, b.getBoundingClientRect().top + 2);
+        drag("dragover", b, b.getBoundingClientRect().bottom - 2);
+        // drop on self
+        drag("drop", a);
+        drag("dragend", a);
+        // start then cross-stream dragover/drop
+        drag("dragstart", a);
+        if (other) {
+          drag("dragover", other);
+          drag("drop", other);
+        }
+        drag("dragend", a);
+        // cannot swap timed different times
+        drag("dragstart", timedA);
+        drag("dragover", timedB);
+        drag("drop", timedB);
+        drag("dragend", timedA);
+        // successful swap without sequence on one job (|| 0 branch)
+        drag("dragstart", timedB);
+        // put timedB next to untimed won't swap; swap two untimed again
+        drag("dragstart", b);
+        drag("drop", a, a.getBoundingClientRect().top + 2);
+        drag("dragend", b);
+        // drop with no active drag
+        _jobDragSrcIdx = -1;
+        drag("drop", a);
+      });
+      // re-seed for stable canSwapJobs index checks
+      const r = await page.evaluate((data) => {
+        data[0].jobs = [
+          { id: "j1", title: "TAuntimed", active: true, sequence: 1, time: "" },
+          { id: "j2", title: "TBuntimed", active: true, sequence: 2, time: "" },
+          { id: "j3", title: "TimedA", active: true, sequence: 3, time: "09:00" },
+          { id: "j4", title: "TimedB", active: true, sequence: 4, time: "10:00" }
+        ];
+        localStorage.setItem("planmydays_streams", JSON.stringify(data));
+        return {
+          sameTime: canSwapJobs(0, 2, 2),
+          diffTime: canSwapJobs(0, 2, 3),
+          untimed: canSwapJobs(0, 0, 1)
+        };
+      }, TEST_STREAMS);
+      expect(r.sameTime).toBe(true);
+      expect(r.diffTime).toBe(false);
+      expect(r.untimed).toBe(true);
+    });
+
+    test("canSwapJobs sleep and time subgroup branches", async ({ page }) => {
+      const result = await page.evaluate((data) => {
+        data[0].jobs = [
+          { id: "a", title: "A", active: true, sequence: 1, time: "09:00", sleepUntil: "" },
+          { id: "b", title: "B", active: true, sequence: 2, time: "09:00", sleepUntil: "" },
+          { id: "c", title: "C", active: true, sequence: 3, time: "10:00", sleepUntil: "" },
+          { id: "d", title: "D", active: true, sequence: 4, time: "", sleepUntil: "2099-01-01" },
+          { id: "e", title: "E", active: true, sequence: 5, time: "", sleepUntil: "2099-01-01" },
+          { id: "f", title: "F", active: true, sequence: 6, time: "08:00", sleepUntil: "2099-01-01" },
+          { id: "g", title: "G", active: true, sequence: 7, time: "", sleepUntil: "2099-06-01" },
+          { id: "h", title: "H", active: true, sequence: 8, time: "  ", sleepUntil: "  " }
+        ];
+        localStorage.setItem("planmydays_streams", JSON.stringify(data));
+        return {
+          sameTime: canSwapJobs(0, 0, 1),
+          diffTime: canSwapJobs(0, 0, 2),
+          sameSleep: canSwapJobs(0, 3, 4),
+          sleepDiffDate: canSwapJobs(0, 3, 6),
+          sleepDiffTime: canSwapJobs(0, 3, 5),
+          sleepVsUntimed: canSwapJobs(0, 3, 7),
+          blankTrimUntimed: canSwapJobs(0, 7, 7),
+          missingJob: canSwapJobs(0, 0, 99),
+          emptyJobsStream: (() => {
+            data.push({ id: "empty", title: "E", jobs: null });
+            localStorage.setItem("planmydays_streams", JSON.stringify(data));
+            try { return canSwapJobs(data.length - 1, 0, 1); } catch (e) { return "err"; }
+          })()
+        };
+      }, TEST_STREAMS);
+      expect(result.sameTime).toBe(true);
+      expect(result.diffTime).toBe(false);
+      expect(result.sameSleep).toBe(true);
+      expect(result.sleepDiffDate).toBe(false);
+      expect(result.sleepDiffTime).toBe(false);
+      expect(result.sleepVsUntimed).toBe(false);
+      expect(result.missingJob).toBe(false);
+    });
+
+    test("addScheduleJobsToOrder time sort branches", async ({ page }) => {
+      const order = await page.evaluate(() => {
+        localStorage.setItem("planmydays_streams", JSON.stringify([{
+          id: "s", title: "S", tab: "progress", sequence: 1,
+          jobs: [
+            { id: "noTime1", title: "N1", active: true, schedule: { type: "daily" } },
+            { id: "timeB", title: "TB", active: true, time: "14:00", schedule: { type: "daily" } },
+            { id: "timeA", title: "TA", active: true, time: "09:00", schedule: { type: "daily" } },
+            { id: "noTime2", title: "N2", active: true, schedule: { type: "daily" } },
+            { id: "inactive", title: "X", active: false, time: "07:00", schedule: { type: "daily" } }
+          ]
+        }]));
+        return addScheduleJobsToOrder([]);
+      });
+      expect(order.indexOf("timeA")).toBeLessThan(order.indexOf("timeB"));
+      expect(order).toContain("noTime1");
+      expect(order).not.toContain("inactive");
+    });
+
+    test("loadCompletedJobs and loadTodayOrder null branches", async ({ page }) => {
+      const result = await page.evaluate(() => {
+        localStorage.removeItem("planmydays_completed");
+        localStorage.removeItem("planmydays_today_order");
+        return {
+          completed: loadCompletedJobs(),
+          order: loadTodayOrder()
+        };
+      });
+      expect(result.completed).toEqual([]);
+      expect(result.order).toBeNull();
+    });
+
+    test("shouldShowJobToday unknown type and empty days", async ({ page }) => {
+      const result = await page.evaluate(() => ({
+        unknown: shouldShowJobToday({ schedule: { type: "weird" } }),
+        noSchedule: shouldShowJobToday({}),
+        emptyDays: shouldShowJobToday({ schedule: { type: "days", days: [] } }),
+        monthlyDefault: shouldShowJobToday({ schedule: { type: "monthly" } }),
+        ndaysDefault: shouldShowJobToday({ schedule: { type: "ndays" } })
+      }));
+      expect(result.unknown).toBe(true);
+      expect(result.noSchedule).toBe(true);
+      expect(result.emptyDays).toBe(false);
+    });
+
+    test("getScheduleText and getNextDueText branches", async ({ page }) => {
+      const result = await page.evaluate(() => ({
+        daily: getScheduleText({ type: "daily" }),
+        weekdays: getScheduleText({ type: "weekdays" }),
+        weekends: getScheduleText({ type: "weekends" }),
+        days: getScheduleText({ type: "days", days: [1, 3] }),
+        daysEmpty: getScheduleText({ type: "days", days: [] }),
+        monthly: getScheduleText({ type: "monthly", date: 15 }),
+        monthlyDef: getScheduleText({ type: "monthly" }),
+        ndays: getScheduleText({ type: "ndays", interval: 3, offset: 1 }),
+        ndaysDef: getScheduleText({ type: "ndays" }),
+        unknown: getScheduleText({ type: "x" }),
+        none: getScheduleText(null),
+        next: getNextDueText(3, 1),
+        nextDef: getNextDueText(2, 0)
+      }));
+      expect(result.daily.toLowerCase()).toMatch(/every|daily/i);
+      expect(result.weekdays.toLowerCase()).toMatch(/weekday/i);
+      expect(result.next).toBeTruthy();
+    });
+
+    test("saveScheduleModal empty days falls back to daily", async ({ page }) => {
+      await page.evaluate((data) => {
+        localStorage.setItem("planmydays_streams", JSON.stringify(data));
+        jobsStreamIndex = 0;
+        jobsTargetStreamIndex = 0;
+        jobsEditingIdx = 0;
+        isNewJob = false;
+        jobsBuffer = JSON.parse(JSON.stringify(data[0].jobs[0]));
+        showJobEditModal();
+      }, TEST_STREAMS);
+      await page.locator("#jobEditModal").waitFor({ state: "visible" });
+      await page.locator("#btnScheduleChange").click();
+      await page.locator("#scheduleModal").waitFor({ state: "visible" });
+      await page.locator('input[name="scheduleType"][value="days"]').check();
+      await page.evaluate(() => onScheduleTypeChange());
+      for (let i = 0; i < 7; i++) {
+        const cb = page.locator("#schedDay" + i);
+        if (await cb.count() && await cb.isChecked()) await cb.uncheck();
+      }
+      await page.evaluate(() => saveScheduleModal());
+      const schedule = await page.evaluate(() => jobsBuffer?.schedule);
+      expect(schedule?.type).toBe("daily");
+    });
+
+    test("formatDate and getDaysSinceEpoch", async ({ page }) => {
+      const result = await page.evaluate(() => ({
+        formatted: formatDate("2026-07-31"),
+        empty: formatDate(""),
+        epoch: getDaysSinceEpoch(new Date("2026-07-31T00:00:00"))
+      }));
+      expect(result.formatted).toBeTruthy();
+      expect(typeof result.epoch).toBe("number");
+    });
+
+    test("image helper OOB and missing-data branches", async ({ page }) => {
+      const result = await page.evaluate(() => {
+        localStorage.setItem("planmydays_images", JSON.stringify([
+          { name: "Only", data: "data:image/svg+xml," + encodeURIComponent("<svg stroke='#111' fill='#222'></svg>") },
+          { name: "NoData", data: "" },
+          { name: "SingleQuote", data: "data:image/svg+xml," + encodeURIComponent("<svg stroke='#abc' fill='none'></svg>") }
+        ]));
+        editingImageIndex = -1;
+        const out = {};
+        out.dupOob = (duplicateImage(-1), duplicateImage(99), true);
+        out.editOob = (editImageField("name", "x"), editImageColor(-1, "stroke", "#000"), editImageFillNone(99, true), editImageStrokeNone(-1, true), editImageStrokeWidth(99, "2"), true);
+        out.strokeNonSvg = (editImageStrokeWidth(1, "3"), loadImages()[1].data);
+        // single-quote attr path in updateSvgColor
+        const sq = "data:image/svg+xml," + encodeURIComponent("<svg stroke='#abc' fill='none'></svg>");
+        out.singleQuote = updateSvgColor(sq, "stroke", "#fff");
+        // decodeVal %23 path
+        out.pct = getImageColors("data:image/svg+xml," + encodeURIComponent('<svg stroke="%23ff00aa" fill="%2300bbcc" stroke-width="1"></svg>'));
+        // missing stroke/fill matches
+        out.bare = getImageColors("data:image/svg+xml," + encodeURIComponent("<svg></svg>"));
+        // normalizeSvg defaults when no stroke/fill in children
+        out.normEmpty = normalizeSvgForEditing("<svg xmlns='http://www.w3.org/2000/svg'></svg>");
+        out.normChild = normalizeSvgForEditing('<svg xmlns="http://www.w3.org/2000/svg"><path stroke="#111" fill="#222"/></svg>');
+        // checkDuplicateName with no input
+        editingImageIndex = -1;
+        out.checkNoInput = (checkDuplicateName(), true);
+        // openImageUpload cancel (no file)
+        out.uploadCancel = (() => {
+          const orig = HTMLInputElement.prototype.click;
+          HTMLInputElement.prototype.click = function() {
+            Object.defineProperty(this, "files", { value: [], configurable: true });
+            this.dispatchEvent(new Event("change"));
+            HTMLInputElement.prototype.click = orig;
+          };
+          openImageUpload(0);
+          return true;
+        })();
+        // getImageByName empty
+        out.noName = getImageByName("");
+        out.missing = getImageByName("Nope");
+        out.dataUrl = getImageDataUrl("Only");
+        out.dataMissing = getImageDataUrl("Nope");
+        // page clamp when page beyond total
+        imagesPage = 50;
+        imageNameSearch = "";
+        renderImagesEditor();
+        out.pageClamped = imagesPage;
+        return out;
+      });
+      expect(result.dupOob).toBe(true);
+      expect(result.strokeNonSvg).toBe("");
+      expect(result.pct.line).toMatch(/#ff00aa/i);
+      expect(result.bare.line).toBe("");
+      expect(result.normEmpty).toMatch(/stroke=/);
+      expect(result.noName).toBeNull();
+      expect(result.missing).toBeNull();
+      expect(result.dataMissing).toBeNull();
+      expect(result.pageClamped).toBe(0);
+    });
+
+    test("edit image prev color fallbacks and fill/stroke restore defaults", async ({ page }) => {
+      await page.evaluate(() => {
+        const svg = "data:image/svg+xml," + encodeURIComponent('<svg stroke="none" fill="none" stroke-width="2"><rect/></svg>');
+        localStorage.setItem("planmydays_images", JSON.stringify([
+          { name: "NoneCols", data: svg }
+        ]));
+        editingImageIndex = 0;
+        isNewImage = false;
+        editImageBackup = JSON.parse(JSON.stringify(loadImages()[0]));
+        renderImagesEditor();
+      });
+      await page.locator("#imageEditModal").waitFor({ state: "visible" });
+      // uncheck none without _prev* set -> default #000000
+      await page.evaluate(() => {
+        editImageStrokeNone(0, false);
+        editImageFillNone(0, false);
+        // set none again storing prev, then restore
+        editImageStrokeNone(0, true);
+        editImageFillNone(0, true);
+        editImageStrokeNone(0, false);
+        editImageFillNone(0, false);
+        // stroke width empty value fallback
+        editImageStrokeWidth(0, "");
+      });
+      const img = await page.evaluate(() => loadImages()[0]);
+      expect(img.lineColor).toBeTruthy();
+      expect(img.fillColor).toBeTruthy();
+    });
+
+    test("seedSampleImages skips when images already present", async ({ page }) => {
+      const result = await page.evaluate(() => {
+        localStorage.setItem("planmydays_images", JSON.stringify([{ name: "x", data: "" }]));
+        seedSampleImages();
+        return JSON.parse(localStorage.getItem("planmydays_images")).length;
+      });
+      expect(result).toBe(1);
+    });
+
+    test("uploadStandardImages merges without duplicating names", async ({ page }) => {
+      test.setTimeout(60000);
+      await page.evaluate(async () => {
+        // seed one name that will collide after upload
+        const res = await fetch("sampleImages.json");
+        const data = await res.json();
+        if (data.images && data.images[0]) {
+          localStorage.setItem("planmydays_images", JSON.stringify([data.images[0]]));
+        }
+      });
+      await page.evaluate(() => uploadStandardImages());
+      await page.waitForFunction(() => {
+        const imgs = JSON.parse(localStorage.getItem("planmydays_images") || "[]");
+        return imgs.length > 1;
+      }, null, { timeout: 45000 });
+      const names = await page.evaluate(() => JSON.parse(localStorage.getItem("planmydays_images")).map(i => i.name));
+      expect(new Set(names).size).toBe(names.length);
+    });
+
+    test("settings auto-hide branch guards", async ({ page }) => {
+      await page.evaluate(() => {
+        // unbind when not bound
+        autoHideEventsBound = false;
+        unbindAutoHideEvents();
+        // bind twice
+        bindAutoHideEvents();
+        bindAutoHideEvents();
+        // reset when disabled
+        localStorage.setItem("planmydays_autoHideMenu", "false");
+        resetAutoHideTimer();
+        // reset when cooldown active
+        localStorage.setItem("planmydays_autoHideMenu", "true");
+        autoHideCooldown = true;
+        resetAutoHideTimer();
+        autoHideCooldown = false;
+        // hideNav when editors open should not hide
+        document.getElementById("settingsPage").classList.remove("d-none");
+        hideNav();
+        const hiddenWhileSettings = document.getElementById("mainNav").classList.contains("nav-hidden");
+        document.getElementById("settingsPage").classList.add("d-none");
+        // hideNav normal path
+        hideNav();
+        // showNav
+        showNav();
+        // changeAutoHide on/off
+        changeAutoHideMenu(true);
+        changeAutoHideMenu(false);
+        window.__autoHideBranch = {
+          bound: autoHideEventsBound,
+          hiddenWhileSettings
+        };
+      });
+      const r = await page.evaluate(() => window.__autoHideBranch);
+      expect(r.bound).toBe(false);
+      expect(r.hiddenWhileSettings).toBe(false);
+    });
+
+    test("applyTheme fallback and font/density normal branches", async ({ page }) => {
+      await page.evaluate(() => {
+        applyTheme("not-a-real-theme");
+        changeFontSize("normal");
+        changeFontSize("small");
+        changeDensity("normal");
+        changeDensity("compact");
+        changeIconSize("small");
+        changeSplitList(false);
+        changeHideDone(false);
+        changeSkipAdhocConfirm(false);
+        changeShowDanger(false);
+        changeShowDanger(true);
+      });
+      const theme = await page.evaluate(() => localStorage.getItem("planmydays_theme"));
+      expect(theme).toBe("not-a-real-theme");
+      await expect(page.locator("body")).toHaveClass(/font-size-small/);
+      await expect(page.locator("body")).toHaveClass(/compact/);
+    });
+
+    test("today drag drop same card and empty target branches", async ({ page }) => {
+      await seedTodayList(page);
+      await page.reload();
+      await page.locator("#todayCardList .today-drag-card").first().waitFor({ state: "visible" });
+      await page.evaluate(() => {
+        const list = document.getElementById("todayCardList");
+        const cards = [...list.querySelectorAll(".today-drag-card")];
+        const c1 = cards[0];
+        const c2 = cards[1];
+        const dt = new DataTransfer();
+        const fire = (type, el, y) => {
+          const rect = el.getBoundingClientRect();
+          el.dispatchEvent(new DragEvent(type, {
+            bubbles: true, cancelable: true, dataTransfer: dt,
+            clientX: rect.left + 5,
+            clientY: y != null ? y : rect.top + rect.height / 2
+          }));
+        };
+        // drop on self
+        fire("dragstart", c1);
+        fire("drop", c1);
+        fire("dragend", c1);
+        // dragover top and bottom
+        fire("dragstart", c1);
+        fire("dragover", c2, c2.getBoundingClientRect().top + 1);
+        fire("dragover", c2, c2.getBoundingClientRect().bottom - 1);
+        fire("drop", c2, c2.getBoundingClientRect().top + 1);
+        fire("dragend", c1);
+        // dragstart on list (no card)
+        list.dispatchEvent(new DragEvent("dragstart", { bubbles: true, dataTransfer: dt }));
+      });
+    });
+
+    test("markJobDone and removeAdhocJob edge branches", async ({ page }) => {
+      await page.evaluate(() => {
+        localStorage.setItem("planmydays_streams", JSON.stringify([{
+          id: "ah", title: "Ad Hoc", tab: "progress", sequence: 1,
+          jobs: [
+            { id: "adhoc1", title: "A1", active: true, schedule: { type: "daily" } },
+            { id: "adhoc2", title: "A2", active: true, schedule: { type: "daily" } }
+          ]
+        }, {
+          id: "s2", title: "Work", tab: "progress", sequence: 2,
+          jobs: [{ id: "w1", title: "W1", active: true, schedule: { type: "daily" } }]
+        }]));
+        localStorage.setItem("planmydays_today_order", JSON.stringify(["adhoc1", "adhoc2", "w1"]));
+        localStorage.setItem("planmydays_last_gen", getTodayStr());
+        localStorage.setItem("planmydays_completed", JSON.stringify(["w1"]));
+        localStorage.setItem("planmydays_skipAdhocConfirm", "true");
+      });
+      await page.reload();
+      // already-completed job: uncheck then check again
+      const workCb = page.locator('.job-checkbox[data-job-id="w1"]');
+      await workCb.uncheck();
+      await workCb.check();
+      // adhoc with skip confirm removes job (element goes away on re-render)
+      const adhocCb = page.locator('.job-checkbox[data-job-id="adhoc1"]');
+      await adhocCb.click();
+      await expect(page.locator('.today-drag-card[data-job-id="adhoc1"]')).toHaveCount(0);
+      const remaining = await page.evaluate(() => {
+        const s = loadStreams().find(t => t.title === "Ad Hoc");
+        return (s.jobs || []).map(j => j.id);
+      });
+      expect(remaining).not.toContain("adhoc1");
+      expect(remaining).toContain("adhoc2");
+    });
+
+    test("getJobSuffix mod zero and dayType defaults", async ({ page }) => {
+      const result = await page.evaluate(() => {
+        localStorage.setItem("planmydays_suffixStart", "0");
+        localStorage.setItem("planmydays_monday", "1");
+        localStorage.setItem("planmydays_jan1", "1");
+        return {
+          off: getJobSuffix({ suffix: false }),
+          week: getJobSuffix({ suffix: true, dayType: "dayOfWeek" }),
+          month: getJobSuffix({ suffix: true, dayType: "dayOfMonth" }),
+          year: getJobSuffix({ suffix: true, dayType: "dayOfYear" }),
+          mod0: getJobSuffix({ suffix: true, dayType: "dayOfYear", mod: "0" }),
+          modBad: getJobSuffix({ suffix: true, dayType: "dayOfYear", mod: "abc" }),
+          mod3: getJobSuffix({ suffix: true, dayType: "dayOfYear", mod: "3" })
+        };
+      });
+      expect(result.off).toBe("");
+      expect(result.week).toMatch(/\(\d+\)/);
+      expect(result.mod3).toMatch(/\(\d+\)/);
+    });
+
+    test("closeScheduleModal with no instance is safe", async ({ page }) => {
+      await page.evaluate(() => {
+        const el = document.getElementById("scheduleModal");
+        const inst = bootstrap.Modal.getInstance(el);
+        if (inst) inst.dispose();
+        closeScheduleModal();
+      });
+    });
+
+    test("updateJobImagePreview and stream preview empty name", async ({ page }) => {
+      await page.evaluate((data) => {
+        localStorage.setItem("planmydays_streams", JSON.stringify(data));
+        localStorage.setItem("planmydays_images", JSON.stringify([
+          { name: "PrevImg", data: "data:image/svg+xml," + encodeURIComponent("<svg></svg>") }
+        ]));
+        jobsStreamIndex = 0;
+        jobsTargetStreamIndex = 0;
+        jobsBuffer = { title: "t", image: "" };
+        jobsEditingIdx = 0;
+        isNewJob = false;
+        showJobEditModal();
+      }, TEST_STREAMS);
+      await page.locator("#jobEditModal").waitFor({ state: "visible" });
+      await page.evaluate(() => {
+        updateJobImagePreview("");
+        updateJobImagePreview("PrevImg");
+        updateStreamImagePreview("");
+        updateStreamImagePreview("PrevImg");
+        updateJobStreamPreview();
+        jobTimeChanged();
+        clearSleepUntil();
+        updateSleepUntilClearBtn();
+        updateJobEditOkBtn();
+      });
+    });
+  });
 });
