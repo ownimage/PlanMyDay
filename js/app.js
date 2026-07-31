@@ -675,28 +675,29 @@ function renderStreamsEditor() {
     item.draggable = true;
     item.dataset.index = realIdx;
 
-    var headerHtml = '<h2 class="accordion-header" id="streamHeading_' + realIdx + '">' +
-      '<button class="accordion-button collapsed accordion-full-btn w-100 p-2" type="button" data-bs-toggle="collapse" data-bs-target="#' + collapseId + '" aria-expanded="false">' +
+    var headerHtml = '<div class="accordion-header stream-accordion-header" id="streamHeading_' + realIdx + '">' +
+      '<button type="button" class="stream-header-main collapsed" data-bs-toggle="collapse" data-bs-target="#' + collapseId + '" aria-expanded="false">' +
         '<div class="drag-handle text-secondary flex-shrink-0" style="cursor:grab;font-size:1.3rem;line-height:1">&#9776;</div>' +
         '<div style="width:40px;height:40px;flex-shrink:0" class="mx-2">' + (streamImgUrl ? '<img src="' + streamImgUrl + '" class="date-img" style="max-width:40px;max-height:40px">' : '') + '</div>' +
-        '<div style="display:flex;flex-direction:column;min-width:0;flex:1;gap:0.25rem" class="me-2">' +
-          '<span class="fw-bold editor-title">' + escapeHtml(t.title) + '</span>' +
-          '<div style="display:flex;gap:0.25rem">' +
-            '<span class="badge bg-' + ((t.tab || "progress") === "progress" ? "success" : "primary") + '">' + escapeHtml(t.tab || "progress") + '</span>' +
-            (jobs.length > 0 ? '<span class="badge bg-secondary">' + jobs.length + ' job' + (jobs.length !== 1 ? 's' : '') + '</span>' : '') +
+        '<div style="display:flex;flex-direction:column;min-width:0;flex:1;gap:0.25rem;overflow:hidden" class="me-2">' +
+          '<span class="fw-bold editor-title text-truncate">' + escapeHtml(t.title) + '</span>' +
+          '<div style="display:flex;gap:0.25rem;flex-wrap:nowrap">' +
+            '<span class="badge bg-' + ((t.tab || "progress") === "progress" ? "success" : "primary") + ' text-nowrap">' + escapeHtml(t.tab || "progress") + '</span>' +
+            (jobs.length > 0 ? '<span class="badge bg-secondary text-nowrap">' + jobs.length + ' job' + (jobs.length !== 1 ? 's' : '') + '</span>' : '') +
           '</div>' +
         '</div>' +
-        '<div class="d-flex gap-1 flex-shrink-0 me-3">' +
-          '<button class="btn btn-primary editor-btn" style="min-width:50px" onclick="event.stopPropagation(); event.preventDefault(); editStream(' + realIdx + ')">Edit</button>' +
-          (jobs.length === 0 ? '<button class="btn btn-danger editor-btn" style="min-width:50px" onclick="event.stopPropagation(); event.preventDefault(); confirmDeleteStream(' + realIdx + ')">Delete</button>' : '') +
-        '</div>' +
       '</button>' +
-    '</h2>';
+      '<div class="stream-header-actions">' +
+        '<button type="button" class="btn btn-secondary btn-sm" onclick="addNewJobForStream(' + realIdx + ')">Add Job</button>' +
+        '<button type="button" class="btn btn-primary editor-btn" style="min-width:50px" onclick="editStream(' + realIdx + ')">Edit</button>' +
+        (jobs.length === 0 ? '<button type="button" class="btn btn-danger editor-btn" style="min-width:50px" onclick="confirmDeleteStream(' + realIdx + ')">Delete</button>' : '') +
+      '</div>' +
+      '<button type="button" class="stream-header-chevron collapsed" data-bs-toggle="collapse" data-bs-target="#' + collapseId + '" aria-expanded="false" aria-label="Expand"></button>' +
+    '</div>';
 
     var bodyHtml = '<div id="' + collapseId + '" class="accordion-collapse collapse" data-bs-parent="#streamEditorList">' +
       '<div class="accordion-body stream-accordion-body">' +
-        (jobs.length > 0 ? renderJobsInAccordion(t, jobs, realIdx) : '<div class="text-secondary small mb-2">No jobs</div>') +
-        '<button class="btn btn-primary btn-sm" onclick="addNewJobForStream(' + realIdx + ')">Add Job</button>' +
+        (jobs.length > 0 ? renderJobsInAccordion(t, jobs, realIdx) : '<div class="text-secondary small p-2">No jobs</div>') +
       '</div>' +
     '</div>';
 
@@ -789,7 +790,7 @@ function renderStreamsEditor() {
   setupJobDnD(list);
 
   topTile.innerHTML = '<div class="d-flex gap-2">' +
-    '<button class="btn btn-primary editor-btn btn-wide" id="btnAddStream" onclick="addNewStream()">Add Stream</button>' +
+    '<button class="btn btn-secondary editor-btn btn-wide" id="btnAddStream" onclick="addNewStream()">Add Stream</button>' +
     '<button class="btn btn-success editor-btn btn-wide ms-auto" id="btnStreamsDone" onclick="closeStreamsEditor()">Done</button>' +
   '</div>';
 
@@ -799,11 +800,10 @@ function renderStreamsEditor() {
     if (collapseEl) {
       collapseEl.classList.add("show");
     }
-    var btn = document.querySelector('#streamEditorList [data-bs-target="#streamCollapse_' + idx + '"]');
-    if (btn) {
+    document.querySelectorAll('#streamEditorList [data-bs-target="#streamCollapse_' + idx + '"]').forEach(function(btn) {
       btn.classList.remove("collapsed");
       btn.setAttribute("aria-expanded", "true");
-    }
+    });
   });
 
   updateNavState();
@@ -821,24 +821,20 @@ function renderJobsInAccordion(stream, jobs, streamIdx) {
     var scheduleText = getScheduleText(j.schedule);
     var jobImgUrl = getImageDataUrl(j.image);
     var hasTime = j.time && j.time.trim();
-    return '<div class="card p-3 mb-2 job-drag-card" draggable="' + (hasTime ? 'false' : 'true') + '" data-job-idx="' + realIdx + '" data-stream-idx="' + streamIdx + '" style="cursor:' + (hasTime ? 'default' : 'grab') + '">' +
-      '<div class="d-flex align-items-center gap-2 mb-1">' +
-        (jobImgUrl ? '<div style="width:40px;height:40px;flex-shrink:0"><img src="' + jobImgUrl + '" class="date-img" style="max-width:40px;max-height:40px"></div>' : '') +
-        '<div class="fw-bold editor-title">' + escapeHtml(j.title) + (getJobSuffix(j) ? ' <span class="badge bg-secondary">' + escapeHtml(getJobSuffix(j).trim()) + '</span>' : '') + '</div>' +
+    return '<div class="card p-2 mb-0 job-drag-card" draggable="' + (hasTime ? 'false' : 'true') + '" data-job-idx="' + realIdx + '" data-stream-idx="' + streamIdx + '" style="cursor:' + (hasTime ? 'default' : 'grab') + '">' +
+      '<div class="d-flex align-items-center gap-2">' +
+        (jobImgUrl ? '<div style="width:32px;height:32px;flex-shrink:0"><img src="' + jobImgUrl + '" class="date-img" style="max-width:32px;max-height:32px"></div>' : '') +
+        '<div class="fw-bold editor-title" style="min-width:0;flex:1">' + escapeHtml(j.title) + (getJobSuffix(j) ? ' <span class="badge bg-secondary">' + escapeHtml(getJobSuffix(j).trim()) + '</span>' : '') + '</div>' +
+        '<button class="btn btn-primary btn-sm editor-btn flex-shrink-0" style="min-width:50px" onclick="editJobInAccordion(' + streamIdx + ', ' + realIdx + ')">Edit</button>' +
       '</div>' +
-      '<div class="d-flex gap-2 align-items-center small mb-2">' +
-        '<label class="form-check-label mb-0 fw-bold" style="cursor:pointer;display:flex;align-items:center;gap:4px">' +
+      '<div class="d-flex align-items-center gap-2 mt-1 small">' +
+        '<label class="form-check-label mb-0 fw-bold flex-shrink-0" style="cursor:pointer;display:flex;align-items:center;gap:2px">' +
           '<input class="form-check-input active-toggle m-0 position-static" type="checkbox" data-job-idx="' + realIdx + '" data-stream-idx="' + streamIdx + '" ' + (j.active !== false ? "checked" : "") + ' style="cursor:pointer">' +
           'Active' +
         '</label>' +
-        '<span class="badge bg-primary">' + escapeHtml(scheduleText) + '</span>' +
-        (j.sleepUntil ? '<span class="badge bg-info">Sleep: ' + escapeHtml(formatDate(j.sleepUntil)) + '</span>' : '') +
-        (hasTime ? '<span class="badge bg-secondary">' + escapeHtml(j.time) + '</span>' : '') +
-      '</div>' +
-      (j.description ? '<div class="text-secondary small mb-2">' + escapeHtml(j.description.substring(0, 80)) + (j.description.length > 80 ? "..." : "") + '</div>' : '') +
-      '<div class="d-flex gap-2">' +
-        '<button class="btn btn-primary editor-btn flex-fill" onclick="editJobInAccordion(' + streamIdx + ', ' + realIdx + ')">Edit</button>' +
-        '<button class="btn btn-danger editor-btn flex-fill" onclick="confirmDeleteJobInAccordion(' + streamIdx + ', ' + realIdx + ')">Delete</button>' +
+        '<span class="badge bg-primary flex-shrink-0">' + escapeHtml(scheduleText) + '</span>' +
+        (j.sleepUntil ? '<span class="badge bg-info flex-shrink-0">Sleep: ' + escapeHtml(formatDate(j.sleepUntil)) + '</span>' : '') +
+        (hasTime ? '<span class="badge bg-secondary flex-shrink-0">' + escapeHtml(j.time) + '</span>' : '') +
       '</div>' +
     '</div>';
   }).join("");
@@ -941,13 +937,15 @@ function doneEdit() {
 
 function confirmDeleteStream(index) {
   editingIndex = index;
+  var streams = loadStreams();
+  var stream = streams[index] || {};
   var modalEl = document.getElementById("deleteConfirmModal");
-  document.getElementById("deleteConfirmMessage").textContent = 'Delete this stream?';
+  document.getElementById("deleteConfirmMessage").textContent = 'Delete stream "' + (stream.title || "") + '"?';
   document.getElementById("deleteConfirmBtn").onclick = function() {
-    var streams = loadStreams();
-    streams.splice(index, 1);
-    streams.forEach(function(t, i) { t.sequence = i + 1; });
-    saveStreams(streams);
+    var s = loadStreams();
+    s.splice(index, 1);
+    s.forEach(function(t, i) { t.sequence = i + 1; });
+    saveStreams(s);
     bootstrap.Modal.getInstance(modalEl).hide();
     editingIndex = -1; editBuffer = null; isNew = false;
     renderStreamsEditor();
@@ -1314,7 +1312,7 @@ function showJobEditModal(readOnly) {
   if (readOnly) {
     footer.innerHTML = '<button class="btn btn-primary editor-btn flex-fill" id="btnViewJobEdit" onclick="editJobFromView()">Edit</button><button class="btn btn-success editor-btn flex-fill" id="btnViewJobOk" onclick="cancelJobEdit()">OK</button>';
   } else {
-    footer.innerHTML = '<button class="btn btn-secondary editor-btn flex-fill" id="jobEditCancelBtn" onclick="cancelJobEdit()">Cancel</button><button class="btn btn-success editor-btn flex-fill" id="jobEditOkBtn" onclick="doneJobEdit()">OK</button>';
+    footer.innerHTML = '<button class="btn btn-secondary editor-btn flex-fill" id="jobEditCancelBtn" onclick="cancelJobEdit()">Cancel</button><button class="btn btn-danger editor-btn flex-fill" id="jobEditDelBtn" onclick="deleteJobFromEdit()">Delete</button><button class="btn btn-success editor-btn flex-fill" id="jobEditOkBtn" onclick="doneJobEdit()">OK</button>';
     updateJobEditOkBtn();
   }
   const fpInput = document.getElementById("jobSleepUntil");
@@ -1440,17 +1438,27 @@ function doneJobEdit() {
   }
 }
 
+function deleteJobFromEdit() {
+  var modal = bootstrap.Modal.getInstance(document.getElementById("jobEditModal"));
+  if (modal) modal.hide();
+  confirmDeleteJob(jobsEditingIdx);
+}
+
 function confirmDeleteJob(index) {
   jobsEditingIdx = index;
+  var streams = loadStreams();
+  var stream = streams[jobsStreamIndex] || {};
+  var jobs = stream.jobs || [];
+  var job = jobs[index] || {};
   var modalEl = document.getElementById("deleteConfirmModal");
-  document.getElementById("deleteConfirmMessage").textContent = 'Delete this job?';
+  document.getElementById("deleteConfirmMessage").textContent = 'Delete "' + (job.title || "") + '" from "' + (stream.title || "") + '"?';
   document.getElementById("deleteConfirmBtn").onclick = function() {
-    var streams = loadStreams();
-    var jobs = streams[jobsStreamIndex].jobs || [];
-    jobs.splice(index, 1);
-    jobs.forEach(function(j, i) { j.sequence = i + 1; });
-    streams[jobsStreamIndex].jobs = jobs;
-    saveStreams(streams);
+    var s = loadStreams();
+    var jbs = s[jobsStreamIndex].jobs || [];
+    jbs.splice(index, 1);
+    jbs.forEach(function(j, i) { j.sequence = i + 1; });
+    s[jobsStreamIndex].jobs = jbs;
+    saveStreams(s);
     bootstrap.Modal.getInstance(modalEl).hide();
     jobsEditingIdx = -1; jobsBuffer = null; isNewJob = false;
     renderStreamsEditor();

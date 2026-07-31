@@ -238,7 +238,7 @@ test.describe("PlanMyDay - Screenshots", () => {
     await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
     await page.locator("a.dropdown-item").filter({ hasText: "Jobs" }).click();
     await page.waitForSelector("#streamEditorList .accordion-item");
-    await page.locator("#streamEditorList .accordion-button").first().click();
+    await page.locator("#streamEditorList .stream-header-main").first().click();
     await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible", timeout: 5000 });
     await page.waitForSelector("#streamEditorList .accordion-body .card");
     await page.screenshot({ path: path.join(SCREENSHOT_DIR, "stream-job-list.png"), fullPage: false });
@@ -253,9 +253,9 @@ test.describe("PlanMyDay - Screenshots", () => {
     await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
     await page.locator("a.dropdown-item").filter({ hasText: "Jobs" }).click();
     await page.waitForSelector("#streamEditorList .accordion-item");
-    await page.locator("#streamEditorList .accordion-button").first().click();
+    await page.locator("#streamEditorList .stream-header-main").first().click();
     await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible", timeout: 5000 });
-    await page.getByRole("button", { name: "Add Job" }).click();
+    await page.getByRole("button", { name: "Add Job" }).first().click();
     await page.locator("#jobEditModal").waitFor({ state: "visible" });
     await page.waitForTimeout(400);
     await page.screenshot({ path: path.join(SCREENSHOT_DIR, "stream-add-job.png"), fullPage: false });
@@ -281,7 +281,7 @@ test.describe("PlanMyDay - Screenshots", () => {
     await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
     await page.locator("a.dropdown-item").filter({ hasText: "Jobs" }).click();
     await page.waitForSelector("#streamEditorList .accordion-item");
-    await page.locator("#streamEditorList .accordion-button").first().click();
+    await page.locator("#streamEditorList .stream-header-main").first().click();
     await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible", timeout: 5000 });
     await page.locator("#streamEditorList .accordion-body .card").first().getByRole("button", { name: "Edit" }).click();
     await page.locator("#jobEditModal").waitFor({ state: "visible" });
@@ -298,7 +298,7 @@ test.describe("PlanMyDay - Screenshots", () => {
     await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
     await page.locator("a.dropdown-item").filter({ hasText: "Jobs" }).click();
     await page.waitForSelector("#streamEditorList .accordion-item");
-    await page.locator("#streamEditorList .accordion-button").first().click();
+    await page.locator("#streamEditorList .stream-header-main").first().click();
     await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible", timeout: 5000 });
     await page.locator("#streamEditorList .accordion-body .card").first().getByRole("button", { name: "Edit" }).click();
     await page.locator("#jobEditModal").waitFor({ state: "visible" });
