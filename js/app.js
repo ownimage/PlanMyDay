@@ -948,8 +948,7 @@ function editStream(index) {
 }
 
 function cancelEdit() {
-  var modal = bootstrap.Modal.getInstance(document.getElementById("streamEditModal"));
-  if (modal) modal.hide();
+  bootstrap.Modal.getOrCreateInstance(document.getElementById("streamEditModal")).hide();
   if (isNew && editingIndex >= 0) {
     var streams = loadStreams();
     streams.splice(editingIndex, 1);
@@ -960,13 +959,12 @@ function cancelEdit() {
 }
 
 function doneEdit() {
-  var modal = bootstrap.Modal.getInstance(document.getElementById("streamEditModal"));
   if (editingIndex >= 0 && editBuffer) {
     var streams = loadStreams();
     streams[editingIndex] = editBuffer;
     saveStreams(streams);
   }
-  if (modal) modal.hide();
+  bootstrap.Modal.getOrCreateInstance(document.getElementById("streamEditModal")).hide();
   editingIndex = -1; editBuffer = null; isNew = false;
   renderStreamsEditor();
 }
@@ -1576,8 +1574,7 @@ function editJob(index) {
 }
 
 function cancelJobEdit() {
-  var modal = bootstrap.Modal.getInstance(document.getElementById("jobEditModal"));
-  if (modal) modal.hide();
+  bootstrap.Modal.getOrCreateInstance(document.getElementById("jobEditModal")).hide();
   var fromMain = document.getElementById("streamsEditor").classList.contains("d-none");
   if (isNewJob && jobsEditingIdx >= 0) {
     var streams = loadStreams();
@@ -1612,8 +1609,7 @@ function doneJobEdit() {
     }
     saveStreams(streams);
   }
-  var modal = bootstrap.Modal.getInstance(document.getElementById("jobEditModal"));
-  if (modal) modal.hide();
+  bootstrap.Modal.getOrCreateInstance(document.getElementById("jobEditModal")).hide();
   jobsEditingIdx = -1; jobsBuffer = null; isNewJob = false; jobsTargetStreamIndex = -1;
   if (fromMain) {
     var streams = loadStreams();

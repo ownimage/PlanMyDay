@@ -120,8 +120,8 @@ function renderImagesEditor() {
     let modal = bootstrap.Modal.getInstance(modalEl);
     if (!modal) {
       modal = new bootstrap.Modal(modalEl);
-      modal.show();
     }
+    modal.show();
     updateNavState();
     return;
   }
@@ -251,7 +251,6 @@ function editImageField(field, value) {
     if (oldName !== trimmed) {
       images[editingImageIndex].name = trimmed;
       saveImages(images);
-      renderImagesEditor();
       return;
     }
   }
@@ -422,8 +421,7 @@ function doneImageEdit(index) {
   editingImageIndex = -1;
   isNewImage = false;
   editImageBackup = null;
-  var modal = bootstrap.Modal.getInstance(document.getElementById("imageEditModal"));
-  if (modal) modal.hide();
+  bootstrap.Modal.getOrCreateInstance(document.getElementById("imageEditModal")).hide();
   renderImagesEditor();
 }
 
@@ -440,8 +438,7 @@ function cancelImageEdit() {
   editingImageIndex = -1;
   isNewImage = false;
   editImageBackup = null;
-  var modal = bootstrap.Modal.getInstance(document.getElementById("imageEditModal"));
-  if (modal) modal.hide();
+  bootstrap.Modal.getOrCreateInstance(document.getElementById("imageEditModal")).hide();
   renderImagesEditor();
 }
 
@@ -504,15 +501,32 @@ function openImagePicker(callback) {
   const openModals = [];
   modalIds.forEach(id => {
     const el = document.getElementById(id);
-    const inst = el ? bootstrap.Modal.getInstance(el) : null;
-    if (inst) { openModals.push(inst); inst.hide(); }
+    if (!el || !el.classList.contains("show")) return;
+    const inst = bootstrap.Modal.getInstance(el);
+    if (inst) {
+      openModals.push(inst);
+      // Prevent hidden modals from intercepting clicks while they fade out
+      el.querySelector(".modal-dialog").style.pointerEvents = "none";
+      inst.hide();
+    } else {
+      // Force-hide modal that has no Bootstrap instance
+      el.classList.remove("show");
+      el.setAttribute("aria-hidden", "true");
+      el.removeAttribute("aria-modal");
+      el.style.display = "none";
+    }
   });
   const modalEl = document.getElementById("imagePickerModal");
+  modalEl.style.zIndex = "1060";
   modalEl.addEventListener("hidden.bs.modal", function onHide() {
     modalEl.removeEventListener("hidden.bs.modal", onHide);
+    modalEl.style.zIndex = "";
     imagePickerCallback = null;
     imagePickerSearch = "";
-    openModals.forEach(inst => inst.show());
+    openModals.forEach(inst => {
+      inst.show();
+      inst._element.querySelector(".modal-dialog").style.pointerEvents = "";
+    });
   });
   new bootstrap.Modal(modalEl).show();
   renderImagePicker();

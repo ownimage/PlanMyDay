@@ -1,4 +1,4 @@
-const { test, expect } = require("@playwright/test");
+const { test } = require("@playwright/test");
 const path = require("path");
 const fs = require("fs");
 
@@ -175,10 +175,27 @@ function seedMainView(page) {
 
 test.describe("PlanMyDay - Screenshots", () => {
 
+  test.use({
+    viewport: { width: 390, height: 797 },
+    deviceScaleFactor: 3,
+  });
+
   test.beforeEach(async ({ page }) => {
-    await page.setViewportSize({ width: 600, height: 1000 });
+    await page.addInitScript(() => {
+      Object.defineProperty(window, "devicePixelRatio", {
+        get: () => 3,
+        configurable: true,
+      });
+    });
     await page.goto("/");
-    await page.evaluate(() => { localStorage.clear(); });
+    await page.evaluate(() => {
+      localStorage.clear();
+      localStorage.setItem("planmydays_fontSize", "xsmall");
+      localStorage.setItem("planmydays_iconSize", "small");
+      localStorage.setItem("planmydays_density", "compact");
+    });
+    await page.reload();
+    await page.waitForLoadState("domcontentloaded");
   });
 
   test("main view", async ({ page }) => {
@@ -231,6 +248,24 @@ test.describe("PlanMyDay - Screenshots", () => {
     await page.getByTitle("Settings").click();
     await page.waitForSelector("#settingsPage:not(.d-none)");
     await screenshotAllThemes(page, "settings.png");
+  });
+
+  test("settings - appearance", async ({ page }) => {
+    await page.reload();
+    await page.getByTitle("Settings").click();
+    await page.waitForSelector("#settingsPage:not(.d-none)");
+    await page.locator("#appearance-tab").click();
+    await page.waitForTimeout(300);
+    await screenshotAllThemes(page, "settings-appearance.png");
+  });
+
+  test("settings - schedule", async ({ page }) => {
+    await page.reload();
+    await page.getByTitle("Settings").click();
+    await page.waitForSelector("#settingsPage:not(.d-none)");
+    await page.locator("#schedule-tab").click();
+    await page.waitForTimeout(300);
+    await screenshotAllThemes(page, "settings-schedule.png");
   });
 
   test("settings - danger zone", async ({ page }) => {
