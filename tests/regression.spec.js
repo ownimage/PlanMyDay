@@ -191,6 +191,28 @@ test.describe("PlanMyDay - Regression", () => {
       await expect(titleInput).toBeEditable();
     });
 
+    test("can delete a job from view then edit flow", async ({ page }) => {
+      await seedTodayList(page);
+      await page.reload();
+      await expect(page.locator("#todayCardList")).toBeVisible();
+      await page.locator(".job-view-btn").first().click();
+      await page.locator("#jobEditModal").waitFor({ state: "visible" });
+      await expect(page.locator("#jobEditModalTitle")).toHaveText("View Job");
+      await page.locator("#btnViewJobEdit").filter({ hasText: "Edit" }).click();
+      await expect(page.locator("#jobEditModalTitle")).toHaveText("Edit Job");
+      await expect(page.locator("#jobEditDelBtn")).toBeVisible();
+      await page.locator("#jobEditDelBtn").click();
+      await expect(page.locator("#deleteConfirmModal")).toBeVisible();
+      await page.locator("#deleteConfirmBtn").waitFor({ state: "visible" });
+      await page.waitForTimeout(300);
+      await page.locator("#deleteConfirmBtn").click();
+      await page.waitForTimeout(400);
+      await page.evaluate(() => {
+        const modal = bootstrap.Modal.getInstance(document.getElementById("deleteConfirmModal"));
+        if (modal) modal.hide();
+      });
+    });
+
     test("view button renders regardless of badge text", async ({ page }) => {
       await seedTodayList(page);
       await page.reload();

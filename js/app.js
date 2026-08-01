@@ -1528,7 +1528,7 @@ function editJobFromView() {
     if (firstTab) { new bootstrap.Tab(firstTab).show(); }
   }
   _taskDnDContainer = null; setupTaskDnD();
-  document.getElementById("jobEditModalFooter").innerHTML = '<button class="btn btn-secondary editor-btn flex-fill" id="jobEditCancelBtn" onclick="cancelJobEdit()">Cancel</button><button class="btn btn-success editor-btn flex-fill" id="jobEditOkBtn" onclick="doneJobEdit()">OK</button>';
+  document.getElementById("jobEditModalFooter").innerHTML = '<button class="btn btn-secondary editor-btn flex-fill" id="jobEditCancelBtn" onclick="cancelJobEdit()">Cancel</button><button class="btn btn-danger editor-btn flex-fill" id="jobEditDelBtn" onclick="deleteJobFromEdit()">Delete</button><button class="btn btn-success editor-btn flex-fill" id="jobEditOkBtn" onclick="doneJobEdit()">OK</button>';
   updateJobEditOkBtn();
   const fpInput = document.getElementById("jobSleepUntil");
   if (fpInput) {
