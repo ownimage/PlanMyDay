@@ -3095,15 +3095,69 @@ test.describe("PlanMyDay - Regression", () => {
           importData();
         });
       }, payload);
-      // import leaves today order empty; regenerate so scheduled job appears
-      await page.evaluate(() => {
-        localStorage.removeItem("planmydays_today_order");
-        localStorage.removeItem("planmydays_last_gen");
-        renderMain();
-      });
+      await page.waitForTimeout(500);
       await expect(page.locator("h4").filter({ hasText: "Imported Job" })).toBeVisible();
+      const lastGen = await page.evaluate(() => localStorage.getItem("planmydays_last_gen"));
+      expect(lastGen).toBe(todayStr);
+      const todayOrder = await page.evaluate(() => JSON.parse(localStorage.getItem("planmydays_today_order") || "[]"));
+      expect(todayOrder).toContain("job_imp");
       const imgCount = await page.evaluate(() => JSON.parse(localStorage.getItem("planmydays_images") || "[]").length);
       expect(imgCount).toBe(1);
+    });
+
+    test("after importing, regenerate todays jobs runs automatically", async ({ page }) => {
+      const payload = {
+        version: 1,
+        streams: [{
+          id: "stream_regen",
+          title: "Regen",
+          description: "",
+          tab: "progress",
+          image: "",
+          sequence: 1,
+          jobs: [{
+            id: "job_regen",
+            title: "Regen Job",
+            description: "",
+            active: true,
+            frequency: "daily",
+            sequence: 1,
+            suffix: false,
+            dayType: "dayOfYear",
+            mod: "",
+            tasks: [],
+            schedule: { type: "daily" }
+          }]
+        }],
+        images: []
+      };
+      await page.evaluate((data) => {
+        return new Promise(resolve => {
+          const file = new File([JSON.stringify(data)], "backup.json", { type: "application/json" });
+          const dt = new DataTransfer();
+          dt.items.add(file);
+          const origClick = HTMLInputElement.prototype.click;
+          HTMLInputElement.prototype.click = function() {
+            if (this.type === "file") {
+              Object.defineProperty(this, "files", { value: dt.files, configurable: true });
+              this.dispatchEvent(new Event("change"));
+              HTMLInputElement.prototype.click = origClick;
+              setTimeout(resolve, 400);
+              return;
+            }
+            return origClick.apply(this, arguments);
+          };
+          importData();
+        });
+      }, payload);
+      await page.waitForTimeout(500);
+      const lastGen = await page.evaluate(() => localStorage.getItem("planmydays_last_gen"));
+      expect(lastGen).toBe(todayStr);
+      const completed = await page.evaluate(() => JSON.parse(localStorage.getItem("planmydays_completed") || "[]"));
+      expect(completed).toEqual([]);
+      const todayOrder = await page.evaluate(() => JSON.parse(localStorage.getItem("planmydays_today_order") || "[]"));
+      expect(todayOrder).toContain("job_regen");
+      await expect(page.locator("h4").filter({ hasText: "Regen Job" })).toBeVisible();
     });
 
     test("importData rejects invalid JSON via alert", async ({ page }) => {
