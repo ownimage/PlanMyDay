@@ -911,8 +911,8 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#imageEditModalBody .form-control:not(.form-control-sm)").fill(imgName);
       await page.locator("#btnImageEditOk").click();
       await page.locator("#imageEditModal").waitFor({ state: "hidden" });
-      await page.locator('#imageFilters input[type="search"]').fill(imgName);
-      await expect(page.getByText(imgName)).toBeVisible();
+      await page.evaluate((name) => setImageNameSearch(name), imgName);
+      await expect(page.locator(`.card:has-text('${imgName}')`)).toBeVisible();
     });
 
     test("clear search resets filter", async ({ page }) => {

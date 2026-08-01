@@ -194,6 +194,7 @@ body.font-size-xsmall #settingsPage .btn,
 body.font-size-xsmall #settingsPage .form-label,
 body.font-size-xsmall #settingsPage .form-control,
 body.font-size-xsmall #settingsPage .form-select,
+body.font-size-xsmall #settingsPage .nav-link,
 body.font-size-xsmall #streamsEditor,
 body.font-size-xsmall #streamsEditor .btn,
 body.font-size-xsmall #streamsEditor .form-label,
@@ -498,6 +499,13 @@ body.auto-hide-menu #mainNav.nav-hidden ~ .container-fluid {
 #settingsPage {
   padding-top: 20px;
   padding-bottom: 20px;
+}
+#settingsPage .nav-tabs .nav-link {
+  font-size: 0.75rem;
+  padding: 0.35rem 0.35rem;
+}
+#settingsPage .nav-item {
+  margin-right: 0;
 }
 .nav-tabs-info .nav-link.active {
   font-weight: 700;

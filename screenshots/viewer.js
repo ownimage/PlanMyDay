@@ -52,6 +52,7 @@ body {
   align-items: center;
   gap: 12px;
   box-shadow: 0 2px 12px rgba(0,0,0,0.4);
+  position: relative;
   z-index: 100;
 }
 .toolbar h1 {
@@ -71,15 +72,41 @@ body {
   transition: background 0.2s;
 }
 .toolbar button:hover { background: #1a4a7a; }
-.toolbar select {
-  padding: 8px 12px;
+#filterPanel {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  width: 600px;
+  background: #16213e;
   border: 1px solid #3a3a5c;
   border-radius: 6px;
-  background: #0f3460;
-  color: #e0e0e0;
-  font-size: 0.9em;
+  padding: 12px;
+  max-height: 400px;
+  overflow: auto;
+  z-index: 200;
+}
+#filterPanel.open { display: block; }
+#filterPanel .panel-bar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #3a3a5c;
+}
+#filterPanel label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85em;
   cursor: pointer;
-  outline: none;
+  padding: 2px 0;
+}
+#filterPanel input[type="checkbox"] {
+  accent-color: #4a9eff;
+}
+.filter-toggle {
+  position: relative;
 }
 .scroll-container {
   flex: 1;
@@ -165,9 +192,18 @@ body {
 <body>
 <div class="toolbar">
   <h1>Screenshot Viewer</h1>
-  <select id="imageFilter" onchange="filterImages()"><option value="">All</option></select>
+  <div class="filter-toggle">
+    <button onclick="toggleFilterPanel()">Filter &#9662;</button>
+    <div id="filterPanel">
+      <div class="panel-bar">
+        <button onclick="selectAllImages()">Select / Deselect</button>
+      </div>
+      <div id="imageCheckboxes"></div>
+    </div>
+  </div>
   <button onclick="openAll()">Open All</button>
   <button onclick="collapseAll()">Collapse All</button>
+  <button onclick="refreshImages()">Refresh</button>
 </div>
 <div class="scroll-container">
 <div class="content" id="container">
@@ -259,34 +295,71 @@ const HTML_FOOT = `
     for (var i = 0; i < all.length; i++) { all[i].classList.remove('drag-over'); }
   });
 
-  (function() {
-    var sel = document.getElementById('imageFilter');
+  var sel = document.getElementById('imageCheckboxes');
+  var cards = container.querySelectorAll('.image-card');
+  var names = [];
+  for (var c = 0; c < cards.length; c++) {
+    var name = cards[c].querySelector('.image-name').textContent;
+    if (names.indexOf(name) === -1 && /\.(png|jpg|jpeg|gif|webp|svg|bmp)$/i.test(name)) {
+      names.push(name);
+      var display = name.replace(/\.(png|jpg|jpeg|gif|webp|svg|bmp)$/i, '');
+      var lbl = document.createElement('label');
+      var cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.checked = true;
+      cb.setAttribute('data-name', name);
+      cb.setAttribute('onchange', 'filterImagesByCheckbox()');
+      lbl.appendChild(cb);
+      lbl.appendChild(document.createTextNode(display));
+      sel.appendChild(lbl);
+    }
+  }
+
+  window.filterImagesByCheckbox = function() {
+    var checkedNames = {};
+    var inputs = document.querySelectorAll('#imageCheckboxes input[type="checkbox"]');
+    for (var i = 0; i < inputs.length; i++) {
+      if (inputs[i].checked) checkedNames[inputs[i].getAttribute('data-name')] = true;
+    }
+    var anyChecked = Object.keys(checkedNames).length > 0;
     var cards = container.querySelectorAll('.image-card');
-    var names = [];
     for (var c = 0; c < cards.length; c++) {
       var name = cards[c].querySelector('.image-name').textContent;
-      if (names.indexOf(name) === -1 && /\.(png|jpg|jpeg|gif|webp|svg|bmp)$/i.test(name)) {
-        names.push(name);
-        var opt = document.createElement('option');
-        opt.value = name;
-        opt.textContent = name;
-        sel.appendChild(opt);
-      }
-    }
-  })();
-
-  window.filterImages = function() {
-    var selected = document.getElementById('imageFilter').value;
-    var cards = container.querySelectorAll('.image-card');
-    for (var i = 0; i < cards.length; i++) {
-      var name = cards[i].querySelector('.image-name').textContent;
-      if (!selected || name === selected) {
-        cards[i].style.display = '';
+      if (!anyChecked) {
+        cards[c].style.display = '';
+      } else if (checkedNames[name]) {
+        cards[c].style.display = '';
       } else {
-        cards[i].style.display = 'none';
+        cards[c].style.display = 'none';
       }
     }
   };
+
+  window.selectAllImages = function() {
+    var inputs = document.querySelectorAll('#imageCheckboxes input[type="checkbox"]');
+    var allChecked = true;
+    for (var i = 0; i < inputs.length; i++) {
+      if (!inputs[i].checked) { allChecked = false; break; }
+    }
+    var newState = !allChecked;
+    for (var i = 0; i < inputs.length; i++) {
+      inputs[i].checked = newState;
+    }
+    window.filterImagesByCheckbox();
+  };
+
+  window.toggleFilterPanel = function() {
+    var panel = document.getElementById('filterPanel');
+    panel.classList.toggle('open');
+  };
+
+  document.addEventListener('click', function(e) {
+    var panel = document.getElementById('filterPanel');
+    var toggle = document.querySelector('.filter-toggle');
+    if (!panel.contains(e.target) && !toggle.contains(e.target)) {
+      panel.classList.remove('open');
+    }
+  });
 
   window.toggleSection = function(index) {
     document.getElementById('section-' + index).classList.toggle('open');
@@ -296,6 +369,114 @@ const HTML_FOOT = `
   };
   window.collapseAll = function() {
     document.querySelectorAll('.theme-section').forEach(function(s) { s.classList.remove('open'); });
+  };
+
+  window.refreshImages = function() {
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', '/api/themes', true);
+    xhr.onload = function() {
+      if (xhr.status !== 200) return;
+      var themes = JSON.parse(xhr.responseText);
+
+      var checkedBoxes = {};
+      var inputs = document.querySelectorAll('#imageCheckboxes input[type="checkbox"]');
+      for (var i = 0; i < inputs.length; i++) {
+        checkedBoxes[inputs[i].getAttribute('data-name')] = inputs[i].checked;
+      }
+
+      var openSections = {};
+      var sections = container.querySelectorAll('.theme-section');
+      for (var s = 0; s < sections.length; s++) {
+        var themeName = sections[s].querySelector('.theme-name').textContent;
+        openSections[themeName] = sections[s].classList.contains('open');
+      }
+
+      var existing = {};
+      while (container.firstChild) {
+        var sec = container.firstChild;
+        var name = sec.querySelector('.theme-name').textContent;
+        existing[name] = sec;
+        container.removeChild(sec);
+      }
+
+      for (var t = 0; t < themes.length; t++) {
+        var theme = themes[t];
+        var sec = existing[theme.theme] || document.createElement('div');
+        sec.className = 'theme-section open';
+        sec.id = 'section-' + t;
+        sec.setAttribute('draggable', 'true');
+
+        if (openSections.hasOwnProperty(theme.theme)) {
+          if (!openSections[theme.theme]) sec.classList.remove('open');
+        }
+
+        var header = sec.querySelector('.theme-header');
+        if (!header) {
+          header = document.createElement('div');
+          header.className = 'theme-header';
+          var handle = document.createElement('span');
+          handle.className = 'drag-handle';
+          handle.innerHTML = '&#9776;';
+          handle.setAttribute('draggable', 'true');
+          handle.title = 'Drag to reorder';
+          var arrow = document.createElement('span');
+          arrow.className = 'arrow';
+          arrow.innerHTML = '&#9654;';
+          header.appendChild(handle);
+          header.appendChild(arrow);
+          var nameSpan = document.createElement('span');
+          nameSpan.className = 'theme-name';
+          header.appendChild(nameSpan);
+          var countSpan = document.createElement('span');
+          countSpan.className = 'image-count';
+          header.appendChild(countSpan);
+          sec.appendChild(header);
+        }
+        header.setAttribute('onclick', 'toggleSection(' + t + ')');
+        header.querySelector('.theme-name').textContent = theme.theme;
+        header.querySelector('.image-count').textContent = theme.images.length + ' images';
+
+        var body = sec.querySelector('.theme-body');
+        if (!body) {
+          body = document.createElement('div');
+          body.className = 'theme-body';
+          sec.appendChild(body);
+        }
+        body.id = 'body-' + t;
+        body.innerHTML = '';
+        for (var img = 0; img < theme.images.length; img++) {
+          var src = theme.theme + '/' + theme.images[img];
+          body.innerHTML += '<div class="image-card"><img src="' + src + '" alt="' + theme.images[img] + '" loading="lazy"><div class="image-name">' + theme.images[img] + '</div></div>';
+        }
+
+        sec.style.display = '';
+        container.appendChild(sec);
+      }
+
+      var sel = document.getElementById('imageCheckboxes');
+      sel.innerHTML = '';
+      var names = [];
+      var allCards = container.querySelectorAll('.image-card');
+      for (var c = 0; c < allCards.length; c++) {
+        var name = allCards[c].querySelector('.image-name').textContent;
+        if (names.indexOf(name) === -1 && /\.(png|jpg|jpeg|gif|webp|svg|bmp)$/i.test(name)) {
+          names.push(name);
+          var display = name.replace(/\.(png|jpg|jpeg|gif|webp|svg|bmp)$/i, '');
+          var lbl = document.createElement('label');
+          var cb = document.createElement('input');
+          cb.type = 'checkbox';
+          cb.checked = checkedBoxes.hasOwnProperty(name) ? checkedBoxes[name] : true;
+          cb.setAttribute('data-name', name);
+          cb.setAttribute('onchange', 'filterImagesByCheckbox()');
+          lbl.appendChild(cb);
+          lbl.appendChild(document.createTextNode(display));
+          sel.appendChild(lbl);
+        }
+      }
+
+      window.filterImagesByCheckbox();
+    };
+    xhr.send();
   };
 })();
 </script>
@@ -335,6 +516,13 @@ const server = http.createServer((req, res) => {
     const html = HTML_HEAD + buildBody(themes) + HTML_FOOT;
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
     res.end(html);
+    return;
+  }
+
+  if (urlPath === '/api/themes') {
+    const themes = scanThemes();
+    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+    res.end(JSON.stringify(themes));
     return;
   }
 

@@ -71,22 +71,8 @@ coverage-report/index.html
 Regenerate all screenshots in the `screenshots/` folder:
 
 ```bash
-npx playwright test tests/screenshots.spec.js --workers 1
+npx playwright test tests/screenshots.spec.js --workers 12
 ```
-
-This captures 27 views across all themes:
-- `add-stream.png`
-- `edit-images.png`
-- `edit-job.png`
-- `edit-streams.png`
-- `job-edit-general.png`, `job-edit-schedule.png`, `job-edit-tasks.png`
-- `main-screen-add-job.png`
-- `main-view.png`, `main-view-split-progress.png`, `main-view-split-maintenance.png`, `main-view-hide-done.png`
-- `schedule-every-day.png`, `schedule-every-n-days.png`, `schedule-weekdays.png`, `schedule-weekends.png`, `schedule-specific-days.png`, `schedule-day-of-month.png`
-- `settings.png`, `settings-appearance.png`, `settings-schedule.png`, `settings-danger.png`
-- `stream-add-job.png`
-- `stream-job-list.png`
-- `view-job-general.png`, `view-job-schedule.png`, `view-job-tasks.png`
 
 ### Screenshot viewer
 
