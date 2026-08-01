@@ -179,6 +179,15 @@ function changeAutoHideMenu(enabled) {
   }
 }
 
+function updateScreenResolution() {
+  const el = document.getElementById("screenResolution");
+  if (!el) return;
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+  const dpr = window.devicePixelRatio || 1;
+  el.textContent = `${w} \u00d7 ${h} (${dpr}x)`;
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   const savedFontSize = localStorage.getItem("planmydays_fontSize") || "xlarge";
   if (savedFontSize !== "normal") {
@@ -192,6 +201,9 @@ document.addEventListener("DOMContentLoaded", () => {
   if (savedDensity !== "normal") {
     document.body.classList.add(savedDensity);
   }
+
+  updateScreenResolution();
+  window.addEventListener("resize", updateScreenResolution);
 
   const autoHide = localStorage.getItem("planmydays_autoHideMenu") === "true";
   if (autoHide) {

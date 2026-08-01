@@ -1788,6 +1788,8 @@ function openSettings() {
   const savedDensity = localStorage.getItem("planmydays_density") || "normal";
   const densitySel = document.getElementById("densitySelector");
   if (densitySel) densitySel.value = savedDensity;
+
+  if (typeof updateScreenResolution === "function") updateScreenResolution();
 }
 
 function closeSettings() {
