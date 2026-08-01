@@ -876,6 +876,8 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#btnImageEditOk").click();
       await page.locator("#imageEditModal").waitFor({ state: "hidden" });
       await page.locator(".card:has-text('MyImg') .btn-info").filter({ hasText: "Duplicate" }).click();
+      await page.locator("#imageEditModal").waitFor({ state: "visible" });
+      await page.locator("#imageEditModalBody .form-control:not(.form-control-sm)").waitFor({ state: "visible", timeout: 10000 });
       await expect(page.locator("#imageEditModalBody .form-control:not(.form-control-sm)")).toHaveValue("MyImg 2");
     });
 
@@ -889,13 +891,8 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator(".card:has-text('DelImg')").waitFor({ state: "visible" });
       await page.locator(".card:has-text('DelImg') .btn-danger").filter({ hasText: "Delete" }).click();
       await page.locator("#deleteConfirmModal").waitFor({ state: "visible" });
-      await page.waitForTimeout(200);
       await page.locator("#deleteConfirmBtn").click();
-      await page.waitForTimeout(400);
-      await page.evaluate(() => {
-        const modal = bootstrap.Modal.getInstance(document.getElementById("deleteConfirmModal"));
-        if (modal) modal.hide();
-      });
+      await page.locator("#deleteConfirmModal").waitFor({ state: "hidden", timeout: 10000 });
       await expect(page.getByText("DelImg")).not.toBeVisible();
     });
 
@@ -1490,6 +1487,7 @@ test.describe("PlanMyDay - Regression", () => {
       await page.getByText("Change").nth(1).click();
       await page.locator("#schedWeekends").check();
       await page.locator("#scheduleModal .btn-primary").click();
+      await page.locator("#scheduleModal").waitFor({ state: "hidden", timeout: 10000 });
       await page.locator("#jobEditOkBtn").click();
       await page.locator("#jobEditModal").waitFor({ state: "hidden", timeout: 10000 });
       await expect(page.getByText("WeekendJob")).toBeVisible();
