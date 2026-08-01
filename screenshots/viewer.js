@@ -71,6 +71,16 @@ body {
   transition: background 0.2s;
 }
 .toolbar button:hover { background: #1a4a7a; }
+.toolbar select {
+  padding: 8px 12px;
+  border: 1px solid #3a3a5c;
+  border-radius: 6px;
+  background: #0f3460;
+  color: #e0e0e0;
+  font-size: 0.9em;
+  cursor: pointer;
+  outline: none;
+}
 .scroll-container {
   flex: 1;
   overflow: auto;
@@ -155,6 +165,7 @@ body {
 <body>
 <div class="toolbar">
   <h1>Screenshot Viewer</h1>
+  <select id="imageFilter" onchange="filterImages()"><option value="">All</option></select>
   <button onclick="openAll()">Open All</button>
   <button onclick="collapseAll()">Collapse All</button>
 </div>
@@ -247,6 +258,35 @@ const HTML_FOOT = `
     var all = container.querySelectorAll('.theme-section');
     for (var i = 0; i < all.length; i++) { all[i].classList.remove('drag-over'); }
   });
+
+  (function() {
+    var sel = document.getElementById('imageFilter');
+    var cards = container.querySelectorAll('.image-card');
+    var names = [];
+    for (var c = 0; c < cards.length; c++) {
+      var name = cards[c].querySelector('.image-name').textContent;
+      if (names.indexOf(name) === -1 && /\.(png|jpg|jpeg|gif|webp|svg|bmp)$/i.test(name)) {
+        names.push(name);
+        var opt = document.createElement('option');
+        opt.value = name;
+        opt.textContent = name;
+        sel.appendChild(opt);
+      }
+    }
+  })();
+
+  window.filterImages = function() {
+    var selected = document.getElementById('imageFilter').value;
+    var cards = container.querySelectorAll('.image-card');
+    for (var i = 0; i < cards.length; i++) {
+      var name = cards[i].querySelector('.image-name').textContent;
+      if (!selected || name === selected) {
+        cards[i].style.display = '';
+      } else {
+        cards[i].style.display = 'none';
+      }
+    }
+  };
 
   window.toggleSection = function(index) {
     document.getElementById('section-' + index).classList.toggle('open');
