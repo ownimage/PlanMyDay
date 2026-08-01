@@ -926,20 +926,38 @@ function updateJobImagePreview(name) {
   }
 }
 function updateJobStreamPreview() {
-  var preview = document.getElementById("jobStreamPreview");
-  if (!preview) return;
   var streams = loadStreams();
   var stream = streams[jobsTargetStreamIndex >= 0 ? jobsTargetStreamIndex : jobsStreamIndex];
   var url = getImageDataUrl(stream && stream.image);
-  if (url) {
-    preview.innerHTML = '<img src="' + url + '" class="date-img" style="max-width:45px;max-height:45px">';
-  } else {
-    preview.innerHTML = '<span class="text-secondary small" style="font-size:0.6rem">none</span>';
+  var btnIcon = document.getElementById("jobStreamBtnIcon");
+  if (btnIcon) {
+    btnIcon.innerHTML = url ? '<img src="' + url + '" style="max-width:24px;max-height:24px">' : '<span style="width:24px;height:24px;display:inline-block"></span>';
+  }
+  var btnText = document.getElementById("jobStreamBtnText");
+  if (btnText) {
+    btnText.textContent = stream ? stream.title : "";
+  }
+  var menu = document.getElementById("jobStreamDropdownMenu");
+  if (menu) {
+    var items = menu.querySelectorAll(".dropdown-item");
+    var targetIdx = jobsTargetStreamIndex >= 0 ? jobsTargetStreamIndex : jobsStreamIndex;
+    items.forEach(function(item) {
+      if (parseInt(item.getAttribute("data-stream-idx")) === targetIdx) {
+        item.classList.add("active");
+      } else {
+        item.classList.remove("active");
+      }
+    });
   }
 }
 function jobChangeStream(newIdx) {
   jobsTargetStreamIndex = newIdx;
   updateJobStreamPreview();
+  var btn = document.getElementById("jobStreamDropdownBtn");
+  if (btn) {
+    var dd = bootstrap.Dropdown.getInstance(btn);
+    if (dd) dd.hide();
+  }
 }
 
 function editStream(index) {
@@ -1366,17 +1384,28 @@ function getJobEditFormHTML(data, readOnly) {
         <div class="row mb-2 mt-2">
           <div class="col-6">
             <label class="form-label">Stream</label>
-            <div class="d-flex align-items-center gap-2">
-              <div style="width:45px;height:45px;border:1px solid var(--bs-border-color);border-radius:6px;overflow:hidden;display:flex;align-items:center;justify-content:center;flex-shrink:0" id="jobStreamPreview">
-                ${streamImgUrl ? `<img src="${streamImgUrl}" class="date-img" style="max-width:45px;max-height:45px">` : `<span class="text-secondary small" style="font-size:0.6rem">none</span>`}
-              </div>
-              <select class="form-select" ${disabled} onchange="jobChangeStream(parseInt(this.value))">
-                ${streams.map((s, i) => `
-                  <option value="${i}" ${i === (jobsTargetStreamIndex >= 0 ? jobsTargetStreamIndex : jobsStreamIndex) ? "selected" : ""}>
-                    ${escapeHtml(s.title)}
-                  </option>
-                `).join("")}
-              </select>
+            <div class="dropdown" id="jobStreamDropdown">
+              <button class="btn btn-outline-secondary dropdown-toggle w-100 d-flex align-items-center gap-2" type="button" id="jobStreamDropdownBtn" data-bs-toggle="dropdown" ${disabled} style="text-align:left">
+                <span id="jobStreamBtnIcon" style="width:24px;height:24px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden">
+                  ${streamImgUrl ? `<img src="${streamImgUrl}" style="max-width:24px;max-height:24px">` : `<span style="width:24px;height:24px;display:inline-block"></span>`}
+                </span>
+                <span id="jobStreamBtnText" class="flex-grow-1">${escapeHtml(currentStream.title || "")}</span>
+              </button>
+              <ul class="dropdown-menu w-100" id="jobStreamDropdownMenu">
+                ${streams.map((s, i) => {
+                  const sImg = getImageDataUrl(s.image);
+                  return `
+                    <li>
+                      <a class="dropdown-item d-flex align-items-center gap-2 ${i === (jobsTargetStreamIndex >= 0 ? jobsTargetStreamIndex : jobsStreamIndex) ? "active" : ""}" href="#" data-stream-idx="${i}" onclick="event.preventDefault();jobChangeStream(${i})">
+                        <span style="width:24px;height:24px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden">
+                          ${sImg ? `<img src="${sImg}" style="max-width:24px;max-height:24px">` : `<span style="width:24px;height:24px;display:inline-block"></span>`}
+                        </span>
+                        ${escapeHtml(s.title)}
+                      </a>
+                    </li>
+                  `;
+                }).join("")}
+              </ul>
             </div>
           </div>
           <div class="col-6">

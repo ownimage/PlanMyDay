@@ -1586,35 +1586,36 @@ test.describe("PlanMyDay - Regression", () => {
     test("stream selector appears in add job modal", async ({ page }) => {
       await page.getByRole("button", { name: "Add Job" }).first().click();
       await page.locator("#jobEditModal").waitFor({ state: "visible" });
-      await expect(page.getByRole("combobox").first()).toBeVisible();
+      await expect(page.locator("#jobStreamDropdown")).toBeVisible();
     });
 
     test("stream selector appears in edit job modal", async ({ page }) => {
       await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().click();
       await page.locator("#jobEditModal").waitFor({ state: "visible" });
-      await expect(page.getByRole("combobox").first()).toBeVisible();
+      await expect(page.locator("#jobStreamDropdown")).toBeVisible();
     });
 
     test("stream selector defaults to current stream", async ({ page }) => {
       await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().click();
       await page.locator("#jobEditModal").waitFor({ state: "visible" });
-      const selected = await page.getByRole("combobox").first().inputValue();
-      expect(selected).toBe("0");
+      await expect(page.locator("#jobStreamBtnText")).toHaveText("Work");
     });
 
     test("stream selector shows all stream names", async ({ page }) => {
       await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().click();
       await page.locator("#jobEditModal").waitFor({ state: "visible" });
-      const options = page.getByRole("combobox").first().locator("option");
-      await expect(options).toHaveCount(2);
-      await expect(options.nth(0)).toHaveText("Work");
-      await expect(options.nth(1)).toHaveText("Chores");
+      await page.locator("#jobStreamDropdownBtn").click();
+      var items = page.locator("#jobStreamDropdownMenu .dropdown-item");
+      await expect(items).toHaveCount(2);
+      await expect(items.nth(0)).toContainText("Work");
+      await expect(items.nth(1)).toContainText("Chores");
     });
 
     test("changing stream and saving moves job to new stream", async ({ page }) => {
       await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().click();
       await page.locator("#jobEditModal").waitFor({ state: "visible" });
-      await page.getByRole("combobox").first().selectOption("1");
+      await page.locator("#jobStreamDropdownBtn").click();
+      await page.locator("#jobStreamDropdownMenu .dropdown-item").nth(1).click();
       await page.locator("#jobEditOkBtn").click();
       await page.waitForTimeout(500);
       await page.evaluate(() => {
