@@ -300,14 +300,49 @@ test.describe("PlanMyDay - Screenshots", () => {
     await screenshotAllThemes(page, "stream-add-job.png");
   });
 
-  test("view job modal", async ({ page }) => {
-    await seedMainView(page);
+  async function openViewJobWithData(page) {
+    await page.evaluate((data) => {
+      var streams = JSON.parse(JSON.stringify(data));
+      streams[0].jobs[0].tasks = [
+        { description: "Check deployment logs", done: true },
+        { description: "Update test fixtures", done: false },
+        { description: "Review pull request", done: false }
+      ];
+      streams[0].jobs[0].time = "09:00";
+      streams[0].jobs[0].sleepUntil = "";
+      streams[0].jobs[0].description = "Complete weekly development report with metrics and analysis";
+      streams[0].jobs[0].suffix = true;
+      var now = new Date();
+      var ds = now.getFullYear() + "-" + String(now.getMonth()+1).padStart(2,"0") + "-" + String(now.getDate()).padStart(2,"0");
+      localStorage.setItem("planmydays_streams", JSON.stringify(streams));
+      localStorage.setItem("planmydays_today_order", JSON.stringify(["job_1", "job_2", "job_3"]));
+      localStorage.setItem("planmydays_last_gen", ds);
+      localStorage.setItem("planmydays_completed", JSON.stringify([]));
+    }, TEST_STREAMS);
     await page.reload();
     await page.waitForSelector(".today-drag-card");
     await page.locator(".job-view-btn").first().click();
     await page.locator("#jobEditModal").waitFor({ state: "visible" });
     await page.waitForTimeout(400);
-    await screenshotAllThemes(page, "view-job.png");
+  }
+
+  test("view job modal - general tab", async ({ page }) => {
+    await openViewJobWithData(page);
+    await screenshotAllThemes(page, "view-job-general.png");
+  });
+
+  test("view job modal - schedule tab", async ({ page }) => {
+    await openViewJobWithData(page);
+    await page.locator("#jobSchedule-tab").click();
+    await page.waitForTimeout(300);
+    await screenshotAllThemes(page, "view-job-schedule.png");
+  });
+
+  test("view job modal - tasks tab", async ({ page }) => {
+    await openViewJobWithData(page);
+    await page.locator("#jobTasks-tab").click();
+    await page.waitForTimeout(300);
+    await screenshotAllThemes(page, "view-job-tasks.png");
   });
 
   test("edit job modal", async ({ page }) => {
@@ -388,9 +423,13 @@ test.describe("PlanMyDay - Screenshots", () => {
 
   test("images editor", async ({ page }) => {
     await page.reload();
+    await page.evaluate(() => {
+      if (typeof uploadStandardImages === "function") uploadStandardImages();
+    });
     await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
     await page.locator("a.dropdown-item").filter({ hasText: "Images" }).click();
-    await page.waitForSelector("#imagesList .card");
+    await page.locator("#imagesList").waitFor({ state: "visible", timeout: 10000 });
+    await page.waitForTimeout(400);
     await screenshotAllThemes(page, "edit-images.png");
   });
 

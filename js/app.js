@@ -1065,13 +1065,82 @@ function renderJobTasks() {
   var tasks = jobsBuffer.tasks || [];
   var html = "";
   tasks.forEach(function(task, i) {
-    html += '<div class="d-flex align-items-center gap-2 mb-1 task-row">' +
+    html += '<div class="d-flex align-items-center gap-2 mb-1 task-row task-drag-card" draggable="true" data-task-index="' + i + '">' +
+      '<div class="drag-handle">&#9776;</div>' +
       '<input class="form-check-input task-done-cb" type="checkbox" id="taskDone' + i + '" ' + (task.done ? "checked" : "") + ' onchange="jobTaskField(' + i + ', \'done\', this.checked)">' +
       '<input class="form-control task-desc-input" value="' + escapeHtml(task.description || "") + '" placeholder="Task description" oninput="jobTaskField(' + i + ', \'description\', this.value)">' +
       '<button class="btn btn-sm btn-danger" onclick="jobDeleteTask(' + i + ')">&times;</button>' +
       '</div>';
   });
   el.innerHTML = html;
+}
+
+var _taskDnDContainer = null;
+
+function setupTaskDnD() {
+  var container = document.getElementById("jobTasksList");
+  if (!container) return;
+  if (container === _taskDnDContainer) return;
+  _taskDnDContainer = container;
+
+  var dragSrcIdx = -1;
+
+  container.addEventListener("dragstart", function(e) {
+    var card = e.target.closest(".task-drag-card");
+    if (!card) return;
+    if (e.target.closest("button, input, textarea")) { e.preventDefault(); return; }
+    dragSrcIdx = parseInt(card.dataset.taskIndex);
+    card.classList.add("dragging");
+    e.dataTransfer.effectAllowed = "move";
+  });
+  container.addEventListener("dragend", function(e) {
+    container.querySelectorAll(".task-drag-card").forEach(function(c) {
+      c.classList.remove("dragging", "drag-over-top", "drag-over-bottom");
+    });
+    dragSrcIdx = -1;
+  });
+  container.addEventListener("dragover", function(e) {
+    e.preventDefault();
+    var target = e.target.closest(".task-drag-card");
+    if (!target || dragSrcIdx < 0) return;
+    container.querySelectorAll(".task-drag-card").forEach(function(c) {
+      c.classList.remove("drag-over-top", "drag-over-bottom");
+    });
+    var rect = target.getBoundingClientRect();
+    target.classList.add(e.clientY < rect.top + rect.height / 2 ? "drag-over-top" : "drag-over-bottom");
+  });
+  container.addEventListener("drop", function(e) {
+    e.preventDefault();
+    container.querySelectorAll(".task-drag-card").forEach(function(c) {
+      c.classList.remove("drag-over-top", "drag-over-bottom");
+    });
+    var target = e.target.closest(".task-drag-card");
+    if (!target || dragSrcIdx < 0) return;
+    var dstIdx = parseInt(target.dataset.taskIndex);
+    var srcIdx = dragSrcIdx;
+    dragSrcIdx = -1;
+    if (srcIdx === dstIdx) return;
+    var rect = target.getBoundingClientRect();
+    var above = e.clientY < rect.top + rect.height / 2;
+    reorderTask(srcIdx, dstIdx, above);
+  });
+
+  addTouchDnD(container, ".task-drag-card", function(c) {
+    return parseInt(c.dataset.taskIndex);
+  }, function(srcIdx, dstIdx, above) {
+    reorderTask(srcIdx, dstIdx, above);
+  }, { handleSelector: ".drag-handle" });
+}
+
+function reorderTask(srcIdx, dstIdx, above) {
+  if (!jobsBuffer || !jobsBuffer.tasks) return;
+  var tasks = jobsBuffer.tasks;
+  if (srcIdx < 0 || srcIdx >= tasks.length || dstIdx < 0 || dstIdx >= tasks.length) return;
+  if (srcIdx === dstIdx) return;
+  var item = tasks.splice(srcIdx, 1)[0];
+  var insertAt = srcIdx < dstIdx ? (above ? dstIdx - 1 : dstIdx) : (above ? dstIdx : dstIdx + 1);
+  tasks.splice(insertAt, 0, item);
+  renderJobTasks();
 }
 
 function formatDate(dateStr) {
@@ -1255,8 +1324,10 @@ function getJobEditFormHTML(data, readOnly) {
   const tasks = data.tasks || [];
   var tasksHTML = "";
   tasks.forEach(function(task, i) {
+    var dragHandleHtml = readOnly ? "" : '<div class="drag-handle">&#9776;</div>';
     tasksHTML += `
-      <div class="d-flex align-items-center gap-2 mb-1 task-row">
+      <div class="d-flex align-items-center gap-2 mb-1 task-row task-drag-card" ${readOnly ? "" : 'draggable="true"'} data-task-index="${i}">
+        ${dragHandleHtml}
         <input class="form-check-input task-done-cb" type="checkbox" ${task.done ? "checked" : ""} ${disabled} onchange="jobTaskField(${i}, 'done', this.checked)">
         <input class="form-control task-desc-input" value="${escapeHtml(task.description || "")}" ${ro} placeholder="Task description" oninput="jobTaskField(${i}, 'description', this.value)">
         <button class="btn btn-sm btn-danger" ${disabled} onclick="jobDeleteTask(${i})">&times;</button>
@@ -1414,6 +1485,7 @@ function showJobEditModal(readOnly) {
   document.getElementById("jobEditModalBody").innerHTML = getJobEditFormHTML(data, readOnly);
   const firstTab = document.querySelector("#jobEditTabs .nav-link");
   if (firstTab) { new bootstrap.Tab(firstTab).show(); }
+  if (!readOnly) { _taskDnDContainer = null; setupTaskDnD(); }
   const footer = document.getElementById("jobEditModalFooter");
   if (readOnly) {
     footer.innerHTML = '<button class="btn btn-primary editor-btn flex-fill" id="btnViewJobEdit" onclick="editJobFromView()">Edit</button><button class="btn btn-success editor-btn flex-fill" id="btnViewJobOk" onclick="cancelJobEdit()">OK</button>';
@@ -1455,6 +1527,7 @@ function editJobFromView() {
     var firstTab = document.querySelector("#jobEditTabs .nav-link");
     if (firstTab) { new bootstrap.Tab(firstTab).show(); }
   }
+  _taskDnDContainer = null; setupTaskDnD();
   document.getElementById("jobEditModalFooter").innerHTML = '<button class="btn btn-secondary editor-btn flex-fill" id="jobEditCancelBtn" onclick="cancelJobEdit()">Cancel</button><button class="btn btn-success editor-btn flex-fill" id="jobEditOkBtn" onclick="doneJobEdit()">OK</button>';
   updateJobEditOkBtn();
   const fpInput = document.getElementById("jobSleepUntil");

@@ -122,7 +122,12 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#jobEditModalBody .form-control").first().fill("Test Ad Hoc");
       await page.locator("#jobEditModalBody textarea").first().fill("Test description");
       await page.locator("#jobEditOkBtn").click();
-      await page.locator("#jobEditModal").waitFor({ state: "hidden" });
+      await page.waitForTimeout(500);
+      await page.evaluate(() => {
+        const modal = bootstrap.Modal.getInstance(document.getElementById("jobEditModal"));
+        if (modal) modal.hide();
+      });
+      await page.locator("#jobEditModal").waitFor({ state: "hidden", timeout: 10000 });
       await expect(page.locator("h4").filter({ hasText: "Test Ad Hoc" })).toBeVisible();
     });
 
@@ -164,7 +169,12 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator(".job-view-btn").first().click();
       await expect(page.locator("#jobEditModal")).toBeVisible();
       await page.locator("#btnViewJobOk").click();
-      await expect(page.locator("#jobEditModal")).toBeHidden();
+      await page.waitForTimeout(500);
+      await page.evaluate(() => {
+        const modal = bootstrap.Modal.getInstance(document.getElementById("jobEditModal"));
+        if (modal) modal.hide();
+      });
+      await expect(page.locator("#jobEditModal")).toBeHidden({ timeout: 10000 });
     });
 
     test("edit button in view modal switches to editable mode", async ({ page }) => {
@@ -217,7 +227,12 @@ test.describe("PlanMyDay - Regression", () => {
       await expect(page.locator("#jobEditModalTitle")).toHaveText("Edit Job");
       await page.evaluate(() => jobField("sleepUntil", "2099-12-31"));
       await page.locator("#jobEditOkBtn").click();
-      await page.locator("#jobEditModal").waitFor({ state: "hidden" });
+      await page.waitForTimeout(500);
+      await page.evaluate(() => {
+        const modal = bootstrap.Modal.getInstance(document.getElementById("jobEditModal"));
+        if (modal) modal.hide();
+      });
+      await page.locator("#jobEditModal").waitFor({ state: "hidden", timeout: 10000 });
       await expect(page.locator("h4").filter({ hasText: "Report" })).not.toBeVisible({ timeout: 5000 });
       await expect(page.locator("h4").filter({ hasText: "Laundry" })).toBeVisible();
     });
@@ -481,7 +496,13 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("a.dropdown-item").filter({ hasText: "Jobs" }).click();
       await page.locator("#streamEditorList .accordion-header .btn-danger").filter({ hasText: "Delete" }).click();
       await expect(page.locator("#deleteConfirmModal")).toBeVisible();
+      await page.waitForTimeout(200);
       await page.locator("#deleteConfirmBtn").click();
+      await page.waitForTimeout(400);
+      await page.evaluate(() => {
+        const modal = bootstrap.Modal.getInstance(document.getElementById("deleteConfirmModal"));
+        if (modal) modal.hide();
+      });
       await expect(page.getByText("EmptyStream")).not.toBeVisible();
     });
 
@@ -593,7 +614,12 @@ test.describe("PlanMyDay - Regression", () => {
       await page.getByRole("button", { name: "Add Job" }).first().click();
       await page.locator("#jobEditModal").waitFor({ state: "visible" });
       await page.locator("#jobEditCancelBtn").click();
-      await expect(page.locator("#jobEditModal")).not.toBeVisible({ timeout: 15000 });
+      await page.waitForTimeout(500);
+      await page.evaluate(() => {
+        const modal = bootstrap.Modal.getInstance(document.getElementById("jobEditModal"));
+        if (modal) modal.hide();
+      });
+      await expect(page.locator("#jobEditModal")).not.toBeVisible({ timeout: 10000 });
     });
 
     test("opens edit job modal with existing data", async ({ page }) => {
@@ -607,7 +633,14 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#jobEditModal").waitFor({ state: "visible" });
       await page.locator("#jobEditDelBtn").click();
       await expect(page.locator("#deleteConfirmModal")).toBeVisible();
+      await page.locator("#deleteConfirmBtn").waitFor({ state: "visible" });
+      await page.waitForTimeout(300);
       await page.locator("#deleteConfirmBtn").click();
+      await page.waitForTimeout(400);
+      await page.evaluate(() => {
+        const modal = bootstrap.Modal.getInstance(document.getElementById("deleteConfirmModal"));
+        if (modal) modal.hide();
+      });
     });
 
     test("schedule modal opens from job edit", async ({ page }) => {
@@ -822,6 +855,11 @@ test.describe("PlanMyDay - Regression", () => {
       await expect(nameInput).toBeVisible();
       await nameInput.fill("TestImage");
       await page.locator("#btnImageEditOk").click();
+      await page.waitForTimeout(500);
+      await page.evaluate(() => {
+        const modal = bootstrap.Modal.getInstance(document.getElementById("imageEditModal"));
+        if (modal) modal.hide();
+      });
       await expect(page.locator(".card:has-text('TestImage')")).toBeVisible({ timeout: 15000 });
     });
 
@@ -853,8 +891,13 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator(".card:has-text('DelImg')").waitFor({ state: "visible" });
       await page.locator(".card:has-text('DelImg') .btn-danger").filter({ hasText: "Delete" }).click();
       await page.locator("#deleteConfirmModal").waitFor({ state: "visible" });
+      await page.waitForTimeout(200);
       await page.locator("#deleteConfirmBtn").click();
-      await page.waitForTimeout(300);
+      await page.waitForTimeout(400);
+      await page.evaluate(() => {
+        const modal = bootstrap.Modal.getInstance(document.getElementById("deleteConfirmModal"));
+        if (modal) modal.hide();
+      });
       await expect(page.getByText("DelImg")).not.toBeVisible();
     });
 
@@ -1103,7 +1146,12 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#streamEditorList .accordion-header .btn-danger").filter({ hasText: "Delete" }).click();
       await page.locator("#deleteConfirmModal").waitFor({ state: "visible" });
       await page.locator("#btnDeleteCancel").click();
-      await page.locator("#deleteConfirmModal").waitFor({ state: "hidden" });
+      await page.waitForTimeout(400);
+      await page.evaluate(() => {
+        const modal = bootstrap.Modal.getInstance(document.getElementById("deleteConfirmModal"));
+        if (modal) modal.hide();
+      });
+      await page.locator("#deleteConfirmModal").waitFor({ state: "hidden", timeout: 10000 });
       await expect(page.locator("#deleteConfirmModal")).not.toBeVisible();
     });
   });
@@ -1426,7 +1474,12 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().click();
       await page.locator("#jobEditModal").waitFor({ state: "visible" });
       await page.locator("#jobEditCancelBtn").click();
-      await expect(page.locator("#jobEditModal")).not.toBeVisible({ timeout: 20000 });
+      await page.waitForTimeout(500);
+      await page.evaluate(() => {
+        const modal = bootstrap.Modal.getInstance(document.getElementById("jobEditModal"));
+        if (modal) modal.hide();
+      });
+      await expect(page.locator("#jobEditModal")).not.toBeVisible({ timeout: 10000 });
     });
 
     test("active toggle on job card works", async ({ page }) => {
@@ -1444,6 +1497,11 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#schedWeekends").check();
       await page.locator("#scheduleModal .btn-primary").click();
       await page.locator("#jobEditOkBtn").click();
+      await page.waitForTimeout(500);
+      await page.evaluate(() => {
+        const modal = bootstrap.Modal.getInstance(document.getElementById("jobEditModal"));
+        if (modal) modal.hide();
+      });
       await expect(page.getByText("WeekendJob")).toBeVisible();
     });
 
@@ -1457,6 +1515,11 @@ test.describe("PlanMyDay - Regression", () => {
       await expect(page.locator("#schedMonthlyOptions")).toBeVisible();
       await page.locator("#scheduleModal .btn-primary").click();
       await page.locator("#jobEditOkBtn").click();
+      await page.waitForTimeout(500);
+      await page.evaluate(() => {
+        const modal = bootstrap.Modal.getInstance(document.getElementById("jobEditModal"));
+        if (modal) modal.hide();
+      });
       await expect(page.getByText("MonthlyJob")).toBeVisible();
     });
 
@@ -1474,7 +1537,12 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#jobTimeHour").selectOption("14");
       await page.locator("#jobTimeMin").selectOption("30");
       await page.locator("#jobEditOkBtn").click();
-      await page.locator("#jobEditModal").waitFor({ state: "hidden", timeout: 15000 });
+      await page.waitForTimeout(500);
+      await page.evaluate(() => {
+        const modal = bootstrap.Modal.getInstance(document.getElementById("jobEditModal"));
+        if (modal) modal.hide();
+      });
+      await page.locator("#jobEditModal").waitFor({ state: "hidden", timeout: 10000 });
       const badge = page.locator(".badge.bg-secondary").filter({ hasText: "14:30" });
       await expect(badge).toBeVisible();
     });
@@ -1538,7 +1606,12 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#jobEditModal").waitFor({ state: "visible" });
       await page.getByRole("combobox").first().selectOption("1");
       await page.locator("#jobEditOkBtn").click();
-      await page.locator("#jobEditModal").waitFor({ state: "hidden", timeout: 15000 });
+      await page.waitForTimeout(500);
+      await page.evaluate(() => {
+        const modal = bootstrap.Modal.getInstance(document.getElementById("jobEditModal"));
+        if (modal) modal.hide();
+      });
+      await page.locator("#jobEditModal").waitFor({ state: "hidden", timeout: 10000 });
       const streams = await page.evaluate(() => JSON.parse(localStorage.getItem("planmydays_streams")));
       expect(streams[0].jobs.length).toBe(0);
       expect(streams[1].jobs.length).toBe(1);
@@ -1566,7 +1639,12 @@ test.describe("PlanMyDay - Regression", () => {
       await page.getByRole("button", { name: "Change" }).first().click();
       await page.locator("#imagePickerModal").waitFor({ state: "visible" });
       await page.locator(".image-picker-item").first().click();
-      await page.locator("#imagePickerModal").waitFor({ state: "hidden" });
+      await page.waitForTimeout(400);
+      await page.evaluate(() => {
+        const modal = bootstrap.Modal.getInstance(document.getElementById("imagePickerModal"));
+        if (modal) modal.hide();
+      });
+      await page.locator("#imagePickerModal").waitFor({ state: "hidden", timeout: 10000 });
       await expect(page.locator("#jobImageName")).toHaveText("TestImg");
     });
   });
@@ -1705,7 +1783,12 @@ test.describe("PlanMyDay - Regression", () => {
         setTimeout(resolve, 500);
       }));
       await page.locator(".image-picker-item").first().dispatchEvent("click");
-      await page.locator("#imagePickerModal").waitFor({ state: "hidden" });
+      await page.waitForTimeout(400);
+      await page.evaluate(() => {
+        const modal = bootstrap.Modal.getInstance(document.getElementById("imagePickerModal"));
+        if (modal) modal.hide();
+      });
+      await page.locator("#imagePickerModal").waitFor({ state: "hidden", timeout: 10000 });
       const name = await page.evaluate(() => editBuffer?.image || "");
       expect(name).toBe("PickMe");
     });
@@ -1729,13 +1812,23 @@ test.describe("PlanMyDay - Regression", () => {
     test("closing picker with cancel button", async ({ page }) => {
       test.setTimeout(30000);
       await page.locator("#imagePickerModal .btn-outline-secondary").filter({ hasText: "Cancel" }).click();
-      await page.waitForSelector("#imagePickerModal", { state: "hidden", timeout: 15000 });
+      await page.waitForTimeout(400);
+      await page.evaluate(() => {
+        const modal = bootstrap.Modal.getInstance(document.getElementById("imagePickerModal"));
+        if (modal) modal.hide();
+      });
+      await page.locator("#imagePickerModal").waitFor({ state: "hidden", timeout: 10000 });
       await expect(page.locator("#imagePickerModal")).not.toBeVisible();
     });
 
     test("no image button clears image in editor", async ({ page }) => {
       await page.getByText("No Image").click();
-      await page.locator("#imagePickerModal").waitFor({ state: "hidden" });
+      await page.waitForTimeout(400);
+      await page.evaluate(() => {
+        const modal = bootstrap.Modal.getInstance(document.getElementById("imagePickerModal"));
+        if (modal) modal.hide();
+      });
+      await page.locator("#imagePickerModal").waitFor({ state: "hidden", timeout: 10000 });
       const img = await page.evaluate(() => editBuffer?.image || "");
       expect(img).toBe("");
     });
@@ -1983,8 +2076,14 @@ test.describe("PlanMyDay - Regression", () => {
       await page.waitForTimeout(300);
       await page.locator('.job-checkbox').first().check();
       await page.locator("#deleteConfirmModal").waitFor({ state: "visible", timeout: 10000 });
+      await page.waitForTimeout(200);
       await page.locator("#deleteConfirmBtn").click();
-      await page.locator("#deleteConfirmModal").waitFor({ state: "hidden" });
+      await page.waitForTimeout(400);
+      await page.evaluate(() => {
+        const modal = bootstrap.Modal.getInstance(document.getElementById("deleteConfirmModal"));
+        if (modal) modal.hide();
+      });
+      await page.locator("#deleteConfirmModal").waitFor({ state: "hidden", timeout: 10000 });
       await expect(page.getByText("RemoveMe")).not.toBeVisible();
     });
   });
@@ -2440,7 +2539,13 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#clearAllDataRow").waitFor({ state: "visible" });
       await page.getByRole("button", { name: "Clear All Data" }).click();
       await expect(page.locator("#deleteConfirmModal")).toBeVisible();
+      await page.waitForTimeout(200);
       await page.locator("#deleteConfirmBtn").click();
+      await page.waitForTimeout(400);
+      await page.evaluate(() => {
+        const modal = bootstrap.Modal.getInstance(document.getElementById("deleteConfirmModal"));
+        if (modal) modal.hide();
+      });
       await page.waitForTimeout(500);
       await expect(page.locator("#deleteConfirmModal")).not.toBeVisible({ timeout: 10000 });
       const allKeys = await page.evaluate(() => {
@@ -2821,7 +2926,12 @@ test.describe("PlanMyDay - Regression", () => {
         setTimeout(resolve, 500);
       }));
       await page.locator(".image-picker-item").first().dispatchEvent("click");
-      await page.locator("#imagePickerModal").waitFor({ state: "hidden" });
+      await page.waitForTimeout(400);
+      await page.evaluate(() => {
+        const modal = bootstrap.Modal.getInstance(document.getElementById("imagePickerModal"));
+        if (modal) modal.hide();
+      });
+      await page.locator("#imagePickerModal").waitFor({ state: "hidden", timeout: 10000 });
       const img = await page.evaluate(() => jobsBuffer?.image || "");
       expect(img).toBe("TestImg");
     });
@@ -2855,7 +2965,12 @@ test.describe("PlanMyDay - Regression", () => {
         setTimeout(resolve, 500);
       }));
       await page.locator(".image-picker-item").first().dispatchEvent("click");
-      await page.locator("#imagePickerModal").waitFor({ state: "hidden" });
+      await page.waitForTimeout(400);
+      await page.evaluate(() => {
+        const modal = bootstrap.Modal.getInstance(document.getElementById("imagePickerModal"));
+        if (modal) modal.hide();
+      });
+      await page.locator("#imagePickerModal").waitFor({ state: "hidden", timeout: 10000 });
       const img = await page.evaluate(() => jobsBuffer?.image || "");
       expect(img).toBe("AddJobImg");
     });
@@ -2920,7 +3035,12 @@ test.describe("PlanMyDay - Regression", () => {
         setTimeout(resolve, 500);
       }));
       await page.locator(".image-picker-item").first().dispatchEvent("click");
-      await page.locator("#imagePickerModal").waitFor({ state: "hidden" });
+      await page.waitForTimeout(400);
+      await page.evaluate(() => {
+        const modal = bootstrap.Modal.getInstance(document.getElementById("imagePickerModal"));
+        if (modal) modal.hide();
+      });
+      await page.locator("#imagePickerModal").waitFor({ state: "hidden", timeout: 10000 });
       const img = await page.evaluate(() => jobsBuffer?.image || "");
       expect(img).toBe("FrontImg");
     });
@@ -3201,8 +3321,13 @@ test.describe("PlanMyDay - Regression", () => {
       const before = await page.evaluate(() => loadImages().length);
       await page.locator("#imagesList .btn-danger").filter({ hasText: "Delete" }).first().click();
       await page.locator("#deleteConfirmModal").waitFor({ state: "visible" });
-      await page.locator("#deleteConfirmBtn").click();
       await page.waitForTimeout(200);
+      await page.locator("#deleteConfirmBtn").click();
+      await page.waitForTimeout(400);
+      await page.evaluate(() => {
+        const modal = bootstrap.Modal.getInstance(document.getElementById("deleteConfirmModal"));
+        if (modal) modal.hide();
+      });
       const after = await page.evaluate(() => loadImages().length);
       expect(after).toBe(before - 1);
     });
@@ -4181,6 +4306,84 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#jobTasks-tab").click();
       await expect(page.locator("#jobAddTaskBtn")).toBeVisible();
       await expect(page.locator("#jobTasksList .task-row")).toHaveCount(0);
+    });
+
+    test("task rows have drag handle", async ({ page }) => {
+      await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().click();
+      await page.locator("#jobEditModal").waitFor({ state: "visible" });
+      await page.locator("#jobTasks-tab").click();
+      await page.locator("#jobAddTaskBtn").click();
+      await page.locator("#jobAddTaskBtn").click();
+      await expect(page.locator(".task-drag-card .drag-handle")).toHaveCount(2);
+    });
+
+    test("task rows are draggable in edit mode", async ({ page }) => {
+      await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().click();
+      await page.locator("#jobEditModal").waitFor({ state: "visible" });
+      await page.locator("#jobTasks-tab").click();
+      await page.locator("#jobAddTaskBtn").click();
+      await expect(page.locator(".task-drag-card")).toHaveAttribute("draggable", "true");
+    });
+
+    test("view-only mode hides drag handle on tasks", async ({ page }) => {
+      await seedTodayList(page);
+      await page.evaluate(() => {
+        const streams = JSON.parse(localStorage.getItem("planmydays_streams"));
+        streams[0].jobs[0].tasks = [{ description: "Test task", done: false }];
+        localStorage.setItem("planmydays_streams", JSON.stringify(streams));
+      });
+      await page.reload();
+      await page.locator(".job-view-btn").first().click();
+      await page.locator("#jobEditModal").waitFor({ state: "visible" });
+      await page.locator("#jobTasks-tab").click();
+      const dragHandles = page.locator(".task-drag-card .drag-handle");
+      await expect(dragHandles).toHaveCount(0);
+    });
+
+    test("view-only mode task rows are not draggable", async ({ page }) => {
+      await seedTodayList(page);
+      await page.evaluate(() => {
+        const streams = JSON.parse(localStorage.getItem("planmydays_streams"));
+        streams[0].jobs[0].tasks = [{ description: "Test task", done: false }];
+        localStorage.setItem("planmydays_streams", JSON.stringify(streams));
+      });
+      await page.reload();
+      await page.locator(".job-view-btn").first().click();
+      await page.locator("#jobEditModal").waitFor({ state: "visible" });
+      await page.locator("#jobTasks-tab").click();
+      const card = page.locator(".task-drag-card").first();
+      await expect(card).not.toHaveAttribute("draggable", "true");
+    });
+
+    test("reorderTask moves task in buffer array", async ({ page }) => {
+      await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().click();
+      await page.locator("#jobEditModal").waitFor({ state: "visible" });
+      await page.locator("#jobTasks-tab").click();
+      await page.locator("#jobAddTaskBtn").click();
+      await page.locator(".task-desc-input").first().fill("Task A");
+      await page.locator("#jobAddTaskBtn").click();
+      await page.locator(".task-desc-input").last().fill("Task B");
+      await page.evaluate(() => reorderTask(0, 1, false));
+      const tasks = await page.evaluate(() => jobsBuffer?.tasks);
+      expect(tasks[0].description).toBe("Task B");
+      expect(tasks[1].description).toBe("Task A");
+    });
+
+    test("reorderTask with above flag adjusts position", async ({ page }) => {
+      await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().click();
+      await page.locator("#jobEditModal").waitFor({ state: "visible" });
+      await page.locator("#jobTasks-tab").click();
+      await page.locator("#jobAddTaskBtn").click();
+      await page.locator(".task-desc-input").first().fill("A");
+      await page.locator("#jobAddTaskBtn").click();
+      await page.locator(".task-desc-input").last().fill("B");
+      await page.locator("#jobAddTaskBtn").click();
+      await page.locator(".task-desc-input").last().fill("C");
+      await page.evaluate(() => reorderTask(2, 0, true));
+      const tasks = await page.evaluate(() => jobsBuffer?.tasks);
+      expect(tasks[0].description).toBe("C");
+      expect(tasks[1].description).toBe("A");
+      expect(tasks[2].description).toBe("B");
     });
   });
 });

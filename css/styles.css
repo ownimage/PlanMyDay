@@ -648,6 +648,30 @@ body.compact .editor-btn {
   -webkit-touch-callout: none;
 }
 
+.task-drag-card {
+  user-select: none;
+  -webkit-user-select: none;
+}
+.task-drag-card.dragging {
+  opacity: 0.3;
+}
+.task-drag-card.drag-over-top {
+  border-top: 3px solid var(--bs-primary) !important;
+}
+.task-drag-card.drag-over-bottom {
+  border-bottom: 3px solid var(--bs-primary) !important;
+}
+.task-drag-card .drag-handle {
+  cursor: grab;
+  touch-action: none;
+  -webkit-touch-callout: none;
+  font-size: 1rem;
+  line-height: 1;
+}
+.task-drag-card .drag-handle:active {
+  cursor: grabbing;
+}
+
 /* Flatpickr dark theme arrow fixes */
 .flatpickr-calendar .flatpickr-months .flatpickr-prev-month svg path,
 .flatpickr-calendar .flatpickr-months .flatpickr-next-month svg path {
