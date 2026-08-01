@@ -1856,8 +1856,7 @@ function importData() {
         }
         if (data.streams) localStorage.setItem("planmydays_streams", JSON.stringify(data.streams));
         if (data.images) localStorage.setItem("planmydays_images", JSON.stringify(data.images));
-        closeSettings();
-        renderMain();
+        regenerateTiles();
       } catch (err) {
         alert("Invalid JSON file.");
       }
