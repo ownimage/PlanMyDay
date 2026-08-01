@@ -690,21 +690,23 @@ function renderStreamsEditor() {
     item.dataset.index = realIdx;
 
     var headerHtml = '<div class="accordion-header stream-accordion-header" id="streamHeading_' + realIdx + '">' +
-      '<button type="button" class="stream-header-main collapsed" data-bs-toggle="collapse" data-bs-target="#' + collapseId + '" aria-expanded="false">' +
-        '<div class="drag-handle flex-shrink-0" style="cursor:grab;font-size:1.3rem;line-height:1">&#9776;</div>' +
-        '<div style="width:40px;height:40px;flex-shrink:0" class="mx-2">' + (streamImgUrl ? '<img src="' + streamImgUrl + '" class="date-img" style="max-width:40px;max-height:40px">' : '') + '</div>' +
-        '<div style="display:flex;flex-direction:column;min-width:0;flex:1;gap:0.25rem;overflow:hidden" class="me-2">' +
-          '<span class="fw-bold editor-title text-truncate">' + escapeHtml(t.title) + '</span>' +
-          '<div style="display:flex;gap:0.25rem;flex-wrap:nowrap">' +
-            '<span class="badge bg-' + ((t.tab || "progress") === "progress" ? "success" : "primary") + ' text-nowrap">' + escapeHtml(t.tab || "progress") + '</span>' +
-            (jobs.length > 0 ? '<span class="badge bg-secondary text-nowrap">' + jobs.length + ' job' + (jobs.length !== 1 ? 's' : '') + '</span>' : '') +
+      '<div class="drag-handle flex-shrink-0" style="cursor:grab;font-size:1.3rem;line-height:1">&#9776;</div>' +
+      '<div style="width:40px;height:40px;flex-shrink-0" class="mx-2">' + (streamImgUrl ? '<img src="' + streamImgUrl + '" class="date-img" style="max-width:40px;max-height:40px">' : '') + '</div>' +
+      '<div style="display:flex;flex-direction:column;min-width:0;flex:1;gap:0.25rem;overflow:hidden" class="me-2">' +
+        '<div style="display:flex;align-items:center;gap:0.35rem">' +
+          '<button type="button" class="stream-header-main collapsed flex-grow-1" style="min-width:0;padding:0;border:0;background:transparent;color:inherit;text-align:left" data-bs-toggle="collapse" data-bs-target="#' + collapseId + '" aria-expanded="false">' +
+            '<span class="fw-bold editor-title text-truncate">' + escapeHtml(t.title) + '</span>' +
+          '</button>' +
+          '<div class="stream-header-actions">' +
+            '<button type="button" class="btn btn-secondary btn-sm" onclick="addNewJobForStream(' + realIdx + ')">Add Job</button>' +
+            '<button type="button" class="btn btn-primary editor-btn" style="min-width:50px" onclick="editStream(' + realIdx + ')">Edit</button>' +
+            (jobs.length === 0 ? '<button type="button" class="btn btn-danger editor-btn" style="min-width:50px" onclick="confirmDeleteStream(' + realIdx + ')">Delete</button>' : '') +
           '</div>' +
         '</div>' +
-      '</button>' +
-      '<div class="stream-header-actions">' +
-        '<button type="button" class="btn btn-secondary btn-sm" onclick="addNewJobForStream(' + realIdx + ')">Add Job</button>' +
-        '<button type="button" class="btn btn-primary editor-btn" style="min-width:50px" onclick="editStream(' + realIdx + ')">Edit</button>' +
-        (jobs.length === 0 ? '<button type="button" class="btn btn-danger editor-btn" style="min-width:50px" onclick="confirmDeleteStream(' + realIdx + ')">Delete</button>' : '') +
+        '<div style="display:flex;gap:0.25rem;flex-wrap:nowrap">' +
+          '<span class="badge bg-' + ((t.tab || "progress") === "progress" ? "success" : "primary") + ' text-nowrap">' + escapeHtml(t.tab || "progress") + '</span>' +
+          (jobs.length > 0 ? '<span class="badge bg-secondary text-nowrap">' + jobs.length + ' job' + (jobs.length !== 1 ? 's' : '') + '</span>' : '') +
+        '</div>' +
       '</div>' +
       '<button type="button" class="stream-header-chevron collapsed" data-bs-toggle="collapse" data-bs-target="#' + collapseId + '" aria-expanded="false" aria-label="Expand"></button>' +
     '</div>';

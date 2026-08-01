@@ -70,6 +70,7 @@ body {
   cursor: pointer;
   font-size: 0.9em;
   transition: background 0.2s;
+  white-space: nowrap;
 }
 .toolbar button:hover { background: #1a4a7a; }
 #filterPanel {
@@ -444,9 +445,10 @@ const HTML_FOOT = `
         }
         body.id = 'body-' + t;
         body.innerHTML = '';
+        var flushts = Date.now();
         for (var img = 0; img < theme.images.length; img++) {
           var src = theme.theme + '/' + theme.images[img];
-          body.innerHTML += '<div class="image-card"><img src="' + src + '" alt="' + theme.images[img] + '" loading="lazy"><div class="image-name">' + theme.images[img] + '</div></div>';
+          body.innerHTML += '<div class="image-card"><img src="' + src + '?v=' + flushts + '" alt="' + theme.images[img] + '" loading="lazy"><div class="image-name">' + theme.images[img] + '</div></div>';
         }
 
         sec.style.display = '';
@@ -485,6 +487,7 @@ const HTML_FOOT = `
 
 function buildBody(themes) {
   let html = '';
+  const ts = Date.now();
   for (let i = 0; i < themes.length; i++) {
     const t = themes[i];
     html += `<div class="theme-section open" id="section-${i}" draggable="true">`;
@@ -498,7 +501,7 @@ function buildBody(themes) {
     for (const img of t.images) {
       const src = t.theme + '/' + img;
       html += `    <div class="image-card">`;
-      html += `      <img src="${src}" alt="${img}" loading="lazy">`;
+      html += `      <img src="${src}?v=${ts}" alt="${img}" loading="lazy">`;
       html += `      <div class="image-name">${img}</div>`;
       html += `    </div>`;
     }

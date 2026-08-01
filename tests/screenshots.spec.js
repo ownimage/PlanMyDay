@@ -2,13 +2,15 @@ const { test } = require("@playwright/test");
 const path = require("path");
 const fs = require("fs");
 
+const sampleImagesData = require("../sampleImages.json");
+
 const TEST_STREAMS = [
   {
     id: "stream_1",
     title: "Work",
     description: "Work tasks",
     tab: "progress",
-    image: "",
+    image: "Work 1",
     sequence: 1,
     jobs: [
       {
@@ -21,6 +23,7 @@ const TEST_STREAMS = [
         suffix: true,
         dayType: "dayOfYear",
         mod: "",
+        image: "Computer",
         tasks: []
       },
       {
@@ -33,6 +36,7 @@ const TEST_STREAMS = [
         suffix: false,
         dayType: "dayOfYear",
         mod: "",
+        image: "Planning",
         tasks: []
       }
     ]
@@ -42,7 +46,7 @@ const TEST_STREAMS = [
     title: "Chores",
     description: "Household chores",
     tab: "maintenance",
-    image: "",
+    image: "Home 1",
     sequence: 2,
     jobs: [
       {
@@ -55,6 +59,7 @@ const TEST_STREAMS = [
         suffix: false,
         dayType: "dayOfYear",
         mod: "",
+        image: "Home",
         tasks: []
       },
       {
@@ -67,6 +72,7 @@ const TEST_STREAMS = [
         suffix: false,
         dayType: "dayOfYear",
         mod: "1",
+        image: "Checklist",
         tasks: []
       }
     ]
@@ -76,7 +82,7 @@ const TEST_STREAMS = [
     title: "Fitness",
     description: "Exercise routines",
     tab: "progress",
-    image: "",
+    image: "Fitness 1",
     sequence: 3,
     jobs: [
       {
@@ -89,6 +95,7 @@ const TEST_STREAMS = [
         suffix: false,
         dayType: "dayOfYear",
         mod: "",
+        image: "Running Shoe",
         tasks: [],
         sleepUntil: "",
         time: "07:00"
@@ -103,6 +110,7 @@ const TEST_STREAMS = [
         suffix: false,
         dayType: "dayOfYear",
         mod: "",
+        image: "Fitness 2",
         tasks: []
       }
     ]
@@ -188,12 +196,13 @@ test.describe("PlanMyDay - Screenshots", () => {
       });
     });
     await page.goto("/");
-    await page.evaluate(() => {
+    await page.evaluate((images) => {
       localStorage.clear();
       localStorage.setItem("planmydays_fontSize", "xsmall");
       localStorage.setItem("planmydays_iconSize", "small");
       localStorage.setItem("planmydays_density", "compact");
-    });
+      localStorage.setItem("planmydays_images", JSON.stringify(images));
+    }, sampleImagesData.images);
     await page.reload();
     await page.waitForLoadState("domcontentloaded");
   });
