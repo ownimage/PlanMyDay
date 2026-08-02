@@ -1062,14 +1062,33 @@ function updateSleepUntilClearBtn() {
 function jobAddTask() {
   if (!jobsBuffer) return;
   if (!jobsBuffer.tasks) jobsBuffer.tasks = [];
-  jobsBuffer.tasks.push({ description: "", done: false });
+  jobsBuffer.tasks.push({ description: "", done: false, note: "" });
   renderJobTasks();
 }
 
 function jobDeleteTask(index) {
   if (!jobsBuffer || !jobsBuffer.tasks) return;
-  jobsBuffer.tasks.splice(index, 1);
-  renderJobTasks();
+  var taskText = (jobsBuffer.tasks[index] && jobsBuffer.tasks[index].description) ? jobsBuffer.tasks[index].description : "Unnamed task";
+  var modalEl = document.getElementById("deleteConfirmModal");
+  document.getElementById("deleteConfirmMessage").textContent = 'Delete task "' + taskText + '"?';
+  modalEl.addEventListener("show.bs.modal", function boostZ() {
+    modalEl.removeEventListener("show.bs.modal", boostZ);
+    modalEl.style.zIndex = 2000;
+    var backdrops = document.querySelectorAll(".modal-backdrop");
+    if (backdrops.length > 0) backdrops[backdrops.length - 1].style.zIndex = 1999;
+  });
+  modalEl.addEventListener("hidden.bs.modal", function resetZ() {
+    modalEl.removeEventListener("hidden.bs.modal", resetZ);
+    modalEl.style.zIndex = "";
+    var backdrops = document.querySelectorAll(".modal-backdrop");
+    if (backdrops.length > 0) backdrops[backdrops.length - 1].style.zIndex = "";
+  });
+  document.getElementById("deleteConfirmBtn").onclick = function() {
+    jobsBuffer.tasks.splice(index, 1);
+    renderJobTasks();
+    bootstrap.Modal.getInstance(modalEl).hide();
+  };
+  new bootstrap.Modal(modalEl).show();
 }
 
 function jobTaskField(index, field, value) {
@@ -1087,10 +1106,29 @@ function renderJobTasks() {
       '<div class="drag-handle">&#9776;</div>' +
       '<input class="form-check-input task-done-cb" type="checkbox" id="taskDone' + i + '" ' + (task.done ? "checked" : "") + ' onchange="jobTaskField(' + i + ', \'done\', this.checked)">' +
       '<input class="form-control task-desc-input" value="' + escapeHtml(task.description || "") + '" placeholder="Task description" oninput="jobTaskField(' + i + ', \'description\', this.value)">' +
+      '<button class="btn btn-sm ' + (task.note ? 'btn-info' : 'btn-outline-info') + ' task-note-btn" onclick="jobTaskToggleNote(' + i + ')" title="Note"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path d="M12.854.146a.5.5 0 0 0-.707 0L10.5 1.793 14.207 5.5l1.647-1.646a.5.5 0 0 0 0-.708l-3-3zm.646 6.061L9.854 2.56a.5.5 0 0 0-.707 0L1.5 10.207V14.5h4.293L13.5 6.207zM12.793 3.207L4 12V14h2L13.793 4.207l-1-1z"/></svg></button>' +
       '<button class="btn btn-sm btn-danger" onclick="jobDeleteTask(' + i + ')">&times;</button>' +
+      '</div>' +
+      '<div class="task-note-row mb-1 ms-4" id="taskNoteRow' + i + '" style="display:' + (task.note ? 'block' : 'none') + '">' +
+        '<textarea class="form-control" rows="2" placeholder="Note" oninput="jobTaskField(' + i + ', \'note\', this.value)">' + escapeHtml(task.note || "") + '</textarea>' +
       '</div>';
   });
   el.innerHTML = html;
+}
+
+function jobTaskToggleNote(index) {
+  var row = document.getElementById("taskNoteRow" + index);
+  if (!row) return;
+  row.style.display = row.style.display === "none" ? "block" : "none";
+  var btns = document.querySelectorAll(".task-note-btn");
+  btns.forEach(function(btn) {
+    var onclick = btn.getAttribute("onclick") || "";
+    if (onclick.indexOf("jobTaskToggleNote(" + index + ")") >= 0) {
+      var hasNote = jobsBuffer && jobsBuffer.tasks && jobsBuffer.tasks[index] && jobsBuffer.tasks[index].note;
+      btn.classList.toggle("btn-info", !!hasNote);
+      btn.classList.toggle("btn-outline-info", !hasNote);
+    }
+  });
 }
 
 var _taskDnDContainer = null;
@@ -1343,12 +1381,17 @@ function getJobEditFormHTML(data, readOnly) {
   var tasksHTML = "";
   tasks.forEach(function(task, i) {
     var dragHandleHtml = readOnly ? "" : '<div class="drag-handle">&#9776;</div>';
+    var noteBtnDisabled = "";
     tasksHTML += `
       <div class="d-flex align-items-center gap-2 mb-1 task-row task-drag-card" ${readOnly ? "" : 'draggable="true"'} data-task-index="${i}">
         ${dragHandleHtml}
         <input class="form-check-input task-done-cb" type="checkbox" ${task.done ? "checked" : ""} ${disabled} onchange="jobTaskField(${i}, 'done', this.checked)">
         <input class="form-control task-desc-input" value="${escapeHtml(task.description || "")}" ${ro} placeholder="Task description" oninput="jobTaskField(${i}, 'description', this.value)">
+        <button class="btn btn-sm ${task.note ? 'btn-info' : 'btn-outline-info'} task-note-btn" ${noteBtnDisabled} onclick="jobTaskToggleNote(${i})" title="Note"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path d="M12.854.146a.5.5 0 0 0-.707 0L10.5 1.793 14.207 5.5l1.647-1.646a.5.5 0 0 0 0-.708l-3-3zm.646 6.061L9.854 2.56a.5.5 0 0 0-.707 0L1.5 10.207V14.5h4.293L13.5 6.207zM12.793 3.207L4 12V14h2L13.793 4.207l-1-1z"/></svg></button>
         <button class="btn btn-sm btn-danger" ${disabled} onclick="jobDeleteTask(${i})">&times;</button>
+      </div>
+      <div class="task-note-row mb-1 ms-4" id="taskNoteRow${i}" style="display:${task.note ? 'block' : 'none'}">
+        <textarea class="form-control" rows="2" placeholder="Note" ${ro} oninput="jobTaskField(${i}, 'note', this.value)">${escapeHtml(task.note || "")}</textarea>
       </div>`;
   });
   return `

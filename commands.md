@@ -8,5 +8,5 @@ npx playwright test tests/screenshots.spec.js --workers 16
 ```
 ### Screenshot viewer
 ```bash
-npx nodemon screenshots/viewer.js
+npx nodemon --watch screenshots/viewer.js screenshots/viewer.js
 ```

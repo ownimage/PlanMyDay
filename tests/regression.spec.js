@@ -4195,6 +4195,13 @@ test.describe("PlanMyDay - Regression", () => {
         updateSleepUntilClearBtn();
         updateJobEditOkBtn();
       });
+      await page.evaluate(() => {
+        var streams = JSON.parse(localStorage.getItem("planmydays_streams"));
+        streams[0].image = "PrevImg";
+        localStorage.setItem("planmydays_streams", JSON.stringify(streams));
+        updateJobStreamPreview();
+        jobChangeStream(1);
+      });
     });
   });
 
@@ -4296,9 +4303,90 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#jobAddTaskBtn").click();
       await expect(page.locator(".task-row")).toHaveCount(2);
       await page.locator("#jobTasksList .btn-danger").first().click();
+      await page.locator("#deleteConfirmModal").waitFor({ state: "visible" });
+      await page.locator("#deleteConfirmBtn").click();
+      await page.locator("#deleteConfirmModal").waitFor({ state: "hidden" });
       await expect(page.locator(".task-row")).toHaveCount(1);
       const tasks = await page.evaluate(() => jobsBuffer?.tasks);
       expect(tasks).toHaveLength(1);
+    });
+
+    test("delete task cancel keeps the task", async ({ page }) => {
+      await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().click();
+      await page.locator("#jobEditModal").waitFor({ state: "visible" });
+      await page.locator("#jobTasks-tab").click();
+      await page.locator("#jobAddTaskBtn").click();
+      await page.locator("#jobAddTaskBtn").click();
+      await expect(page.locator(".task-row")).toHaveCount(2);
+      await page.locator("#jobTasksList .btn-danger").first().click();
+      await page.locator("#deleteConfirmModal").waitFor({ state: "visible" });
+      await page.locator("#btnDeleteCancel").click();
+      await page.locator("#deleteConfirmModal").waitFor({ state: "hidden" });
+      await expect(page.locator(".task-row")).toHaveCount(2);
+      const tasks = await page.evaluate(() => jobsBuffer?.tasks);
+      expect(tasks).toHaveLength(2);
+    });
+
+    test("delete task confirm shows task name", async ({ page }) => {
+      await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().click();
+      await page.locator("#jobEditModal").waitFor({ state: "visible" });
+      await page.locator("#jobTasks-tab").click();
+      await page.locator("#jobAddTaskBtn").click();
+      await page.locator(".task-desc-input").first().fill("My task name");
+      await page.locator("#jobTasksList .btn-danger").first().click();
+      await page.locator("#deleteConfirmModal").waitFor({ state: "visible" });
+      await expect(page.locator("#deleteConfirmMessage")).toContainText("My task name");
+      await page.locator("#deleteConfirmBtn").click();
+    });
+
+    test("task note button toggles note textarea", async ({ page }) => {
+      await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().click();
+      await page.locator("#jobEditModal").waitFor({ state: "visible" });
+      await page.locator("#jobTasks-tab").click();
+      await page.locator("#jobAddTaskBtn").click();
+      const noteRow = page.locator("#taskNoteRow0");
+      await expect(noteRow).not.toBeVisible();
+      await page.locator(".task-note-btn").first().click();
+      await expect(noteRow).toBeVisible();
+      await page.locator(".task-note-btn").first().click();
+      await expect(noteRow).not.toBeVisible();
+    });
+
+    test("task note is stored in jobsBuffer", async ({ page }) => {
+      await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().click();
+      await page.locator("#jobEditModal").waitFor({ state: "visible" });
+      await page.locator("#jobTasks-tab").click();
+      await page.locator("#jobAddTaskBtn").click();
+      await page.locator(".task-note-btn").first().click();
+      await page.locator("#taskNoteRow0 textarea").fill("Important note about task");
+      const tasks = await page.evaluate(() => jobsBuffer?.tasks);
+      expect(tasks[0].note).toBe("Important note about task");
+    });
+
+    test("task note persists through re-render", async ({ page }) => {
+      await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().click();
+      await page.locator("#jobEditModal").waitFor({ state: "visible" });
+      await page.locator("#jobTasks-tab").click();
+      await page.locator("#jobAddTaskBtn").click();
+      await page.locator(".task-note-btn").first().click();
+      await page.locator("#taskNoteRow0 textarea").fill("Persistent note");
+      await page.locator("#jobAddTaskBtn").click();
+      const noteRow = page.locator("#taskNoteRow0");
+      await expect(noteRow).toBeVisible();
+      const noteValue = await page.locator("#taskNoteRow0 textarea").inputValue();
+      expect(noteValue).toBe("Persistent note");
+    });
+
+    test("task note button style reflects note status", async ({ page }) => {
+      await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().click();
+      await page.locator("#jobEditModal").waitFor({ state: "visible" });
+      await page.locator("#jobTasks-tab").click();
+      await page.locator("#jobAddTaskBtn").click();
+      await expect(page.locator(".task-note-btn").first()).toHaveClass(/btn-outline-info/);
+      await page.locator(".task-note-btn").first().click();
+      await page.locator("#taskNoteRow0 textarea").fill("has note");
+      await page.locator(".task-note-btn").first().click();
+      await expect(page.locator(".task-note-btn").first()).toHaveClass(/btn-info/);
     });
 
     test("tasks persist through save and reload", async ({ page }) => {
