@@ -266,7 +266,7 @@ function editImageColor(index, attr, value) {
   img.lineColor = attr === 'stroke' ? value : img.lineColor;
   img.fillColor = attr === 'fill' ? value : img.fillColor;
   saveImages(images);
-  const editedCard = document.querySelector('#singleImageEditor .card.card-edited');
+  const editedCard = document.querySelector('#imageEditModalBody .card.card-edited');
   if (editedCard) {
     const imgEl = editedCard.querySelector('img.date-img');
     if (imgEl) imgEl.src = img.data;
@@ -288,7 +288,7 @@ function editImageFillNone(index, checked) {
     img.fillColor = restore;
   }
   saveImages(images);
-  const editedCard = document.querySelector('#singleImageEditor .card.card-edited');
+  const editedCard = document.querySelector('#imageEditModalBody .card.card-edited');
   if (editedCard) {
     const imgEl = editedCard.querySelector('img.date-img');
     if (imgEl) imgEl.src = img.data;
@@ -310,7 +310,7 @@ function editImageStrokeNone(index, checked) {
     img.lineColor = restore;
   }
   saveImages(images);
-  const editedCard = document.querySelector('#singleImageEditor .card.card-edited');
+  const editedCard = document.querySelector('#imageEditModalBody .card.card-edited');
   if (editedCard) {
     const imgEl = editedCard.querySelector('img.date-img');
     if (imgEl) imgEl.src = img.data;
@@ -332,7 +332,7 @@ function editImageStrokeWidth(index, value) {
   }
   img.strokeWidth = value;
   saveImages(images);
-  const editedCard = document.querySelector('#singleImageEditor .card.card-edited');
+  const editedCard = document.querySelector('#imageEditModalBody .card.card-edited');
   if (editedCard) {
     const imgEl = editedCard.querySelector('img.date-img');
     if (imgEl) imgEl.src = img.data;

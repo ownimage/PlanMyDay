@@ -656,13 +656,8 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#jobEditDelBtn").click();
       await expect(page.locator("#deleteConfirmModal")).toBeVisible();
       await page.locator("#deleteConfirmBtn").waitFor({ state: "visible" });
-      await page.waitForTimeout(300);
       await page.locator("#deleteConfirmBtn").click();
-      await page.waitForTimeout(400);
-      await page.evaluate(() => {
-        const modal = bootstrap.Modal.getInstance(document.getElementById("deleteConfirmModal"));
-        if (modal) modal.hide();
-      });
+      await page.locator("#deleteConfirmModal").waitFor({ state: "hidden", timeout: 10000 });
     });
 
     test("schedule modal opens from job edit", async ({ page }) => {
@@ -1647,7 +1642,7 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible", timeout: 5000 });
       await page.getByRole("button", { name: "Add Job" }).first().click();
       await page.locator("#jobEditModal").waitFor({ state: "visible" });
-      await page.getByRole("button", { name: "Change" }).first().click();
+      await page.locator("#btnJobImageChange").click();
       await page.locator("#imagePickerModal").waitFor({ state: "visible" });
       await page.locator(".image-picker-item").first().waitFor({ state: "visible", timeout: 10000 });
       await page.locator(".image-picker-item").first().click();
@@ -1743,7 +1738,26 @@ test.describe("PlanMyDay - Regression", () => {
       await nameInput.fill("EditTest");
       await expect(page.locator("#imageNameError")).toBeVisible();
       const okBtn = page.locator('#imageEditModal .btn-success');
-      await expect(okBtn).toBeDisabled();
+      await       expect(okBtn).toBeDisabled();
+    });
+
+    test("color change updates preview image live without closing modal", async ({ page }) => {
+      test.setTimeout(30000);
+      await page.locator(".card:has-text('EditTest') .btn-primary").first().click();
+      await page.locator("#imageEditModal").waitFor({ state: "visible" });
+      const previewImg = page.locator("#imageEditModalBody .card-edited img.date-img");
+      await expect(previewImg).toBeVisible();
+      const initialSrc = await previewImg.getAttribute("src");
+
+      const colorInput = page.locator('#imageEditModal input[type="color"]').first();
+      await colorInput.fill("#ff0000");
+
+      await expect.poll(async () => {
+        return previewImg.getAttribute("src");
+      }, { timeout: 5000 }).not.toBe(initialSrc);
+
+      const newSrc = await previewImg.getAttribute("src");
+      expect(decodeURIComponent(newSrc)).toContain('stroke="#ff0000"');
     });
   });
 
