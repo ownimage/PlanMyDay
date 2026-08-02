@@ -1690,7 +1690,8 @@ function doneJobEdit() {
     var order = loadTodayOrder() || [];
     var allActive = [];
     streams.forEach(function(t) { (t.jobs || []).forEach(function(j) { if (j.active !== false) allActive.push(j.id); }); });
-    var remaining = allActive.filter(function(id) { return order.includes(id); });
+    var remaining = order.filter(function(id) { return allActive.includes(id); });
+    allActive.forEach(function(id) { if (!remaining.includes(id)) remaining.push(id); });
     if (savedId && !remaining.includes(savedId)) remaining.push(savedId);
     saveTodayOrder(remaining);
     renderMain();

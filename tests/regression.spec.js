@@ -278,6 +278,40 @@ test.describe("PlanMyDay - Regression", () => {
       await expect(page.locator("#jobSleepUntil")).toHaveValue("");
     });
 
+    test("view then edit preserves custom today order", async ({ page }) => {
+      // stream order is job_1 (Work/Report), job_3 (Chores/Laundry)
+      // set today order to custom order: job_3 then job_1 (reversed)
+      await page.evaluate(({ data, ds }) => {
+        localStorage.setItem("planmydays_streams", JSON.stringify(data));
+        localStorage.setItem("planmydays_today_order", JSON.stringify(["job_3", "job_1"]));
+        localStorage.setItem("planmydays_last_gen", ds);
+        localStorage.setItem("planmydays_completed", JSON.stringify([]));
+      }, { data: TEST_STREAMS, ds: todayStr });
+      await page.reload();
+      await expect(page.locator("#todayCardList")).toBeVisible();
+      // verify custom order: Laundry (job_3) first, then Report (job_1)
+      const cards = page.locator("#todayCardList .today-drag-card");
+      await expect(cards.nth(0)).toContainText("Laundry");
+      await expect(cards.nth(1)).toContainText("Report");
+      // view then edit the first card (Laundry) without making changes
+      await page.locator(".job-view-btn").first().click();
+      await page.locator("#jobEditModal").waitFor({ state: "visible" });
+      await page.locator("#btnViewJobEdit").filter({ hasText: "Edit" }).click();
+      await expect(page.locator("#jobEditModalTitle")).toHaveText("Edit Job");
+      await page.locator("#jobEditOkBtn").click();
+      // hide modal
+      await page.waitForTimeout(500);
+      await page.evaluate(() => {
+        const modal = bootstrap.Modal.getInstance(document.getElementById("jobEditModal"));
+        if (modal) modal.hide();
+      });
+      await page.locator("#jobEditModal").waitFor({ state: "hidden", timeout: 10000 }).catch(() => {});
+      // verify order is still preserved: job_3 then job_1 first, then any new active jobs appended
+      const order = await page.evaluate(() => JSON.parse(localStorage.getItem("planmydays_today_order")));
+      expect(order[0]).toBe("job_3");
+      expect(order[1]).toBe("job_1");
+    });
+
     test("clear button resets sleepUntil field", async ({ page }) => {
       await page.getByText("+ Add job").click();
       await page.locator("#jobEditModal").waitFor({ state: "visible" });
