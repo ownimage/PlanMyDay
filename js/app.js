@@ -799,6 +799,16 @@ function renderStreamsEditor() {
     var jobs = streams[streamIdx].jobs || [];
     if (jobs[jobIdx]) jobs[jobIdx].active = e.target.checked;
     saveStreams(streams);
+    var jobId = jobs[jobIdx] ? jobs[jobIdx].id : null;
+    if (jobId) {
+      var order = loadTodayOrder() || [];
+      if (e.target.checked && shouldShowJobToday(jobs[jobIdx])) {
+        if (!order.includes(jobId)) order.push(jobId);
+      } else {
+        order = order.filter(function(id) { return id !== jobId; });
+      }
+      saveTodayOrder(order);
+    }
   });
 
   // set up job DnD once (not re-added on each render)

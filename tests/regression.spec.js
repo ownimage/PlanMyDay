@@ -813,8 +813,73 @@ test.describe("PlanMyDay - Regression", () => {
       expect(after.d2).toBe(before.d1);
     });
 
+    test("activating a job adds it to today order", async ({ page }) => {
+      // deactivate job_2 and remove it from today_order
+      await page.evaluate((ds) => {
+        var streams = JSON.parse(localStorage.getItem("planmydays_streams"));
+        var jobs = streams[0].jobs;
+        for (var i = 0; i < jobs.length; i++) {
+          if (jobs[i].id === "job_2") { jobs[i].active = false; break; }
+        }
+        localStorage.setItem("planmydays_streams", JSON.stringify(streams));
+        localStorage.setItem("planmydays_today_order", JSON.stringify(["job_1", "job_3"]));
+        localStorage.setItem("planmydays_last_gen", ds);
+      }, todayStr);
+      await page.reload();
+      // go back to Jobs Editor
+      await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
+      await page.locator("a.dropdown-item").filter({ hasText: "Jobs" }).click();
+      await page.locator("#streamEditorList .stream-header-main").first().click();
+      await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible", timeout: 5000 });
+      // toggle job_2 (Meeting) active
+      var meetingToggle = page.locator("#streamEditorList .accordion-body .active-toggle").nth(1);
+      await expect(meetingToggle).not.toBeChecked();
+      await meetingToggle.check();
+      await page.waitForTimeout(300);
+      // click Done to return to main view
+      await page.getByRole("button", { name: "Done" }).click();
+      await expect(page.locator("#countdownContainer")).toBeVisible();
+      // verify job_2 is now in today_order (if it matches today's schedule)
+      var todayOrder = await page.evaluate(() => JSON.parse(localStorage.getItem("planmydays_today_order")));
+      expect(todayOrder).toContain("job_2");
+      // verify position: original order preserved, new job appended
+      expect(todayOrder.indexOf("job_1")).toBe(0);
+      expect(todayOrder.indexOf("job_3")).toBe(1);
+      expect(todayOrder.indexOf("job_2")).toBe(2);
+    });
+    
+    test("deactivating a job removes it from today order", async ({ page }) => {
+      // set today_order to include all three jobs
+      await page.evaluate((ds) => {
+        var streams = JSON.parse(localStorage.getItem("planmydays_streams"));
+        localStorage.setItem("planmydays_streams", JSON.stringify(streams));
+        localStorage.setItem("planmydays_today_order", JSON.stringify(["job_1", "job_2", "job_3"]));
+        localStorage.setItem("planmydays_last_gen", ds);
+      }, todayStr);
+      await page.reload();
+      // go to Jobs Editor
+      await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
+      await page.locator("a.dropdown-item").filter({ hasText: "Jobs" }).click();
+      await page.locator("#streamEditorList .stream-header-main").first().click();
+      await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible", timeout: 5000 });
+      // verify job_2 is active and in the order
+      var orderBefore = await page.evaluate(() => JSON.parse(localStorage.getItem("planmydays_today_order")));
+      expect(orderBefore).toContain("job_2");
+      // uncheck job_2 (Meeting) - second checkbox
+      var meetingToggle = page.locator("#streamEditorList .accordion-body .active-toggle").nth(1);
+      await expect(meetingToggle).toBeChecked();
+      await meetingToggle.uncheck();
+      await page.waitForTimeout(300);
+      // click Done to return to main view
+      await page.getByRole("button", { name: "Done" }).click();
+      await expect(page.locator("#countdownContainer")).toBeVisible();
+      // verify job_2 is removed from today_order
+      var orderAfter = await page.evaluate(() => JSON.parse(localStorage.getItem("planmydays_today_order")));
+      expect(orderAfter).not.toContain("job_2");
+      expect(orderAfter).toEqual(["job_1", "job_3"]);
+    });
+    
     test("accordion stays open after job drag reorder", async ({ page }) => {
-      // add extra untimed jobs for drag test
       await page.evaluate(() => {
         var streams = JSON.parse(localStorage.getItem("planmydays_streams"));
         streams[0].jobs.push({ id: "job_drag1", title: "DragMe1", active: true, frequency: "daily", sequence: 99, time: "", suffix: false, dayType: "dayOfYear", mod: "", tasks: [] });
