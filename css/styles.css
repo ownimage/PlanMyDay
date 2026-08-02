@@ -504,40 +504,38 @@ body.auto-hide-menu #mainNav.nav-hidden ~ .container-fluid {
 #settingsPage .nav-tabs .nav-link {
   font-size: 0.75rem;
   padding: 0.35rem 0.35rem;
+  margin-bottom: -1px;
 }
 #settingsPage .nav-item {
   margin-right: 0;
+}
+.nav-tabs-info .nav-link {
+  border-color: var(--bs-border-color);
 }
 .nav-tabs-info .nav-link.active {
   font-weight: 700;
   background-color: var(--bs-info);
   border-color: var(--bs-info);
-  color: var(--bs-dark);
+  border-bottom-color: transparent;
+  color: #fff;
 }
 .nav-tabs-info .nav-link.active:hover {
   background-color: var(--bs-info);
   border-color: var(--bs-info);
-  color: var(--bs-dark);
+  border-bottom-color: transparent;
+  color: #fff;
 }
 .nav-tabs-info .nav-link:hover {
   border-color: var(--bs-gray-300);
   isolation: isolate;
 }
-[data-theme="cerulean"] .nav-tabs-info .nav-link.active,
-[data-theme="cerulean"] .nav-tabs-info .nav-link.active:hover {
-  color: #fff;
-}
 [data-theme="flatly"] .nav-tabs-info .nav-link.active,
 [data-theme="flatly"] .nav-tabs-info .nav-link.active:hover {
   color: #212529;
 }
-[data-theme="journal"] .nav-tabs-info .nav-link.active,
-[data-theme="journal"] .nav-tabs-info .nav-link.active:hover {
-  color: #fff;
-}
-[data-theme="materia"] .nav-tabs-info .nav-link.active,
-[data-theme="materia"] .nav-tabs-info .nav-link.active:hover {
-  color: #fff;
+[data-theme="quartz"] .nav-tabs-info .nav-link.active,
+[data-theme="quartz"] .nav-tabs-info .nav-link.active:hover {
+  color: var(--bs-dark);
 }
 #settingsPage .tab-content {
   margin-bottom: 1rem;
