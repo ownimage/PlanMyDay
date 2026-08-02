@@ -1832,6 +1832,8 @@ function openSettings() {
     if (el) el.classList.toggle("d-none", !showDanger);
   });
 
+  if (typeof loadMinioSettings === "function") loadMinioSettings();
+
   if (isDevMode) {
     ["devTodayInput", "devLastGenInput"].forEach(id => {
       const el = document.getElementById(id);
@@ -1953,6 +1955,8 @@ document.addEventListener("DOMContentLoaded", () => {
   if (typeof seedSampleImages === "function") seedSampleImages();
 
   renderMain();
+
+  if (typeof updateMinioMenu === "function") updateMinioMenu();
 
   const streamEditorList = document.getElementById("streamEditorList");
   if (streamEditorList) {

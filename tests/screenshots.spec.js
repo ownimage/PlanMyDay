@@ -519,4 +519,20 @@ test.describe("PlanMyDay - Screenshots", () => {
     await page.waitForTimeout(300);
     await screenshotAllThemes(page, "job-edit-tasks.png");
   });
+
+  test("settings - minio", async ({ page }) => {
+    await page.evaluate(() => {
+      localStorage.setItem("planmydays_minio_enabled", "true");
+      localStorage.setItem("planmydays_minio_server", "http://minio.local:9000");
+      localStorage.setItem("planmydays_minio_username", "minioadmin");
+      localStorage.setItem("planmydays_minio_password", "••••••••");
+      localStorage.setItem("planmydays_minio_bucket", "pmd");
+    });
+    await page.reload();
+    await page.getByTitle("Settings").click();
+    await page.waitForSelector("#settingsPage:not(.d-none)");
+    await page.locator("#minio-tab").click();
+    await page.waitForTimeout(300);
+    await screenshotAllThemes(page, "settings-minio.png");
+  });
 });

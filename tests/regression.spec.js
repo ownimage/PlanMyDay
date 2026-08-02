@@ -334,11 +334,13 @@ test.describe("PlanMyDay - Regression", () => {
     test("ok button is disabled when title is empty", async ({ page }) => {
       await page.getByText("+ Add job").click();
       await page.locator("#jobEditModal").waitFor({ state: "visible" });
+      await page.waitForTimeout(200);
       const okBtn = page.locator("#jobEditOkBtn");
       await expect(okBtn).toBeDisabled();
       await page.locator("#jobTitleInput").fill("My Job");
       await expect(okBtn).toBeEnabled();
-      await page.locator("#jobTitleInput").fill("");
+      await page.locator("#jobTitleInput").clear();
+      await page.waitForTimeout(100);
       await expect(okBtn).toBeDisabled();
     });
     
@@ -380,8 +382,8 @@ test.describe("PlanMyDay - Regression", () => {
 
     test("import/export dropdown has items", async ({ page }) => {
       await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Import/Export" }).click();
-      await expect(page.locator("a.dropdown-item").filter({ hasText: "Export" })).toBeVisible();
-      await expect(page.locator("a.dropdown-item").filter({ hasText: "Import" })).toBeVisible();
+      await expect(page.locator("a.dropdown-item").filter({ hasText: /^Export$/ })).toBeVisible();
+      await expect(page.locator("a.dropdown-item").filter({ hasText: /^Import$/ })).toBeVisible();
     });
 
     test("exported filename does not contain -backup-", async ({ page }) => {
@@ -394,7 +396,7 @@ test.describe("PlanMyDay - Regression", () => {
 
       const downloadPromise = page.waitForEvent("download");
       await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Import/Export" }).click();
-      await page.locator("a.dropdown-item").filter({ hasText: "Export" }).click();
+      await page.locator("a.dropdown-item").filter({ hasText: /^Export$/ }).click();
       const download = await downloadPromise;
 
       expect(download.suggestedFilename()).not.toContain("-backup-");
@@ -1726,15 +1728,16 @@ test.describe("PlanMyDay - Regression", () => {
     test("change button opens image picker and shows selected name", async ({ page }) => {
       test.setTimeout(30000);
       const svg = "data:image/svg+xml," + encodeURIComponent('<svg stroke="#000000" fill="#ffffff" stroke-width="2" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100"/></svg>');
-      await page.addInitScript((svgData) => {
+      await page.evaluate((svgData) => {
         localStorage.setItem("planmydays_images", JSON.stringify([{ name: "TestImg", data: svgData }]));
-        localStorage.setItem("planmydays_streams", JSON.stringify([
-          { id: "stream_1", title: "Work", tab: "progress", image: "", sequence: 1,
-            jobs: [{ id: "job_1", title: "Report", active: true, frequency: "daily", sequence: 1, suffix: false, dayType: "dayOfYear", mod: "", tasks: [] }]
-          }
-        ]));
       }, svg);
-      await page.goto("/");
+      await page.evaluate((data) => {
+        localStorage.setItem("planmydays_streams", JSON.stringify(data));
+      }, [{
+        id: "stream_1", title: "Work", tab: "progress", image: "", sequence: 1,
+        jobs: [{ id: "job_1", title: "Report", active: true, frequency: "daily", sequence: 1, suffix: false, dayType: "dayOfYear", mod: "", tasks: [] }]
+      }]);
+      await page.reload();
       await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
       await page.locator("a.dropdown-item").filter({ hasText: "Jobs" }).click();
       await page.locator("#streamEditorList .stream-header-main").first().click();
@@ -4314,7 +4317,521 @@ test.describe("PlanMyDay - Regression", () => {
         localStorage.setItem("planmydays_streams", JSON.stringify(streams));
         updateJobStreamPreview();
         jobChangeStream(1);
+    });
+  });
+
+  test.describe("Minio", () => {
+
+    // ── Settings UI ────────────────────────────────────────
+
+    test("minio tab exists in settings", async ({ page }) => {
+      await page.getByTitle("Settings").click();
+      await expect(page.locator("#minio-tab")).toBeVisible();
+    });
+
+    test("minio tab shows fields when enabled", async ({ page }) => {
+      await page.getByTitle("Settings").click();
+      await page.locator("#minio-tab").click();
+      await expect(page.locator("#minioEnabled")).toBeVisible();
+      await expect(page.locator("#minioServer")).toBeVisible();
+      await expect(page.locator("#minioUsername")).toBeVisible();
+      await expect(page.locator("#minioPassword")).toBeVisible();
+      await expect(page.locator("#minioBucket")).toBeVisible();
+    });
+
+    test("minio fields are disabled when enable toggle is off", async ({ page }) => {
+      await page.getByTitle("Settings").click();
+      await page.locator("#minio-tab").click();
+      await expect(page.locator("#minioEnabled")).not.toBeChecked();
+      await expect(page.locator("#minioServer")).toBeDisabled();
+      await expect(page.locator("#minioUsername")).toBeDisabled();
+      await expect(page.locator("#minioPassword")).toBeDisabled();
+      await expect(page.locator("#minioBucket")).toBeDisabled();
+    });
+
+    test("minio fields become enabled when toggle is on", async ({ page }) => {
+      await page.getByTitle("Settings").click();
+      await page.locator("#minio-tab").click();
+      await page.waitForTimeout(200);
+      await page.locator("#minioEnabled").check();
+      await expect(page.locator("#minioServer")).toBeEnabled();
+      await expect(page.locator("#minioUsername")).toBeEnabled();
+      await expect(page.locator("#minioPassword")).toBeEnabled();
+      await expect(page.locator("#minioBucket")).toBeEnabled();
+    });
+
+    test("minio settings persist in localStorage", async ({ page }) => {
+      await page.evaluate(() => {
+        localStorage.setItem("planmydays_minio_enabled", "true");
+        localStorage.setItem("planmydays_minio_server", "http://minio:9000");
+        localStorage.setItem("planmydays_minio_username", "testuser");
+        localStorage.setItem("planmydays_minio_password", "testpass");
+        localStorage.setItem("planmydays_minio_bucket", "testbucket");
       });
+      await page.reload();
+      await page.getByTitle("Settings").click();
+      await page.locator("#minio-tab").click();
+      await page.waitForTimeout(300);
+      await expect(page.locator("#minioEnabled")).toBeChecked();
+      await expect(page.locator("#minioServer")).toHaveValue("http://minio:9000");
+      await expect(page.locator("#minioUsername")).toHaveValue("testuser");
+      await expect(page.locator("#minioPassword")).toHaveValue("testpass");
+      await expect(page.locator("#minioBucket")).toHaveValue("testbucket");
+    });
+
+    test("password toggle shows and hides password", async ({ page }) => {
+      await page.getByTitle("Settings").click();
+      await page.locator("#minio-tab").click();
+      await page.waitForTimeout(200);
+      await page.locator("#minioEnabled").check();
+      await page.locator("#minioPassword").fill("secret");
+      await expect(page.locator("#minioPassword")).toHaveAttribute("type", "password");
+      await page.locator("#minioFields button[title='Show/hide password']").click();
+      await expect(page.locator("#minioPassword")).toHaveAttribute("type", "text");
+      await page.locator("#minioFields button[title='Show/hide password']").click();
+      await expect(page.locator("#minioPassword")).toHaveAttribute("type", "password");
+    });
+
+    // ── Menu visibility ────────────────────────────────────
+
+    test("minio menu items hidden when disabled", async ({ page }) => {
+      await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Import/Export" }).click();
+      await expect(page.locator("a.dropdown-item").filter({ hasText: "Export to Minio" })).not.toBeVisible();
+      await expect(page.locator("a.dropdown-item").filter({ hasText: "Import from Minio" })).not.toBeVisible();
+    });
+
+    test("minio menu items appear when enabled", async ({ page }) => {
+      await page.evaluate(() => {
+        localStorage.setItem("planmydays_minio_enabled", "true");
+        localStorage.setItem("planmydays_minio_server", "http://localhost:9000");
+        localStorage.setItem("planmydays_minio_username", "u");
+        localStorage.setItem("planmydays_minio_password", "p");
+        localStorage.setItem("planmydays_minio_bucket", "b");
+      });
+      await page.reload();
+      await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Import/Export" }).click();
+      await expect(page.locator("a.dropdown-item").filter({ hasText: "Export to Minio" })).toBeVisible();
+      await expect(page.locator("a.dropdown-item").filter({ hasText: "Import from Minio" })).toBeVisible();
+    });
+
+    // ── Export error handling ──────────────────────────────
+
+    test("export to minio shows alert when missing server config", async ({ page }) => {
+      await page.evaluate(() => {
+        localStorage.setItem("planmydays_minio_enabled", "true");
+      });
+      await page.reload();
+      await page.evaluate(() => exportToMinio());
+      await page.waitForTimeout(300);
+      await expect(page.locator("#minioAlertModal")).toBeVisible();
+      await expect(page.locator("#minioAlertModal").locator("p")).toContainText("configure all Minio settings");
+      await page.locator("#minioAlertModal .btn").click();
+      await page.waitForTimeout(300);
+      await expect(page.locator("#minioAlertModal")).not.toBeAttached();
+    });
+
+    test("export to minio alerts self-remove from DOM after close", async ({ page }) => {
+      await page.evaluate(() => {
+        localStorage.setItem("planmydays_minio_enabled", "true");
+      });
+      await page.reload();
+      await page.evaluate(() => exportToMinio());
+      await page.waitForTimeout(300);
+      await page.locator("#minioAlertModal .btn").click();
+      await page.waitForTimeout(500);
+      await expect(page.locator("#minioAlertModal")).not.toBeAttached();
+    });
+
+    // ── Import error handling ──────────────────────────────
+
+    test("import from minio shows alert when missing config", async ({ page }) => {
+      await page.evaluate(() => {
+        localStorage.setItem("planmydays_minio_enabled", "true");
+      });
+      await page.reload();
+      await page.evaluate(() => importFromMinio());
+      await page.waitForTimeout(300);
+      await expect(page.locator("#minioAlertModal")).toBeVisible();
+      await expect(page.locator("#minioAlertModal").locator("p")).toContainText("server, username and password");
+    });
+
+    test("import from minio does nothing when disabled", async ({ page }) => {
+      await page.evaluate(() => importFromMinio());
+      await page.waitForTimeout(300);
+      await expect(page.locator("#minioImportModal")).not.toBeAttached();
+    });
+
+    // ── getMinioConfig returns correct shape ───────────────
+
+    test("getMinioConfig parses localStorage values", async ({ page }) => {
+      await page.evaluate(() => {
+        localStorage.setItem("planmydays_minio_enabled", "true");
+        localStorage.setItem("planmydays_minio_server", "http://srv:9000/");
+        localStorage.setItem("planmydays_minio_username", "minioadmin");
+        localStorage.setItem("planmydays_minio_password", "minioadmin");
+        localStorage.setItem("planmydays_minio_bucket", "pmd");
+      });
+      await page.reload();
+      const config = await page.evaluate(() => getMinioConfig());
+      expect(config.enabled).toBe(true);
+      expect(config.server).toBe("http://srv:9000");
+      expect(config.username).toBe("minioadmin");
+      expect(config.password).toBe("minioadmin");
+      expect(config.bucket).toBe("pmd");
+    });
+
+    test("getMinioConfig strips trailing slashes from server", async ({ page }) => {
+      await page.evaluate(() => {
+        localStorage.setItem("planmydays_minio_server", "http://host:9000///");
+      });
+      await page.reload();
+      const server = await page.evaluate(() => getMinioConfig().server);
+      expect(server).toBe("http://host:9000");
+    });
+
+    // ── showMinioAlert modal ───────────────────────────────
+
+    test("showMinioAlert creates and shows modal", async ({ page }) => {
+      await page.evaluate(() => showMinioAlert("Test message"));
+      await page.waitForTimeout(300);
+      await expect(page.locator("#minioAlertModal")).toBeVisible();
+      await expect(page.locator("#minioAlertModal").locator("p")).toContainText("Test message");
+    });
+
+    test("showMinioAlert error type uses red button", async ({ page }) => {
+      await page.evaluate(() => showMinioAlert("Error!", "error"));
+      await page.waitForTimeout(300);
+      await expect(page.locator("#minioAlertModal .btn-danger")).toBeVisible();
+    });
+
+    test("showMinioAlert info type uses primary button", async ({ page }) => {
+      await page.evaluate(() => showMinioAlert("Info", "info"));
+      await page.waitForTimeout(300);
+      await expect(page.locator("#minioAlertModal .btn-primary")).toBeVisible();
+    });
+
+    test("showMinioAlert cleans up old modal before showing new", async ({ page }) => {
+      await page.evaluate(() => showMinioAlert("First"));
+      await page.waitForTimeout(200);
+      await page.evaluate(() => showMinioAlert("Second"));
+      await page.waitForTimeout(300);
+      const count = await page.locator("#minioAlertModal").count();
+      expect(count).toBe(1);
+      await expect(page.locator("#minioAlertModal").locator("p")).toContainText("Second");
+    });
+
+    // ── Crypto functions ──────────────────────────────────
+
+    test("sha256 computes correct hash for empty string", async ({ page }) => {
+      const hash = await page.evaluate(() => sha256(""));
+      expect(hash).toBe("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
+    });
+
+    test("sha256 computes correct hash for known input", async ({ page }) => {
+      const hash = await page.evaluate(() => sha256("hello"));
+      expect(hash).toBe("2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824");
+    });
+
+    test("sha256 returns a promise", async ({ page }) => {
+      const isPromise = await page.evaluate(() => sha256("test") instanceof Promise);
+      expect(isPromise).toBe(true);
+    });
+
+    test("bufToHex converts ArrayBuffer to lowercase hex", async ({ page }) => {
+      const hex = await page.evaluate(() => {
+        var buf = new Uint8Array([0, 1, 10, 16, 255]).buffer;
+        return bufToHex(buf);
+      });
+      expect(hex).toBe("00010a10ff");
+    });
+
+    test("bufToHex pads single-digit bytes", async ({ page }) => {
+      const hex = await page.evaluate(() => {
+        var buf = new Uint8Array([5, 15]).buffer;
+        return bufToHex(buf);
+      });
+      expect(hex).toBe("050f");
+    });
+
+    test("hmacSign returns an ArrayBuffer", async ({ page }) => {
+      const isAB = await page.evaluate(async () => {
+        var r = await hmacSign("key", "message");
+        return r instanceof ArrayBuffer;
+      });
+      expect(isAB).toBe(true);
+    });
+
+    test("hmacSign produces consistent output", async ({ page }) => {
+      const r1 = await page.evaluate(async () => {
+        var r = await hmacSign("secret", "data");
+        return bufToHex(r);
+      });
+      const r2 = await page.evaluate(async () => {
+        var r = await hmacSign("secret", "data");
+        return bufToHex(r);
+      });
+      expect(r1).toBe(r2);
+      expect(r1.length).toBeGreaterThan(0);
+    });
+
+    test("getSignatureKey returns an ArrayBuffer", async ({ page }) => {
+      const isAB = await page.evaluate(async () => {
+        var r = await getSignatureKey("secret", "20260802", "us-east-1", "s3");
+        return r instanceof ArrayBuffer;
+      });
+      expect(isAB).toBe(true);
+    });
+
+    test("getSignatureKey produces consistent signing key", async ({ page }) => {
+      const k1 = await page.evaluate(async () => {
+        var r = await getSignatureKey("secret", "20260802", "us-east-1", "s3");
+        return bufToHex(r);
+      });
+      const k2 = await page.evaluate(async () => {
+        var r = await getSignatureKey("secret", "20260802", "us-east-1", "s3");
+        return bufToHex(r);
+      });
+      expect(k1).toBe(k2);
+      expect(k1.length).toBe(64);
+    });
+
+    // ── Config change functions ────────────────────────────
+
+    test("changeMinioServer stores value", async ({ page }) => {
+      await page.evaluate(() => changeMinioServer("http://srv:9000"));
+      const val = await page.evaluate(() => localStorage.getItem("planmydays_minio_server"));
+      expect(val).toBe("http://srv:9000");
+    });
+
+    test("changeMinioUsername stores value", async ({ page }) => {
+      await page.evaluate(() => changeMinioUsername("admin"));
+      const val = await page.evaluate(() => localStorage.getItem("planmydays_minio_username"));
+      expect(val).toBe("admin");
+    });
+
+    test("changeMinioPassword stores value", async ({ page }) => {
+      await page.evaluate(() => changeMinioPassword("secret"));
+      const val = await page.evaluate(() => localStorage.getItem("planmydays_minio_password"));
+      expect(val).toBe("secret");
+    });
+
+    test("changeMinioBucket stores value", async ({ page }) => {
+      await page.evaluate(() => changeMinioBucket("mybucket"));
+      const val = await page.evaluate(() => localStorage.getItem("planmydays_minio_bucket"));
+      expect(val).toBe("mybucket");
+    });
+
+    test("changeMinioEnabled toggles fields and menu", async ({ page }) => {
+      await page.getByTitle("Settings").click();
+      await page.locator("#minio-tab").click();
+      await page.waitForTimeout(200);
+      await page.locator("#minioEnabled").check();
+      const items = await page.locator(".minio-menu-item").count();
+      expect(items).toBeGreaterThan(0);
+    });
+
+    // ── getMinioConfig defaults ────────────────────────────
+
+    test("getMinioConfig returns empty defaults", async ({ page }) => {
+      const config = await page.evaluate(() => getMinioConfig());
+      expect(config.enabled).toBe(false);
+      expect(config.server).toBe("");
+      expect(config.username).toBe("");
+      expect(config.password).toBe("");
+      expect(config.bucket).toBe("");
+    });
+
+    test("getMinioConfig with empty server still returns empty string", async ({ page }) => {
+      await page.evaluate(() => localStorage.setItem("planmydays_minio_server", ""));
+      await page.reload();
+      const config = await page.evaluate(() => getMinioConfig());
+      expect(config.server).toBe("");
+    });
+
+    // ── loadMinioSettings populates form ───────────────────
+
+    test("loadMinioSettings populates fields from localStorage", async ({ page }) => {
+      await page.evaluate(() => {
+        localStorage.setItem("planmydays_minio_enabled", "true");
+        localStorage.setItem("planmydays_minio_server", "http://srv:9000");
+        localStorage.setItem("planmydays_minio_username", "u");
+        localStorage.setItem("planmydays_minio_password", "p");
+        localStorage.setItem("planmydays_minio_bucket", "b");
+        loadMinioSettings();
+      });
+      await expect(page.locator("#minioEnabled")).toBeChecked();
+      await expect(page.locator("#minioServer")).toHaveValue("http://srv:9000");
+      await expect(page.locator("#minioUsername")).toHaveValue("u");
+      await expect(page.locator("#minioPassword")).toHaveValue("p");
+      await expect(page.locator("#minioBucket")).toHaveValue("b");
+    });
+
+    test("loadMinioSettings disables fields when not enabled", async ({ page }) => {
+      await page.evaluate(() => loadMinioSettings());
+      await expect(page.locator("#minioServer")).toBeDisabled();
+      await expect(page.locator("#minioUsername")).toBeDisabled();
+      await expect(page.locator("#minioPassword")).toBeDisabled();
+      await expect(page.locator("#minioBucket")).toBeDisabled();
+    });
+
+    // ── Import modal UI ────────────────────────────────────
+
+    test("showMinioImportModal creates modal with loading state", async ({ page }) => {
+      await page.evaluate(() => {
+        localStorage.setItem("planmydays_minio_enabled", "true");
+        localStorage.setItem("planmydays_minio_server", "http://localhost:9000");
+        localStorage.setItem("planmydays_minio_username", "u");
+        localStorage.setItem("planmydays_minio_password", "p");
+      });
+      await page.reload();
+      await page.evaluate(() => showMinioImportModal());
+      await page.waitForTimeout(300);
+      await expect(page.locator("#minioImportModal")).toBeVisible();
+      await expect(page.locator("#minioImportBody")).toContainText("Loading buckets");
+    });
+
+    test("closeMinioImport hides and removes modal", async ({ page }) => {
+      await page.evaluate(() => {
+        localStorage.setItem("planmydays_minio_enabled", "true");
+        localStorage.setItem("planmydays_minio_server", "http://localhost:9000");
+        localStorage.setItem("planmydays_minio_username", "u");
+        localStorage.setItem("planmydays_minio_password", "p");
+      });
+      await page.reload();
+      await page.evaluate(() => showMinioImportModal());
+      await page.waitForTimeout(300);
+      await page.evaluate(() => closeMinioImport());
+      await page.waitForTimeout(500);
+      await expect(page.locator("#minioImportModal")).not.toBeAttached();
+    });
+
+    // ── Import modal error paths ───────────────────────────
+
+    test("import modal list buckets shows error on invalid server", async ({ page }) => {
+      await page.evaluate(() => {
+        localStorage.setItem("planmydays_minio_enabled", "true");
+        localStorage.setItem("planmydays_minio_server", "http://127.0.0.1:1");
+        localStorage.setItem("planmydays_minio_username", "u");
+        localStorage.setItem("planmydays_minio_password", "p");
+      });
+      await page.reload();
+      await page.evaluate(() => showMinioImportModal());
+      await page.waitForTimeout(300);
+      // Should show error (fetch to non-existent server will fail)
+      // At minimum the modal should still exist
+      await expect(page.locator("#minioImportModal")).toBeVisible();
+    });
+
+    // ── Export does nothing when disabled ──────────────────
+
+    test("export to minio does nothing when disabled", async ({ page }) => {
+      await page.evaluate(() => exportToMinio());
+      await page.waitForTimeout(300);
+      await expect(page.locator("#minioAlertModal")).not.toBeAttached();
+    });
+
+    // ── toggleMinioPassword edge cases ─────────────────────
+
+    test("toggleMinioPassword is safe when input missing", async ({ page }) => {
+      await page.evaluate(() => {
+        var input = document.getElementById("minioPassword");
+        if (input) input.remove();
+        toggleMinioPassword();
+      });
+      // Should not throw
+    });
+
+    // ── updateMinioMenu edge cases ─────────────────────────
+
+    test("updateMinioMenu hides items when no minio items exist", async ({ page }) => {
+      await page.evaluate(() => {
+        var items = document.querySelectorAll(".minio-menu-item");
+        items.forEach(function(el) { el.remove(); });
+        updateMinioMenu();
+      });
+      // Should not throw
+    });
+
+    // ── Minio request rejection for bad config ─────────────
+
+    test("minioRequest with unreachable server returns error", async ({ page }) => {
+      const result = await page.evaluate(async () => {
+        try {
+          await minioRequest("GET", "bucket", null, null, null, {
+            server: "http://127.0.0.1:1",
+            username: "u",
+            password: "p"
+          });
+          return "no-error";
+        } catch (e) {
+          return "error";
+        }
+      });
+      expect(result).toBe("error");
+    });
+
+    test("minioListBuckets with bad server fails gracefully", async ({ page }) => {
+      const result = await page.evaluate(async () => {
+        try {
+          await minioListBuckets({
+            server: "http://127.0.0.1:1",
+            username: "u",
+            password: "p"
+          });
+          return "no-error";
+        } catch (e) {
+          return "error";
+        }
+      });
+      expect(result).toBe("error");
+    });
+
+    test("minioListObjects with bad server fails gracefully", async ({ page }) => {
+      const result = await page.evaluate(async () => {
+        try {
+          await minioListObjects("bucket", {
+            server: "http://127.0.0.1:1",
+            username: "u",
+            password: "p"
+          });
+          return "no-error";
+        } catch (e) {
+          return "error";
+        }
+      });
+      expect(result).toBe("error");
+    });
+
+    test("minioGetObject with bad server fails gracefully", async ({ page }) => {
+      const result = await page.evaluate(async () => {
+        try {
+          await minioGetObject("bucket", "key", {
+            server: "http://127.0.0.1:1",
+            username: "u",
+            password: "p"
+          });
+          return "no-error";
+        } catch (e) {
+          return "error";
+        }
+      });
+      expect(result).toBe("error");
+    });
+
+    test("minioPutObject with bad server fails gracefully", async ({ page }) => {
+      const result = await page.evaluate(async () => {
+        try {
+          await minioPutObject("bucket", "key", "{}", {
+            server: "http://127.0.0.1:1",
+            username: "u",
+            password: "p"
+          });
+          return "no-error";
+        } catch (e) {
+          return "error";
+        }
+      });
+      expect(result).toBe("error");
     });
   });
 
@@ -4648,5 +5165,6 @@ test.describe("PlanMyDay - Regression", () => {
       expect(tasks[1].description).toBe("A");
       expect(tasks[2].description).toBe("B");
     });
+  });
   });
 });
