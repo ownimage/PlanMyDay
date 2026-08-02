@@ -543,19 +543,31 @@ body.auto-hide-menu #mainNav.nav-hidden ~ .container-fluid {
   border-bottom: 1px solid var(--bs-border-color);
 }
 
+#jobEditModal.modal {
+  padding: 0 !important;
+  --bs-modal-margin: 0;
+}
 #jobEditModal .modal-dialog {
-  max-width: 90vw;
-  width: 90vw;
-  height: 90vh;
-  margin: 1.75rem auto;
+  --job-modal-margin: 1rem;
+  max-width: calc(100% - 2 * var(--job-modal-margin));
+  width: calc(100% - 2 * var(--job-modal-margin));
+  height: calc(100vh - 2 * var(--job-modal-margin) - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+  height: calc(100dvh - 2 * var(--job-modal-margin) - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+  max-height: calc(100vh - 2 * var(--job-modal-margin) - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+  max-height: calc(100dvh - 2 * var(--job-modal-margin) - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+  min-height: 0;
+  margin: calc(var(--job-modal-margin) + env(safe-area-inset-top, 0px)) auto calc(var(--job-modal-margin) + env(safe-area-inset-bottom, 0px));
 }
 #jobEditModal .modal-content {
   height: 100%;
+  max-height: 100%;
   overflow: hidden;
 }
 #jobEditModal .modal-body {
   overflow-y: auto;
-  flex: 1;
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 1rem;
 }
 #jobEditModal #jobEditTabs {
   border-bottom: 2px solid var(--bs-border-color);
