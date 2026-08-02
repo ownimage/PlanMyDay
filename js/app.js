@@ -1425,12 +1425,12 @@ function getJobEditFormHTML(data, readOnly) {
     <div class="tab-content" id="jobEditTabsContent">
       <div class="tab-pane fade show active" id="jobGeneral" role="tabpanel" aria-labelledby="jobGeneral-tab">
         <div class="row mb-2 mt-2">
-          <div class="col-6">
-            <label class="form-label">Stream</label>
-            <div class="dropdown" id="jobStreamDropdown">
-              <button class="btn btn-outline-secondary dropdown-toggle w-100 d-flex align-items-center gap-2" type="button" id="jobStreamDropdownBtn" data-bs-toggle="dropdown" ${disabled} style="text-align:left">
-                <span id="jobStreamBtnIcon" style="width:24px;height:24px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden">
-                  ${streamImgUrl ? `<img src="${streamImgUrl}" style="max-width:24px;max-height:24px">` : `<span style="width:24px;height:24px;display:inline-block"></span>`}
+          <div class="col-6 d-flex flex-column" style="min-height:61px">
+            <label class="form-label mb-0">Stream</label>
+            <div class="dropdown mt-1" id="jobStreamDropdown" style="flex-grow:1">
+              <button class="btn btn-outline-secondary dropdown-toggle w-100 d-flex align-items-center gap-2 h-100" type="button" id="jobStreamDropdownBtn" data-bs-toggle="dropdown" ${disabled} style="text-align:left">
+                <span id="jobStreamBtnIcon" style="width:45px;height:45px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;border:1px solid var(--bs-border-color);border-radius:6px">
+                  ${streamImgUrl ? `<img src="${streamImgUrl}" style="max-width:45px;max-height:45px">` : `<span style="width:45px;height:45px;display:inline-block"></span>`}
                 </span>
                 <span id="jobStreamBtnText" class="flex-grow-1">${escapeHtml(currentStream.title || "")}</span>
               </button>
@@ -1440,8 +1440,8 @@ function getJobEditFormHTML(data, readOnly) {
                   return `
                     <li>
                       <a class="dropdown-item d-flex align-items-center gap-2 ${i === (jobsTargetStreamIndex >= 0 ? jobsTargetStreamIndex : jobsStreamIndex) ? "active" : ""}" href="#" data-stream-idx="${i}" onclick="event.preventDefault();jobChangeStream(${i})">
-                        <span style="width:24px;height:24px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden">
-                          ${sImg ? `<img src="${sImg}" style="max-width:24px;max-height:24px">` : `<span style="width:24px;height:24px;display:inline-block"></span>`}
+                        <span style="width:45px;height:45px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;border:1px solid var(--bs-border-color);border-radius:6px">
+                          ${sImg ? `<img src="${sImg}" style="max-width:45px;max-height:45px">` : `<span style="width:45px;height:45px;display:inline-block"></span>`}
                         </span>
                         ${escapeHtml(s.title)}
                       </a>
@@ -1451,9 +1451,9 @@ function getJobEditFormHTML(data, readOnly) {
               </ul>
             </div>
           </div>
-          <div class="col-6">
-            <label class="form-label">Image</label>
-            <div class="d-flex align-items-center gap-2">
+          <div class="col-6 d-flex flex-column" style="min-height:61px">
+            <label class="form-label mb-0">Image</label>
+            <div class="d-flex align-items-center gap-2 mt-1" style="flex-grow:1">
               <div style="width:45px;height:45px;border:1px solid var(--bs-border-color);border-radius:6px;overflow:hidden;display:flex;align-items:center;justify-content:center;flex-shrink:0" id="jobImagePreview">
                 ${getImageDataUrl(data.image) ? `<img src="${getImageDataUrl(data.image)}" class="date-img" style="max-width:45px;max-height:45px">` : `<span class="text-secondary small">none</span>`}
               </div>
