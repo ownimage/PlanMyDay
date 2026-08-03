@@ -658,6 +658,12 @@ test.describe("PlanMyDay - Regression", () => {
       await expect(page.locator("#jobEditModal")).toBeVisible();
     });
 
+    test("new job title defaults to blank", async ({ page }) => {
+      await page.getByRole("button", { name: "Add Job" }).first().click();
+      await page.locator("#jobEditModal").waitFor({ state: "visible" });
+      await expect(page.locator("#jobTitleInput")).toHaveValue("");
+    });
+
     test("can fill and save a new job", async ({ page }) => {
       await page.getByRole("button", { name: "Add Job" }).first().click();
       await page.locator("#jobEditModal").waitFor({ state: "visible" });

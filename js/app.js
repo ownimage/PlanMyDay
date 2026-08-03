@@ -1742,7 +1742,7 @@ function addNewJob() {
   var streams = loadStreams();
   var jobs = streams[jobsStreamIndex].jobs || [];
   var seq = jobs.length + 1;
-  var newJob = { id: "job_" + Date.now(), title: "New Job", sequence: seq, description: "", active: true, frequency: "daily", time: "", sleepUntil: "", schedule: { type: "daily" }, tasks: [] };
+  var newJob = { id: "job_" + Date.now(), title: "", sequence: seq, description: "", active: true, frequency: "daily", time: "", sleepUntil: "", schedule: { type: "daily" }, tasks: [] };
   jobs.push(newJob);
   streams[jobsStreamIndex].jobs = jobs;
   saveStreams(streams);

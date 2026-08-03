@@ -2,6 +2,10 @@
 ```bash
 npx playwright test tests/regression.spec.js
 ```
+```bash
+npx playwright test --last-failed
+```
+
 ### Screenshots
 ```bash
 npx playwright test tests/screenshots.spec.js --workers 16
