@@ -1212,7 +1212,19 @@ function reorderTask(srcIdx, dstIdx, above) {
 function formatDate(dateStr) {
   if (!dateStr) return "";
   const d = new Date(dateStr + "T00:00:00");
-  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  if (isNaN(d.getTime())) return dateStr;
+  const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  return dayNames[d.getDay()] + " " + d.getDate() + " " + monthNames[d.getMonth()] + " " + d.getFullYear();
+}
+
+function formatLongDate(dateStr) {
+  if (!dateStr) return "";
+  const d = new Date(dateStr + "T00:00:00");
+  if (isNaN(d.getTime())) return dateStr;
+  const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  return dayNames[d.getDay()] + ", " + d.getDate() + " " + monthNames[d.getMonth()] + ", " + d.getFullYear();
 }
 
 function getDaysSinceEpoch(date) {
@@ -1519,7 +1531,7 @@ function getJobEditFormHTML(data, readOnly) {
           <div class="col">
             <label class="form-label">Sleep Until</label>
             <div class="d-flex gap-2">
-              <input class="form-control" id="jobSleepUntil" value="${escapeHtml(data.sleepUntil || "")}" ${ro} placeholder="Pick a date">
+              <input class="form-control" id="jobSleepUntil" value="${escapeHtml(readOnly ? formatLongDate(data.sleepUntil) : (data.sleepUntil || ""))}" ${ro} placeholder="Pick a date">
               <button class="btn btn-danger btn-sm ${data.sleepUntil ? "" : "d-none"}" id="jobSleepUntilClearBtn" ${disabled} onclick="clearSleepUntil()">Clear</button>
             </div>
           </div>
@@ -1581,6 +1593,9 @@ function showJobEditModal(readOnly) {
     if (!readOnly) {
       flatpickr(fpInput, {
         dateFormat: "Y-m-d",
+        altInput: true,
+        altFormat: "l, j F, Y",
+        altInputClass: "form-control",
         allowInput: true,
         monthSelectorType: "dropdown",
         onChange: function(selectedDates, dateStr) {
@@ -1588,6 +1603,7 @@ function showJobEditModal(readOnly) {
           updateSleepUntilClearBtn();
         }
       });
+      if (fpInput._flatpickr && fpInput._flatpickr.altInput) fpInput._flatpickr.altInput.id = "jobSleepUntilDisplay";
     }
   }
   new bootstrap.Modal(document.getElementById("jobEditModal")).show();
@@ -1617,6 +1633,9 @@ function editJobFromView() {
     if (fpInput._flatpickr) fpInput._flatpickr.destroy();
     flatpickr(fpInput, {
       dateFormat: "Y-m-d",
+      altInput: true,
+      altFormat: "l, j F, Y",
+      altInputClass: "form-control",
       allowInput: true,
       monthSelectorType: "dropdown",
       onChange: function(selectedDates, dateStr) {
@@ -1624,6 +1643,7 @@ function editJobFromView() {
         updateSleepUntilClearBtn();
       }
     });
+    if (fpInput._flatpickr && fpInput._flatpickr.altInput) fpInput._flatpickr.altInput.id = "jobSleepUntilDisplay";
   }
 }
 
