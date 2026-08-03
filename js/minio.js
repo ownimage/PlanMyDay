@@ -94,8 +94,9 @@ function loadMinioSettings() {
 function updateMinioMenu() {
   var config = getMinioConfig();
   var items = document.querySelectorAll(".minio-menu-item");
+  var show = config.enabled;
   for (var i = 0; i < items.length; i++) {
-    items[i].style.display = config.enabled ? "" : "none";
+    items[i].style.display = show ? "" : "none";
   }
 }
 
@@ -276,7 +277,11 @@ function exportToMinio() {
   minioPutObject(config.bucket, filename, body, config).then(function() {
     showMinioAlert("Exported " + filename + " to Minio bucket " + config.bucket, "info");
   }).catch(function(e) {
-    showMinioAlert("Minio export failed: " + e.message, "error");
+    var msg = e.message || "";
+    if (msg.indexOf("Failed to fetch") !== -1 || msg.indexOf("NetworkError") !== -1) {
+      msg = "Cannot reach Minio server. Check: (1) server URL is correct, (2) iPhone and server are on the same network, (3) Minio has CORS set (mc admin config set myminio api cors_allow_origin=\"*\"), (4) HTTPS mixed content if PWA is on HTTPS but Minio is on HTTP.";
+    }
+    showMinioAlert("Minio export failed: " + msg, "error");
   });
 }
 
@@ -303,7 +308,7 @@ function showMinioImportModal() {
     '<div class="modal-content">' +
     '<div class="modal-header">' +
     '<h3 class="modal-title">Import from Minio</h3>' +
-    '<button type="button" class="btn-close" data-bs-dismiss="modal" onclick="closeMinioImport()"></button>' +
+    '<button type="button" class="btn btn-sm ms-auto" data-bs-dismiss="modal" onclick="closeMinioImport()" style="font-size:1.5rem;line-height:1;padding:0 0.25rem;color:inherit;border:none;background:none">&times;</button>' +
     '</div>' +
     '<div class="modal-body" id="minioImportBody">' +
     '<div class="text-center py-5"><div class="spinner-border"></div><p class="mt-2">Loading buckets...</p></div>' +
@@ -319,7 +324,12 @@ function showMinioImportModal() {
   });
   new bootstrap.Modal(modalEl).show();
 
-  loadMinioBuckets();
+  var config = getMinioConfig();
+  if (config.bucket) {
+    loadMinioBucketFiles(config.bucket);
+  } else {
+    loadMinioBuckets();
+  }
 }
 
 function closeMinioImport() {
@@ -421,7 +431,11 @@ function importMinioFile(bucket, key) {
     showMinioAlert("Imported " + key + " successfully.", "info");
     if (typeof regenerateTiles === "function") regenerateTiles();
   }).catch(function(e) {
-    showMinioAlert("Import failed: " + e.message, "error");
+    var msg = e.message || "";
+    if (msg.indexOf("Failed to fetch") !== -1 || msg.indexOf("NetworkError") !== -1) {
+      msg = "Cannot reach Minio server. Check server URL, network, CORS, and HTTPS mixed content.";
+    }
+    showMinioAlert("Import failed: " + msg, "error");
     loadMinioBucketFiles(bucket);
   });
 }

@@ -535,4 +535,29 @@ test.describe("PlanMyDay - Screenshots", () => {
     await page.waitForTimeout(300);
     await screenshotAllThemes(page, "settings-minio.png");
   });
+
+  test("import from minio", async ({ page }) => {
+    await page.route(function(url) { return url.hostname === "minio.local" && url.port === "9000"; }, async function(route) {
+      var body = ['<?xml version="1.0" encoding="UTF-8"?>',
+        '<ListBucketResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">',
+        '<Name>pmd</Name><KeyCount>3</KeyCount><MaxKeys>1000</MaxKeys><IsTruncated>false</IsTruncated>',
+        '<Contents><Key>planmydays-20260801.json</Key><LastModified>2026-08-01T10:00:00.000Z</LastModified><ETag>"abc"</ETag><Size>1024</Size><StorageClass>STANDARD</StorageClass></Contents>',
+        '<Contents><Key>planmydays-20260731.json</Key><LastModified>2026-07-31T18:00:00.000Z</LastModified><ETag>"def"</ETag><Size>2048</Size><StorageClass>STANDARD</StorageClass></Contents>',
+        '<Contents><Key>planmydays-20260720.json</Key><LastModified>2026-07-20T08:00:00.000Z</LastModified><ETag>"ghi"</ETag><Size>1536</Size><StorageClass>STANDARD</StorageClass></Contents>',
+        '</ListBucketResult>'].join("");
+      await route.fulfill({ status: 200, body: body });
+    });
+    await page.evaluate(() => {
+      localStorage.setItem("planmydays_minio_enabled", "true");
+      localStorage.setItem("planmydays_minio_server", "http://minio.local:9000");
+      localStorage.setItem("planmydays_minio_username", "minioadmin");
+      localStorage.setItem("planmydays_minio_password", "••••••••");
+      localStorage.setItem("planmydays_minio_bucket", "pmd");
+    });
+    await page.reload();
+    await page.evaluate(() => importFromMinio());
+    await page.waitForSelector("#minioImportModal");
+    await page.waitForTimeout(400);
+    await screenshotAllThemes(page, "import-minio.png");
+  });
 });
