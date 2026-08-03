@@ -4398,6 +4398,18 @@ test.describe("PlanMyDay - Regression", () => {
       await expect(page.locator("#minioPassword")).toHaveAttribute("type", "password");
     });
 
+    test("password is hidden when leaving minio tab", async ({ page }) => {
+      await page.getByTitle("Settings").click();
+      await page.locator("#minio-tab").click();
+      await page.waitForTimeout(200);
+      await page.locator("#minioEnabled").check();
+      await page.locator("#minioPassword").fill("secret");
+      await page.locator("#minioFields button[title='Show/hide password']").click();
+      await expect(page.locator("#minioPassword")).toHaveAttribute("type", "text");
+      await page.locator("#general-tab").click();
+      await expect(page.locator("#minioPassword")).toHaveAttribute("type", "password");
+    });
+
     // ── Menu visibility ────────────────────────────────────
 
     test("minio menu items hidden when disabled", async ({ page }) => {
