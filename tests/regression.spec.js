@@ -109,6 +109,12 @@ test.describe("PlanMyDay - Regression", () => {
       await expect(page.locator("#jobEditModalTitle")).toHaveText("Add Job");
     });
 
+    test("add card modal does not show delete button", async ({ page }) => {
+      await page.getByText("+ Add job").click();
+      await page.locator("#jobEditModal").waitFor({ state: "visible" });
+      await expect(page.locator("#jobEditDelBtn")).toHaveCount(0);
+    });
+
     test("can cancel adding an adhoc card", async ({ page }) => {
       test.setTimeout(30000);
       await page.getByText("+ Add job").click();
@@ -608,6 +614,11 @@ test.describe("PlanMyDay - Regression", () => {
       await expect(page.locator("#streamEditorList .badge").first()).toBeVisible();
     });
 
+    test("maintenance tab badge uses info colour on stream cards", async ({ page }) => {
+      await expect(page.locator("#streamEditorList .badge.bg-success").filter({ hasText: "progress" }).first()).toBeVisible();
+      await expect(page.locator("#streamEditorList .badge.bg-info").filter({ hasText: "maintenance" }).first()).toBeVisible();
+    });
+
     test("opens jobs from stream accordion", async ({ page }) => {
       await page.locator("#streamEditorList .stream-header-main").first().click();
       await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible", timeout: 5000 });
@@ -694,6 +705,18 @@ test.describe("PlanMyDay - Regression", () => {
       await page.getByRole("button", { name: "Add Job" }).first().click();
       await page.locator("#jobEditModal").waitFor({ state: "visible" });
       await expect(page.locator("#jobTitleInput")).toHaveValue("");
+    });
+
+    test("add job modal does not show delete button", async ({ page }) => {
+      await page.getByRole("button", { name: "Add Job" }).first().click();
+      await page.locator("#jobEditModal").waitFor({ state: "visible" });
+      await expect(page.locator("#jobEditDelBtn")).toHaveCount(0);
+    });
+
+    test("edit job modal shows delete button", async ({ page }) => {
+      await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().click();
+      await page.locator("#jobEditModal").waitFor({ state: "visible" });
+      await expect(page.locator("#jobEditDelBtn")).toBeVisible();
     });
 
     test("can fill and save a new job", async ({ page }) => {
@@ -1442,7 +1465,7 @@ test.describe("PlanMyDay - Regression", () => {
       await expect(page.locator("h4").filter({ hasText: "Report" })).toBeVisible();
       const progressBadge = page.locator(".badge.bg-success").filter({ hasText: "progress" });
       await expect(progressBadge.first()).toBeVisible();
-      const maintenanceBadge = page.locator(".badge.bg-warning").filter({ hasText: "maintenance" });
+      const maintenanceBadge = page.locator(".badge.bg-info").filter({ hasText: "maintenance" });
       await expect(maintenanceBadge.first()).toBeVisible();
     });
   });

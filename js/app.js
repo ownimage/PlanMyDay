@@ -410,7 +410,7 @@ function renderMain() {
           <div class="d-flex justify-content-between align-items-center position-relative">
             <span class="small">${escapeHtml(streamTitle)}</span>
             <button class="btn btn-primary position-absolute start-50 translate-middle-x job-view-btn" onclick="viewJobReadOnly(${streamIdx}, ${jobIdx})" title="View job" style="padding:0.35em 0.65em;font-size:0.75em;line-height:1;font-weight:700">View</button>
-            <span class="badge rounded-pill bg-${(stream.tab || "progress") === "progress" ? "success" : "warning"}">${escapeHtml(stream.tab || "progress")}</span>
+            <span class="badge rounded-pill bg-${(stream.tab || "progress") === "progress" ? "success" : "info"}">${escapeHtml(stream.tab || "progress")}</span>
           </div>
           ${job.description ? `<div class="mt-1 text-secondary small">${escapeHtml(job.description)}</div>` : ""}
         </div>
@@ -704,7 +704,7 @@ function renderStreamsEditor() {
           '</div>' +
         '</div>' +
         '<div style="display:flex;gap:0.25rem;flex-wrap:nowrap">' +
-          '<span class="badge bg-' + ((t.tab || "progress") === "progress" ? "success" : "primary") + ' text-nowrap">' + escapeHtml(t.tab || "progress") + '</span>' +
+          '<span class="badge bg-' + ((t.tab || "progress") === "progress" ? "success" : "info") + ' text-nowrap">' + escapeHtml(t.tab || "progress") + '</span>' +
           (jobs.length > 0 ? '<span class="badge bg-secondary text-nowrap">' + jobs.length + ' job' + (jobs.length !== 1 ? 's' : '') + '</span>' : '') +
         '</div>' +
       '</div>' +
@@ -1584,7 +1584,8 @@ function showJobEditModal(readOnly) {
   if (readOnly) {
     footer.innerHTML = '<button class="btn btn-primary editor-btn flex-fill" id="btnViewJobEdit" onclick="editJobFromView()">Edit</button><button class="btn btn-success editor-btn flex-fill" id="btnViewJobOk" onclick="cancelJobEdit()">OK</button>';
   } else {
-    footer.innerHTML = '<button class="btn btn-secondary editor-btn flex-fill" id="jobEditCancelBtn" onclick="cancelJobEdit()">Cancel</button><button class="btn btn-danger editor-btn flex-fill" id="jobEditDelBtn" onclick="deleteJobFromEdit()">Delete</button><button class="btn btn-success editor-btn flex-fill" id="jobEditOkBtn" onclick="doneJobEdit()">OK</button>';
+    const delBtnHtml = isNewJob ? "" : '<button class="btn btn-danger editor-btn flex-fill" id="jobEditDelBtn" onclick="deleteJobFromEdit()">Delete</button>';
+    footer.innerHTML = '<button class="btn btn-secondary editor-btn flex-fill" id="jobEditCancelBtn" onclick="cancelJobEdit()">Cancel</button>' + delBtnHtml + '<button class="btn btn-success editor-btn flex-fill" id="jobEditOkBtn" onclick="doneJobEdit()">OK</button>';
     updateJobEditOkBtn();
   }
   const fpInput = document.getElementById("jobSleepUntil");
