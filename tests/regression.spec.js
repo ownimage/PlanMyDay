@@ -79,16 +79,6 @@ function seedTodayList(page) {
   }, { data: TEST_STREAMS, ds: todayStr });
 }
 
-// Register a "shown.bs.modal" listener so a later action's Bootstrap hide() is never
-// swallowed by the modal's show transition (the window where hide() is a no-op).
-async function waitForModalShown(page, modalId) {
-  await page.evaluate((id) => new Promise(resolve => {
-    const el = document.getElementById(id);
-    if (el) el.addEventListener("shown.bs.modal", resolve, { once: true });
-    else resolve();
-  }), modalId);
-}
-
 test.describe("PlanMyDay - Regression", () => {
 
   test.beforeEach(async ({ page }) => {
@@ -121,35 +111,22 @@ test.describe("PlanMyDay - Regression", () => {
 
     test("add card modal does not show delete button", async ({ page }) => {
       await page.getByText("+ Add job").click();
-      await page.locator("#jobEditModal").waitFor({ state: "visible" });
       await expect(page.locator("#jobEditDelBtn")).toHaveCount(0);
     });
 
     test("can cancel adding an adhoc card", async ({ page }) => {
       test.setTimeout(30000);
       await page.getByText("+ Add job").click();
-      await page.locator("#jobEditModal").waitFor({ state: "visible" });
       await page.locator("#jobEditCancelBtn").click();
-      await page.waitForTimeout(500);
-      await page.evaluate(() => {
-        const modal = bootstrap.Modal.getInstance(document.getElementById("jobEditModal"));
-        if (modal) modal.hide();
-      });
       await expect(page.locator("#jobEditModal")).not.toBeVisible({ timeout: 10000 });
     });
 
     test("can add an adhoc card", async ({ page }) => {
       test.setTimeout(30000);
       await page.getByText("+ Add job").click();
-      await page.locator("#jobEditModal").waitFor({ state: "visible" });
       await page.locator("#jobEditModalBody .form-control").first().fill("Test Ad Hoc");
       await page.locator("#jobEditModalBody textarea").first().fill("Test description");
       await page.locator("#jobEditOkBtn").click();
-      await page.waitForTimeout(500);
-      await page.evaluate(() => {
-        const modal = bootstrap.Modal.getInstance(document.getElementById("jobEditModal"));
-        if (modal) modal.hide();
-      });
       await page.locator("#jobEditModal").waitFor({ state: "hidden", timeout: 10000 });
       await expect(page.locator("h4").filter({ hasText: "Test Ad Hoc" })).toBeVisible();
     });
@@ -192,11 +169,6 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator(".job-view-btn").first().click();
       await expect(page.locator("#jobEditModal")).toBeVisible();
       await page.locator("#btnViewJobOk").click();
-      await page.waitForTimeout(500);
-      await page.evaluate(() => {
-        const modal = bootstrap.Modal.getInstance(document.getElementById("jobEditModal"));
-        if (modal) modal.hide();
-      });
       await expect(page.locator("#jobEditModal")).toBeHidden({ timeout: 10000 });
     });
 
@@ -219,21 +191,14 @@ test.describe("PlanMyDay - Regression", () => {
       await page.reload();
       await expect(page.locator("#todayCardList")).toBeVisible();
       await page.locator(".job-view-btn").first().click();
-      await page.locator("#jobEditModal").waitFor({ state: "visible" });
       await expect(page.locator("#jobEditModalTitle")).toHaveText("View Job");
       await page.locator("#btnViewJobEdit").filter({ hasText: "Edit" }).click();
       await expect(page.locator("#jobEditModalTitle")).toHaveText("Edit Job");
       await expect(page.locator("#jobEditDelBtn")).toBeVisible();
       await page.locator("#jobEditDelBtn").click();
       await expect(page.locator("#deleteConfirmModal")).toBeVisible();
-      await page.locator("#deleteConfirmBtn").waitFor({ state: "visible" });
-      await page.waitForTimeout(300);
       await page.locator("#deleteConfirmBtn").click();
-      await page.waitForTimeout(400);
-      await page.evaluate(() => {
-        const modal = bootstrap.Modal.getInstance(document.getElementById("deleteConfirmModal"));
-        if (modal) modal.hide();
-      });
+      await page.locator("#deleteConfirmModal").waitFor({ state: "hidden", timeout: 10000 });
     });
 
     test("view button renders regardless of badge text", async ({ page }) => {
@@ -372,13 +337,15 @@ test.describe("PlanMyDay - Regression", () => {
     test("ok button is disabled when title is empty", async ({ page }) => {
       await page.getByText("+ Add job").click();
       await page.locator("#jobEditModal").waitFor({ state: "visible" });
-      await page.waitForTimeout(200);
       const okBtn = page.locator("#jobEditOkBtn");
       await expect(okBtn).toBeDisabled();
       await page.locator("#jobTitleInput").fill("My Job");
       await expect(okBtn).toBeEnabled();
-      await page.locator("#jobTitleInput").clear();
-      await page.waitForTimeout(100);
+      await page.evaluate(() => {
+        const input = document.getElementById("jobTitleInput");
+        input.value = "";
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+      });
       await expect(okBtn).toBeDisabled();
     });
     
