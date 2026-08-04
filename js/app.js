@@ -1905,6 +1905,15 @@ function closeSettings() {
 
 function regenerateTiles() {
   const streams = loadStreams();
+  const today = getTodayStr();
+  streams.forEach(stream => {
+    (stream.jobs || []).forEach(job => {
+      if (job.sleepUntil && job.sleepUntil <= today) {
+        job.sleepUntil = "";
+      }
+    });
+  });
+  saveStreams(streams);
   const merged = addScheduleJobsToOrder([]);
   saveTodayOrder(merged);
   saveCompletedJobs([]);

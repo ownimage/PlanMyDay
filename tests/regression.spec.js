@@ -2539,6 +2539,40 @@ test.describe("PlanMyDay - Regression", () => {
       await expect(page.getByText("Report").first()).toBeVisible();
     });
 
+    test("regenerate tiles clears sleepUntil dates that are today or earlier", async ({ page }) => {
+      const tomorrow = await page.evaluate(() => {
+        const today = new Date();
+        const ts = today.getFullYear() + "-" + String(today.getMonth()+1).padStart(2,"0") + "-" + String(today.getDate()).padStart(2,"0");
+        const yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+        const ys = yesterday.getFullYear() + "-" + String(yesterday.getMonth()+1).padStart(2,"0") + "-" + String(yesterday.getDate()).padStart(2,"0");
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        const tms = tomorrow.getFullYear() + "-" + String(tomorrow.getMonth()+1).padStart(2,"0") + "-" + String(tomorrow.getDate()).padStart(2,"0");
+        localStorage.setItem("planmydays_streams", JSON.stringify([{
+          id: "stream_1", title: "Test", tab: "progress", image: "", sequence: 1,
+          jobs: [
+            { id: "job_past", title: "PastSleep", active: true, frequency: "daily", sequence: 1, sleepUntil: ys, schedule: { type: "daily" }, suffix: false, dayType: "dayOfYear", mod: "", tasks: [] },
+            { id: "job_today", title: "TodaySleep", active: true, frequency: "daily", sequence: 2, sleepUntil: ts, schedule: { type: "daily" }, suffix: false, dayType: "dayOfYear", mod: "", tasks: [] },
+            { id: "job_future", title: "FutureSleep", active: true, frequency: "daily", sequence: 3, sleepUntil: tms, schedule: { type: "daily" }, suffix: false, dayType: "dayOfYear", mod: "", tasks: [] }
+          ]
+        }]));
+        localStorage.setItem("planmydays_last_gen", ts);
+        return tms;
+      });
+      await page.reload();
+      await page.getByTitle("Settings").click();
+      await page.locator("#danger-tab").click();
+      await page.locator("#showDanger").check();
+      await page.locator("#regenerateTilesRow").waitFor({ state: "visible" });
+      await page.getByRole("button", { name: "Regenerate Today's Tiles" }).click();
+      await page.waitForTimeout(500);
+      const streams = await page.evaluate(() => JSON.parse(localStorage.getItem("planmydays_streams")));
+      expect(streams[0].jobs.find(j => j.id === "job_past").sleepUntil).toBe("");
+      expect(streams[0].jobs.find(j => j.id === "job_today").sleepUntil).toBe("");
+      expect(streams[0].jobs.find(j => j.id === "job_future").sleepUntil).toBe(tomorrow);
+    });
+
     test("regenerate tiles respects every n days schedule", async ({ page }) => {
       await page.evaluate(() => {
         const today = new Date();
