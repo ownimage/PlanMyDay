@@ -395,6 +395,16 @@ test.describe("PlanMyDay - Regression", () => {
       await expect(page.locator("#imagesEditor")).toBeVisible();
     });
 
+    test("opening jobs editor hides images editor", async ({ page }) => {
+      await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
+      await page.locator("a.dropdown-item").filter({ hasText: "Images" }).click();
+      await expect(page.locator("#imagesEditor")).toBeVisible();
+      await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
+      await page.locator("a.dropdown-item").filter({ hasText: "Jobs" }).click();
+      await expect(page.locator("#imagesEditor")).not.toBeVisible();
+      await expect(page.locator("#streamsEditor")).toBeVisible();
+    });
+
     test("closes images editor back to main view", async ({ page }) => {
       await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
       await page.locator("a.dropdown-item").filter({ hasText: "Images" }).click();

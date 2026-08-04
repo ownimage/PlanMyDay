@@ -592,6 +592,7 @@ function openStreamsEditor() {
   document.getElementById("countdownContainer").classList.add("d-none");
   document.getElementById("streamsEditor").classList.remove("d-none");
   document.getElementById("settingsPage").classList.add("d-none");
+  document.getElementById("imagesEditor").classList.add("d-none");
   renderStreamsEditor();
 }
 
@@ -1815,6 +1816,7 @@ function openSettings() {
   document.getElementById("countdownContainer").classList.add("d-none");
   document.getElementById("streamsEditor").classList.add("d-none");
   document.getElementById("settingsPage").classList.remove("d-none");
+  document.getElementById("imagesEditor").classList.add("d-none");
 
   const savedTheme = localStorage.getItem("planmydays_theme") || "darkly";
   const themeSel = document.getElementById("themeSelector");
