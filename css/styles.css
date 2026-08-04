@@ -533,6 +533,10 @@ body.auto-hide-menu #mainNav.nav-hidden ~ .container-fluid {
 [data-theme="flatly"] .nav-tabs-info .nav-link.active:hover {
   color: #212529;
 }
+[data-theme="materia"] .nav-tabs-info .nav-link.active,
+[data-theme="materia"] .nav-tabs-info .nav-link.active:hover {
+  color: #fff;
+}
 [data-theme="quartz"] .nav-tabs-info .nav-link.active,
 [data-theme="quartz"] .nav-tabs-info .nav-link.active:hover {
   color: var(--bs-dark);
@@ -572,6 +576,18 @@ body.auto-hide-menu #mainNav.nav-hidden ~ .container-fluid {
 #jobEditModal #jobEditTabs {
   border-bottom: 2px solid var(--bs-border-color);
   margin-bottom: 0.5rem;
+}
+[data-theme="darkly"] #jobEditModal #jobEditTabs .nav-link,
+[data-theme="flatly"] #jobEditModal #jobEditTabs .nav-link,
+[data-theme="lux"] #jobEditModal #jobEditTabs .nav-link {
+  font-size: 0.75rem;
+  padding: 0.35rem 0.35rem;
+  margin-bottom: -1px;
+}
+[data-theme="darkly"] #jobEditModal #jobEditTabs .nav-item,
+[data-theme="flatly"] #jobEditModal #jobEditTabs .nav-item,
+[data-theme="lux"] #jobEditModal #jobEditTabs .nav-item {
+  margin-right: 0;
 }
 
 #streamsEditor .editor-title {
