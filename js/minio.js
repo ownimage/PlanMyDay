@@ -345,7 +345,7 @@ function closeMinioImport() {
   var el = document.getElementById("minioImportModal");
   if (el) {
     var modal = bootstrap.Modal.getInstance(el);
-    if (modal) modal.hide();
+    if (modal) safeHideModal("minioImportModal");
   }
 }
 

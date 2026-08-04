@@ -43,6 +43,19 @@ function escapeHtml(str) {
   return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
+// MODAL HELPERS
+// Bootstrap ignores hide() while a modal's show transition is running, so track the
+// fully-shown state and defer hide() until the "shown" event fires when necessary.
+document.addEventListener("shown.bs.modal", function(e) { e.target.dataset.bsShown = "true"; });
+document.addEventListener("hidden.bs.modal", function(e) { e.target.dataset.bsShown = "false"; });
+function safeHideModal(modalId) {
+  const el = document.getElementById(modalId);
+  if (!el) return;
+  const hide = () => bootstrap.Modal.getOrCreateInstance(el).hide();
+  if (el.dataset.bsShown === "true") hide();
+  else el.addEventListener("shown.bs.modal", hide, { once: true });
+}
+
 // TOUCH DRAG AND DROP (iOS fallback — HTML5 DnD is not supported on iOS Safari)
 // options: { handleSelector, ignoreSelector }
 function addTouchDnD(container, cardSelector, getSrcId, reorderCallback, options) {
@@ -443,7 +456,7 @@ function renderMain() {
             let confirmed = false;
             confirmBtn.onclick = function() {
               confirmed = true;
-              bootstrap.Modal.getInstance(modalEl).hide();
+              safeHideModal("deleteConfirmModal");
               removeAdhocJob(streamIdx, jobId, cbRef);
             };
             modalEl.addEventListener("hidden.bs.modal", function handler() {
@@ -979,7 +992,7 @@ function editStream(index) {
 }
 
 function cancelEdit() {
-  bootstrap.Modal.getOrCreateInstance(document.getElementById("streamEditModal")).hide();
+  safeHideModal("streamEditModal");
   if (isNew && editingIndex >= 0) {
     var streams = loadStreams();
     streams.splice(editingIndex, 1);
@@ -995,7 +1008,7 @@ function doneEdit() {
     streams[editingIndex] = editBuffer;
     saveStreams(streams);
   }
-  bootstrap.Modal.getOrCreateInstance(document.getElementById("streamEditModal")).hide();
+  safeHideModal("streamEditModal");
   editingIndex = -1; editBuffer = null; isNew = false;
   renderStreamsEditor();
 }
@@ -1011,7 +1024,7 @@ function confirmDeleteStream(index) {
     s.splice(index, 1);
     s.forEach(function(t, i) { t.sequence = i + 1; });
     saveStreams(s);
-    bootstrap.Modal.getInstance(modalEl).hide();
+    safeHideModal("deleteConfirmModal");
     editingIndex = -1; editBuffer = null; isNew = false;
     renderStreamsEditor();
   };
@@ -1097,7 +1110,7 @@ function jobDeleteTask(index) {
   document.getElementById("deleteConfirmBtn").onclick = function() {
     jobsBuffer.tasks.splice(index, 1);
     renderJobTasks();
-    bootstrap.Modal.getInstance(modalEl).hide();
+    safeHideModal("deleteConfirmModal");
   };
   new bootstrap.Modal(modalEl).show();
 }
@@ -1322,8 +1335,7 @@ function openScheduleModal() {
 }
 
 function closeScheduleModal() {
-  const modal = bootstrap.Modal.getInstance(document.getElementById("scheduleModal"));
-  if (modal) modal.hide();
+  safeHideModal("scheduleModal");
 }
 
 function onScheduleTypeChange() {
@@ -1680,7 +1692,7 @@ function editJob(index) {
 }
 
 function cancelJobEdit() {
-  bootstrap.Modal.getOrCreateInstance(document.getElementById("jobEditModal")).hide();
+  safeHideModal("jobEditModal");
   var fromMain = document.getElementById("streamsEditor").classList.contains("d-none");
   if (isNewJob && jobsEditingIdx >= 0) {
     var streams = loadStreams();
@@ -1715,7 +1727,7 @@ function doneJobEdit() {
     }
     saveStreams(streams);
   }
-  bootstrap.Modal.getOrCreateInstance(document.getElementById("jobEditModal")).hide();
+  safeHideModal("jobEditModal");
   jobsEditingIdx = -1; jobsBuffer = null; isNewJob = false; jobsTargetStreamIndex = -1;
   if (fromMain) {
     var streams = loadStreams();
@@ -1733,9 +1745,12 @@ function doneJobEdit() {
 }
 
 function deleteJobFromEdit() {
-  var modal = bootstrap.Modal.getInstance(document.getElementById("jobEditModal"));
-  if (modal) modal.hide();
-  confirmDeleteJob(jobsEditingIdx);
+  var idx = jobsEditingIdx;
+  var el = document.getElementById("jobEditModal");
+  el.addEventListener("hidden.bs.modal", function() {
+    confirmDeleteJob(idx);
+  }, { once: true });
+  safeHideModal("jobEditModal");
 }
 
 function confirmDeleteJob(index) {
@@ -1753,7 +1768,7 @@ function confirmDeleteJob(index) {
     jbs.forEach(function(j, i) { j.sequence = i + 1; });
     s[jobsStreamIndex].jobs = jbs;
     saveStreams(s);
-    bootstrap.Modal.getInstance(modalEl).hide();
+    safeHideModal("deleteConfirmModal");
     jobsEditingIdx = -1; jobsBuffer = null; isNewJob = false;
     renderStreamsEditor();
   };
@@ -1930,7 +1945,7 @@ function confirmClearAllData() {
   document.getElementById("deleteConfirmBtn").onclick = function() {
     const keys = Object.keys(localStorage);
     keys.forEach(k => localStorage.removeItem(k));
-    bootstrap.Modal.getInstance(modalEl).hide();
+    safeHideModal("deleteConfirmModal");
     closeSettings();
   };
   new bootstrap.Modal(modalEl).show();

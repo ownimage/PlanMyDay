@@ -432,7 +432,7 @@ function doneImageEdit(index) {
   isNewImage = false;
   isDuplicateImage = false;
   editImageBackup = null;
-  bootstrap.Modal.getOrCreateInstance(document.getElementById("imageEditModal")).hide();
+  safeHideModal("imageEditModal");
   renderImagesEditor();
 }
 
@@ -450,7 +450,7 @@ function cancelImageEdit() {
   isNewImage = false;
   isDuplicateImage = false;
   editImageBackup = null;
-  bootstrap.Modal.getOrCreateInstance(document.getElementById("imageEditModal")).hide();
+  safeHideModal("imageEditModal");
   renderImagesEditor();
 }
 
@@ -462,7 +462,7 @@ function confirmDeleteImage(index) {
   document.getElementById("deleteConfirmMessage").innerHTML =
     `Delete image "<strong>${escapeHtml(name)}</strong>"?`;
   document.getElementById("deleteConfirmBtn").onclick = function() {
-    bootstrap.Modal.getInstance(modalEl).hide();
+    safeHideModal("deleteConfirmModal");
     deleteImage(index);
   };
   new bootstrap.Modal(modalEl).show();
@@ -557,7 +557,7 @@ function openImagePicker(callback) {
 function closeImagePicker() {
   const modalEl = document.getElementById("imagePickerModal");
   const modal = bootstrap.Modal.getInstance(modalEl);
-  if (modal) modal.hide();
+  if (modal) safeHideModal("imagePickerModal");
   imagePickerCallback = null;
   imagePickerSearch = "";
 }
