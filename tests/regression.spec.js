@@ -79,6 +79,16 @@ function seedTodayList(page) {
   }, { data: TEST_STREAMS, ds: todayStr });
 }
 
+// Register a "shown.bs.modal" listener so a later action's Bootstrap hide() is never
+// swallowed by the modal's show transition (the window where hide() is a no-op).
+async function waitForModalShown(page, modalId) {
+  await page.evaluate((id) => new Promise(resolve => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener("shown.bs.modal", resolve, { once: true });
+    else resolve();
+  }), modalId);
+}
+
 test.describe("PlanMyDay - Regression", () => {
 
   test.beforeEach(async ({ page }) => {
@@ -393,6 +403,16 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
       await page.locator("a.dropdown-item").filter({ hasText: "Images" }).click();
       await expect(page.locator("#imagesEditor")).toBeVisible();
+    });
+
+    test("opening jobs editor hides images editor", async ({ page }) => {
+      await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
+      await page.locator("a.dropdown-item").filter({ hasText: "Images" }).click();
+      await expect(page.locator("#imagesEditor")).toBeVisible();
+      await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
+      await page.locator("a.dropdown-item").filter({ hasText: "Jobs" }).click();
+      await expect(page.locator("#imagesEditor")).not.toBeVisible();
+      await expect(page.locator("#streamsEditor")).toBeVisible();
     });
 
     test("closes images editor back to main view", async ({ page }) => {
@@ -1054,7 +1074,7 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#imageEditModalBody .form-control:not(.form-control-sm)").fill("MyImg");
       await page.locator("#btnImageEditOk").click();
       await page.locator("#imageEditModal").waitFor({ state: "hidden" });
-      await page.locator(".card:has-text('MyImg') .btn-info").filter({ hasText: "Duplicate" }).click();
+      await page.locator(".card:has-text('MyImg')").getByTitle("Duplicate").click();
       await page.locator("#imageEditModal").waitFor({ state: "visible" });
       await page.locator("#imageEditModalBody .form-control:not(.form-control-sm)").waitFor({ state: "visible", timeout: 10000 });
       await expect(page.locator("#imageEditModalBody .form-control:not(.form-control-sm)")).toHaveValue("MyImg 2");
@@ -1068,11 +1088,109 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#btnImageEditOk").click();
       await page.locator("#imageEditModal").waitFor({ state: "hidden", timeout: 10000 });
       await page.locator(".card:has-text('DelImg')").waitFor({ state: "visible" });
-      await page.locator(".card:has-text('DelImg') .btn-danger").filter({ hasText: "Delete" }).click();
+      await page.locator(".card:has-text('DelImg')").getByTitle("Delete").click();
       await page.locator("#deleteConfirmModal").waitFor({ state: "visible" });
       await page.locator("#deleteConfirmBtn").click();
       await page.locator("#deleteConfirmModal").waitFor({ state: "hidden", timeout: 10000 });
       await expect(page.getByText("DelImg")).not.toBeVisible();
+    });
+
+    test("duplicate button shows two-square icon", async ({ page }) => {
+      await page.getByRole("button", { name: "Add Image" }).click();
+      await page.locator("#imageEditModal").waitFor({ state: "visible" });
+      await page.locator("#imageEditModalBody .form-control:not(.form-control-sm)").waitFor({ state: "visible" });
+      await page.locator("#imageEditModalBody .form-control:not(.form-control-sm)").fill("SqImg");
+      await page.locator("#btnImageEditOk").click();
+      await page.locator("#imageEditModal").waitFor({ state: "hidden" });
+      await expect(page.locator(".card:has-text('SqImg')").getByTitle("Duplicate").locator("svg rect")).toHaveCount(2);
+    });
+
+    test("duplicate opens modal titled Duplicate Image", async ({ page }) => {
+      await page.getByRole("button", { name: "Add Image" }).click();
+      await page.locator("#imageEditModal").waitFor({ state: "visible" });
+      await page.locator("#imageEditModalBody .form-control:not(.form-control-sm)").waitFor({ state: "visible" });
+      await page.locator("#imageEditModalBody .form-control:not(.form-control-sm)").fill("DupTitle");
+      await page.locator("#btnImageEditOk").click();
+      await page.locator("#imageEditModal").waitFor({ state: "hidden" });
+      await page.locator(".card:has-text('DupTitle')").getByTitle("Duplicate").click();
+      await page.locator("#imageEditModal").waitFor({ state: "visible" });
+      await expect(page.locator("#imageEditModalTitle")).toHaveText("Duplicate Image");
+      await page.locator("#btnImageEditCancel").click();
+      await page.locator("#imageEditModal").waitFor({ state: "hidden" });
+    });
+
+    test("edit opens modal titled Edit Image", async ({ page }) => {
+      await page.getByRole("button", { name: "Add Image" }).click();
+      await page.locator("#imageEditModal").waitFor({ state: "visible" });
+      await page.locator("#imageEditModalBody .form-control:not(.form-control-sm)").waitFor({ state: "visible" });
+      await page.locator("#imageEditModalBody .form-control:not(.form-control-sm)").fill("EditTitle");
+      await page.locator("#btnImageEditOk").click();
+      await page.locator("#imageEditModal").waitFor({ state: "hidden" });
+      await page.locator(".card:has-text('EditTitle')").getByTitle("Edit").click();
+      await page.locator("#imageEditModal").waitFor({ state: "visible" });
+      await expect(page.locator("#imageEditModalTitle")).toHaveText("Edit Image");
+      await page.locator("#btnImageEditCancel").click();
+      await page.locator("#imageEditModal").waitFor({ state: "hidden" });
+    });
+
+    test("action buttons have doubled spacing", async ({ page }) => {
+      await page.getByRole("button", { name: "Add Image" }).click();
+      await page.locator("#imageEditModal").waitFor({ state: "visible" });
+      await page.locator("#imageEditModalBody .form-control:not(.form-control-sm)").waitFor({ state: "visible" });
+      await page.locator("#imageEditModalBody .form-control:not(.form-control-sm)").fill("GapImg");
+      await page.locator("#btnImageEditOk").click();
+      await page.locator("#imageEditModal").waitFor({ state: "hidden" });
+      const gap = await page.locator(".card:has-text('GapImg') .image-actions").evaluate(el => getComputedStyle(el).gap);
+      expect(gap).toBe("16px");
+    });
+
+    test("delete button disabled when image used by a stream", async ({ page }) => {
+      await page.getByRole("button", { name: "Add Image" }).click();
+      await page.locator("#imageEditModal").waitFor({ state: "visible" });
+      await page.locator("#imageEditModalBody .form-control:not(.form-control-sm)").waitFor({ state: "visible" });
+      await page.locator("#imageEditModalBody .form-control:not(.form-control-sm)").fill("StreamImg");
+      await page.locator("#btnImageEditOk").click();
+      await page.locator("#imageEditModal").waitFor({ state: "hidden" });
+      await page.evaluate(() => {
+        localStorage.setItem("planmydays_streams", JSON.stringify([{
+          id: "s_inuse", title: "InUse", image: "StreamImg", sequence: 1, jobs: []
+        }]));
+      });
+      await page.evaluate(() => renderImagesEditor());
+      await expect(page.locator(".card:has-text('StreamImg')").getByTitle("Delete")).toBeDisabled();
+    });
+
+    test("delete button disabled when image used by a job", async ({ page }) => {
+      await page.getByRole("button", { name: "Add Image" }).click();
+      await page.locator("#imageEditModal").waitFor({ state: "visible" });
+      await page.locator("#imageEditModalBody .form-control:not(.form-control-sm)").waitFor({ state: "visible" });
+      await page.locator("#imageEditModalBody .form-control:not(.form-control-sm)").fill("JobImg");
+      await page.locator("#btnImageEditOk").click();
+      await page.locator("#imageEditModal").waitFor({ state: "hidden" });
+      await page.evaluate(() => {
+        localStorage.setItem("planmydays_streams", JSON.stringify([{
+          id: "s_jobuse", title: "S", image: "", sequence: 1,
+          jobs: [{ id: "j_inuse", title: "J", image: "JobImg", active: true, sequence: 1, tasks: [] }]
+        }]));
+      });
+      await page.evaluate(() => renderImagesEditor());
+      await expect(page.locator(".card:has-text('JobImg')").getByTitle("Delete")).toBeDisabled();
+    });
+
+    test("delete button enabled when image unused", async ({ page }) => {
+      await page.getByRole("button", { name: "Add Image" }).click();
+      await page.locator("#imageEditModal").waitFor({ state: "visible" });
+      await page.locator("#imageEditModalBody .form-control:not(.form-control-sm)").waitFor({ state: "visible" });
+      await page.locator("#imageEditModalBody .form-control:not(.form-control-sm)").fill("FreeImg");
+      await page.locator("#btnImageEditOk").click();
+      await page.locator("#imageEditModal").waitFor({ state: "hidden" });
+      await page.evaluate(() => {
+        localStorage.setItem("planmydays_streams", JSON.stringify([{
+          id: "s_free", title: "S", image: "", sequence: 1, jobs: []
+        }]));
+      });
+      await page.evaluate(() => renderImagesEditor());
+      await expect(page.locator(".card:has-text('FreeImg')").getByTitle("Delete")).toBeEnabled();
     });
 
     test("upload button exists on edit modal", async ({ page }) => {
@@ -3526,7 +3644,7 @@ test.describe("PlanMyDay - Regression", () => {
     test("duplicate image with trailing number increments", async ({ page }) => {
       await page.locator("#imageFilters input[type=search]").fill("Photo 5");
       await page.waitForTimeout(200);
-      await page.locator("#imagesList .btn-info").filter({ hasText: "Duplicate" }).first().click();
+      await page.locator("#imagesList").getByTitle("Duplicate").first().click();
       await page.locator("#imageEditModal").waitFor({ state: "visible" });
       const name = await page.locator("#imageEditModalBody input.form-control").first().inputValue();
       expect(name).toMatch(/Photo 6/);
@@ -3534,7 +3652,7 @@ test.describe("PlanMyDay - Regression", () => {
     });
 
     test("upload SVG image via file input", async ({ page }) => {
-      await page.locator("#imagesList .btn-primary").filter({ hasText: "Edit" }).first().click();
+      await page.locator("#imagesList").getByTitle("Edit").first().click();
       await page.locator("#imageEditModal").waitFor({ state: "visible" });
       await page.evaluate((svgText) => {
         return new Promise(resolve => {
@@ -3565,7 +3683,7 @@ test.describe("PlanMyDay - Regression", () => {
     });
 
     test("upload raster image via file input", async ({ page }) => {
-      await page.locator("#imagesList .btn-primary").filter({ hasText: "Edit" }).first().click();
+      await page.locator("#imagesList").getByTitle("Edit").first().click();
       await page.locator("#imageEditModal").waitFor({ state: "visible" });
       // 1x1 PNG
       const pngB64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
@@ -3629,7 +3747,7 @@ test.describe("PlanMyDay - Regression", () => {
 
     test("delete image via confirm", async ({ page }) => {
       const before = await page.evaluate(() => loadImages().length);
-      await page.locator("#imagesList .btn-danger").filter({ hasText: "Delete" }).first().click();
+      await page.locator("#imagesList").getByTitle("Delete").first().click();
       await page.locator("#deleteConfirmModal").waitFor({ state: "visible" });
       await page.waitForTimeout(200);
       await page.locator("#deleteConfirmBtn").click();

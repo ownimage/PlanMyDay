@@ -1,5 +1,6 @@
 let editingImageIndex = -1;
 let isNewImage = false;
+let isDuplicateImage = false;
 let editImageBackup = null;
 let imageNameSearch = "";
 let imagesPage = 0;
@@ -71,7 +72,7 @@ function renderImagesEditor() {
     const lineVal = colors.line !== "none" ? colors.line : (img._prevStroke || "#000000");
     const fillVal = colors.fill !== "none" ? colors.fill : (img._prevFill || "#ffffff");
 
-    document.getElementById("imageEditModalTitle").textContent = isNewImage ? "Add Image" : "Edit Image";
+    document.getElementById("imageEditModalTitle").textContent = isNewImage ? "Add Image" : (isDuplicateImage ? "Duplicate Image" : "Edit Image");
     document.getElementById("imageEditModalBody").innerHTML = `
       <div class="card p-3 card-edited">
         <div class="mb-2">
@@ -144,18 +145,24 @@ function renderImagesEditor() {
   pageItems.forEach((img) => {
     const card = document.createElement("div");
     card.className = "card p-3 mb-3";
-    const colors = getImageColors(img.data);
+    const inUse = isImageInUse(img.name);
     card.innerHTML = `
-      <div class="row mb-2">
-        <div class="col d-flex align-items-start pt-1">${escapeHtml(img.name)}</div>
-        <div class="col-auto">
-          <img src="${img.data}" class="date-img">
+      <div class="d-flex align-items-center gap-2">
+        <div style="width:40px;height:40px;flex-shrink:0">
+          ${img.data ? `<img src="${img.data}" class="date-img" style="max-width:40px;max-height:40px">` : ""}
         </div>
-      </div>
-      <div class="d-flex gap-2">
-        <button class="btn btn-primary editor-btn" style="flex:1" onclick="startEditImage(${images.indexOf(img)})">Edit</button>
-        <button class="btn btn-info editor-btn" style="flex:1" onclick="duplicateImage(${images.indexOf(img)})">Duplicate</button>
-        <button class="btn btn-danger editor-btn" style="flex:1" onclick="confirmDeleteImage(${images.indexOf(img)})">Delete</button>
+        <span class="fw-bold editor-title flex-grow-1 text-truncate">${escapeHtml(img.name)}</span>
+        <div class="image-actions d-flex gap-3 flex-shrink-0">
+          <button class="btn btn-danger btn-sm d-flex align-items-center justify-content-center" style="width:36px;height:36px" title="Delete" ${inUse ? "disabled" : ""} onclick="confirmDeleteImage(${images.indexOf(img)})">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/><path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z"/></svg>
+          </button>
+          <button class="btn btn-info btn-sm d-flex align-items-center justify-content-center" style="width:36px;height:36px" title="Duplicate" onclick="duplicateImage(${images.indexOf(img)})">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><rect x="1" y="1" width="9" height="9" rx="1"/><rect x="6" y="6" width="9" height="9" rx="1" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
+          </button>
+          <button class="btn btn-primary btn-sm d-flex align-items-center justify-content-center" style="width:36px;height:36px" title="Edit" onclick="startEditImage(${images.indexOf(img)})">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106a.5.5 0 0 1-.707-.708l-1.28 1.28-1.414-1.414 1.28-1.28a.5.5 0 0 1-.708-.708z"/></svg>
+          </button>
+        </div>
       </div>
     `;
     list.appendChild(card);
@@ -205,6 +212,7 @@ function startEditImage(index) {
   editImageBackup = JSON.parse(JSON.stringify(images[index]));
   editingImageIndex = index;
   isNewImage = false;
+  isDuplicateImage = false;
   renderImagesEditor();
   checkDuplicateName();
 }
@@ -238,6 +246,7 @@ function duplicateImage(index) {
 
   editingImageIndex = images.length - 1;
   isNewImage = false;
+  isDuplicateImage = true;
   editImageBackup = JSON.parse(JSON.stringify(copy));
   renderImagesEditor();
 }
@@ -393,6 +402,7 @@ function addNewImage() {
   imageNameSearch = "";
   editingImageIndex = images.length - 1;
   isNewImage = true;
+  isDuplicateImage = false;
   renderImagesEditor();
   const editorEl = document.getElementById("imagesEditor");
   if (editorEl) editorEl.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -420,6 +430,7 @@ function doneImageEdit(index) {
   imagesPage = pos >= 0 ? Math.floor(pos / IMAGES_PAGE_SIZE) : 0;
   editingImageIndex = -1;
   isNewImage = false;
+  isDuplicateImage = false;
   editImageBackup = null;
   bootstrap.Modal.getOrCreateInstance(document.getElementById("imageEditModal")).hide();
   renderImagesEditor();
@@ -437,6 +448,7 @@ function cancelImageEdit() {
   }
   editingImageIndex = -1;
   isNewImage = false;
+  isDuplicateImage = false;
   editImageBackup = null;
   bootstrap.Modal.getOrCreateInstance(document.getElementById("imageEditModal")).hide();
   renderImagesEditor();
@@ -477,6 +489,7 @@ function closeImagesEditor() {
   document.getElementById("countdownContainer").classList.remove("d-none");
   editingImageIndex = -1;
   isNewImage = false;
+  isDuplicateImage = false;
   editImageBackup = null;
   renderMain();
 }
@@ -485,6 +498,11 @@ function getImageByName(name) {
   if (!name) return null;
   const images = loadImages();
   return images.find(i => i.name === name) || null;
+}
+function isImageInUse(name) {
+  if (!name) return false;
+  const streams = loadStreams();
+  return streams.some(s => s.image === name || (s.jobs || []).some(j => j.image === name));
 }
 function getImageDataUrl(name) {
   const img = getImageByName(name);
