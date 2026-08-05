@@ -792,4 +792,24 @@ body.compact .editor-btn {
   backdrop-filter: none;
 }
 
+/* Outline-secondary buttons: some themes define --bs-secondary as white/very light,
+   making the resting text unreadable. Use body color for contrast; keep the theme's
+   own hover/active/disabled treatment. */
+.btn-outline-secondary {
+  color: var(--bs-body-color);
+  border-color: var(--bs-border-color);
+}
+.btn-outline-secondary:hover,
+.btn-outline-secondary:active,
+.btn-outline-secondary.active,
+.btn-outline-secondary:focus,
+.btn-outline-secondary.focus {
+  color: var(--bs-btn-hover-color, #fff);
+}
+.btn-outline-secondary:disabled,
+.btn-outline-secondary.disabled {
+  color: var(--bs-tertiary-color);
+  border-color: var(--bs-border-color);
+}
+
 
