@@ -65,6 +65,26 @@ function addTouchDnD(container, cardSelector, getSrcId, reorderCallback, options
 
   function clearDragUi() {
     container.querySelectorAll(cardSelector).forEach(c => c.classList.remove("dragging", "drag-over-top", "drag-over-bottom"));
+    if (options.clearIndicators) options.clearIndicators();
+  }
+
+  function touchDropIntent(clientX, clientY) {
+    const el = document.elementFromPoint(clientX, clientY);
+    const target = options.resolveTarget ? options.resolveTarget(el) : (el ? el.closest(cardSelector) : null);
+    if (target) {
+      const rect = options.getRect ? options.getRect(target) : target.getBoundingClientRect();
+      return { target, above: clientY < rect.top + rect.height / 2 };
+    }
+    if (!options.emptySpaceDrop) return null;
+    const cards = [...container.querySelectorAll(cardSelector)];
+    if (!cards.length) return null;
+    let after = null;
+    for (const c of cards) {
+      const r = options.getRect ? options.getRect(c) : c.getBoundingClientRect();
+      if (clientY > r.top + r.height / 2) after = c; else break;
+    }
+    if (after) return { target: after, above: false };
+    return { target: cards[0], above: true };
   }
 
   container.addEventListener("touchstart", e => {
@@ -88,13 +108,19 @@ function addTouchDnD(container, cardSelector, getSrcId, reorderCallback, options
     if (touchSrc === null || touchSrc === undefined) return;
     e.preventDefault();
     const touch = e.touches[0];
-    const el = document.elementFromPoint(touch.clientX, touch.clientY);
-    const target = options.resolveTarget ? options.resolveTarget(el) : (el ? el.closest(cardSelector) : null);
-    if (!target) return;
-    if (options.ignoreSelector && target.closest(options.ignoreSelector) && !target.matches(cardSelector)) return;
-    container.querySelectorAll(cardSelector).forEach(c => c.classList.remove("drag-over-top", "drag-over-bottom"));
-    const rect = options.getRect ? options.getRect(target) : target.getBoundingClientRect();
-    target.classList.add(touch.clientY < rect.top + rect.height / 2 ? "drag-over-top" : "drag-over-bottom");
+    if (options.clearIndicators) {
+      options.clearIndicators();
+    } else {
+      container.querySelectorAll(cardSelector).forEach(c => c.classList.remove("drag-over-top", "drag-over-bottom"));
+    }
+    const intent = touchDropIntent(touch.clientX, touch.clientY);
+    if (!intent) return;
+    if (options.ignoreSelector && intent.target.closest(options.ignoreSelector) && !intent.target.matches(cardSelector)) return;
+    if (options.applyIndicator) {
+      options.applyIndicator(intent.target, intent.above);
+    } else {
+      intent.target.classList.add(intent.above ? "drag-over-top" : "drag-over-bottom");
+    }
   }, { passive: false });
 
   container.addEventListener("touchend", e => {
@@ -102,17 +128,14 @@ function addTouchDnD(container, cardSelector, getSrcId, reorderCallback, options
     clearDragUi();
     const touch = e.changedTouches[0];
     suppressClickAfterDnD({ clientX: touch.clientX, clientY: touch.clientY });
-    const el = document.elementFromPoint(touch.clientX, touch.clientY);
-    const target = options.resolveTarget ? options.resolveTarget(el) : (el ? el.closest(cardSelector) : null);
-    if (target) {
-      const dstSrc = getSrcId(target);
+    const intent = touchDropIntent(touch.clientX, touch.clientY);
+    if (intent) {
+      const dstSrc = getSrcId(intent.target);
       if (dstSrc !== null && dstSrc !== undefined && dstSrc !== -1 && dstSrc !== "" && touchSrc !== dstSrc) {
-        const rect = options.getRect ? options.getRect(target) : target.getBoundingClientRect();
-        const above = touch.clientY < rect.top + rect.height / 2;
         const src = touchSrc;
         touchSrc = null;
         touchCard = null;
-        reorderCallback(src, dstSrc, above);
+        reorderCallback(src, dstSrc, intent.above);
         return;
       }
     }
@@ -1201,6 +1224,80 @@ function jobTaskToggleNote(btn, index) {
 }
 
 var _taskDnDContainer = null;
+var _taskDragSrcIdx = -1;
+var _taskDocDnDBound = false;
+
+function taskResolveDropTarget(el) {
+  if (!el) return null;
+  var card = el.closest(".task-drag-card");
+  if (card) return card;
+  var note = el.closest(".task-note-row");
+  if (!note) return null;
+  var idx = (note.id || "").replace("taskNoteRow", "");
+  return document.querySelector('.task-drag-card[data-task-index="' + idx + '"]');
+}
+
+function taskDropRect(card) {
+  var rect = card.getBoundingClientRect();
+  var note = document.getElementById("taskNoteRow" + card.dataset.taskIndex);
+  if (note && note.style.display !== "none") {
+    var nr = note.getBoundingClientRect();
+    var top = Math.min(rect.top, nr.top);
+    var bottom = Math.max(rect.bottom, nr.bottom);
+    rect = { top: top, bottom: bottom, height: bottom - top };
+  }
+  return rect;
+}
+
+function taskDropIntent(container, e) {
+  var target = taskResolveDropTarget(e.target);
+  if (target) {
+    var rect = taskDropRect(target);
+    return { card: target, above: e.clientY < rect.top + rect.height / 2 };
+  }
+  var cards = container.querySelectorAll(".task-drag-card");
+  if (!cards.length) return null;
+  var after = null;
+  for (var i = 0; i < cards.length; i++) {
+    var r = taskDropRect(cards[i]);
+    if (e.clientY > r.top + r.height / 2) {
+      after = cards[i];
+    } else {
+      break;
+    }
+  }
+  if (after) return { card: after, above: false };
+  return { card: cards[0], above: true };
+}
+
+function taskDropAllowed(e) {
+  if (!e.target || !e.target.closest) return false;
+  if (!e.target.closest("#jobEditModal")) return false;
+  if (e.target.closest("#jobTasksList")) return true;
+  if (e.target.closest("button, input, select, textarea, a, label")) return false;
+  return true;
+}
+
+function taskClearIndicators() {
+  var c = document.getElementById("jobTasksList");
+  if (!c) return;
+  c.querySelectorAll(".task-drag-card, .task-note-row").forEach(function(el) {
+    el.classList.remove("drag-over-top", "drag-over-bottom");
+  });
+}
+
+function taskApplyIndicator(card, above) {
+  if (above) {
+    card.classList.add("drag-over-top");
+    return;
+  }
+  var note = document.getElementById("taskNoteRow" + card.dataset.taskIndex);
+  if (note && note.style.display !== "none") {
+    note.classList.add("drag-over-bottom");
+  } else {
+    card.classList.add("drag-over-bottom");
+  }
+}
 
 function setupTaskDnD() {
   var container = document.getElementById("jobTasksList");
@@ -1208,77 +1305,65 @@ function setupTaskDnD() {
   if (container === _taskDnDContainer) return;
   _taskDnDContainer = container;
 
-  var dragSrcIdx = -1;
-
-  function resolveTaskDropTarget(el) {
-    if (!el) return null;
-    var card = el.closest(".task-drag-card");
-    if (card) return card;
-    var note = el.closest(".task-note-row");
-    if (!note) return null;
-    var idx = (note.id || "").replace("taskNoteRow", "");
-    return document.querySelector('.task-drag-card[data-task-index="' + idx + '"]');
-  }
-
-  function taskDropRect(card) {
-    var rect = card.getBoundingClientRect();
-    var note = document.getElementById("taskNoteRow" + card.dataset.taskIndex);
-    if (note && note.style.display !== "none") {
-      var nr = note.getBoundingClientRect();
-      var top = Math.min(rect.top, nr.top);
-      var bottom = Math.max(rect.bottom, nr.bottom);
-      rect = { top: top, bottom: bottom, height: bottom - top };
-    }
-    return rect;
+  function handleTaskDrop(e) {
+    var c = document.getElementById("jobTasksList");
+    if (!c) return;
+    suppressClickAfterDnD(e);
+    taskClearIndicators();
+    if (_taskDragSrcIdx < 0) return;
+    var srcIdx = _taskDragSrcIdx;
+    _taskDragSrcIdx = -1;
+    var intent = taskDropIntent(c, e);
+    if (!intent) return;
+    var dstIdx = parseInt(intent.card.dataset.taskIndex);
+    if (srcIdx === dstIdx) return;
+    reorderTask(srcIdx, dstIdx, intent.above);
   }
 
   container.addEventListener("dragstart", function(e) {
     var card = e.target.closest(".task-drag-card");
     if (!card) return;
     if (e.target.closest("button, input, textarea")) { e.preventDefault(); return; }
-    dragSrcIdx = parseInt(card.dataset.taskIndex);
+    _taskDragSrcIdx = parseInt(card.dataset.taskIndex);
     card.classList.add("dragging");
     e.dataTransfer.effectAllowed = "move";
   });
   container.addEventListener("dragend", function(e) {
     container.querySelectorAll(".task-drag-card").forEach(function(c) {
-      c.classList.remove("dragging", "drag-over-top", "drag-over-bottom");
+      c.classList.remove("dragging");
     });
-    dragSrcIdx = -1;
+    taskClearIndicators();
+    _taskDragSrcIdx = -1;
     suppressClickAfterDnD(e);
   });
-  container.addEventListener("dragover", function(e) {
-    e.preventDefault();
-    var target = resolveTaskDropTarget(e.target);
-    if (!target || dragSrcIdx < 0) return;
-    container.querySelectorAll(".task-drag-card").forEach(function(c) {
-      c.classList.remove("drag-over-top", "drag-over-bottom");
+
+  if (!_taskDocDnDBound) {
+    _taskDocDnDBound = true;
+    document.addEventListener("dragover", function(e) {
+      if (_taskDragSrcIdx < 0) return;
+      if (!taskDropAllowed(e)) return;
+      e.preventDefault();
+      if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
+      taskClearIndicators();
+      var c = document.getElementById("jobTasksList");
+      if (!c) return;
+      var intent = taskDropIntent(c, e);
+      if (!intent) return;
+      taskApplyIndicator(intent.card, intent.above);
     });
-    var rect = taskDropRect(target);
-    target.classList.add(e.clientY < rect.top + rect.height / 2 ? "drag-over-top" : "drag-over-bottom");
-  });
-  container.addEventListener("drop", function(e) {
-    e.preventDefault();
-    suppressClickAfterDnD(e);
-    container.querySelectorAll(".task-drag-card").forEach(function(c) {
-      c.classList.remove("drag-over-top", "drag-over-bottom");
+    document.addEventListener("drop", function(e) {
+      if (_taskDragSrcIdx < 0) return;
+      if (!taskDropAllowed(e)) return;
+      e.preventDefault();
+      handleTaskDrop(e);
     });
-    var target = resolveTaskDropTarget(e.target);
-    if (!target || dragSrcIdx < 0) return;
-    var dstIdx = parseInt(target.dataset.taskIndex);
-    var srcIdx = dragSrcIdx;
-    dragSrcIdx = -1;
-    if (srcIdx === dstIdx) return;
-    var rect = taskDropRect(target);
-    var above = e.clientY < rect.top + rect.height / 2;
-    reorderTask(srcIdx, dstIdx, above);
-  });
+  }
 
   addTouchDnD(container, ".task-drag-card", function(c) {
     return parseInt(c.dataset.taskIndex);
   }, function(srcIdx, dstIdx, above) {
     reorderTask(srcIdx, dstIdx, above);
-  }, { handleSelector: ".drag-handle", resolveTarget: resolveTaskDropTarget, getRect: taskDropRect });
+  }, { handleSelector: ".drag-handle", resolveTarget: taskResolveDropTarget, getRect: taskDropRect, emptySpaceDrop: true, clearIndicators: taskClearIndicators, applyIndicator: taskApplyIndicator });
 }
 
 function reorderTask(srcIdx, dstIdx, above) {
@@ -1288,6 +1373,7 @@ function reorderTask(srcIdx, dstIdx, above) {
   if (srcIdx === dstIdx) return;
   var item = tasks.splice(srcIdx, 1)[0];
   var insertAt = srcIdx < dstIdx ? (above ? dstIdx - 1 : dstIdx) : (above ? dstIdx : dstIdx + 1);
+  if (srcIdx < dstIdx && insertAt === srcIdx) insertAt = srcIdx + 1;
   tasks.splice(insertAt, 0, item);
   renderJobTasks();
 }

@@ -687,6 +687,11 @@ body.compact .editor-btn {
   user-select: none;
   -webkit-user-select: none;
 }
+/* Reserve a drop zone below the last task so dragging "under the last item"
+   always lands inside the list (shows the highlight and accepts the drop). */
+#jobTasksList {
+  padding-bottom: 2.5rem;
+}
 .task-drag-card.dragging {
   opacity: 0.3;
 }
@@ -694,6 +699,9 @@ body.compact .editor-btn {
   border-top: 3px solid var(--bs-primary) !important;
 }
 .task-drag-card.drag-over-bottom {
+  border-bottom: 3px solid var(--bs-primary) !important;
+}
+.task-note-row.drag-over-bottom {
   border-bottom: 3px solid var(--bs-primary) !important;
 }
 .task-drag-card .drag-handle {
