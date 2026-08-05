@@ -5062,6 +5062,43 @@ test.describe("PlanMyDay - Regression", () => {
       });
       expect(result).toBe("error");
     });
+
+    test("minio import displays files in reverse alphabetical order", async ({ page }) => {
+      const fileOrder = ["mike.json", "alpha.json", "zulu.json", "bravo.json"];
+      await page.route(function(url) { return url.hostname === "minio" && url.port === "9000"; }, async function(route) {
+        var u = route.request().url();
+        var xml;
+        if (u.indexOf("list-type=2") !== -1) {
+          xml = ['<?xml version="1.0" encoding="UTF-8"?>',
+            '<ListBucketResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">',
+            '<Name>testbucket</Name><KeyCount>4</KeyCount><MaxKeys>1000</MaxKeys><IsTruncated>false</IsTruncated>'
+          ].concat(
+            fileOrder.map(function(f) {
+              return '<Contents><Key>' + f + '</Key><LastModified>2026-08-01T10:00:00.000Z</LastModified><ETag>"abc"</ETag><Size>1024</Size><StorageClass>STANDARD</StorageClass></Contents>';
+            }),
+            ['</ListBucketResult>']
+          ).join("");
+        } else {
+          xml = ['<?xml version="1.0" encoding="UTF-8"?>',
+            '<ListAllMyBucketsResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">',
+            '<Buckets><Bucket><Name>testbucket</Name><CreationDate>2026-01-01T00:00:00.000Z</CreationDate></Bucket></Buckets>',
+            '</ListAllMyBucketsResult>'].join("");
+        }
+        await route.fulfill({ status: 200, body: xml });
+      });
+      await page.evaluate(() => {
+        localStorage.setItem("planmydays_minio_enabled", "true");
+        localStorage.setItem("planmydays_minio_server", "http://minio:9000");
+        localStorage.setItem("planmydays_minio_username", "u");
+        localStorage.setItem("planmydays_minio_password", "p");
+        localStorage.setItem("planmydays_minio_bucket", "testbucket");
+      });
+      await page.reload();
+      await page.evaluate(() => importFromMinio());
+      await page.waitForSelector("#minioImportBody .list-group-item");
+      const shown = await page.$$eval("#minioImportBody .list-group-item", (items) => items.map((li) => li.textContent.trim()));
+      expect(shown).toEqual(["zulu.json", "mike.json", "bravo.json", "alpha.json"]);
+    });
   });
 
   // ── Job Edit Tabs ─────────────────────────────────────────

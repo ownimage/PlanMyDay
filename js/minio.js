@@ -384,7 +384,7 @@ function loadMinioBucketFiles(bucket) {
     '<div class="text-center py-3"><div class="spinner-border"></div><p class="mt-2">Loading files...</p></div>';
 
   minioListObjects(bucket, config).then(function(objects) {
-    var jsonFiles = objects.filter(function(o) { return o.toLowerCase().endsWith(".json"); });
+    var jsonFiles = objects.filter(function(o) { return o.toLowerCase().endsWith(".json"); }).sort().reverse();
 
     body.innerHTML = '<div class="d-flex align-items-center gap-2 mb-3">' +
       '<button class="btn btn-sm btn-outline-secondary" onclick="loadMinioBuckets()">&#8592; Back</button>' +
