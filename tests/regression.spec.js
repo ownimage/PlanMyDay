@@ -5321,6 +5321,21 @@ test.describe("PlanMyDay - Regression", () => {
       expect(noteValue).toBe("Persistent note");
     });
 
+    test("closed task note stays closed through re-render", async ({ page }) => {
+      await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().click();
+      await page.locator("#jobEditModal").waitFor({ state: "visible" });
+      await page.locator("#jobTasks-tab").click();
+      await page.locator("#jobAddTaskBtn").click();
+      await page.locator(".task-note-btn").first().click();
+      await page.locator("#taskNoteRow0 textarea").fill("Note text");
+      await page.locator(".task-note-btn").first().click();
+      await expect(page.locator("#taskNoteRow0")).not.toBeVisible();
+      await page.locator("#jobAddTaskBtn").click();
+      await expect(page.locator("#taskNoteRow0")).not.toBeVisible();
+      await page.evaluate(() => reorderTask(0, 1, false));
+      await expect(page.locator("#taskNoteRow0")).not.toBeVisible();
+    });
+
     test("task note button style reflects note display state", async ({ page }) => {
       await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().click();
       await page.locator("#jobEditModal").waitFor({ state: "visible" });
@@ -5485,6 +5500,82 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#jobTasks-tab").click();
       const card = page.locator(".task-drag-card").first();
       await expect(card).not.toHaveAttribute("draggable", "true");
+    });
+
+    test("drag and drop works when a note is open", async ({ page }) => {
+      await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().click();
+      await page.locator("#jobEditModal").waitFor({ state: "visible" });
+      await page.locator("#jobTasks-tab").click();
+      await page.locator("#jobAddTaskBtn").click();
+      await page.locator(".task-desc-input").first().fill("Task A");
+      await page.locator("#jobAddTaskBtn").click();
+      await page.locator(".task-desc-input").last().fill("Task B");
+      await page.locator(".task-note-btn").first().click();
+      await page.locator("#taskNoteRow0 textarea").fill("Open note");
+      await page.locator(".task-note-btn").last().click();
+      await page.locator("#taskNoteRow1 textarea").fill("Open note");
+      await expect(page.locator("#taskNoteRow0")).toBeVisible();
+      await expect(page.locator("#taskNoteRow1")).toBeVisible();
+      await page.evaluate(() => {
+        const list = document.getElementById("jobTasksList");
+        const cards = list.querySelectorAll(".task-drag-card");
+        const handle0 = cards[0].querySelector(".drag-handle");
+        const noteRow1 = document.getElementById("taskNoteRow1");
+        const r0 = handle0.getBoundingClientRect();
+        const r1 = noteRow1.getBoundingClientRect();
+        const top = Math.min(r1.top, cards[1].getBoundingClientRect().top);
+        const bottom = Math.max(r1.bottom, cards[1].getBoundingClientRect().bottom);
+        const dropY = (top + bottom) / 2 + 5;
+        const dt = new DataTransfer();
+        const fire = (type, target, x, y) => {
+          target.dispatchEvent(new DragEvent(type, {
+            bubbles: true, cancelable: true, clientX: x, clientY: y, dataTransfer: dt
+          }));
+        };
+        fire("dragstart", handle0, r0.x + 2, r0.y + 2);
+        fire("dragover", noteRow1, r1.x + 10, dropY);
+        fire("drop", noteRow1, r1.x + 10, dropY);
+        fire("dragend", handle0, r0.x + 2, r0.y + 2);
+      });
+      const order = await page.evaluate(() => {
+        return [...document.querySelectorAll("#jobTasksList .task-desc-input")].map(i => i.value);
+      });
+      expect(order[0]).toBe("Task B");
+      expect(order[1]).toBe("Task A");
+    });
+
+    test("trailing click after task drag does not close the edit modal", async ({ page }) => {
+      await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().click();
+      await page.locator("#jobEditModal").waitFor({ state: "visible" });
+      await page.locator("#jobTasks-tab").click();
+      await page.locator("#jobAddTaskBtn").click();
+      await page.locator(".task-desc-input").first().fill("Task A");
+      await page.locator("#jobAddTaskBtn").click();
+      await page.locator(".task-desc-input").last().fill("Task B");
+      await page.locator("#jobAddTaskBtn").click();
+      await page.locator(".task-desc-input").last().fill("Task C");
+
+      const handle = page.locator("#jobTasksList .task-drag-card").first().locator(".drag-handle");
+      const okBtn = page.locator("#jobEditOkBtn");
+      const hb = await handle.boundingBox();
+      const ob = await okBtn.boundingBox();
+      await page.mouse.move(hb.x + hb.width / 2, hb.y + hb.height / 2);
+      await page.mouse.down();
+      await page.mouse.move(ob.x + ob.width / 2, ob.y + ob.height / 2, { steps: 20 });
+      await page.mouse.up();
+
+      // Chrome synthesizes a click on the element under the pointer after a
+      // native drop — simulate it; the modal must not close.
+      const pos = { x: ob.x + ob.width / 2, y: ob.y + ob.height / 2 };
+      await page.evaluate((p) => {
+        const el = document.elementFromPoint(p.x, p.y);
+        el.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, clientX: p.x, clientY: p.y }));
+      }, pos);
+      await page.waitForTimeout(300);
+
+      await expect(page.locator("#jobEditModal")).toBeVisible();
+      const order = await page.evaluate(() => [...document.querySelectorAll("#jobTasksList .task-desc-input")].map(i => i.value));
+      expect(order).toEqual(["Task A", "Task B", "Task C"]);
     });
 
     test("reorderTask moves task in buffer array", async ({ page }) => {

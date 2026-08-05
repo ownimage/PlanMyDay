@@ -89,11 +89,11 @@ function addTouchDnD(container, cardSelector, getSrcId, reorderCallback, options
     e.preventDefault();
     const touch = e.touches[0];
     const el = document.elementFromPoint(touch.clientX, touch.clientY);
-    const target = el ? el.closest(cardSelector) : null;
+    const target = options.resolveTarget ? options.resolveTarget(el) : (el ? el.closest(cardSelector) : null);
     if (!target) return;
     if (options.ignoreSelector && target.closest(options.ignoreSelector) && !target.matches(cardSelector)) return;
     container.querySelectorAll(cardSelector).forEach(c => c.classList.remove("drag-over-top", "drag-over-bottom"));
-    const rect = target.getBoundingClientRect();
+    const rect = options.getRect ? options.getRect(target) : target.getBoundingClientRect();
     target.classList.add(touch.clientY < rect.top + rect.height / 2 ? "drag-over-top" : "drag-over-bottom");
   }, { passive: false });
 
@@ -101,12 +101,13 @@ function addTouchDnD(container, cardSelector, getSrcId, reorderCallback, options
     if (touchSrc === null || touchSrc === undefined) { touchSrc = null; touchCard = null; return; }
     clearDragUi();
     const touch = e.changedTouches[0];
+    suppressClickAfterDnD({ clientX: touch.clientX, clientY: touch.clientY });
     const el = document.elementFromPoint(touch.clientX, touch.clientY);
-    const target = el ? el.closest(cardSelector) : null;
+    const target = options.resolveTarget ? options.resolveTarget(el) : (el ? el.closest(cardSelector) : null);
     if (target) {
       const dstSrc = getSrcId(target);
       if (dstSrc !== null && dstSrc !== undefined && dstSrc !== -1 && dstSrc !== "" && touchSrc !== dstSrc) {
-        const rect = target.getBoundingClientRect();
+        const rect = options.getRect ? options.getRect(target) : target.getBoundingClientRect();
         const above = touch.clientY < rect.top + rect.height / 2;
         const src = touchSrc;
         touchSrc = null;
@@ -126,6 +127,29 @@ function addTouchDnD(container, cardSelector, getSrcId, reorderCallback, options
     touchCard = null;
   }, { passive: true });
 }
+
+var _suppressClickUntil = 0;
+var _suppressClickX = 0;
+var _suppressClickY = 0;
+var _suppressClickRadiusSq = 45 * 45;
+function suppressClickAfterDnD(e) {
+  _suppressClickUntil = Date.now() + 500;
+  if (e && typeof e.clientX === "number" && e.clientX >= 0 && e.clientY >= 0) {
+    _suppressClickX = e.clientX;
+    _suppressClickY = e.clientY;
+  }
+}
+document.addEventListener("click", function(e) {
+  if (Date.now() < _suppressClickUntil) {
+    var dx = e.clientX - _suppressClickX;
+    var dy = e.clientY - _suppressClickY;
+    if (dx * dx + dy * dy <= _suppressClickRadiusSq) {
+      _suppressClickUntil = 0;
+      e.preventDefault();
+      e.stopImmediatePropagation();
+    }
+  }
+}, true);
 
 var _jobDnDSetup = false;
 var _jobDragSrcIdx = -1;
@@ -163,6 +187,7 @@ function setupJobDnD(list) {
   });
   list.addEventListener("dragend", function(e) {
     list.querySelectorAll(".job-drag-card").forEach(function(c) { c.classList.remove("dragging", "drag-over-top", "drag-over-bottom"); });
+    suppressClickAfterDnD(e);
   });
   list.addEventListener("dragover", function(e) {
     e.preventDefault();
@@ -176,6 +201,7 @@ function setupJobDnD(list) {
   });
   list.addEventListener("drop", function(e) {
     e.preventDefault();
+    suppressClickAfterDnD(e);
     list.querySelectorAll(".job-drag-card").forEach(function(c) { c.classList.remove("drag-over-top", "drag-over-bottom"); });
     var target = e.target.closest(".job-drag-card");
     if (!target || _jobDragSrcIdx < 0) return;
@@ -520,6 +546,7 @@ function markJobDone(jobId, cbRef) {
   });
   cardContainer.addEventListener("dragend", e => {
     cardContainer.querySelectorAll(".today-drag-card").forEach(c => c.classList.remove("dragging", "drag-over-top", "drag-over-bottom"));
+    suppressClickAfterDnD(e);
   });
   cardContainer.addEventListener("dragover", e => {
     e.preventDefault();
@@ -531,6 +558,7 @@ function markJobDone(jobId, cbRef) {
   });
   cardContainer.addEventListener("drop", e => {
     e.preventDefault();
+    suppressClickAfterDnD(e);
     cardContainer.querySelectorAll(".today-drag-card").forEach(c => c.classList.remove("drag-over-top", "drag-over-bottom"));
     const target = e.target.closest(".today-drag-card");
     if (!target || !todayDragSrc || target.dataset.jobId === todayDragSrc) { todayDragSrc = null; return; }
@@ -748,6 +776,7 @@ function renderStreamsEditor() {
   });
   list.addEventListener("dragend", function(e) {
     document.querySelectorAll(".stream-drag-card").forEach(function(c) { c.classList.remove("dragging", "drag-over-top", "drag-over-bottom"); });
+    suppressClickAfterDnD(e);
   });
   list.addEventListener("dragover", function(e) {
     e.preventDefault();
@@ -761,6 +790,7 @@ function renderStreamsEditor() {
   });
   list.addEventListener("drop", function(e) {
     e.preventDefault();
+    suppressClickAfterDnD(e);
     document.querySelectorAll(".stream-drag-card").forEach(function(c) { c.classList.remove("drag-over-top", "drag-over-bottom"); });
     var target = e.target.closest(".stream-drag-card");
     if (!target || dragSrcIndex < 0) return;
@@ -1120,6 +1150,12 @@ function jobTaskField(index, field, value) {
   jobsBuffer.tasks[index][field] = value;
 }
 
+function taskNoteOpen(task) {
+  if (!task) return false;
+  if (task.noteOpen === undefined) return !!task.note;
+  return task.noteOpen;
+}
+
 function renderJobTasks() {
   var el = document.getElementById("jobTasksList");
   if (!el || !jobsBuffer) return;
@@ -1133,7 +1169,7 @@ function renderJobTasks() {
       '<button class="btn btn-sm ' + (task.note ? 'btn-outline-info' : 'btn-info') + ' task-note-btn" onclick="jobTaskToggleNote(this, ' + i + ')" title="Note"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path d="M12.854.146a.5.5 0 0 0-.707 0L10.5 1.793 14.207 5.5l1.647-1.646a.5.5 0 0 0 0-.708l-3-3zm.646 6.061L9.854 2.56a.5.5 0 0 0-.707 0L1.5 10.207V14.5h4.293L13.5 6.207zM12.793 3.207L4 12V14h2L13.793 4.207l-1-1z"/></svg></button>' +
       '<button class="btn btn-sm btn-danger d-flex align-items-center justify-content-center" style="width:32px;height:32px" onclick="jobDeleteTask(' + i + ')" title="Delete"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/><path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z"/></svg></button>' +
       '</div>' +
-      '<div class="task-note-row mb-1 ms-4" id="taskNoteRow' + i + '" style="display:' + (task.note ? 'block' : 'none') + '">' +
+      '<div class="task-note-row mb-1 ms-4" id="taskNoteRow' + i + '" style="display:' + (taskNoteOpen(task) ? 'block' : 'none') + '">' +
         '<textarea class="form-control" rows="2" placeholder="Note" oninput="jobTaskField(' + i + ', \'note\', this.value)">' + escapeHtml(task.note || "") + '</textarea>' +
       '</div>';
   });
@@ -1145,6 +1181,9 @@ function jobTaskToggleNote(btn, index) {
   if (!row) return;
   row.style.display = row.style.display === "none" ? "block" : "none";
   var shown = row.style.display === "block";
+  if (jobsBuffer && jobsBuffer.tasks && jobsBuffer.tasks[index]) {
+    jobsBuffer.tasks[index].noteOpen = shown;
+  }
   if (btn) {
     btn.classList.toggle("btn-outline-info", shown);
     btn.classList.toggle("btn-info", !shown);
@@ -1161,6 +1200,28 @@ function setupTaskDnD() {
 
   var dragSrcIdx = -1;
 
+  function resolveTaskDropTarget(el) {
+    if (!el) return null;
+    var card = el.closest(".task-drag-card");
+    if (card) return card;
+    var note = el.closest(".task-note-row");
+    if (!note) return null;
+    var idx = (note.id || "").replace("taskNoteRow", "");
+    return document.querySelector('.task-drag-card[data-task-index="' + idx + '"]');
+  }
+
+  function taskDropRect(card) {
+    var rect = card.getBoundingClientRect();
+    var note = document.getElementById("taskNoteRow" + card.dataset.taskIndex);
+    if (note && note.style.display !== "none") {
+      var nr = note.getBoundingClientRect();
+      var top = Math.min(rect.top, nr.top);
+      var bottom = Math.max(rect.bottom, nr.bottom);
+      rect = { top: top, bottom: bottom, height: bottom - top };
+    }
+    return rect;
+  }
+
   container.addEventListener("dragstart", function(e) {
     var card = e.target.closest(".task-drag-card");
     if (!card) return;
@@ -1174,29 +1235,31 @@ function setupTaskDnD() {
       c.classList.remove("dragging", "drag-over-top", "drag-over-bottom");
     });
     dragSrcIdx = -1;
+    suppressClickAfterDnD(e);
   });
   container.addEventListener("dragover", function(e) {
     e.preventDefault();
-    var target = e.target.closest(".task-drag-card");
+    var target = resolveTaskDropTarget(e.target);
     if (!target || dragSrcIdx < 0) return;
     container.querySelectorAll(".task-drag-card").forEach(function(c) {
       c.classList.remove("drag-over-top", "drag-over-bottom");
     });
-    var rect = target.getBoundingClientRect();
+    var rect = taskDropRect(target);
     target.classList.add(e.clientY < rect.top + rect.height / 2 ? "drag-over-top" : "drag-over-bottom");
   });
   container.addEventListener("drop", function(e) {
     e.preventDefault();
+    suppressClickAfterDnD(e);
     container.querySelectorAll(".task-drag-card").forEach(function(c) {
       c.classList.remove("drag-over-top", "drag-over-bottom");
     });
-    var target = e.target.closest(".task-drag-card");
+    var target = resolveTaskDropTarget(e.target);
     if (!target || dragSrcIdx < 0) return;
     var dstIdx = parseInt(target.dataset.taskIndex);
     var srcIdx = dragSrcIdx;
     dragSrcIdx = -1;
     if (srcIdx === dstIdx) return;
-    var rect = target.getBoundingClientRect();
+    var rect = taskDropRect(target);
     var above = e.clientY < rect.top + rect.height / 2;
     reorderTask(srcIdx, dstIdx, above);
   });
@@ -1205,7 +1268,7 @@ function setupTaskDnD() {
     return parseInt(c.dataset.taskIndex);
   }, function(srcIdx, dstIdx, above) {
     reorderTask(srcIdx, dstIdx, above);
-  }, { handleSelector: ".drag-handle" });
+  }, { handleSelector: ".drag-handle", resolveTarget: resolveTaskDropTarget, getRect: taskDropRect });
 }
 
 function reorderTask(srcIdx, dstIdx, above) {
@@ -1421,7 +1484,7 @@ function getJobEditFormHTML(data, readOnly) {
         <button class="btn btn-sm ${task.note ? 'btn-outline-info' : 'btn-info'} task-note-btn" ${noteBtnDisabled} onclick="jobTaskToggleNote(this, ${i})" title="Note"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path d="M12.854.146a.5.5 0 0 0-.707 0L10.5 1.793 14.207 5.5l1.647-1.646a.5.5 0 0 0 0-.708l-3-3zm.646 6.061L9.854 2.56a.5.5 0 0 0-.707 0L1.5 10.207V14.5h4.293L13.5 6.207zM12.793 3.207L4 12V14h2L13.793 4.207l-1-1z"/></svg></button>
         <button class="btn btn-sm btn-danger" ${disabled} onclick="jobDeleteTask(${i})">&times;</button>
       </div>
-      <div class="task-note-row mb-1 ms-4" id="taskNoteRow${i}" style="display:${task.note ? 'block' : 'none'}">
+      <div class="task-note-row mb-1 ms-4" id="taskNoteRow${i}" style="display:${taskNoteOpen(task) ? 'block' : 'none'}">
         <textarea class="form-control" rows="2" placeholder="Note" ${ro} oninput="jobTaskField(${i}, 'note', this.value)">${escapeHtml(task.note || "")}</textarea>
       </div>`;
   });

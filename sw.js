@@ -134,10 +134,10 @@ self.addEventListener("fetch", event => {
       });
     })
   );
-}
+});
 
 function isMinioRequest(url) {
   var server = new URL(self.location).origin;
   var reqOrigin = new URL(url).origin;
   return reqOrigin !== server && !url.startsWith("https://cdn.");
-});
+}
