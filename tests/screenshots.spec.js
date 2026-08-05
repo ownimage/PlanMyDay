@@ -249,7 +249,7 @@ test.describe("PlanMyDay - Screenshots", () => {
   test("add card modal", async ({ page }) => {
     await seedMainView(page);
     await page.reload();
-    await page.getByText("+ Add job").click();
+    await page.getByText("+ Add Job").click();
     await page.locator("#jobEditModal").waitFor({ state: "visible" });
     await page.waitForTimeout(400);
     await screenshotAllThemes(page, "main-screen-add-job.png");

@@ -336,7 +336,7 @@ function renderMain() {
   const addBtn = document.createElement("button");
   addBtn.className = "btn btn-primary editor-btn ms-auto";
   addBtn.id = "btnAddCard";
-  addBtn.innerHTML = "&#43; Add job";
+  addBtn.innerHTML = "&#43; Add Job";
   addBtn.onclick = function() { addTodayCardWithModal(); };
   headingRow.appendChild(addBtn);
   container.appendChild(headingRow);
@@ -1148,12 +1148,23 @@ function jobDeleteTask(index) {
 function jobTaskField(index, field, value) {
   if (!jobsBuffer || !jobsBuffer.tasks) return;
   jobsBuffer.tasks[index][field] = value;
+  if (field === "note") {
+    var row = document.querySelector('.task-row[data-task-index="' + index + '"]');
+    if (row) setTaskNoteBtnClass(row.querySelector(".task-note-btn"), jobsBuffer.tasks[index]);
+  }
 }
 
 function taskNoteOpen(task) {
   if (!task) return false;
   if (task.noteOpen === undefined) return !!task.note;
   return task.noteOpen;
+}
+
+function setTaskNoteBtnClass(btn, task) {
+  if (!btn) return;
+  var hasNote = !!(task && task.note);
+  btn.classList.toggle("btn-outline-info", hasNote);
+  btn.classList.toggle("btn-info", !hasNote);
 }
 
 function renderJobTasks() {
@@ -1184,9 +1195,8 @@ function jobTaskToggleNote(btn, index) {
   if (jobsBuffer && jobsBuffer.tasks && jobsBuffer.tasks[index]) {
     jobsBuffer.tasks[index].noteOpen = shown;
   }
-  if (btn) {
-    btn.classList.toggle("btn-outline-info", shown);
-    btn.classList.toggle("btn-info", !shown);
+  if (btn && jobsBuffer && jobsBuffer.tasks) {
+    setTaskNoteBtnClass(btn, jobsBuffer.tasks[index]);
   }
 }
 

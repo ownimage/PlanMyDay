@@ -104,26 +104,26 @@ test.describe("PlanMyDay - Regression", () => {
     });
 
     test("add card opens job edit modal", async ({ page }) => {
-      await page.getByText("+ Add job").click();
+      await page.getByText("+ Add Job").click();
       await expect(page.locator("#jobEditModal")).toBeVisible();
       await expect(page.locator("#jobEditModalTitle")).toHaveText("Add Job");
     });
 
     test("add card modal does not show delete button", async ({ page }) => {
-      await page.getByText("+ Add job").click();
+      await page.getByText("+ Add Job").click();
       await expect(page.locator("#jobEditDelBtn")).toHaveCount(0);
     });
 
     test("can cancel adding an adhoc card", async ({ page }) => {
       test.setTimeout(30000);
-      await page.getByText("+ Add job").click();
+      await page.getByText("+ Add Job").click();
       await page.locator("#jobEditCancelBtn").click();
       await expect(page.locator("#jobEditModal")).not.toBeVisible({ timeout: 10000 });
     });
 
     test("can add an adhoc card", async ({ page }) => {
       test.setTimeout(30000);
-      await page.getByText("+ Add job").click();
+      await page.getByText("+ Add Job").click();
       await page.locator("#jobEditModalBody .form-control").first().fill("Test Ad Hoc");
       await page.locator("#jobEditModalBody textarea").first().fill("Test description");
       await page.locator("#jobEditOkBtn").click();
@@ -316,7 +316,7 @@ test.describe("PlanMyDay - Regression", () => {
     });
 
     test("clear button resets sleepUntil field", async ({ page }) => {
-      await page.getByText("+ Add job").click();
+      await page.getByText("+ Add Job").click();
       await page.locator("#jobEditModal").waitFor({ state: "visible" });
       await page.evaluate(() => {
         const fp = document.getElementById("jobSleepUntil")._flatpickr;
@@ -335,7 +335,7 @@ test.describe("PlanMyDay - Regression", () => {
     });
 
     test("ok button is disabled when title is empty", async ({ page }) => {
-      await page.getByText("+ Add job").click();
+      await page.getByText("+ Add Job").click();
       await page.locator("#jobEditModal").waitFor({ state: "visible" });
       const okBtn = page.locator("#jobEditOkBtn");
       await expect(okBtn).toBeDisabled();
@@ -1422,7 +1422,7 @@ test.describe("PlanMyDay - Regression", () => {
   test.describe("Ad Hoc Workflow", () => {
 
     test("checking adhoc shows remove confirmation", async ({ page }) => {
-      await page.getByText("+ Add job").click();
+      await page.getByText("+ Add Job").click();
       await page.locator("#jobEditModal").waitFor({ state: "visible" });
       await page.locator("#jobEditModalBody .form-control").first().fill("AdHocJob");
       await page.locator("#jobEditOkBtn").click();
@@ -1442,7 +1442,7 @@ test.describe("PlanMyDay - Regression", () => {
     test("skip adhoc confirm setting works", async ({ page }) => {
       await page.evaluate(() => localStorage.setItem("planmydays_skipAdhocConfirm", "true"));
       await page.reload();
-      await page.getByText("+ Add job").click();
+      await page.getByText("+ Add Job").click();
       await page.locator("#jobEditModal").waitFor({ state: "visible" });
       await page.locator("#jobEditModalBody .form-control").first().fill("SkipMe");
       await page.locator("#jobEditOkBtn").click();
@@ -2416,7 +2416,7 @@ test.describe("PlanMyDay - Regression", () => {
   test.describe("Ad Hoc Confirm Removal", () => {
 
     test("confirming removal deletes adhoc job", async ({ page }) => {
-      await page.getByText("+ Add job").click();
+      await page.getByText("+ Add Job").click();
       await page.locator("#jobEditModal").waitFor({ state: "visible" });
       await page.locator("#jobEditModalBody .form-control").first().fill("RemoveMe");
       await page.locator("#jobEditOkBtn").click();
@@ -3410,7 +3410,7 @@ test.describe("PlanMyDay - Regression", () => {
         ]));
       });
       await page.reload();
-      await page.getByText("+ Add job").click();
+      await page.getByText("+ Add Job").click();
       await page.locator("#jobEditModal").waitFor({ state: "visible" });
       await page.locator("#btnJobImageChange").click();
       await page.locator("#imagePickerModal").waitFor({ state: "visible" });
@@ -5336,17 +5336,20 @@ test.describe("PlanMyDay - Regression", () => {
       await expect(page.locator("#taskNoteRow0")).not.toBeVisible();
     });
 
-    test("task note button style reflects note display state", async ({ page }) => {
+    test("task note button style reflects note content", async ({ page }) => {
       await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().click();
       await page.locator("#jobEditModal").waitFor({ state: "visible" });
       await page.locator("#jobTasks-tab").click();
       await page.locator("#jobAddTaskBtn").click();
       await expect(page.locator(".task-note-btn").first()).toHaveClass(/btn-info/);
       await page.locator(".task-note-btn").first().click();
-      await expect(page.locator(".task-note-btn").first()).toHaveClass(/btn-outline-info/);
+      await expect(page.locator(".task-note-btn").first()).toHaveClass(/btn-info/);
       await page.locator("#taskNoteRow0 textarea").fill("has note");
       await expect(page.locator(".task-note-btn").first()).toHaveClass(/btn-outline-info/);
       await page.locator(".task-note-btn").first().click();
+      await expect(page.locator(".task-note-btn").first()).toHaveClass(/btn-outline-info/);
+      await page.locator(".task-note-btn").first().click();
+      await page.locator("#taskNoteRow0 textarea").fill("");
       await expect(page.locator(".task-note-btn").first()).toHaveClass(/btn-info/);
     });
 
@@ -5374,15 +5377,19 @@ test.describe("PlanMyDay - Regression", () => {
       await mp.locator("#jobAddTaskBtn").click();
       const noteBtn = mp.locator(".task-note-btn").first();
       await expect(noteBtn).toHaveClass(/btn-info/);
+      const emptyBg = await noteBtn.evaluate((el) => getComputedStyle(el).backgroundColor);
+      expect(emptyBg).not.toBe("rgba(0, 0, 0, 0)");
       await noteBtn.click();
+      await expect(noteBtn).toHaveClass(/btn-info/);
+      await mp.locator("#taskNoteRow0 textarea").fill("has note");
       await expect(noteBtn).toHaveClass(/btn-outline-info/);
       await expect(mp.locator("#taskNoteRow0")).toBeVisible();
       const expandedBg = await noteBtn.evaluate((el) => getComputedStyle(el).backgroundColor);
       expect(["rgba(0, 0, 0, 0)", "transparent"]).toContain(expandedBg);
       await noteBtn.click();
-      await expect(noteBtn).toHaveClass(/btn-info/);
+      await expect(noteBtn).toHaveClass(/btn-outline-info/);
       const collapsedBg = await noteBtn.evaluate((el) => getComputedStyle(el).backgroundColor);
-      expect(collapsedBg).not.toBe("rgba(0, 0, 0, 0)");
+      expect(["rgba(0, 0, 0, 0)", "transparent"]).toContain(collapsedBg);
       await context.close();
     });
 
