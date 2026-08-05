@@ -812,4 +812,18 @@ body.compact .editor-btn {
   border-color: var(--bs-border-color);
 }
 
+/* Task note toggle button: keep the outline (expanded) state visibly distinct on
+   touch/mobile where a tap leaves the button stuck in :hover (Bootstrap's
+   .btn-outline-info:hover fills it solid, masking the state change). */
+.task-note-btn.btn-outline-info:hover,
+.task-note-btn.btn-outline-info:focus,
+.task-note-btn.btn-outline-info:active {
+  background-color: transparent;
+  color: var(--bs-info);
+  border-color: var(--bs-info);
+}
+.task-note-btn {
+  transition: none;
+}
+
 
