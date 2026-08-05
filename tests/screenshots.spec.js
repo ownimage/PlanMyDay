@@ -186,6 +186,9 @@ test.describe("PlanMyDay - Screenshots", () => {
   test.use({
     viewport: { width: 390, height: 797 },
     deviceScaleFactor: 3,
+    userAgent: "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36",
+    hasTouch: true,
+    isMobile: true,
   });
 
   test.beforeEach(async ({ page }) => {
@@ -486,7 +489,7 @@ test.describe("PlanMyDay - Screenshots", () => {
         { description: "Review pull request", done: false }
       ];
       streams[0].jobs[0].time = "09:00";
-      streams[0].jobs[0].sleepUntil = "";
+      streams[0].jobs[0].sleepUntil = "2099-06-15";
       streams[0].jobs[0].description = "Complete weekly development report with metrics and analysis";
       localStorage.setItem("planmydays_streams", JSON.stringify(streams));
     }, TEST_STREAMS);
@@ -496,7 +499,7 @@ test.describe("PlanMyDay - Screenshots", () => {
     await page.waitForSelector("#streamEditorList .accordion-item");
     await page.locator("#streamEditorList .stream-header-main").first().click();
     await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible", timeout: 5000 });
-    await page.locator("#streamEditorList .accordion-body .card").first().getByRole("button", { name: "Edit" }).click();
+    await page.locator("#streamEditorList .job-drag-card").filter({ hasText: "Report" }).getByRole("button", { name: "Edit" }).click();
     await page.locator("#jobEditModal").waitFor({ state: "visible" });
     await page.waitForTimeout(400);
   }

@@ -1544,7 +1544,7 @@ function getJobEditFormHTML(data, readOnly) {
           <div class="col">
             <label class="form-label">Sleep Until</label>
             <div class="d-flex gap-2">
-              <input class="form-control" id="jobSleepUntil" value="${escapeHtml(readOnly ? formatLongDate(data.sleepUntil) : (data.sleepUntil || ""))}" ${ro} placeholder="Pick a date">
+              <input class="form-control" id="jobSleepUntil" value="${escapeHtml(readOnly ? formatDate(data.sleepUntil) : (data.sleepUntil || ""))}" ${ro} placeholder="Pick a date">
               <button class="btn btn-danger btn-sm ${data.sleepUntil ? "" : "d-none"}" id="jobSleepUntilClearBtn" ${disabled} onclick="clearSleepUntil()">Clear</button>
             </div>
           </div>
@@ -1608,10 +1608,11 @@ function showJobEditModal(readOnly) {
       flatpickr(fpInput, {
         dateFormat: "Y-m-d",
         altInput: true,
-        altFormat: "l, j F, Y",
+        altFormat: "D j M Y",
         altInputClass: "form-control",
         allowInput: true,
         monthSelectorType: "dropdown",
+        disableMobile: true,
         onChange: function(selectedDates, dateStr) {
           jobField("sleepUntil", dateStr);
           updateSleepUntilClearBtn();
@@ -1648,10 +1649,11 @@ function editJobFromView() {
     flatpickr(fpInput, {
       dateFormat: "Y-m-d",
       altInput: true,
-      altFormat: "l, j F, Y",
+      altFormat: "D j M Y",
       altInputClass: "form-control",
       allowInput: true,
       monthSelectorType: "dropdown",
+      disableMobile: true,
       onChange: function(selectedDates, dateStr) {
         jobField("sleepUntil", dateStr);
         updateSleepUntilClearBtn();

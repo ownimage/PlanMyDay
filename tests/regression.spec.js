@@ -63,11 +63,11 @@ const TEST_STREAMS = [
 const now = new Date();
 const todayStr = now.getFullYear() + "-" + String(now.getMonth()+1).padStart(2,"0") + "-" + String(now.getDate()).padStart(2,"0");
 
-function longDateStr(dateStr) {
+function shortDateStr(dateStr) {
   const d = new Date(dateStr + "T00:00:00");
-  const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-  const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-  return dayNames[d.getDay()] + ", " + d.getDate() + " " + monthNames[d.getMonth()] + ", " + d.getFullYear();
+  const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  return dayNames[d.getDay()] + " " + d.getDate() + " " + monthNames[d.getMonth()] + " " + d.getFullYear();
 }
 
 function seedTodayList(page) {
@@ -266,7 +266,7 @@ test.describe("PlanMyDay - Regression", () => {
       await expect(page.locator("#jobSleepUntil")).toHaveValue("");
     });
 
-    test("sleep until shows long date format in view mode", async ({ page }) => {
+    test("sleep until shows short date format in view mode", async ({ page }) => {
       await seedTodayList(page);
       await page.evaluate((ds) => {
         const streams = JSON.parse(localStorage.getItem("planmydays_streams"));
@@ -278,7 +278,7 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#jobEditModal").waitFor({ state: "visible" });
       await expect(page.locator("#jobEditModalTitle")).toHaveText("View Job");
       await page.locator("#jobSchedule-tab").click();
-      await expect(page.locator("#jobSleepUntil")).toHaveValue(longDateStr(todayStr));
+      await expect(page.locator("#jobSleepUntil")).toHaveValue(shortDateStr(todayStr));
     });
 
     test("view then edit preserves custom today order", async ({ page }) => {
@@ -1781,14 +1781,14 @@ test.describe("PlanMyDay - Regression", () => {
       await expect(page.locator("#jobSleepUntilDisplay")).toBeVisible();
     });
 
-    test("sleep until shows long date format when date is picked", async ({ page }) => {
+    test("sleep until shows short date format when date is picked", async ({ page }) => {
       await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().click();
       await page.locator("#jobEditModal").waitFor({ state: "visible" });
       await page.locator("#jobSchedule-tab").click();
       await page.evaluate(() => {
         document.getElementById("jobSleepUntil")._flatpickr.setDate("2099-12-31", true);
       });
-      await expect(page.locator("#jobSleepUntilDisplay")).toHaveValue("Thursday, 31 December, 2099");
+      await expect(page.locator("#jobSleepUntilDisplay")).toHaveValue("Thu 31 Dec 2099");
       await expect(page.locator("#jobSleepUntil")).toHaveValue("2099-12-31");
     });
 
@@ -1805,7 +1805,7 @@ test.describe("PlanMyDay - Regression", () => {
       expect(stored).toBe("2099-12-31");
     });
 
-    test("sleep until shows long date format for existing job in edit mode", async ({ page }) => {
+    test("sleep until shows short date format for existing job in edit mode", async ({ page }) => {
       await page.evaluate(() => {
         const streams = JSON.parse(localStorage.getItem("planmydays_streams"));
         streams[0].jobs[0].sleepUntil = "2099-06-15";
@@ -1815,7 +1815,54 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#streamEditorList .job-drag-card").filter({ hasText: "Report" }).getByRole("button", { name: "Edit" }).click();
       await page.locator("#jobEditModal").waitFor({ state: "visible" });
       await page.locator("#jobSchedule-tab").click();
-      await expect(page.locator("#jobSleepUntilDisplay")).toHaveValue("Monday, 15 June, 2099");
+      await expect(page.locator("#jobSleepUntilDisplay")).toHaveValue("Mon 15 Jun 2099");
+    });
+
+    test("sleep until displays day-of-week prefix in short format", async ({ page }) => {
+      await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().click();
+      await page.locator("#jobEditModal").waitFor({ state: "visible" });
+      await page.locator("#jobSchedule-tab").click();
+      await page.evaluate(() => {
+        document.getElementById("jobSleepUntil")._flatpickr.setDate("2026-01-01", true);
+      });
+      await expect(page.locator("#jobSleepUntilDisplay")).toHaveValue("Thu 1 Jan 2026");
+      await expect(page.locator("#jobSleepUntil")).toHaveValue("2026-01-01");
+      await page.evaluate(() => {
+        document.getElementById("jobSleepUntil")._flatpickr.setDate("2026-08-05", true);
+      });
+      await expect(page.locator("#jobSleepUntilDisplay")).toHaveValue("Wed 5 Aug 2026");
+    });
+
+    test("sleep until formatted field stays visible on mobile devices", async ({ browser }) => {
+      const context = await browser.newContext({
+        userAgent: "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36",
+        viewport: { width: 412, height: 915 },
+        hasTouch: true,
+        isMobile: true
+      });
+      const mp = await context.newPage();
+      await mp.goto("http://localhost:8080/");
+      await mp.evaluate(() => {
+        localStorage.clear();
+        localStorage.setItem("planmydays_images", "[]");
+      });
+      await mp.reload();
+      await mp.evaluate(() => {
+        localStorage.setItem("planmydays_streams", JSON.stringify([
+          {
+            id: "stream_1", title: "Work", description: "", tab: "progress", image: "", sequence: 1,
+            jobs: [{ id: "job_1", title: "Report", description: "", active: true, frequency: "daily", sequence: 1, suffix: false, dayType: "dayOfYear", mod: "", sleepUntil: "2026-08-05", tasks: [] }]
+          }
+        ]));
+        renderStreamsEditor();
+        editJobInAccordion(0, 0);
+      });
+      await mp.locator("#jobEditModal").waitFor({ state: "visible" });
+      await mp.locator("#jobSchedule-tab").click();
+      await expect(mp.locator("#jobSleepUntilDisplay")).toBeVisible();
+      await expect(mp.locator("#jobSleepUntilDisplay")).toHaveValue("Wed 5 Aug 2026");
+      await expect(mp.locator(".flatpickr-mobile")).toHaveCount(0);
+      await context.close();
     });
 
     test("edit job and change schedule time", async ({ page }) => {
