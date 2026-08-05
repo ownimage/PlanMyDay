@@ -649,7 +649,7 @@ function getStreamEditFormHTML(data) {
           ${getImageDataUrl(data.image) ? `<img src="${getImageDataUrl(data.image)}" class="date-img" style="max-width:50px;max-height:50px">` : `<span class="text-secondary small">none</span>`}
         </div>
         <span class="small text-secondary" id="streamImageName">${escapeHtml(data.image || "")}</span>
-        <button class="btn btn-primary btn-sm" id="btnStreamImageChoose" onclick="openImagePicker(function(name){ editField('image', name); updateStreamImagePreview(name); })">Change</button>
+        <button class="btn btn-primary btn-sm" id="btnStreamImageChoose" onclick="openImagePicker(function(name){ editField('image', name); updateStreamImagePreview(name); })">Edit</button>
       </div>
     </div>
   `;
@@ -1495,7 +1495,7 @@ function getJobEditFormHTML(data, readOnly) {
               <div>
                 <div id="jobImageName">${escapeHtml(data.image || "")}</div>
                 <div class="d-flex gap-1 mt-1">
-                  <button class="btn btn-primary btn-sm" id="btnJobImageChange" ${disabled} onclick="openImagePicker(function(name){ jobField('image', name); updateJobImagePreview(name); })">Change</button>
+                  <button class="btn btn-primary btn-sm" id="btnJobImageChange" ${disabled} onclick="openImagePicker(function(name){ jobField('image', name); updateJobImagePreview(name); })">Edit</button>
                 </div>
               </div>
             </div>
@@ -1537,7 +1537,7 @@ function getJobEditFormHTML(data, readOnly) {
           <label class="form-label">Schedule</label>
           <div class="d-flex align-items-center gap-2">
             <span id="jobScheduleText">${escapeHtml(getScheduleText(data.schedule))}</span>
-            <button class="btn btn-primary btn-sm" id="btnScheduleChange" ${disabled} onclick="openScheduleModal()">Change</button>
+            <button class="btn btn-primary btn-sm" id="btnScheduleChange" ${disabled} onclick="openScheduleModal()">Edit</button>
           </div>
         </div>
         <div class="row mb-2">
