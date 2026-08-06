@@ -444,6 +444,7 @@ test.describe("PlanMyDay - Regression", () => {
       await expect(page.locator("#fontSizeSelector")).toBeVisible();
       await expect(page.locator("#iconSizeSelector")).toBeVisible();
       await expect(page.locator("#densitySelector")).toBeVisible();
+      await expect(page.locator("#dragSizeSelector")).toBeVisible();
       await page.locator("#schedule-tab").click();
       await expect(page.locator("#jan1Selector")).toBeVisible();
       await expect(page.locator("#mondaySelector")).toBeVisible();
@@ -487,6 +488,19 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#densitySelector").selectOption("compact");
       const hasClass = await page.evaluate(() => document.body.classList.contains("compact"));
       expect(hasClass).toBe(true);
+    });
+
+    test("drag size selector changes body class", async ({ page }) => {
+      await page.getByTitle("Settings").click();
+      await page.locator("#appearance-tab").click();
+      await page.locator("#dragSizeSelector").selectOption("normal");
+      const hasNormal = await page.evaluate(() => document.body.classList.contains("drag-size-normal"));
+      expect(hasNormal).toBe(true);
+      const stored = await page.evaluate(() => localStorage.getItem("planmydays_dragSize"));
+      expect(stored).toBe("normal");
+      await page.locator("#dragSizeSelector").selectOption("large");
+      const hasLarge = await page.evaluate(() => document.body.classList.contains("drag-size-large"));
+      expect(hasLarge).toBe(true);
     });
 
     test("split list toggle persists", async ({ page }) => {
@@ -1648,6 +1662,16 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#densitySelector").selectOption("normal");
       const hasCompact = await page.evaluate(() => document.body.classList.contains("compact"));
       expect(hasCompact).toBe(false);
+    });
+
+    test("drag size selector switches between normal and large", async ({ page }) => {
+      await page.locator("#appearance-tab").click();
+      await page.locator("#dragSizeSelector").selectOption("large");
+      await page.locator("#dragSizeSelector").selectOption("normal");
+      const hasLarge = await page.evaluate(() => document.body.classList.contains("drag-size-large"));
+      expect(hasLarge).toBe(false);
+      const hasNormal = await page.evaluate(() => document.body.classList.contains("drag-size-normal"));
+      expect(hasNormal).toBe(true);
     });
 
     test("auto hide menu disabling unbinds events", async ({ page }) => {
@@ -3938,6 +3962,30 @@ test.describe("PlanMyDay - Regression", () => {
       await page.evaluate(() => localStorage.setItem("planmydays_density", "compact"));
       await page.reload();
       await expect(page.locator("body")).toHaveClass(/compact/);
+    });
+
+    test("drag size defaults to large on fresh load", async ({ page }) => {
+      await expect(page.locator("body")).toHaveClass(/drag-size-large/);
+    });
+
+    test("drag size normal restored on load", async ({ page }) => {
+      await page.evaluate(() => localStorage.setItem("planmydays_dragSize", "normal"));
+      await page.reload();
+      await expect(page.locator("body")).toHaveClass(/drag-size-normal/);
+      await expect(page.locator("body")).not.toHaveClass(/drag-size-large/);
+    });
+
+    test("drag size setting changes handle size on main view", async ({ page }) => {
+      await seedTodayList(page);
+      await page.reload();
+      await page.locator("#todayCardList .today-drag-card .drag-handle").first().waitFor({ state: "visible" });
+      const handleSize = () => page.evaluate(() => parseFloat(getComputedStyle(document.querySelector("#todayCardList .drag-handle")).fontSize));
+      const largeSize = await handleSize();
+      await page.evaluate(() => changeDragSize("normal"));
+      const normalSize = await handleSize();
+      expect(largeSize).toBeGreaterThan(normalSize);
+      await page.evaluate(() => changeDragSize("large"));
+      expect(await handleSize()).toBe(largeSize);
     });
 
     test("changeDevToday and changeDevLastGen via settings helpers", async ({ page }) => {

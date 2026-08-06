@@ -67,6 +67,13 @@ function changeDensity(value) {
   }
 }
 
+// DRAG SIZE
+function changeDragSize(value) {
+  localStorage.setItem("planmydays_dragSize", value);
+  document.body.classList.remove("drag-size-normal", "drag-size-large");
+  document.body.classList.add("drag-size-" + value);
+}
+
 function changeSplitList(enabled) {
   localStorage.setItem("planmydays_splitList", enabled);
 }
@@ -201,6 +208,9 @@ document.addEventListener("DOMContentLoaded", () => {
   if (savedDensity !== "normal") {
     document.body.classList.add(savedDensity);
   }
+
+  const savedDragSize = localStorage.getItem("planmydays_dragSize") || "large";
+  document.body.classList.add("drag-size-" + savedDragSize);
 
   updateScreenResolution();
   window.addEventListener("resize", updateScreenResolution);

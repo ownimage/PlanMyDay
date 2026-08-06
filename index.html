@@ -237,6 +237,15 @@
             </div>
           </div>
           <div class="row mb-4 align-items-center col-md-8">
+            <div class="col-4 text-end"><label class="form-label mb-0">Drag size</label></div>
+            <div class="col-8">
+              <select id="dragSizeSelector" class="form-select" onchange="changeDragSize(this.value)">
+                <option value="normal">Normal</option>
+                <option value="large">Large</option>
+              </select>
+            </div>
+          </div>
+          <div class="row mb-4 align-items-center col-md-8">
             <div class="col-4 text-end"><label class="form-label mb-0">Screen resolution</label></div>
             <div class="col-8">
               <span id="screenResolution" class="form-control-plaintext"></span>
