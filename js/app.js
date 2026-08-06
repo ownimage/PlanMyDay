@@ -2198,10 +2198,12 @@ document.addEventListener("DOMContentLoaded", () => {
   }
   document.addEventListener("touchstart", e => {
     if (window.scrollY !== 0) return;
+    if (e.target.closest(".modal")) return;
     startY = e.touches[0].clientY; pulling = true; pullDist = 0;
   }, { passive: true });
   document.addEventListener("touchmove", e => {
     if (!pulling) return;
+    if (e.defaultPrevented) { pulling = false; pullDist = 0; indicator.style.height = "0"; return; }
     const dy = e.touches[0].clientY - startY;
     if (dy <= 0) { pullDist = 0; return; }
     pullDist = dy; adjustIcon(dy);
