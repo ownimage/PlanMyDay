@@ -456,7 +456,7 @@ function renderMain() {
     card.innerHTML = `
       <div class="row align-items-center">
         <div class="col-auto d-flex align-items-center">
-          <div class="drag-handle" style="cursor:grab;font-size:1.2rem;line-height:1;display:flex;align-items:center">&#9776;</div>
+          <div class="drag-handle" style="cursor:grab;font-size:1.6rem;line-height:1;padding:0.4rem 0.5rem;display:flex;align-items:center">&#9776;</div>
           <div class="form-check mb-0 ms-1 pe-0 d-flex align-items-center" style="min-height:0;padding-left:0">
             <input class="form-check-input job-checkbox m-0 position-static" type="checkbox" data-job-id="${escapeHtml(job.id)}" ${isDone ? "checked" : ""}>
           </div>
@@ -755,7 +755,7 @@ function renderStreamsEditor() {
     item.dataset.index = realIdx;
 
     var headerHtml = '<div class="accordion-header stream-accordion-header" id="streamHeading_' + realIdx + '">' +
-      '<div class="drag-handle flex-shrink-0" style="cursor:grab;font-size:1.3rem;line-height:1">&#9776;</div>' +
+      '<div class="drag-handle flex-shrink-0" style="cursor:grab;font-size:1.6rem;line-height:1;padding:0.4rem 0.5rem">&#9776;</div>' +
       '<div style="width:40px;height:40px;flex-shrink-0" class="mx-2">' + (streamImgUrl ? '<img src="' + streamImgUrl + '" class="date-img" style="max-width:40px;max-height:40px">' : '') + '</div>' +
       '<div style="display:flex;flex-direction:column;min-width:0;flex:1;gap:0.25rem;overflow:hidden" class="me-2">' +
         '<div style="display:flex;align-items:center;gap:0.35rem">' +
@@ -937,7 +937,7 @@ function renderJobsInAccordion(stream, jobs, streamIdx) {
     var hasSleep = j.sleepUntil && j.sleepUntil.trim();
     return '<div class="card p-2 mb-0 job-drag-card" draggable="true" data-job-idx="' + realIdx + '" data-stream-idx="' + streamIdx + '" data-sleep="' + escapeHtml(j.sleepUntil || '') + '" data-time="' + escapeHtml(j.time || '') + '">' +
       '<div class="d-flex align-items-center gap-2">' +
-        '<div class="drag-handle flex-shrink-0" style="cursor:grab;font-size:1.2rem;line-height:1;padding:0.15rem 0.25rem" aria-label="Drag to reorder">&#9776;</div>' +
+        '<div class="drag-handle flex-shrink-0" style="cursor:grab;font-size:1.6rem;line-height:1;padding:0.4rem 0.5rem" aria-label="Drag to reorder">&#9776;</div>' +
         (jobImgUrl ? '<div style="width:32px;height:32px;flex-shrink:0"><img src="' + jobImgUrl + '" class="date-img" style="max-width:32px;max-height:32px"></div>' : '') +
         '<div class="fw-bold editor-title" style="min-width:0;flex:1">' + escapeHtml(j.title) + (getJobSuffix(j) ? ' <span class="badge bg-secondary">' + escapeHtml(getJobSuffix(j).trim()) + '</span>' : '') + '</div>' +
         '<button class="btn btn-primary btn-sm editor-btn flex-shrink-0 align-self-center ms-3" style="min-width:50px" onclick="editJobInAccordion(' + streamIdx + ', ' + realIdx + ')">Edit</button>' +

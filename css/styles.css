@@ -708,8 +708,9 @@ body.compact .editor-btn {
   cursor: grab;
   touch-action: none;
   -webkit-touch-callout: none;
-  font-size: 1rem;
+  font-size: 1.6rem;
   line-height: 1;
+  padding: 0.4rem 0.5rem;
 }
 .task-drag-card .drag-handle:active {
   cursor: grabbing;

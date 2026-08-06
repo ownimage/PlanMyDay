@@ -150,6 +150,20 @@ test.describe("task touch drag & drop across a 4-task list", () => {
     expect(await getOrder(page)).toEqual(["Task B", "Task C", "Task D", "Task A"]);
   });
 
+  test("touch-drag top task to bottom does not trigger pull-to-refresh reload", async ({ page }) => {
+    await page.evaluate(() => { window.__dndReloadMarker = "alive"; });
+    expect(await getOrder(page)).toEqual(["Task A", "Task B", "Task C", "Task D"]);
+    const lb = await page.locator("#jobTasksList .task-drag-card").nth(3).boundingBox();
+    await touchDragHandleTo(page, 0, lb.x + lb.width / 2, lb.y + lb.height + 20);
+    expect(await getOrder(page)).toEqual(["Task B", "Task C", "Task D", "Task A"]);
+    // pull-to-refresh schedules location.reload() 400ms after touchend when it
+    // mistakes the drag for a pull gesture; wait past that window
+    await page.waitForTimeout(700);
+    const marker = await page.evaluate(() => window.__dndReloadMarker);
+    expect(marker).toBe("alive");
+    await expect(page.locator("#jobEditModal")).toBeVisible();
+  });
+
   test("touch-drag bottom task and release above the first card prepends it", async ({ page }) => {
     expect(await getOrder(page)).toEqual(["Task A", "Task B", "Task C", "Task D"]);
     const fb = await page.locator("#jobTasksList .task-drag-card").nth(0).boundingBox();

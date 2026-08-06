@@ -75,6 +75,19 @@ test.describe("stream reorder via touch", () => {
     expect(await getOrder(page)).toEqual(["S2", "S3", "S4", "S1"]);
   });
 
+  test("touch-drag stream to bottom does not trigger pull-to-refresh reload", async ({ page }) => {
+    await page.evaluate(() => { window.__dndReloadMarker = "alive"; });
+    expect(await getOrder(page)).toEqual(["S1", "S2", "S3", "S4"]);
+    const lb = await page.locator("#streamEditorList .stream-drag-card").nth(3).boundingBox();
+    await touchDragHandleTo(page, 0, lb.x + lb.width / 2, lb.y + lb.height + 30);
+    expect(await getOrder(page)).toEqual(["S2", "S3", "S4", "S1"]);
+    // pull-to-refresh schedules location.reload() 400ms after touchend when it
+    // mistakes the drag for a pull gesture; wait past that window
+    await page.waitForTimeout(700);
+    const marker = await page.evaluate(() => window.__dndReloadMarker);
+    expect(marker).toBe("alive");
+  });
+
   test("touch-drag last stream above the first stream moves it to the start", async ({ page }) => {
     expect(await getOrder(page)).toEqual(["S1", "S2", "S3", "S4"]);
     const fb = await page.locator("#streamEditorList .stream-drag-card").nth(0).boundingBox();
