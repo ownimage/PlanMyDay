@@ -70,6 +70,17 @@ function shortDateStr(dateStr) {
   return dayNames[d.getDay()] + " " + d.getDate() + " " + monthNames[d.getMonth()] + " " + d.getFullYear();
 }
 
+function futureDateStr(daysFromNow) {
+  const d = new Date();
+  d.setDate(d.getDate() + daysFromNow);
+  return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
+}
+
+function dayMonthStr(dateStr) {
+  const parts = shortDateStr(dateStr).split(" ");
+  return parts[1] + " " + parts[2];
+}
+
 function seedTodayList(page) {
   return page.evaluate(({ data, ds }) => {
     localStorage.setItem("planmydays_streams", JSON.stringify(data));
@@ -216,11 +227,11 @@ test.describe("PlanMyDay - Regression", () => {
 
     test("job with future sleepUntil is hidden from main screen", async ({ page }) => {
       await seedTodayList(page);
-      await page.evaluate(() => {
+      await page.evaluate((ds) => {
         const streams = JSON.parse(localStorage.getItem("planmydays_streams"));
-        streams[0].jobs[0].sleepUntil = "2099-12-31";
+        streams[0].jobs[0].sleepUntil = ds;
         localStorage.setItem("planmydays_streams", JSON.stringify(streams));
-      });
+      }, futureDateStr(30));
       await page.reload();
       await expect(page.locator("#todayCardList")).toBeVisible();
       await expect(page.locator("h4").filter({ hasText: "Report" })).not.toBeVisible();
@@ -235,7 +246,7 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#jobEditModal").waitFor({ state: "visible" });
       await page.locator("#btnViewJobEdit").filter({ hasText: "Edit" }).click();
       await expect(page.locator("#jobEditModalTitle")).toHaveText("Edit Job");
-      await page.evaluate(() => jobField("sleepUntil", "2099-12-31"));
+      await page.evaluate((ds) => jobField("sleepUntil", ds), futureDateStr(30));
       await page.locator("#jobEditOkBtn").click();
       await page.waitForTimeout(500);
       await page.evaluate(() => {
@@ -318,16 +329,17 @@ test.describe("PlanMyDay - Regression", () => {
     test("clear button resets sleepUntil field", async ({ page }) => {
       await page.getByText("+ Add Job").click();
       await page.locator("#jobEditModal").waitFor({ state: "visible" });
-      await page.evaluate(() => {
+      const futureDate = futureDateStr(30);
+      await page.evaluate((ds) => {
         const fp = document.getElementById("jobSleepUntil")._flatpickr;
         if (fp) {
-          fp.setDate("2099-12-31", true);
-          fp.input.value = "2099-12-31";
+          fp.setDate(ds, true);
+          fp.input.value = ds;
         }
         updateSleepUntilClearBtn();
-      });
+      }, futureDate);
       await page.locator("#jobSchedule-tab").click();
-      await expect(page.locator("#jobSleepUntil")).toHaveValue("2099-12-31");
+      await expect(page.locator("#jobSleepUntil")).toHaveValue(futureDate);
       const clearBtn = page.locator("#jobSleepUntilClearBtn");
       await expect(clearBtn).toBeVisible();
       await clearBtn.click();
@@ -675,13 +687,14 @@ test.describe("PlanMyDay - Regression", () => {
     });
 
     test("sleep until badge shows short date format", async ({ page }) => {
-      await page.evaluate(() => {
+      const futureDate = futureDateStr(30);
+      await page.evaluate((ds) => {
         const streams = JSON.parse(localStorage.getItem("planmydays_streams"));
-        streams[0].jobs[0].sleepUntil = "2099-06-15";
+        streams[0].jobs[0].sleepUntil = ds;
         localStorage.setItem("planmydays_streams", JSON.stringify(streams));
         renderStreamsEditor();
-      });
-      await expect(page.locator("#streamEditorList .badge.bg-info").filter({ hasText: "Sleep:" })).toContainText("Mon 15 Jun 2099");
+      }, futureDate);
+      await expect(page.locator("#streamEditorList .badge.bg-info").filter({ hasText: "Sleep:" })).toContainText(shortDateStr(futureDate));
     });
 
     test("opens add job modal", async ({ page }) => {
@@ -1786,52 +1799,57 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().click();
       await page.locator("#jobEditModal").waitFor({ state: "visible" });
       await page.locator("#jobSchedule-tab").click();
-      await page.evaluate(() => {
-        document.getElementById("jobSleepUntil")._flatpickr.setDate("2099-12-31", true);
-      });
-      await expect(page.locator("#jobSleepUntilDisplay")).toHaveValue("Thu 31 Dec 2099");
-      await expect(page.locator("#jobSleepUntil")).toHaveValue("2099-12-31");
+      const futureDate = futureDateStr(30);
+      await page.evaluate((ds) => {
+        document.getElementById("jobSleepUntil")._flatpickr.setDate(ds, true);
+      }, futureDate);
+      await expect(page.locator("#jobSleepUntilDisplay")).toHaveValue(shortDateStr(futureDate));
+      await expect(page.locator("#jobSleepUntil")).toHaveValue(futureDate);
     });
 
     test("sleep until keeps ISO format in storage when saved", async ({ page }) => {
       await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().click();
       await page.locator("#jobEditModal").waitFor({ state: "visible" });
       await page.locator("#jobSchedule-tab").click();
-      await page.evaluate(() => {
-        document.getElementById("jobSleepUntil")._flatpickr.setDate("2099-12-31", true);
-      });
+      const futureDate = futureDateStr(30);
+      await page.evaluate((ds) => {
+        document.getElementById("jobSleepUntil")._flatpickr.setDate(ds, true);
+      }, futureDate);
       await page.locator("#jobEditOkBtn").click();
       await page.locator("#jobEditModal").waitFor({ state: "hidden", timeout: 10000 });
       const stored = await page.evaluate(() => JSON.parse(localStorage.getItem("planmydays_streams"))[0].jobs[0].sleepUntil);
-      expect(stored).toBe("2099-12-31");
+      expect(stored).toBe(futureDate);
     });
 
     test("sleep until shows short date format for existing job in edit mode", async ({ page }) => {
-      await page.evaluate(() => {
+      const futureDate = futureDateStr(30);
+      await page.evaluate((ds) => {
         const streams = JSON.parse(localStorage.getItem("planmydays_streams"));
-        streams[0].jobs[0].sleepUntil = "2099-06-15";
+        streams[0].jobs[0].sleepUntil = ds;
         localStorage.setItem("planmydays_streams", JSON.stringify(streams));
         renderStreamsEditor();
-      });
+      }, futureDate);
       await page.locator("#streamEditorList .job-drag-card").filter({ hasText: "Report" }).getByRole("button", { name: "Edit" }).click();
       await page.locator("#jobEditModal").waitFor({ state: "visible" });
       await page.locator("#jobSchedule-tab").click();
-      await expect(page.locator("#jobSleepUntilDisplay")).toHaveValue("Mon 15 Jun 2099");
+      await expect(page.locator("#jobSleepUntilDisplay")).toHaveValue(shortDateStr(futureDate));
     });
 
     test("sleep until displays day-of-week prefix in short format", async ({ page }) => {
       await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().click();
       await page.locator("#jobEditModal").waitFor({ state: "visible" });
       await page.locator("#jobSchedule-tab").click();
-      await page.evaluate(() => {
-        document.getElementById("jobSleepUntil")._flatpickr.setDate("2026-01-01", true);
-      });
-      await expect(page.locator("#jobSleepUntilDisplay")).toHaveValue("Thu 1 Jan 2026");
-      await expect(page.locator("#jobSleepUntil")).toHaveValue("2026-01-01");
-      await page.evaluate(() => {
-        document.getElementById("jobSleepUntil")._flatpickr.setDate("2026-08-05", true);
-      });
-      await expect(page.locator("#jobSleepUntilDisplay")).toHaveValue("Wed 5 Aug 2026");
+      const firstDate = futureDateStr(30);
+      const secondDate = futureDateStr(60);
+      await page.evaluate((ds) => {
+        document.getElementById("jobSleepUntil")._flatpickr.setDate(ds, true);
+      }, firstDate);
+      await expect(page.locator("#jobSleepUntilDisplay")).toHaveValue(shortDateStr(firstDate));
+      await expect(page.locator("#jobSleepUntil")).toHaveValue(firstDate);
+      await page.evaluate((ds) => {
+        document.getElementById("jobSleepUntil")._flatpickr.setDate(ds, true);
+      }, secondDate);
+      await expect(page.locator("#jobSleepUntilDisplay")).toHaveValue(shortDateStr(secondDate));
     });
 
     test("sleep until formatted field stays visible on mobile devices", async ({ browser }) => {
@@ -1848,20 +1866,21 @@ test.describe("PlanMyDay - Regression", () => {
         localStorage.setItem("planmydays_images", "[]");
       });
       await mp.reload();
-      await mp.evaluate(() => {
+      const futureDate = futureDateStr(30);
+      await mp.evaluate((ds) => {
         localStorage.setItem("planmydays_streams", JSON.stringify([
           {
             id: "stream_1", title: "Work", description: "", tab: "progress", image: "", sequence: 1,
-            jobs: [{ id: "job_1", title: "Report", description: "", active: true, frequency: "daily", sequence: 1, suffix: false, dayType: "dayOfYear", mod: "", sleepUntil: "2026-08-05", tasks: [] }]
+            jobs: [{ id: "job_1", title: "Report", description: "", active: true, frequency: "daily", sequence: 1, suffix: false, dayType: "dayOfYear", mod: "", sleepUntil: ds, tasks: [] }]
           }
         ]));
         renderStreamsEditor();
         editJobInAccordion(0, 0);
-      });
+      }, futureDate);
       await mp.locator("#jobEditModal").waitFor({ state: "visible" });
       await mp.locator("#jobSchedule-tab").click();
       await expect(mp.locator("#jobSleepUntilDisplay")).toBeVisible();
-      await expect(mp.locator("#jobSleepUntilDisplay")).toHaveValue("Wed 5 Aug 2026");
+      await expect(mp.locator("#jobSleepUntilDisplay")).toHaveValue(shortDateStr(futureDate));
       await expect(mp.locator(".flatpickr-mobile")).toHaveCount(0);
       await context.close();
     });
@@ -2285,12 +2304,13 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#showDanger").check();
       const todayInput = page.locator(".flatpickr-input").first();
       await todayInput.click();
-      await todayInput.fill("2026-12-25");
+      const futureDate = futureDateStr(30);
+      await todayInput.fill(futureDate);
       await todayInput.press("Enter");
       await page.waitForTimeout(500);
       await page.getByRole("button", { name: "Done" }).click();
       await page.waitForTimeout(500);
-      await expect(page.locator("h2").first()).toContainText("25 Dec");
+      await expect(page.locator("h2").first()).toContainText(dayMonthStr(futureDate));
     });
   });
 
@@ -3002,21 +3022,23 @@ test.describe("PlanMyDay - Regression", () => {
 
     test("dev today overrides getTodayDate", async ({ page }) => {
       await page.goto("/?dev=true");
-      await page.evaluate(() => {
-        localStorage.setItem("devToday", "2026-06-15");
-      });
+      const futureDate = futureDateStr(30);
+      await page.evaluate((ds) => {
+        localStorage.setItem("devToday", ds);
+      }, futureDate);
       await page.reload();
-      await expect(page.locator("h2").first()).toContainText("15 Jun");
+      await expect(page.locator("h2").first()).toContainText(dayMonthStr(futureDate));
     });
 
     test("dev last gen is returned by getStoredLastGen", async ({ page }) => {
       await page.goto("/?dev=true");
-      await page.evaluate(() => {
-        localStorage.setItem("devLastGen", "2026-06-14");
-      });
+      const futureDate = futureDateStr(29);
+      await page.evaluate((ds) => {
+        localStorage.setItem("devLastGen", ds);
+      }, futureDate);
       await page.reload();
       const stored = await page.evaluate(() => window.getStoredLastGen());
-      expect(stored).toBe("2026-06-14");
+      expect(stored).toBe(futureDate);
     });
   });
 
@@ -3863,13 +3885,14 @@ test.describe("PlanMyDay - Regression", () => {
     });
 
     test("canSwapJobs rejects different time groups", async ({ page }) => {
-      const result = await page.evaluate((data) => {
+      const futureDate = futureDateStr(30);
+      const result = await page.evaluate(({ data, sleep }) => {
         data[0].jobs = [
           { id: "t1", title: "T1", active: true, sequence: 1, time: "09:00" },
           { id: "t2", title: "T2", active: true, sequence: 2, time: "10:00" },
           { id: "u1", title: "U1", active: true, sequence: 3, time: "" },
-          { id: "s1", title: "S1", active: true, sequence: 4, time: "", sleepUntil: "2099-01-01" },
-          { id: "s2", title: "S2", active: true, sequence: 5, time: "", sleepUntil: "2099-01-01" }
+          { id: "s1", title: "S1", active: true, sequence: 4, time: "", sleepUntil: sleep },
+          { id: "s2", title: "S2", active: true, sequence: 5, time: "", sleepUntil: sleep }
         ];
         localStorage.setItem("planmydays_streams", JSON.stringify(data));
         return {
@@ -3878,7 +3901,7 @@ test.describe("PlanMyDay - Regression", () => {
           sameSleep: canSwapJobs(0, 3, 4),
           missing: canSwapJobs(0, 0, 99)
         };
-      }, TEST_STREAMS);
+      }, { data: TEST_STREAMS, sleep: futureDate });
       expect(result.diffTime).toBe(false);
       expect(result.timeUntimed).toBe(false);
       expect(result.sameSleep).toBe(true);
@@ -3925,18 +3948,20 @@ test.describe("PlanMyDay - Regression", () => {
       });
       await startCoverage(page);
       await page.reload();
-      await page.evaluate(() => {
-        changeDevToday("2026-01-15");
-        changeDevLastGen("2026-01-14");
-      });
+      const futureToday = futureDateStr(30);
+      const futureLastGen = futureDateStr(29);
+      await page.evaluate(({ t, l }) => {
+        changeDevToday(t);
+        changeDevLastGen(l);
+      }, { t: futureToday, l: futureLastGen });
       const vals = await page.evaluate(() => ({
         today: localStorage.getItem("devToday"),
         last: localStorage.getItem("devLastGen"),
         dateFn: getTodayStr()
       }));
-      expect(vals.today).toBe("2026-01-15");
-      expect(vals.last).toBe("2026-01-14");
-      expect(vals.dateFn).toBe("2026-01-15");
+      expect(vals.today).toBe(futureToday);
+      expect(vals.last).toBe(futureLastGen);
+      expect(vals.dateFn).toBe(futureToday);
     });
 
     test("getImageColors decodes percent-hash colors", async ({ page }) => {
@@ -4143,15 +4168,17 @@ test.describe("PlanMyDay - Regression", () => {
     });
 
     test("canSwapJobs sleep and time subgroup branches", async ({ page }) => {
-      const result = await page.evaluate((data) => {
+      const futureDateA = futureDateStr(30);
+      const futureDateB = futureDateStr(60);
+      const result = await page.evaluate(({ data, sleepA, sleepB }) => {
         data[0].jobs = [
           { id: "a", title: "A", active: true, sequence: 1, time: "09:00", sleepUntil: "" },
           { id: "b", title: "B", active: true, sequence: 2, time: "09:00", sleepUntil: "" },
           { id: "c", title: "C", active: true, sequence: 3, time: "10:00", sleepUntil: "" },
-          { id: "d", title: "D", active: true, sequence: 4, time: "", sleepUntil: "2099-01-01" },
-          { id: "e", title: "E", active: true, sequence: 5, time: "", sleepUntil: "2099-01-01" },
-          { id: "f", title: "F", active: true, sequence: 6, time: "08:00", sleepUntil: "2099-01-01" },
-          { id: "g", title: "G", active: true, sequence: 7, time: "", sleepUntil: "2099-06-01" },
+          { id: "d", title: "D", active: true, sequence: 4, time: "", sleepUntil: sleepA },
+          { id: "e", title: "E", active: true, sequence: 5, time: "", sleepUntil: sleepA },
+          { id: "f", title: "F", active: true, sequence: 6, time: "08:00", sleepUntil: sleepA },
+          { id: "g", title: "G", active: true, sequence: 7, time: "", sleepUntil: sleepB },
           { id: "h", title: "H", active: true, sequence: 8, time: "  ", sleepUntil: "  " }
         ];
         localStorage.setItem("planmydays_streams", JSON.stringify(data));
@@ -4170,7 +4197,7 @@ test.describe("PlanMyDay - Regression", () => {
             try { return canSwapJobs(data.length - 1, 0, 1); } catch (e) { return "err"; }
           })()
         };
-      }, TEST_STREAMS);
+      }, { data: TEST_STREAMS, sleepA: futureDateA, sleepB: futureDateB });
       expect(result.sameTime).toBe(true);
       expect(result.diffTime).toBe(false);
       expect(result.sameSleep).toBe(true);
@@ -4272,12 +4299,14 @@ test.describe("PlanMyDay - Regression", () => {
     });
 
     test("formatDate and getDaysSinceEpoch", async ({ page }) => {
-      const result = await page.evaluate(() => ({
-        formatted: formatDate("2026-07-31"),
+      const futureDate = futureDateStr(30);
+      const result = await page.evaluate((ds) => ({
+        formatted: formatDate(ds),
         empty: formatDate(""),
-        epoch: getDaysSinceEpoch(new Date("2026-07-31T00:00:00"))
-      }));
-      expect(result.formatted).toBeTruthy();
+        epoch: getDaysSinceEpoch(new Date(ds + "T00:00:00"))
+      }), futureDate);
+      expect(result.formatted).toBe(shortDateStr(futureDate));
+      expect(result.empty).toBe("");
       expect(typeof result.epoch).toBe("number");
     });
 

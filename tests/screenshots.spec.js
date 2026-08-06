@@ -120,6 +120,12 @@ const TEST_STREAMS = [
 const now = new Date();
 const todayStr = now.getFullYear() + "-" + String(now.getMonth()+1).padStart(2,"0") + "-" + String(now.getDate()).padStart(2,"0");
 
+function futureDateStr(daysFromNow) {
+  const d = new Date();
+  d.setDate(d.getDate() + daysFromNow);
+  return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
+}
+
 const SCREENSHOT_DIR = path.resolve(__dirname, "..", "screenshots");
 
 const bw = "https://cdn.jsdelivr.net/npm/bootswatch@5.3.3/dist";
@@ -481,7 +487,7 @@ test.describe("PlanMyDay - Screenshots", () => {
   });
 
   async function openJobEditWithTasks(page) {
-    await page.evaluate((data) => {
+    await page.evaluate(({ data, sleep }) => {
       var streams = JSON.parse(JSON.stringify(data));
       streams[0].jobs[0].tasks = [
         { description: "Check deployment logs", done: true },
@@ -489,10 +495,10 @@ test.describe("PlanMyDay - Screenshots", () => {
         { description: "Review pull request", done: false }
       ];
       streams[0].jobs[0].time = "09:00";
-      streams[0].jobs[0].sleepUntil = "2099-06-15";
+      streams[0].jobs[0].sleepUntil = sleep;
       streams[0].jobs[0].description = "Complete weekly development report with metrics and analysis";
       localStorage.setItem("planmydays_streams", JSON.stringify(streams));
-    }, TEST_STREAMS);
+    }, { data: TEST_STREAMS, sleep: futureDateStr(30) });
     await page.reload();
     await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
     await page.locator("a.dropdown-item").filter({ hasText: "Jobs" }).click();
