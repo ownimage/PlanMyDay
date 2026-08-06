@@ -189,6 +189,8 @@ function seedMainView(page) {
 
 test.describe("PlanMyDay - Screenshots", () => {
 
+  test.describe.configure({ timeout: 40000 });
+
   test.use({
     viewport: { width: 390, height: 797 },
     deviceScaleFactor: 3,
@@ -210,6 +212,7 @@ test.describe("PlanMyDay - Screenshots", () => {
       localStorage.setItem("planmydays_fontSize", "xsmall");
       localStorage.setItem("planmydays_iconSize", "small");
       localStorage.setItem("planmydays_density", "compact");
+      localStorage.setItem("planmydays_dragSize", "normal");
       localStorage.setItem("planmydays_images", JSON.stringify(images));
     }, sampleImagesData.images);
     await page.reload();
@@ -221,6 +224,8 @@ test.describe("PlanMyDay - Screenshots", () => {
     await page.reload();
     await page.waitForSelector(".today-drag-card");
     await screenshotAllThemes(page, "main-view.png");
+    await page.evaluate(() => changeDragSize("large"));
+    await screenshotAllThemes(page, "main-view-large.png");
   });
 
   test("main view - split list progress", async ({ page }) => {
@@ -307,6 +312,8 @@ test.describe("PlanMyDay - Screenshots", () => {
     await page.locator("#streamEditorList .stream-header-main").first().click();
     await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible", timeout: 5000 });
     await screenshotAllThemes(page, "edit-streams.png");
+    await page.evaluate(() => changeDragSize("large"));
+    await screenshotAllThemes(page, "edit-streams-large.png");
   });
 
   test("add stream modal", async ({ page }) => {
@@ -527,6 +534,8 @@ test.describe("PlanMyDay - Screenshots", () => {
     await page.locator("#jobTasks-tab").click();
     await page.waitForTimeout(300);
     await screenshotAllThemes(page, "job-edit-tasks.png");
+    await page.evaluate(() => changeDragSize("large"));
+    await screenshotAllThemes(page, "job-edit-tasks-large.png");
   });
 
   test("settings - minio", async ({ page }) => {
