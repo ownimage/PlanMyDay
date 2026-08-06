@@ -847,7 +847,7 @@ function renderStreamsEditor() {
     var moved = s.splice(srcIdx, 1)[0];
     var insertAt;
     if (srcIdx < dstIdx) {
-      insertAt = above ? dstIdx - 1 : dstIdx + 1;
+      insertAt = above ? dstIdx - 1 : dstIdx;
     } else {
       insertAt = above ? dstIdx : dstIdx + 1;
     }
@@ -855,7 +855,7 @@ function renderStreamsEditor() {
     s.forEach(function(t, i) { t.sequence = i + 1; });
     saveStreams(s);
     renderStreamsEditor();
-  }, { handleSelector: ".drag-handle", ignoreSelector: ".accordion-body" });
+  }, { handleSelector: ".drag-handle", ignoreSelector: ".accordion-body", emptySpaceDrop: true });
 
   // delegated active toggle handler for jobs
   list.addEventListener("change", function(e) {
