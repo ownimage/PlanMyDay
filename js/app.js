@@ -56,224 +56,6 @@ function safeHideModal(modalId) {
   else el.addEventListener("shown.bs.modal", hide, { once: true });
 }
 
-// TOUCH DRAG AND DROP (iOS fallback — HTML5 DnD is not supported on iOS Safari)
-// options: { handleSelector, ignoreSelector }
-function addTouchDnD(container, cardSelector, getSrcId, reorderCallback, options) {
-  options = options || {};
-  let touchSrc = null;
-  let touchCard = null;
-
-  function clearDragUi() {
-    container.querySelectorAll(cardSelector).forEach(c => c.classList.remove("dragging", "drag-over-top", "drag-over-bottom"));
-    if (options.clearIndicators) options.clearIndicators();
-  }
-
-  function touchDropIntent(clientX, clientY) {
-    const el = document.elementFromPoint(clientX, clientY);
-    const target = options.resolveTarget ? options.resolveTarget(el) : (el ? el.closest(cardSelector) : null);
-    if (target) {
-      const rect = options.getRect ? options.getRect(target) : target.getBoundingClientRect();
-      return { target, above: clientY < rect.top + rect.height / 2 };
-    }
-    if (!options.emptySpaceDrop) return null;
-    const cards = [...container.querySelectorAll(cardSelector)];
-    if (!cards.length) return null;
-    let after = null;
-    for (const c of cards) {
-      const r = options.getRect ? options.getRect(c) : c.getBoundingClientRect();
-      if (clientY > r.top + r.height / 2) after = c; else break;
-    }
-    if (after) return { target: after, above: false };
-    return { target: cards[0], above: true };
-  }
-
-  container.addEventListener("touchstart", e => {
-    if (options.ignoreSelector && e.target.closest(options.ignoreSelector)) return;
-    const onHandle = options.handleSelector && e.target.closest(options.handleSelector);
-    // Allow starting from a drag-handle even if it sits inside a button
-    if (!onHandle && e.target.closest("button, input, select, textarea, a, label")) return;
-    const card = e.target.closest(cardSelector);
-    if (!card) return;
-    if (options.handleSelector && !onHandle) return;
-    // Handle must belong to this card
-    if (onHandle && !card.contains(onHandle)) return;
-    const id = getSrcId(card);
-    if (id === null || id === undefined || id === -1 || id === "") return;
-    touchSrc = id;
-    touchCard = card;
-    card.classList.add("dragging");
-  }, { passive: true });
-
-  container.addEventListener("touchmove", e => {
-    if (touchSrc === null || touchSrc === undefined) return;
-    e.preventDefault();
-    const touch = e.touches[0];
-    if (options.clearIndicators) {
-      options.clearIndicators();
-    } else {
-      container.querySelectorAll(cardSelector).forEach(c => c.classList.remove("drag-over-top", "drag-over-bottom"));
-    }
-    const intent = touchDropIntent(touch.clientX, touch.clientY);
-    if (!intent) return;
-    if (options.ignoreSelector && intent.target.closest(options.ignoreSelector) && !intent.target.matches(cardSelector)) return;
-    if (options.applyIndicator) {
-      options.applyIndicator(intent.target, intent.above);
-    } else {
-      intent.target.classList.add(intent.above ? "drag-over-top" : "drag-over-bottom");
-    }
-  }, { passive: false });
-
-  container.addEventListener("touchend", e => {
-    if (touchSrc === null || touchSrc === undefined) { touchSrc = null; touchCard = null; return; }
-    clearDragUi();
-    const touch = e.changedTouches[0];
-    suppressClickAfterDnD({ clientX: touch.clientX, clientY: touch.clientY });
-    const intent = touchDropIntent(touch.clientX, touch.clientY);
-    if (intent) {
-      const dstSrc = getSrcId(intent.target);
-      if (dstSrc !== null && dstSrc !== undefined && dstSrc !== -1 && dstSrc !== "" && touchSrc !== dstSrc) {
-        const src = touchSrc;
-        touchSrc = null;
-        touchCard = null;
-        reorderCallback(src, dstSrc, intent.above);
-        return;
-      }
-    }
-    touchSrc = null;
-    touchCard = null;
-  }, { passive: true });
-
-  container.addEventListener("touchcancel", () => {
-    if (touchSrc === null || touchSrc === undefined) return;
-    clearDragUi();
-    touchSrc = null;
-    touchCard = null;
-  }, { passive: true });
-}
-
-var _suppressClickUntil = 0;
-var _suppressClickX = 0;
-var _suppressClickY = 0;
-var _suppressClickRadiusSq = 45 * 45;
-function suppressClickAfterDnD(e) {
-  _suppressClickUntil = Date.now() + 500;
-  if (e && typeof e.clientX === "number" && e.clientX >= 0 && e.clientY >= 0) {
-    _suppressClickX = e.clientX;
-    _suppressClickY = e.clientY;
-  }
-}
-document.addEventListener("click", function(e) {
-  if (Date.now() < _suppressClickUntil) {
-    var dx = e.clientX - _suppressClickX;
-    var dy = e.clientY - _suppressClickY;
-    if (dx * dx + dy * dy <= _suppressClickRadiusSq) {
-      _suppressClickUntil = 0;
-      e.preventDefault();
-      e.stopImmediatePropagation();
-    }
-  }
-}, true);
-
-var _jobDnDSetup = false;
-var _jobDragSrcIdx = -1;
-var _jobDragSrcStreamIdx = -1;
-
-function swapJobSequences(streamIdx, srcIdx, dstIdx) {
-  if (srcIdx === dstIdx) return false;
-  if (!canSwapJobs(streamIdx, srcIdx, dstIdx)) return false;
-  var streams = loadStreams();
-  var streamJobs = streams[streamIdx].jobs || [];
-  var srcSeq = streamJobs[srcIdx].sequence || 0;
-  var dstSeq = streamJobs[dstIdx].sequence || 0;
-  streamJobs[srcIdx].sequence = dstSeq;
-  streamJobs[dstIdx].sequence = srcSeq;
-  streams[streamIdx].jobs = streamJobs;
-  saveStreams(streams);
-  return true;
-}
-
-function setupJobDnD(list) {
-  if (_jobDnDSetup) return;
-  _jobDnDSetup = true;
-
-  list.addEventListener("dragstart", function(e) {
-    var card = e.target.closest(".job-drag-card");
-    if (!card) return;
-    if (e.target.closest("button, input, select, textarea, a, label")) {
-      e.preventDefault();
-      return;
-    }
-    _jobDragSrcIdx = parseInt(card.dataset.jobIdx);
-    _jobDragSrcStreamIdx = parseInt(card.dataset.streamIdx);
-    card.classList.add("dragging");
-    e.dataTransfer.effectAllowed = "move";
-  });
-  list.addEventListener("dragend", function(e) {
-    list.querySelectorAll(".job-drag-card").forEach(function(c) { c.classList.remove("dragging", "drag-over-top", "drag-over-bottom"); });
-    suppressClickAfterDnD(e);
-  });
-  list.addEventListener("dragover", function(e) {
-    e.preventDefault();
-    var target = e.target.closest(".job-drag-card");
-    if (!target || _jobDragSrcIdx < 0) return;
-    if (String(target.dataset.streamIdx) !== String(_jobDragSrcStreamIdx)) return;
-    if (!canSwapJobs(_jobDragSrcStreamIdx, _jobDragSrcIdx, parseInt(target.dataset.jobIdx))) return;
-    list.querySelectorAll(".job-drag-card").forEach(function(c) { c.classList.remove("drag-over-top", "drag-over-bottom"); });
-    var rect = target.getBoundingClientRect();
-    target.classList.add(e.clientY < rect.top + rect.height / 2 ? "drag-over-top" : "drag-over-bottom");
-  });
-  list.addEventListener("drop", function(e) {
-    e.preventDefault();
-    suppressClickAfterDnD(e);
-    list.querySelectorAll(".job-drag-card").forEach(function(c) { c.classList.remove("drag-over-top", "drag-over-bottom"); });
-    var target = e.target.closest(".job-drag-card");
-    if (!target || _jobDragSrcIdx < 0) return;
-    if (String(target.dataset.streamIdx) !== String(_jobDragSrcStreamIdx)) return;
-    var dropIdx = parseInt(target.dataset.jobIdx);
-    var srcIdx = _jobDragSrcIdx;
-    var streamIdx = _jobDragSrcStreamIdx;
-    _jobDragSrcIdx = -1;
-    _jobDragSrcStreamIdx = -1;
-    if (swapJobSequences(streamIdx, srcIdx, dropIdx)) {
-      renderStreamsEditor();
-    }
-  });
-
-  // iOS Safari does not support HTML5 DnD — touch fallback for job tiles
-  addTouchDnD(list, ".job-drag-card", function(c) {
-    return c.dataset.streamIdx + ":" + c.dataset.jobIdx;
-  }, function(srcKey, dstKey) {
-    var sp = String(srcKey).split(":");
-    var dp = String(dstKey).split(":");
-    var srcStream = parseInt(sp[0], 10);
-    var srcIdx = parseInt(sp[1], 10);
-    var dstStream = parseInt(dp[0], 10);
-    var dstIdx = parseInt(dp[1], 10);
-    if (srcStream !== dstStream) return;
-    if (swapJobSequences(srcStream, srcIdx, dstIdx)) {
-      renderStreamsEditor();
-    }
-  }, { handleSelector: ".drag-handle" });
-}
-
-function canSwapJobs(streamIdx, srcIdx, dstIdx) {
-  var streams = loadStreams();
-  var jobs = streams[streamIdx].jobs || [];
-  var a = jobs[srcIdx];
-  var b = jobs[dstIdx];
-  if (!a || !b) return false;
-  var aSleep = a.sleepUntil && a.sleepUntil.trim();
-  var bSleep = b.sleepUntil && b.sleepUntil.trim();
-  var aTime = a.time && a.time.trim();
-  var bTime = b.time && b.time.trim();
-  var aGroup = aSleep ? 2 : (aTime ? 0 : 1);
-  var bGroup = bSleep ? 2 : (bTime ? 0 : 1);
-  if (aGroup !== bGroup) return false;
-  if (aGroup === 0) return aTime === bTime;
-  if (aGroup === 2) return aSleep === bSleep && aTime === bTime;
-  return true;
-}
-
 // JOB COMPLETION STORAGE
 function loadCompletedJobs() {
   const data = localStorage.getItem("planmydays_completed");
@@ -398,10 +180,10 @@ function renderMain() {
   }
 
   const splitList = localStorage.getItem("planmydays_splitList") === "true";
-  let jobsToRender = allJobs;
+  const tab = container.dataset.todayTab || "progress";
+  let matchingStreams = null;
 
   if (splitList) {
-    const tab = container.dataset.todayTab || "progress";
     const tabWrapper = document.createElement("div");
     tabWrapper.className = "mb-3 border-bottom flex-shrink-0";
     const tabBar = document.createElement("ul");
@@ -419,9 +201,10 @@ function renderMain() {
     tabWrapper.appendChild(tabBar);
     container.appendChild(tabWrapper);
 
-    jobsToRender = allJobs.filter(({ streamIdx }) => {
+    matchingStreams = new Set();
+    allJobs.forEach(({ streamIdx }) => {
       const s = streams[streamIdx];
-      return (s.tab || "progress") === tab;
+      if ((s.tab || "progress") === tab) matchingStreams.add(streamIdx);
     });
   }
 
@@ -432,7 +215,7 @@ function renderMain() {
   const cardContainer = document.createElement("div");
   cardContainer.id = "todayCardList";
 
-  if (jobsToRender.length === 0) {
+  if (allJobs.length === 0) {
     const msg = document.createElement("p");
     msg.className = "text-secondary";
     msg.textContent = splitList ? "No jobs in this tab." : "No active jobs yet. Add streams with active jobs to get started.";
@@ -441,7 +224,14 @@ function renderMain() {
     return;
   }
 
-  jobsToRender.forEach(({ job, streamTitle, streamIdx, jobIdx }) => {
+  if (splitList && allJobs.every(({ streamIdx }) => !matchingStreams.has(streamIdx))) {
+    const msg = document.createElement("p");
+    msg.className = "text-secondary";
+    msg.textContent = "No jobs in this tab.";
+    scrollBody.appendChild(msg);
+  }
+
+  allJobs.forEach(({ job, streamTitle, streamIdx, jobIdx }) => {
     const isDone = completed.includes(job.id);
     const streams = loadStreams();
     const stream = streams[streamIdx] || {};
@@ -450,9 +240,9 @@ function renderMain() {
     const suffixLabel = getJobSuffix(job);
     const card = document.createElement("div");
     card.className = `card countdown-card mb-2 today-drag-card ${isDone ? "opacity-50" : ""}`;
-    card.draggable = true;
     card.dataset.jobId = job.id;
     card.dataset.streamIdx = streamIdx;
+    if (matchingStreams && !matchingStreams.has(streamIdx)) card.hidden = true;
     card.innerHTML = `
       <div class="row align-items-center">
         <div class="col-auto d-flex align-items-center">
@@ -558,71 +348,8 @@ function markJobDone(jobId, cbRef) {
   }
 }
 
-  // today page drag and drop
-  let todayDragSrc = null;
-  cardContainer.addEventListener("dragstart", e => {
-    const card = e.target.closest(".today-drag-card");
-    if (!card) return;
-    todayDragSrc = card.dataset.jobId;
-    card.classList.add("dragging");
-    e.dataTransfer.effectAllowed = "move";
-  });
-  cardContainer.addEventListener("dragend", e => {
-    cardContainer.querySelectorAll(".today-drag-card").forEach(c => c.classList.remove("dragging", "drag-over-top", "drag-over-bottom"));
-    suppressClickAfterDnD(e);
-  });
-  cardContainer.addEventListener("dragover", e => {
-    e.preventDefault();
-    const target = e.target.closest(".today-drag-card");
-    if (!target || !todayDragSrc) return;
-    cardContainer.querySelectorAll(".today-drag-card").forEach(c => c.classList.remove("drag-over-top", "drag-over-bottom"));
-    const rect = target.getBoundingClientRect();
-    target.classList.add(e.clientY < rect.top + rect.height / 2 ? "drag-over-top" : "drag-over-bottom");
-  });
-  cardContainer.addEventListener("drop", e => {
-    e.preventDefault();
-    suppressClickAfterDnD(e);
-    cardContainer.querySelectorAll(".today-drag-card").forEach(c => c.classList.remove("drag-over-top", "drag-over-bottom"));
-    const target = e.target.closest(".today-drag-card");
-    if (!target || !todayDragSrc || target.dataset.jobId === todayDragSrc) { todayDragSrc = null; return; }
-    const cards = [...cardContainer.querySelectorAll(".today-drag-card")];
-    const visibleIds = cards.map(c => c.dataset.jobId);
-    const srcIdx = visibleIds.indexOf(todayDragSrc);
-    const dstIdx = visibleIds.indexOf(target.dataset.jobId);
-    if (srcIdx < 0 || dstIdx < 0) { todayDragSrc = null; return; }
-    visibleIds.splice(srcIdx, 1);
-    const rect = target.getBoundingClientRect();
-    const above = e.clientY < rect.top + rect.height / 2;
-    const insertAt = srcIdx < dstIdx ? (above ? dstIdx - 1 : dstIdx) : (above ? dstIdx : dstIdx + 1);
-    visibleIds.splice(insertAt, 0, todayDragSrc);
-    const fullOrder = loadTodayOrder() || [];
-    const visibleSet = new Set(visibleIds);
-    let vi = 0;
-    const mergedOrder = fullOrder.map(id => visibleSet.has(id) ? visibleIds[vi++] : id);
-    saveTodayOrder(mergedOrder);
-    todayDragSrc = null;
-    renderMain();
-  });
-
-  // touch DnD fallback for iOS (drag from handle so list can still scroll)
-  addTouchDnD(cardContainer, ".today-drag-card", c => c.dataset.jobId, (srcId, dstId, above) => {
-    const cards = [...cardContainer.querySelectorAll(".today-drag-card")];
-    const visibleIds = cards.map(c => c.dataset.jobId);
-    const srcIdx = visibleIds.indexOf(srcId);
-    const dstIdx = visibleIds.indexOf(dstId);
-    if (srcIdx < 0 || dstIdx < 0) return;
-    visibleIds.splice(srcIdx, 1);
-    const insertAt = srcIdx < dstIdx ? (above ? dstIdx - 1 : dstIdx) : (above ? dstIdx : dstIdx + 1);
-    visibleIds.splice(insertAt, 0, srcId);
-    const fullOrder = loadTodayOrder() || [];
-    const visibleSet = new Set(visibleIds);
-    let vi = 0;
-    const mergedOrder = fullOrder.map(id => visibleSet.has(id) ? visibleIds[vi++] : id);
-    saveTodayOrder(mergedOrder);
-    renderMain();
-  }, { handleSelector: ".drag-handle" });
-
   updateNavState();
+  initTodayCardsSortable();
 }
 
 function addTodayCardWithModal() {
@@ -650,7 +377,6 @@ function addTodayCardWithModal() {
 let editingIndex = -1;
 let editBuffer = null;
 let isNew = false;
-let dragIndex = -1;
 
 function openStreamsEditor() {
   document.getElementById("countdownContainer").classList.add("d-none");
@@ -713,17 +439,24 @@ function renderStreamsEditor() {
   const filterEl = document.getElementById("streamEditorFilters");
   const singleEditor = document.getElementById("singleStreamEditor");
 
-  // remember which accordion items are expanded
+  // remember which accordion items are expanded (by index; after a drag the
+// captured indices are translated through the reorder so the same stream stays open)
+  const streams = loadStreams();
   var expandedStreams = [];
-  var openCollapses = list.querySelectorAll(".accordion-collapse.show");
-  for (var ec = 0; ec < openCollapses.length; ec++) {
-    var m = openCollapses[ec].id.match(/streamCollapse_(\d+)/);
-    if (m) expandedStreams.push(parseInt(m[1]));
+  if (streamsEditorExpandedIdxs !== null) {
+    // drag capture (onStart + onEnd) is authoritative: the DOM collapse ids no
+    // longer match stream indices once the reorder has been saved
+    expandedStreams = streamsEditorExpandedIdxs;
+    streamsEditorExpandedIdxs = null;
+  } else {
+    var openCollapses = list.querySelectorAll(".accordion-collapse.show");
+    for (var ec = 0; ec < openCollapses.length; ec++) {
+      var m = openCollapses[ec].id.match(/streamCollapse_(\d+)/);
+      if (m) expandedStreams.push(parseInt(m[1]));
+    }
   }
 
   list.innerHTML = ""; addTile.innerHTML = ""; topTile.innerHTML = ""; filterEl.innerHTML = ""; singleEditor.innerHTML = "";
-
-  const streams = loadStreams();
 
   if (editingIndex >= 0) {
     list.classList.add("d-none"); addTile.classList.add("d-none");
@@ -751,8 +484,7 @@ function renderStreamsEditor() {
 
     var item = document.createElement("div");
     item.className = "accordion-item stream-accordion-item stream-drag-card mb-2";
-    item.draggable = true;
-    item.dataset.index = realIdx;
+    item.dataset.streamIdx = realIdx;
 
     var headerHtml = '<div class="accordion-header stream-accordion-header" id="streamHeading_' + realIdx + '">' +
       '<div class="drag-handle flex-shrink-0" style="cursor:grab;line-height:1">&#9776;</div>' +
@@ -786,77 +518,6 @@ function renderStreamsEditor() {
     list.appendChild(item);
   });
 
-  // stream drag and drop handlers
-  var dragSrcIndex = -1;
-  list.addEventListener("dragstart", function(e) {
-    var card = e.target.closest(".stream-drag-card");
-    if (!card) return;
-    // ignore drags inside accordion body (job cards)
-    if (card.closest(".accordion-body")) return;
-    dragSrcIndex = parseInt(card.dataset.index);
-    card.classList.add("dragging");
-    e.dataTransfer.effectAllowed = "move";
-  });
-  list.addEventListener("dragend", function(e) {
-    document.querySelectorAll(".stream-drag-card").forEach(function(c) { c.classList.remove("dragging", "drag-over-top", "drag-over-bottom"); });
-    suppressClickAfterDnD(e);
-  });
-  list.addEventListener("dragover", function(e) {
-    e.preventDefault();
-    var target = e.target.closest(".stream-drag-card");
-    if (!target || dragSrcIndex < 0) return;
-    // ignore drag targets inside accordion bodies
-    if (target.closest(".accordion-body")) return;
-    document.querySelectorAll(".stream-drag-card").forEach(function(c) { c.classList.remove("drag-over-top", "drag-over-bottom"); });
-    var rect = target.getBoundingClientRect();
-    target.classList.add(e.clientY < rect.top + rect.height / 2 ? "drag-over-top" : "drag-over-bottom");
-  });
-  list.addEventListener("drop", function(e) {
-    e.preventDefault();
-    suppressClickAfterDnD(e);
-    document.querySelectorAll(".stream-drag-card").forEach(function(c) { c.classList.remove("drag-over-top", "drag-over-bottom"); });
-    var target = e.target.closest(".stream-drag-card");
-    if (!target || dragSrcIndex < 0) return;
-    if (target.closest(".accordion-body")) return;
-    var dropIndex = parseInt(target.dataset.index);
-    if (dropIndex === dragSrcIndex) { dragSrcIndex = -1; return; }
-    var s = loadStreams();
-    var moved = s.splice(dragSrcIndex, 1)[0];
-    var rect = target.getBoundingClientRect();
-    var above = e.clientY < rect.top + rect.height / 2;
-    var insertAt;
-    if (dragSrcIndex < dropIndex) {
-      var actualDropIdx = dropIndex - 1;
-      insertAt = above ? actualDropIdx : actualDropIdx + 1;
-    } else {
-      insertAt = above ? dropIndex : dropIndex + 1;
-    }
-    s.splice(insertAt, 0, moved);
-    s.forEach(function(t, i) { t.sequence = i + 1; });
-    saveStreams(s);
-    dragSrcIndex = -1;
-    renderStreamsEditor();
-  });
-
-  // touch DnD fallback for iOS (ignore touches inside expanded job lists)
-  addTouchDnD(list, ".stream-drag-card", function(c) {
-    return parseInt(c.dataset.index);
-  }, function(srcIdx, dstIdx, above) {
-    if (srcIdx === dstIdx || srcIdx < 0) return;
-    var s = loadStreams();
-    var moved = s.splice(srcIdx, 1)[0];
-    var insertAt;
-    if (srcIdx < dstIdx) {
-      insertAt = above ? dstIdx - 1 : dstIdx;
-    } else {
-      insertAt = above ? dstIdx : dstIdx + 1;
-    }
-    s.splice(insertAt, 0, moved);
-    s.forEach(function(t, i) { t.sequence = i + 1; });
-    saveStreams(s);
-    renderStreamsEditor();
-  }, { handleSelector: ".drag-handle", ignoreSelector: ".accordion-body", emptySpaceDrop: true });
-
   // delegated active toggle handler for jobs
   list.addEventListener("change", function(e) {
     if (!e.target.classList.contains("active-toggle")) return;
@@ -878,9 +539,6 @@ function renderStreamsEditor() {
     }
   });
 
-  // set up job DnD once (not re-added on each render)
-  setupJobDnD(list);
-
   topTile.innerHTML = '<div class="d-flex gap-2">' +
     '<button class="btn btn-secondary editor-btn btn-wide" id="btnAddStream" onclick="addNewStream()">Add Stream</button>' +
     '<button class="btn btn-success editor-btn btn-wide ms-auto" id="btnStreamsDone" onclick="closeStreamsEditor()">Done</button>' +
@@ -891,6 +549,8 @@ function renderStreamsEditor() {
     var collapseEl = document.getElementById("streamCollapse_" + idx);
     if (collapseEl) {
       collapseEl.classList.add("show");
+      var itemEl = collapseEl.closest(".stream-accordion-item");
+      if (itemEl) itemEl.classList.add("expanded");
     }
     document.querySelectorAll('#streamEditorList [data-bs-target="#streamCollapse_' + idx + '"]').forEach(function(btn) {
       btn.classList.remove("collapsed");
@@ -899,13 +559,124 @@ function renderStreamsEditor() {
   });
 
   updateNavState();
+  initStreamsEditorSortable();
+  initStreamJobsSortables();
 }
 
-function renderJobsInAccordion(stream, jobs, streamIdx) {
+var streamsEditorSortable = null;
+var streamsEditorExpandedIdxs = null;
+
+function initStreamsEditorSortable() {
+  if (streamsEditorSortable) {
+    streamsEditorSortable.destroy();
+    streamsEditorSortable = null;
+  }
+  if (typeof Sortable === "undefined") return;
+  var el = document.getElementById("streamEditorList");
+  if (!el || !el.querySelector(".stream-accordion-item")) return;
+  streamsEditorSortable = new Sortable(el, {
+    handle: ".stream-accordion-header .drag-handle",
+    draggable: ".stream-accordion-item",
+    animation: 150,
+    onStart: function() {
+      var idxs = [];
+      el.querySelectorAll(".accordion-collapse.show").forEach(function(coll) {
+        var m = coll.id.match(/streamCollapse_(\d+)/);
+        if (m) idxs.push(parseInt(m[1]));
+      });
+      streamsEditorExpandedIdxs = idxs.length ? idxs : null;
+    },
+    onEnd: function() {
+      var streams = loadStreams();
+      var order = [];
+      el.querySelectorAll(".stream-accordion-item").forEach(function(item) {
+        var idx = parseInt(item.getAttribute("data-stream-idx"), 10);
+        if (!isNaN(idx) && order.indexOf(idx) === -1) order.push(idx);
+      });
+      if (order.length !== streams.length) return;
+      // translate the captured pre-drag indices to their post-reorder positions
+      // (order[k] is the old index now sitting at new position k)
+      if (streamsEditorExpandedIdxs !== null) {
+        var translated = streamsEditorExpandedIdxs.map(function(e) { return order.indexOf(e); })
+                     .filter(function(k) { return k !== -1; });
+        streamsEditorExpandedIdxs = translated.length ? translated : null;
+      }
+      var reordered = order.map(function(idx) { return streams[idx]; });
+      reordered.forEach(function(s, i) { s.sequence = i + 1; });
+      saveStreams(reordered);
+      renderStreamsEditor();
+    }
+  });
+}
+
+var streamJobsSortables = [];
+
+function initStreamJobsSortables() {
+  streamJobsSortables.forEach(function(s) { if (s) s.destroy(); });
+  streamJobsSortables = [];
+  if (typeof Sortable === "undefined") return;
+  var list = document.getElementById("streamEditorList");
+  if (!list) return;
+  list.querySelectorAll(".accordion-body").forEach(function(body) {
+    if (!body.querySelector(".job-drag-card")) return;
+    var item = body.closest(".stream-accordion-item");
+    if (!item) return;
+    streamJobsSortables.push(new Sortable(body, {
+      handle: ".job-drag-card .drag-handle",
+      draggable: ".job-drag-card",
+      animation: 150,
+      onEnd: function() {
+        var streamIdx = parseInt(item.getAttribute("data-stream-idx"), 10);
+        if (isNaN(streamIdx)) return;
+        var streams = loadStreams();
+        var jobs = streams[streamIdx].jobs || [];
+        var order = [];
+        body.querySelectorAll(".job-drag-card").forEach(function(card) {
+          var idx = parseInt(card.getAttribute("data-job-idx"), 10);
+          if (!isNaN(idx) && order.indexOf(idx) === -1) order.push(idx);
+        });
+        if (order.length !== jobs.length) return;
+        var reordered = order.map(function(idx) { return jobs[idx]; });
+        reordered.forEach(function(j, i) { j.sequence = i + 1; });
+        streams[streamIdx].jobs = reordered;
+        saveStreams(streams);
+        renderStreamsEditor();
+      }
+    }));
+  });
+}
+
+var todayCardsSortable = null;
+
+function initTodayCardsSortable() {
+  if (todayCardsSortable) {
+    todayCardsSortable.destroy();
+    todayCardsSortable = null;
+  }
+  if (typeof Sortable === "undefined") return;
+  var el = document.getElementById("todayCardList");
+  if (!el || !el.querySelector(".today-drag-card")) return;
+  todayCardsSortable = new Sortable(el, {
+    handle: ".drag-handle",
+    draggable: ".today-drag-card",
+    animation: 150,
+    onEnd: function() {
+      var order = [];
+      el.querySelectorAll(".today-drag-card").forEach(function(card) {
+        var id = card.getAttribute("data-job-id");
+        if (id && order.indexOf(id) === -1) order.push(id);
+      });
+      if (order.length === 0) return;
+      saveTodayOrder(order);
+    }
+  });
+}
+
+function sortJobsByRules(jobs) {
   // rule 1: has sleepUntil → end (ordered by sleepUntil date, then time)
   // rule 2: no sleepUntil, has time → start (ordered by time)
   // rule 3: no sleepUntil, no time → middle (ordered by sequence)
-  var sorted = [].concat(jobs).sort(function(a, b) {
+  return [].concat(jobs).sort(function(a, b) {
     var aSleep = a.sleepUntil && a.sleepUntil.trim();
     var bSleep = b.sleepUntil && b.sleepUntil.trim();
     var aTime = a.time && a.time.trim();
@@ -929,15 +700,17 @@ function renderJobsInAccordion(stream, jobs, streamIdx) {
     }
     return (a.sequence || 0) - (b.sequence || 0);
   });
-  return sorted.map(function(j) {
-    var realIdx = jobs.indexOf(j);
+}
+
+function renderJobsInAccordion(stream, jobs, streamIdx) {
+  return jobs.map(function(j, realIdx) {
     var scheduleText = getScheduleText(j.schedule);
     var jobImgUrl = getImageDataUrl(j.image);
     var hasTime = j.time && j.time.trim();
     var hasSleep = j.sleepUntil && j.sleepUntil.trim();
-    return '<div class="card p-2 mb-0 job-drag-card" draggable="true" data-job-idx="' + realIdx + '" data-stream-idx="' + streamIdx + '" data-sleep="' + escapeHtml(j.sleepUntil || '') + '" data-time="' + escapeHtml(j.time || '') + '">' +
+    return '<div class="card p-2 mb-0 job-drag-card" data-job-idx="' + realIdx + '">' +
       '<div class="d-flex align-items-center gap-2">' +
-        '<div class="drag-handle flex-shrink-0" style="cursor:grab;line-height:1" aria-label="Drag to reorder">&#9776;</div>' +
+        '<div class="drag-handle flex-shrink-0" style="line-height:1">&#9776;</div>' +
         (jobImgUrl ? '<div style="width:32px;height:32px;flex-shrink:0"><img src="' + jobImgUrl + '" class="date-img" style="max-width:32px;max-height:32px"></div>' : '') +
         '<div class="fw-bold editor-title" style="min-width:0;flex:1">' + escapeHtml(j.title) + (getJobSuffix(j) ? ' <span class="badge bg-secondary">' + escapeHtml(getJobSuffix(j).trim()) + '</span>' : '') + '</div>' +
         '<button class="btn btn-primary btn-sm editor-btn flex-shrink-0 align-self-center ms-3" style="min-width:50px" onclick="editJobInAccordion(' + streamIdx + ', ' + realIdx + ')">Edit</button>' +
@@ -1103,6 +876,7 @@ var jobsEditingIdx = -1;
 var jobsBuffer = null;
 var isNewJob = false;
 var jobsTargetStreamIndex = -1;
+var jobTasksSortable = null;
 
 function jobField(field, value) {
   if (!jobsBuffer) return;
@@ -1196,7 +970,7 @@ function renderJobTasks() {
   var tasks = jobsBuffer.tasks || [];
   var html = "";
   tasks.forEach(function(task, i) {
-    html += '<div class="d-flex align-items-center gap-2 mb-1 task-row task-drag-card" draggable="true" data-task-index="' + i + '">' +
+    html += '<div class="d-flex align-items-center gap-2 mb-1 task-row task-drag-card" data-task-index="' + i + '">' +
       '<div class="drag-handle">&#9776;</div>' +
       '<input class="form-check-input task-done-cb" type="checkbox" id="taskDone' + i + '" ' + (task.done ? "checked" : "") + ' onchange="jobTaskField(' + i + ', \'done\', this.checked)">' +
       '<input class="form-control task-desc-input" value="' + escapeHtml(task.description || "") + '" placeholder="Task description" oninput="jobTaskField(' + i + ', \'description\', this.value)">' +
@@ -1208,6 +982,34 @@ function renderJobTasks() {
       '</div>';
   });
   el.innerHTML = html;
+  initJobTasksSortable();
+}
+
+function initJobTasksSortable() {
+  if (jobTasksSortable) {
+    jobTasksSortable.destroy();
+    jobTasksSortable = null;
+  }
+  if (typeof Sortable === "undefined") return;
+  var el = document.getElementById("jobTasksList");
+  if (!el || !jobsBuffer) return;
+  if (!el.querySelector(".drag-handle")) return;
+  jobTasksSortable = new Sortable(el, {
+    handle: ".drag-handle",
+    draggable: ".task-row",
+    animation: 150,
+    onEnd: function() {
+      if (!jobsBuffer || !jobsBuffer.tasks) return;
+      var reordered = [];
+      el.querySelectorAll(".task-row").forEach(function(row) {
+        var idx = parseInt(row.getAttribute("data-task-index"), 10);
+        if (idx >= 0 && idx < jobsBuffer.tasks.length) reordered.push(jobsBuffer.tasks[idx]);
+      });
+      if (reordered.length !== jobsBuffer.tasks.length) return;
+      jobsBuffer.tasks = reordered;
+      renderJobTasks();
+    }
+  });
 }
 
 function jobTaskToggleNote(btn, index) {
@@ -1221,161 +1023,6 @@ function jobTaskToggleNote(btn, index) {
   if (btn && jobsBuffer && jobsBuffer.tasks) {
     setTaskNoteBtnClass(btn, jobsBuffer.tasks[index]);
   }
-}
-
-var _taskDnDContainer = null;
-var _taskDragSrcIdx = -1;
-var _taskDocDnDBound = false;
-
-function taskResolveDropTarget(el) {
-  if (!el) return null;
-  var card = el.closest(".task-drag-card");
-  if (card) return card;
-  var note = el.closest(".task-note-row");
-  if (!note) return null;
-  var idx = (note.id || "").replace("taskNoteRow", "");
-  return document.querySelector('.task-drag-card[data-task-index="' + idx + '"]');
-}
-
-function taskDropRect(card) {
-  var rect = card.getBoundingClientRect();
-  var note = document.getElementById("taskNoteRow" + card.dataset.taskIndex);
-  if (note && note.style.display !== "none") {
-    var nr = note.getBoundingClientRect();
-    var top = Math.min(rect.top, nr.top);
-    var bottom = Math.max(rect.bottom, nr.bottom);
-    rect = { top: top, bottom: bottom, height: bottom - top };
-  }
-  return rect;
-}
-
-function taskDropIntent(container, e) {
-  var target = taskResolveDropTarget(e.target);
-  if (target) {
-    var rect = taskDropRect(target);
-    return { card: target, above: e.clientY < rect.top + rect.height / 2 };
-  }
-  var cards = container.querySelectorAll(".task-drag-card");
-  if (!cards.length) return null;
-  var after = null;
-  for (var i = 0; i < cards.length; i++) {
-    var r = taskDropRect(cards[i]);
-    if (e.clientY > r.top + r.height / 2) {
-      after = cards[i];
-    } else {
-      break;
-    }
-  }
-  if (after) return { card: after, above: false };
-  return { card: cards[0], above: true };
-}
-
-function taskDropAllowed(e) {
-  if (!e.target || !e.target.closest) return false;
-  if (!e.target.closest("#jobEditModal")) return false;
-  if (e.target.closest("#jobTasksList")) return true;
-  if (e.target.closest("button, input, select, textarea, a, label")) return false;
-  return true;
-}
-
-function taskClearIndicators() {
-  var c = document.getElementById("jobTasksList");
-  if (!c) return;
-  c.querySelectorAll(".task-drag-card, .task-note-row").forEach(function(el) {
-    el.classList.remove("drag-over-top", "drag-over-bottom");
-  });
-}
-
-function taskApplyIndicator(card, above) {
-  if (above) {
-    card.classList.add("drag-over-top");
-    return;
-  }
-  var note = document.getElementById("taskNoteRow" + card.dataset.taskIndex);
-  if (note && note.style.display !== "none") {
-    note.classList.add("drag-over-bottom");
-  } else {
-    card.classList.add("drag-over-bottom");
-  }
-}
-
-function setupTaskDnD() {
-  var container = document.getElementById("jobTasksList");
-  if (!container) return;
-  if (container === _taskDnDContainer) return;
-  _taskDnDContainer = container;
-
-  function handleTaskDrop(e) {
-    var c = document.getElementById("jobTasksList");
-    if (!c) return;
-    suppressClickAfterDnD(e);
-    taskClearIndicators();
-    if (_taskDragSrcIdx < 0) return;
-    var srcIdx = _taskDragSrcIdx;
-    _taskDragSrcIdx = -1;
-    var intent = taskDropIntent(c, e);
-    if (!intent) return;
-    var dstIdx = parseInt(intent.card.dataset.taskIndex);
-    if (srcIdx === dstIdx) return;
-    reorderTask(srcIdx, dstIdx, intent.above);
-  }
-
-  container.addEventListener("dragstart", function(e) {
-    var card = e.target.closest(".task-drag-card");
-    if (!card) return;
-    if (e.target.closest("button, input, textarea")) { e.preventDefault(); return; }
-    _taskDragSrcIdx = parseInt(card.dataset.taskIndex);
-    card.classList.add("dragging");
-    e.dataTransfer.effectAllowed = "move";
-  });
-  container.addEventListener("dragend", function(e) {
-    container.querySelectorAll(".task-drag-card").forEach(function(c) {
-      c.classList.remove("dragging");
-    });
-    taskClearIndicators();
-    _taskDragSrcIdx = -1;
-    suppressClickAfterDnD(e);
-  });
-
-  if (!_taskDocDnDBound) {
-    _taskDocDnDBound = true;
-    document.addEventListener("dragover", function(e) {
-      if (_taskDragSrcIdx < 0) return;
-      if (!taskDropAllowed(e)) return;
-      e.preventDefault();
-      if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
-      taskClearIndicators();
-      var c = document.getElementById("jobTasksList");
-      if (!c) return;
-      var intent = taskDropIntent(c, e);
-      if (!intent) return;
-      taskApplyIndicator(intent.card, intent.above);
-    });
-    document.addEventListener("drop", function(e) {
-      if (_taskDragSrcIdx < 0) return;
-      if (!taskDropAllowed(e)) return;
-      e.preventDefault();
-      handleTaskDrop(e);
-    });
-  }
-
-  addTouchDnD(container, ".task-drag-card", function(c) {
-    return parseInt(c.dataset.taskIndex);
-  }, function(srcIdx, dstIdx, above) {
-    reorderTask(srcIdx, dstIdx, above);
-  }, { handleSelector: ".drag-handle", resolveTarget: taskResolveDropTarget, getRect: taskDropRect, emptySpaceDrop: true, clearIndicators: taskClearIndicators, applyIndicator: taskApplyIndicator });
-}
-
-function reorderTask(srcIdx, dstIdx, above) {
-  if (!jobsBuffer || !jobsBuffer.tasks) return;
-  var tasks = jobsBuffer.tasks;
-  if (srcIdx < 0 || srcIdx >= tasks.length || dstIdx < 0 || dstIdx >= tasks.length) return;
-  if (srcIdx === dstIdx) return;
-  var item = tasks.splice(srcIdx, 1)[0];
-  var insertAt = srcIdx < dstIdx ? (above ? dstIdx - 1 : dstIdx) : (above ? dstIdx : dstIdx + 1);
-  if (srcIdx < dstIdx && insertAt === srcIdx) insertAt = srcIdx + 1;
-  tasks.splice(insertAt, 0, item);
-  renderJobTasks();
 }
 
 function formatDate(dateStr) {
@@ -1573,7 +1220,7 @@ function getJobEditFormHTML(data, readOnly) {
     var dragHandleHtml = readOnly ? "" : '<div class="drag-handle">&#9776;</div>';
     var noteBtnDisabled = "";
     tasksHTML += `
-      <div class="d-flex align-items-center gap-2 mb-1 task-row task-drag-card" ${readOnly ? "" : 'draggable="true"'} data-task-index="${i}">
+      <div class="d-flex align-items-center gap-2 mb-1 task-row task-drag-card" data-task-index="${i}">
         ${dragHandleHtml}
         <input class="form-check-input task-done-cb" type="checkbox" ${task.done ? "checked" : ""} ${disabled} onchange="jobTaskField(${i}, 'done', this.checked)">
         <input class="form-control task-desc-input" value="${escapeHtml(task.description || "")}" ${ro} placeholder="Task description" oninput="jobTaskField(${i}, 'description', this.value)">
@@ -1747,7 +1394,6 @@ function showJobEditModal(readOnly) {
   document.getElementById("jobEditModalBody").innerHTML = getJobEditFormHTML(data, readOnly);
   const firstTab = document.querySelector("#jobEditTabs .nav-link");
   if (firstTab) { new bootstrap.Tab(firstTab).show(); }
-  if (!readOnly) { _taskDnDContainer = null; setupTaskDnD(); }
   const footer = document.getElementById("jobEditModalFooter");
   if (readOnly) {
     footer.innerHTML = '<button class="btn btn-primary editor-btn flex-fill" id="btnViewJobEdit" onclick="editJobFromView()">Edit</button><button class="btn btn-success editor-btn flex-fill" id="btnViewJobOk" onclick="cancelJobEdit()">OK</button>';
@@ -1777,6 +1423,7 @@ function showJobEditModal(readOnly) {
     }
   }
   new bootstrap.Modal(document.getElementById("jobEditModal")).show();
+  if (!readOnly) initJobTasksSortable();
 }
 
 function editJobFromView() {
@@ -1795,7 +1442,6 @@ function editJobFromView() {
     var firstTab = document.querySelector("#jobEditTabs .nav-link");
     if (firstTab) { new bootstrap.Tab(firstTab).show(); }
   }
-  _taskDnDContainer = null; setupTaskDnD();
   document.getElementById("jobEditModalFooter").innerHTML = '<button class="btn btn-secondary editor-btn flex-fill" id="jobEditCancelBtn" onclick="cancelJobEdit()">Cancel</button><button class="btn btn-danger editor-btn flex-fill" id="jobEditDelBtn" onclick="deleteJobFromEdit()">Delete</button><button class="btn btn-success editor-btn flex-fill" id="jobEditOkBtn" onclick="doneJobEdit()">OK</button>';
   updateJobEditOkBtn();
   const fpInput = document.getElementById("jobSleepUntil");
@@ -1816,6 +1462,7 @@ function editJobFromView() {
     });
     if (fpInput._flatpickr && fpInput._flatpickr.altInput) fpInput._flatpickr.altInput.id = "jobSleepUntilDisplay";
   }
+  initJobTasksSortable();
 }
 
 function viewJobReadOnly(streamIdx, jobIdx) {
@@ -2020,7 +1667,7 @@ function openSettings() {
   const skipAdhoc = localStorage.getItem("planmydays_skipAdhocConfirm") === "true";
   const skipAdhocCb = document.getElementById("skipAdhocConfirm");
   if (skipAdhocCb) skipAdhocCb.checked = skipAdhoc;
-  const dangerIds = ["clearAllDataRow", "refreshAppRow", "regenerateTilesRow", "uploadStandardImagesRow"];
+  const dangerIds = ["clearAllDataRow", "refreshAppRow", "regenerateTilesRow", "sortJobsInStreamsRow", "uploadStandardImagesRow"];
   if (isDevMode) dangerIds.push("devTodayRow", "devLastGenRow");
   dangerIds.forEach(id => {
     const el = document.getElementById(id);
@@ -2095,6 +1742,20 @@ function regenerateTiles() {
   saveTodayOrder(merged);
   saveCompletedJobs([]);
   localStorage.setItem("planmydays_last_gen", getTodayStr());
+  closeSettings();
+  renderMain();
+}
+
+function sortJobsInStreams() {
+  const streams = loadStreams();
+  streams.forEach(stream => {
+    const jobs = stream.jobs || [];
+    if (jobs.length < 2) return;
+    const sorted = sortJobsByRules(jobs);
+    sorted.forEach((j, i) => { j.sequence = i + 1; });
+    stream.jobs = sorted;
+  });
+  saveStreams(streams);
   closeSettings();
   renderMain();
 }

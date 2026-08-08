@@ -27,6 +27,7 @@ const PRECACHE_CDN = [
   "https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js",
   "https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css",
   "https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js",
+  "https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js",
   "https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png"
 ];
 

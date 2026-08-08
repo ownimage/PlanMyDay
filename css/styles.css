@@ -625,24 +625,10 @@ body.compact .editor-btn {
   cursor: default;
   user-select: none;
 }
-.today-drag-card.dragging {
-  opacity: 0.3;
-}
-.today-drag-card.drag-over-top {
-  border-top: 3px solid var(--bs-primary) !important;
-}
-.today-drag-card.drag-over-bottom {
-  border-bottom: 3px solid var(--bs-primary) !important;
-}
 
-.stream-drag-card.dragging {
-  opacity: 0.3;
-}
-.stream-drag-card.drag-over-top {
-  border-top: 3px solid var(--bs-primary) !important;
-}
-.stream-drag-card.drag-over-bottom {
-  border-bottom: 3px solid var(--bs-primary) !important;
+.stream-drag-card {
+  cursor: default;
+  user-select: none;
 }
 .drag-handle {
   color: var(--bs-body-color);
@@ -665,15 +651,6 @@ body.compact .editor-btn {
   user-select: none;
   -webkit-user-select: none;
 }
-.job-drag-card.dragging {
-  opacity: 0.3;
-}
-.job-drag-card.drag-over-top {
-  border-top: 3px solid var(--bs-primary) !important;
-}
-.job-drag-card.drag-over-bottom {
-  border-bottom: 3px solid var(--bs-primary) !important;
-}
 .job-drag-card .drag-handle {
   cursor: grab;
   touch-action: none;
@@ -695,23 +672,6 @@ body.compact .editor-btn {
 .task-drag-card {
   user-select: none;
   -webkit-user-select: none;
-}
-/* Reserve a drop zone below the last task so dragging "under the last item"
-   always lands inside the list (shows the highlight and accepts the drop). */
-#jobTasksList {
-  padding-bottom: 2.5rem;
-}
-.task-drag-card.dragging {
-  opacity: 0.3;
-}
-.task-drag-card.drag-over-top {
-  border-top: 3px solid var(--bs-primary) !important;
-}
-.task-drag-card.drag-over-bottom {
-  border-bottom: 3px solid var(--bs-primary) !important;
-}
-.task-note-row.drag-over-bottom {
-  border-bottom: 3px solid var(--bs-primary) !important;
 }
 .task-drag-card .drag-handle {
   cursor: grab;

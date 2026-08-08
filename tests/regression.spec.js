@@ -1,4 +1,4 @@
-const { test, expect } = require("@playwright/test");
+﻿const { test, expect } = require("@playwright/test");
 const { startCoverage, stopCoverage } = require("./coverage");
 
 const TEST_STREAMS = [
@@ -676,6 +676,77 @@ test.describe("PlanMyDay - Regression", () => {
       // renamed title should be visible
       await expect(page.getByText("WorkUpdated")).toBeVisible();
     });
+
+    test("streams can be reordered with drag and drop and save immediately", async ({ page }) => {
+      const items = page.locator("#streamEditorList .stream-accordion-item");
+      await expect(items).toHaveCount(2);
+      const handleBox = await items.first().locator(".stream-accordion-header .drag-handle").boundingBox();
+      const lastBox = await items.last().boundingBox();
+      await page.mouse.move(handleBox.x + handleBox.width / 2, handleBox.y + handleBox.height / 2);
+      await page.mouse.down();
+      await page.mouse.move(lastBox.x + lastBox.width / 2, lastBox.y + lastBox.height * 0.9, { steps: 15 });
+      await page.mouse.up();
+      await expect.poll(() =>
+        page.evaluate(() => {
+          const streams = JSON.parse(localStorage.getItem("planmydays_streams"));
+          return streams.map(s => s.title + ":" + s.sequence);
+        })
+      ).toEqual(["Chores:1", "Work:2"]);
+      await expect(items.first()).toContainText("Chores");
+      await expect(items.last()).toContainText("Work");
+    });
+
+    test("dragging an expanded stream keeps the same stream expanded", async ({ page }) => {
+      // expand the first stream (Work)
+      await page.locator("#streamEditorList .stream-header-main").first().click();
+      await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible", timeout: 5000 });
+      // drag it below the second stream
+      const firstItem = page.locator("#streamEditorList .stream-accordion-item").first();
+      const handleBox = await firstItem.locator(".stream-accordion-header .drag-handle").boundingBox();
+      const lastItem = page.locator("#streamEditorList .stream-accordion-item").last();
+      const lastBox = await lastItem.boundingBox();
+      await page.mouse.move(handleBox.x + handleBox.width / 2, handleBox.y + handleBox.height / 2);
+      await page.mouse.down();
+      await page.mouse.move(lastBox.x + lastBox.width / 2, lastBox.y + lastBox.height * 0.9, { steps: 15 });
+      await page.mouse.up();
+      // saved order swapped and Work (now last) is still the expanded stream
+      await expect.poll(() =>
+        page.evaluate(() => {
+          const streams = JSON.parse(localStorage.getItem("planmydays_streams"));
+          return streams.map(s => s.title);
+        })
+      ).toEqual(["Chores", "Work"]);
+      await expect(page.locator("#streamEditorList .accordion-collapse.show")).toHaveCount(1);
+      await expect(page.locator("#streamEditorList .stream-accordion-item").last().locator(".accordion-collapse.show")).toBeVisible();
+      await expect(page.locator("#streamEditorList .accordion-collapse.show")).toContainText("Report");
+    });
+
+    test("dragging keeps the same stream expanded even without stream ids", async ({ page }) => {
+      await page.evaluate(() => {
+        const streams = JSON.parse(localStorage.getItem("planmydays_streams"));
+        streams.forEach(s => { delete s.id; });
+        localStorage.setItem("planmydays_streams", JSON.stringify(streams));
+      });
+      await page.reload();
+      await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
+      await page.locator("a.dropdown-item").filter({ hasText: "Jobs" }).click();
+      await page.waitForTimeout(300);
+      // expand the first stream (Work) and drag it below the second
+      await page.locator("#streamEditorList .stream-header-main").first().click();
+      await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible", timeout: 5000 });
+      const firstItem = page.locator("#streamEditorList .stream-accordion-item").first();
+      const handleBox = await firstItem.locator(".stream-accordion-header .drag-handle").boundingBox();
+      const lastItem = page.locator("#streamEditorList .stream-accordion-item").last();
+      const lastBox = await lastItem.boundingBox();
+      await page.mouse.move(handleBox.x + handleBox.width / 2, handleBox.y + handleBox.height / 2);
+      await page.mouse.down();
+      await page.mouse.move(lastBox.x + lastBox.width / 2, lastBox.y + lastBox.height * 0.9, { steps: 15 });
+      await page.mouse.up();
+      // the moved stream keeps its open state
+      await expect(page.locator("#streamEditorList .accordion-collapse.show")).toHaveCount(1);
+      await expect(page.locator("#streamEditorList .stream-accordion-item").last().locator(".accordion-collapse.show")).toBeVisible();
+      await expect(page.locator("#streamEditorList .accordion-collapse.show")).toContainText("Report");
+    });
   });
 
   // ── Jobs Editor ────────────────────────────────────────────
@@ -798,7 +869,7 @@ test.describe("PlanMyDay - Regression", () => {
       await expect(page.locator("#countdownContainer")).toBeVisible();
     });
 
-    test("timed jobs appear before untimed jobs", async ({ page }) => {
+    test("jobs render in stored order without rule sorting", async ({ page }) => {
       await page.evaluate(() => {
         var streams = JSON.parse(localStorage.getItem("planmydays_streams"));
         streams[0].jobs.push({ id: "job_late", title: "LateJob", active: true, frequency: "daily", sequence: 99, time: "", suffix: false, dayType: "dayOfYear", mod: "", tasks: [] });
@@ -810,25 +881,35 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("a.dropdown-item").filter({ hasText: "Jobs" }).click();
       await page.locator("#streamEditorList .stream-header-main").first().click();
       await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible", timeout: 5000 });
-      var jobCards = page.locator("#streamEditorList .accordion-body .job-drag-card .fw-bold");
-      await expect(jobCards.first()).toContainText("EarlyJob");
+      var jobTitles = page.locator("#streamEditorList .stream-accordion-item").first().locator(".accordion-body .job-drag-card .editor-title");
+      await expect(jobTitles).toHaveCount(4);
+      await expect(jobTitles.first()).toContainText("Report");
+      await expect(jobTitles.last()).toContainText("EarlyJob");
     });
 
-    test("all job tiles are draggable", async ({ page }) => {
-      await page.evaluate(() => {
-        var streams = JSON.parse(localStorage.getItem("planmydays_streams"));
-        streams[0].jobs.push({ id: "job_timed", title: "TimedJob", active: true, frequency: "daily", sequence: 99, time: "09:00", suffix: false, dayType: "dayOfYear", mod: "", tasks: [] });
-        localStorage.setItem("planmydays_streams", JSON.stringify(streams));
-      });
+    test("dragging a job tile by its handle reorders the stream and persists", async ({ page }) => {
+      const firstBody = page.locator("#streamEditorList .stream-accordion-item").first().locator(".accordion-body");
+      const handle = firstBody.locator(".job-drag-card .drag-handle").first();
+      const handleBox = await handle.boundingBox();
+      const lastBox = await firstBody.locator(".job-drag-card").last().boundingBox();
+      await page.mouse.move(handleBox.x + handleBox.width / 2, handleBox.y + handleBox.height / 2);
+      await page.mouse.down();
+      await page.mouse.move(lastBox.x + lastBox.width / 2, lastBox.y + lastBox.height * 0.9, { steps: 15 });
+      await page.mouse.up();
+      await expect.poll(() =>
+        page.evaluate(() => JSON.parse(localStorage.getItem("planmydays_streams"))[0].jobs.map(j => j.id))
+      ).toEqual(["job_2", "job_1"]);
+      await expect.poll(() =>
+        page.evaluate(() => JSON.parse(localStorage.getItem("planmydays_streams"))[0].jobs.map(j => j.sequence))
+      ).toEqual([1, 2]);
       await page.reload();
       await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
       await page.locator("a.dropdown-item").filter({ hasText: "Jobs" }).click();
       await page.locator("#streamEditorList .stream-header-main").first().click();
       await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible", timeout: 5000 });
-      var timedCard = page.locator(".job-drag-card").filter({ hasText: "TimedJob" });
-      await expect(timedCard).toHaveAttribute("draggable", "true");
-      var untimedCard = page.locator(".job-drag-card").filter({ hasText: "Report" });
-      await expect(untimedCard).toHaveAttribute("draggable", "true");
+      var jobTitles2 = page.locator("#streamEditorList .stream-accordion-item").first().locator(".accordion-body .job-drag-card .editor-title");
+      await expect(jobTitles2.first()).toContainText("Meeting");
+      await expect(jobTitles2.last()).toContainText("Report");
     });
 
     test("active label is bold on job tiles", async ({ page }) => {
@@ -839,56 +920,6 @@ test.describe("PlanMyDay - Regression", () => {
     test("job tiles have a drag handle for touch reorder", async ({ page }) => {
       await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible", timeout: 5000 });
       await expect(page.locator(".job-drag-card .drag-handle").first()).toBeVisible();
-    });
-
-    test("touch reorder swaps job sequences via drag handle", async ({ page }) => {
-      await page.evaluate(() => {
-        var streams = JSON.parse(localStorage.getItem("planmydays_streams"));
-        streams[0].jobs.push({ id: "job_drag1", title: "DragMe1", active: true, frequency: "daily", sequence: 99, time: "", suffix: false, dayType: "dayOfYear", mod: "", tasks: [] });
-        streams[0].jobs.push({ id: "job_drag2", title: "DragMe2", active: true, frequency: "daily", sequence: 100, time: "", suffix: false, dayType: "dayOfYear", mod: "", tasks: [] });
-        localStorage.setItem("planmydays_streams", JSON.stringify(streams));
-      });
-      await page.reload();
-      await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
-      await page.locator("a.dropdown-item").filter({ hasText: "Jobs" }).click();
-      await page.locator("#streamEditorList .stream-header-main").first().click();
-      await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible", timeout: 5000 });
-      const before = await page.evaluate(() => {
-        const jobs = loadStreams()[0].jobs;
-        return {
-          d1: jobs.find(j => j.id === "job_drag1").sequence,
-          d2: jobs.find(j => j.id === "job_drag2").sequence
-        };
-      });
-      await page.evaluate(() => {
-        const list = document.getElementById("streamEditorList");
-        const c1 = [...list.querySelectorAll(".job-drag-card")].find(c => c.textContent.includes("DragMe2"));
-        const c2 = [...list.querySelectorAll(".job-drag-card")].find(c => c.textContent.includes("DragMe1"));
-        const h1 = c1.querySelector(".drag-handle");
-        const r1 = h1.getBoundingClientRect();
-        const r2 = c2.getBoundingClientRect();
-        const fire = (type, x, y, target) => {
-          const t = new Touch({ identifier: 1, target, clientX: x, clientY: y });
-          const touching = type === "touchend" || type === "touchcancel" ? [] : [t];
-          target.dispatchEvent(new TouchEvent(type, {
-            bubbles: true, cancelable: true,
-            touches: touching, changedTouches: [t], targetTouches: touching
-          }));
-        };
-        fire("touchstart", r1.x + 2, r1.y + 2, h1);
-        fire("touchmove", r2.x + 10, r2.y + r2.height / 2, c2);
-        fire("touchend", r2.x + 10, r2.y + r2.height / 2, c2);
-      });
-      await page.waitForTimeout(300);
-      const after = await page.evaluate(() => {
-        const jobs = loadStreams()[0].jobs;
-        return {
-          d1: jobs.find(j => j.id === "job_drag1").sequence,
-          d2: jobs.find(j => j.id === "job_drag2").sequence
-        };
-      });
-      expect(after.d1).toBe(before.d2);
-      expect(after.d2).toBe(before.d1);
     });
 
     test("activating a job adds it to today order", async ({ page }) => {
@@ -947,7 +978,10 @@ test.describe("PlanMyDay - Regression", () => {
       var meetingToggle = page.locator("#streamEditorList .accordion-body .active-toggle").nth(1);
       await expect(meetingToggle).toBeChecked();
       await meetingToggle.uncheck();
-      await page.waitForTimeout(300);
+      // wait for the order to reflect the removal before leaving the editor
+      await expect
+        .poll(() => page.evaluate(() => JSON.parse(localStorage.getItem("planmydays_today_order") || "[]")))
+        .not.toContain("job_2");
       // click Done to return to main view
       await page.getByRole("button", { name: "Done" }).click();
       await expect(page.locator("#countdownContainer")).toBeVisible();
@@ -955,28 +989,6 @@ test.describe("PlanMyDay - Regression", () => {
       var orderAfter = await page.evaluate(() => JSON.parse(localStorage.getItem("planmydays_today_order")));
       expect(orderAfter).not.toContain("job_2");
       expect(orderAfter).toEqual(["job_1", "job_3"]);
-    });
-
-    test("accordion stays open after job drag reorder", async ({ page }) => {
-      await page.evaluate(() => {
-        var streams = JSON.parse(localStorage.getItem("planmydays_streams"));
-        streams[0].jobs.push({ id: "job_drag1", title: "DragMe1", active: true, frequency: "daily", sequence: 99, time: "", suffix: false, dayType: "dayOfYear", mod: "", tasks: [] });
-        streams[0].jobs.push({ id: "job_drag2", title: "DragMe2", active: true, frequency: "daily", sequence: 100, time: "", suffix: false, dayType: "dayOfYear", mod: "", tasks: [] });
-        localStorage.setItem("planmydays_streams", JSON.stringify(streams));
-      });
-      await page.reload();
-      await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
-      await page.locator("a.dropdown-item").filter({ hasText: "Jobs" }).click();
-      // expand first stream
-      await page.locator("#streamEditorList .stream-header-main").first().click();
-      await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible", timeout: 5000 });
-      // drag an untimed job card
-      var srcCard = page.locator(".job-drag-card").filter({ hasText: "DragMe2" });
-      var dstCard = page.locator(".job-drag-card").filter({ hasText: "DragMe1" });
-      await srcCard.dragTo(dstCard);
-      await page.waitForTimeout(500);
-      // accordion should still be expanded
-      await expect(page.locator("#streamEditorList .accordion-collapse.show")).toBeVisible({ timeout: 5000 });
     });
   });
 
@@ -996,8 +1008,12 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#streamEditorList .stream-header-main").first().click();
       await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible", timeout: 5000 });
       await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().click();
+      await page.locator("#jobEditModal").waitFor({ state: "visible" });
+      await page.waitForTimeout(400);
       await page.locator("#jobSchedule-tab").click();
       await page.locator("#btnScheduleChange").click();
+      await page.locator("#scheduleModal").waitFor({ state: "visible" });
+      await page.waitForTimeout(400);
     });
 
     test("every day radio option works", async ({ page }) => {
@@ -1340,30 +1356,9 @@ test.describe("PlanMyDay - Regression", () => {
       await page.reload();
       await page.locator("button.nav-link").filter({ hasText: "Maintenance" }).click();
       await expect(page.getByText("Laundry")).toBeVisible();
-      await expect(page.getByText("Report")).not.toBeVisible();
-    });
-
-    test("reordering on one tab does not lose jobs from the other tab", async ({ page }) => {
-      // Seed with jobs in both tabs: job_1+job_2 (progress), job_3 (maintenance)
-      await page.evaluate(({ data, ds }) => {
-        localStorage.setItem("planmydays_streams", JSON.stringify(data));
-        localStorage.setItem("planmydays_today_order", JSON.stringify(["job_1", "job_2", "job_3"]));
-        localStorage.setItem("planmydays_last_gen", ds);
-        localStorage.setItem("planmydays_completed", JSON.stringify([]));
-        localStorage.setItem("planmydays_splitList", "true");
-      }, { data: TEST_STREAMS, ds: todayStr });
-      await page.reload();
-
-      await expect(page.locator(".today-drag-card h4").filter({ hasText: "Report" })).toBeVisible();
-      await expect(page.locator(".today-drag-card h4").filter({ hasText: "Meeting" })).toBeVisible();
-
-      // Perform an actual reorder via drag-and-drop to exercise the real handler
-      const cards = page.locator(".today-drag-card");
-      await cards.nth(1).dragTo(cards.nth(0));
-
-      // Switch to maintenance tab — Laundry should still be present
-      await page.locator("button.nav-link").filter({ hasText: "Maintenance" }).click();
-      await expect(page.locator(".today-drag-card h4").filter({ hasText: "Laundry" })).toBeVisible();
+      const reportCard = page.locator("#todayCardList .today-drag-card").filter({ hasText: "Report" });
+      await expect(reportCard).toHaveCount(1);
+      await expect(reportCard).toBeHidden();
     });
 
     test("tab bar is visible above the job list when many jobs overflow", async ({ page }) => {
@@ -1500,6 +1495,42 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#todayCardList").waitFor({ state: "visible" });
       const suffixBadge = page.locator(".badge.bg-secondary").first();
       await expect(suffixBadge).toBeVisible();
+    });
+  });
+
+  // ── Today List Reorder ───────────────────────────────────
+
+  test.describe("Today List Reorder", () => {
+
+    async function dragFirstCardToBottom(page) {
+      const first = page.locator("#todayCardList .today-drag-card").first();
+      await expect(first).toHaveAttribute("data-job-id", "job_1");
+      const handle = first.locator(".drag-handle");
+      const handleBox = await handle.boundingBox();
+      const lastBox = await page.locator("#todayCardList .today-drag-card").last().boundingBox();
+      await page.mouse.move(handleBox.x + handleBox.width / 2, handleBox.y + handleBox.height / 2);
+      await page.mouse.down();
+      await page.mouse.move(lastBox.x + lastBox.width / 2, lastBox.y + lastBox.height * 0.9, { steps: 15 });
+      await page.mouse.up();
+    }
+
+    test("dragging a job tile by its handle persists the new order", async ({ page }) => {
+      await seedTodayList(page);
+      await page.reload();
+      await expect(page.locator("#todayCardList .today-drag-card")).toHaveCount(2);
+      await dragFirstCardToBottom(page);
+      await expect.poll(() =>
+        page.evaluate(() => JSON.parse(localStorage.getItem("planmydays_today_order")))
+      ).toEqual(["job_3", "job_1"]);
+    });
+
+    test("persisted today order is applied after reload", async ({ page }) => {
+      await seedTodayList(page);
+      await page.reload();
+      await expect(page.locator("#todayCardList .today-drag-card")).toHaveCount(2);
+      await dragFirstCardToBottom(page);
+      await page.reload();
+      await expect(page.locator("#todayCardList .today-drag-card").first()).toHaveAttribute("data-job-id", "job_3");
     });
   });
 
@@ -2173,14 +2204,11 @@ test.describe("PlanMyDay - Regression", () => {
 
     test("selecting image sets name in stream editor", async ({ page }) => {
       await page.locator(".image-picker-item").first().waitFor({ state: "visible" });
-      await page.evaluate(() => new Promise(resolve => {
-        const el = document.getElementById("imagePickerModal");
-        if (el.classList.contains("show") && !el.classList.contains("fade")) { resolve(); return; }
-        el.addEventListener("shown.bs.modal", () => resolve(), { once: true });
-        setTimeout(resolve, 500);
-      }));
+      await expect(page.locator("#imagePickerModal")).toHaveClass(/show/);
       await page.locator(".image-picker-item").first().dispatchEvent("click");
-      await page.waitForTimeout(400);
+      await expect
+        .poll(() => page.evaluate(() => (editBuffer && editBuffer.image) || ""), { timeout: 5000 })
+        .toBe("PickMe");
       await page.evaluate(() => {
         const modal = bootstrap.Modal.getInstance(document.getElementById("imagePickerModal"));
         if (modal) modal.hide();
@@ -2255,8 +2283,10 @@ test.describe("PlanMyDay - Regression", () => {
 
     test("weekdays schedule option", async ({ page }) => {
       await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().click();
+      await page.locator("#jobEditModal").waitFor({ state: "visible" });
       await page.locator("#jobSchedule-tab").click();
       await page.locator("#btnScheduleChange").click();
+      await page.locator("#scheduleModal").waitFor({ state: "visible" });
       await page.locator("#schedWeekdays").check();
       await page.locator("#scheduleModal .btn-primary").click();
       await expect(page.locator("#jobScheduleText")).toContainText("Weekdays");
@@ -2264,8 +2294,10 @@ test.describe("PlanMyDay - Regression", () => {
 
     test("specific days schedule", async ({ page }) => {
       await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().click();
+      await page.locator("#jobEditModal").waitFor({ state: "visible" });
       await page.locator("#jobSchedule-tab").click();
       await page.locator("#btnScheduleChange").click();
+      await page.locator("#scheduleModal").waitFor({ state: "visible" });
       await page.locator("#schedDays").check();
       await page.locator("#schedDay0").check();
       await page.locator("#schedDay6").check();
@@ -2276,8 +2308,10 @@ test.describe("PlanMyDay - Regression", () => {
 
     test("monthly schedule option", async ({ page }) => {
       await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().click();
+      await page.locator("#jobEditModal").waitFor({ state: "visible" });
       await page.locator("#jobSchedule-tab").click();
       await page.locator("#btnScheduleChange").click();
+      await page.locator("#scheduleModal").waitFor({ state: "visible" });
       await page.locator("#schedMonthly").check();
       await page.locator("#schedMonthlyDay").selectOption("15");
       await page.locator("#scheduleModal .btn-primary").click();
@@ -2286,8 +2320,10 @@ test.describe("PlanMyDay - Regression", () => {
 
     test("every n days option shows ndays options", async ({ page }) => {
       await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().click();
+      await page.locator("#jobEditModal").waitFor({ state: "visible" });
       await page.locator("#jobSchedule-tab").click();
       await page.locator("#btnScheduleChange").click();
+      await page.locator("#scheduleModal").waitFor({ state: "visible" });
       await page.locator("#schedNDays").check();
       await expect(page.locator("#schedNDaysOptions")).toBeVisible();
       await expect(page.locator("#schedNInterval")).toBeVisible();
@@ -2310,10 +2346,13 @@ test.describe("PlanMyDay - Regression", () => {
 
     test("every n days shows next due display", async ({ page }) => {
       await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().click();
+      await page.locator("#jobEditModal").waitFor({ state: "visible" });
       await page.locator("#jobSchedule-tab").click();
       await page.locator("#btnScheduleChange").click();
+      await page.locator("#scheduleModal").waitFor({ state: "visible" });
+      await page.waitForTimeout(400);
       await page.locator("#schedNDays").check();
-      await expect(page.locator("#schedNextDue")).not.toBeEmpty();
+      await expect(page.locator("#schedNextDue")).toContainText("next due");
     });
   });
 
@@ -2851,7 +2890,7 @@ test.describe("PlanMyDay - Regression", () => {
 
     test("regenerate tiles respects specific days schedule", async ({ page }) => {
       await page.evaluate(() => {
-        const today = new Date();
+        const today = getTodayDate();
         const ts = today.getFullYear() + "-" + String(today.getMonth()+1).padStart(2,"0") + "-" + String(today.getDate()).padStart(2,"0");
         const day = today.getDay();
         localStorage.setItem("planmydays_streams", JSON.stringify([{
@@ -2871,13 +2910,12 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#showDanger").check();
       await page.locator("#regenerateTilesRow").waitFor({ state: "visible" });
       await page.getByRole("button", { name: "Regenerate Today's Tiles" }).click();
-      await page.waitForTimeout(500);
       await expect(page.getByText("SpecificDayRegen")).toBeVisible();
     });
 
     test("regenerate tiles respects specific days schedule mismatch", async ({ page }) => {
       await page.evaluate(() => {
-        const today = new Date();
+        const today = getTodayDate();
         const ts = today.getFullYear() + "-" + String(today.getMonth()+1).padStart(2,"0") + "-" + String(today.getDate()).padStart(2,"0");
         const day = today.getDay();
         const wrongDay = day === 0 ? 1 : 0;
@@ -2898,7 +2936,10 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#showDanger").check();
       await page.locator("#regenerateTilesRow").waitFor({ state: "visible" });
       await page.getByRole("button", { name: "Regenerate Today's Tiles" }).click();
-      await page.waitForTimeout(500);
+      // regenerating drops the non-matching job from the order; wait for it in storage first
+      await expect
+        .poll(() => page.evaluate(() => JSON.parse(localStorage.getItem("planmydays_today_order") || "[]")))
+        .not.toContain("job_1");
       await expect(page.getByText("SpecificDayMismatch")).not.toBeVisible();
     });
 
@@ -2985,6 +3026,49 @@ test.describe("PlanMyDay - Regression", () => {
         return k.filter(key => key !== "planmydays_last_gen" && key !== "planmydays_today_order" && key !== "planmydays_completed");
       });
       expect(allKeys.length).toBe(0);
+    });
+  });
+
+  // ── Sort Jobs in Streams ───────────────────────────────────
+
+  test.describe("Sort Jobs in Streams", () => {
+
+    test("sort jobs in streams button shows in danger zone", async ({ page }) => {
+      await page.goto("/");
+      await page.getByTitle("Settings").click();
+      await page.locator("#danger-tab").click();
+      await expect(page.locator("#btnSortJobsInStreams")).toBeHidden();
+      await page.locator("#showDanger").check();
+      await expect(page.locator("#btnSortJobsInStreams")).toBeVisible();
+    });
+
+    test("sort jobs in streams applies rule order and persists", async ({ page }) => {
+      await page.evaluate(() => {
+        const today = new Date();
+        const ts = today.getFullYear() + "-" + String(today.getMonth()+1).padStart(2,"0") + "-" + String(today.getDate()).padStart(2,"0");
+        const future = new Date(today);
+        future.setDate(future.getDate() + 2);
+        const tms = future.getFullYear() + "-" + String(future.getMonth()+1).padStart(2,"0") + "-" + String(future.getDate()).padStart(2,"0");
+        localStorage.setItem("planmydays_streams", JSON.stringify([{
+          id: "stream_1", title: "Test", tab: "progress", image: "", sequence: 1,
+          jobs: [
+            { id: "job_sleep", title: "SleepJob", active: true, frequency: "daily", sequence: 1, sleepUntil: tms, time: "09:00", suffix: false, dayType: "dayOfYear", mod: "", tasks: [] },
+            { id: "job_plain", title: "PlainJob", active: true, frequency: "daily", sequence: 2, suffix: false, dayType: "dayOfYear", mod: "", tasks: [] },
+            { id: "job_timed", title: "TimedJob", active: true, frequency: "daily", sequence: 3, time: "08:00", suffix: false, dayType: "dayOfYear", mod: "", tasks: [] }
+          ]
+        }]));
+        localStorage.setItem("planmydays_last_gen", ts);
+        localStorage.setItem("planmydays_today_order", JSON.stringify([]));
+      });
+      await page.reload();
+      await page.getByTitle("Settings").click();
+      await page.locator("#danger-tab").click();
+      await page.locator("#showDanger").check();
+      await page.getByRole("button", { name: "Sort Jobs in Streams" }).click();
+      await expect(page.locator("#settingsPage")).toBeHidden();
+      const streams = await page.evaluate(() => JSON.parse(localStorage.getItem("planmydays_streams")));
+      expect(streams[0].jobs.map(j => j.id)).toEqual(["job_timed", "job_plain", "job_sleep"]);
+      expect(streams[0].jobs.map(j => j.sequence)).toEqual([1, 2, 3]);
     });
   });
 
@@ -3353,15 +3437,13 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#imagePickerModal").waitFor({ state: "visible" });
       await expect(page.locator("#imagePickerModal")).toBeVisible();
       await page.locator(".image-picker-item").first().waitFor({ state: "visible" });
-      await page.evaluate(() => new Promise(resolve => {
-        const el = document.getElementById("imagePickerModal");
-        const handler = () => { el.removeEventListener("shown.bs.modal", handler); resolve(); };
-        if (el.classList.contains("show") && !el.classList.contains("fade")) { resolve(); return; }
-        el.addEventListener("shown.bs.modal", handler);
-        setTimeout(resolve, 500);
-      }));
+      // guard against the click landing while the picker is still mid-transition
+      await expect(page.locator("#imagePickerModal")).toHaveClass(/show/);
       await page.locator(".image-picker-item").first().dispatchEvent("click");
-      await page.waitForTimeout(400);
+      // selection writes back to the buffer; wait for it instead of a fixed sleep
+      await expect
+        .poll(() => page.evaluate(() => (jobsBuffer && jobsBuffer.image) || ""), { timeout: 5000 })
+        .toBe("TestImg");
       await page.evaluate(() => {
         const modal = bootstrap.Modal.getInstance(document.getElementById("imagePickerModal"));
         if (modal) modal.hide();
@@ -3392,22 +3474,13 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#imagePickerModal").waitFor({ state: "visible" });
       await expect(page.locator("#imagePickerModal")).toBeVisible();
       await page.locator(".image-picker-item").first().waitFor({ state: "visible" });
-      await page.evaluate(() => new Promise(resolve => {
-        const el = document.getElementById("imagePickerModal");
-        const handler = () => { el.removeEventListener("shown.bs.modal", handler); resolve(); };
-        if (el.classList.contains("show") && !el.classList.contains("fade")) { resolve(); return; }
-        el.addEventListener("shown.bs.modal", handler);
-        setTimeout(resolve, 500);
-      }));
+      // guard against the click landing while the picker is still mid-transition
+      await expect(page.locator("#imagePickerModal")).toHaveClass(/show/);
       await page.locator(".image-picker-item").first().dispatchEvent("click");
-      await page.waitForTimeout(400);
-      await page.evaluate(() => {
-        const modal = bootstrap.Modal.getInstance(document.getElementById("imagePickerModal"));
-        if (modal) modal.hide();
-      });
-      await page.locator("#imagePickerModal").waitFor({ state: "hidden", timeout: 10000 });
-      const img = await page.evaluate(() => jobsBuffer?.image || "");
-      expect(img).toBe("AddJobImg");
+      // selection writes back to the buffer; wait for it instead of a fixed sleep
+      await expect
+        .poll(() => page.evaluate(() => (jobsBuffer && jobsBuffer.image) || ""), { timeout: 5000 })
+        .toBe("AddJobImg");
     });
 
     test("searching images from job edit modal is blocked by jobEditModal backdrop", async ({ page }) => {
@@ -3430,12 +3503,7 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#jobEditModal").waitFor({ state: "visible" });
       await page.locator("#btnJobImageChange").click();
       await page.locator("#imagePickerModal").waitFor({ state: "visible" });
-      await page.evaluate(() => new Promise(resolve => {
-        const el = document.getElementById("imagePickerModal");
-        if (el.classList.contains("show") && !el.classList.contains("fade")) { resolve(); return; }
-        el.addEventListener("shown.bs.modal", () => resolve(), { once: true });
-        setTimeout(resolve, 500);
-      }));
+      await expect(page.locator("#imagePickerModal")).toHaveClass(/show/);
       await page.locator(".image-picker-search").fill("Banana");
       const banana = page.locator(".image-picker-item").filter({ hasText: "Banana" });
       await banana.waitFor({ state: "visible" });
@@ -3462,15 +3530,13 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#imagePickerModal").waitFor({ state: "visible" });
       await expect(page.locator("#imagePickerModal")).toBeVisible();
       await page.locator(".image-picker-item").first().waitFor({ state: "visible" });
-      await page.evaluate(() => new Promise(resolve => {
-        const el = document.getElementById("imagePickerModal");
-        const handler = () => { el.removeEventListener("shown.bs.modal", handler); resolve(); };
-        if (el.classList.contains("show") && !el.classList.contains("fade")) { resolve(); return; }
-        el.addEventListener("shown.bs.modal", handler);
-        setTimeout(resolve, 500);
-      }));
+      // guard against the click landing while the picker is still mid-transition
+      await expect(page.locator("#imagePickerModal")).toHaveClass(/show/);
       await page.locator(".image-picker-item").first().dispatchEvent("click");
-      await page.waitForTimeout(400);
+      // selection writes back to the buffer; wait for it instead of a fixed sleep
+      await expect
+        .poll(() => page.evaluate(() => (jobsBuffer && jobsBuffer.image) || ""), { timeout: 5000 })
+        .toBe("FrontImg");
       await page.evaluate(() => {
         const modal = bootstrap.Modal.getInstance(document.getElementById("imagePickerModal"));
         if (modal) modal.hide();
@@ -3862,76 +3928,6 @@ test.describe("PlanMyDay - Regression", () => {
       expect(count).toBeGreaterThanOrEqual(2);
     });
 
-    test("today list drag reorder updates order", async ({ page }) => {
-      await seedTodayList(page);
-      await page.reload();
-      await expect(page.locator("#todayCardList .today-drag-card")).toHaveCount(2);
-      const after = await page.evaluate(() => {
-        const list = document.getElementById("todayCardList");
-        const cards = [...list.querySelectorAll(".today-drag-card")];
-        const src = cards[0];
-        const dst = cards[1];
-        const dt = new DataTransfer();
-        src.dispatchEvent(new DragEvent("dragstart", { bubbles: true, dataTransfer: dt }));
-        dst.dispatchEvent(new DragEvent("dragover", { bubbles: true, cancelable: true, dataTransfer: dt, clientY: dst.getBoundingClientRect().bottom - 2 }));
-        dst.dispatchEvent(new DragEvent("drop", { bubbles: true, cancelable: true, dataTransfer: dt, clientY: dst.getBoundingClientRect().bottom - 2 }));
-        src.dispatchEvent(new DragEvent("dragend", { bubbles: true, dataTransfer: dt }));
-        return loadTodayOrder();
-      });
-      expect(after[0]).toBe("job_3");
-      expect(after[1]).toBe("job_1");
-    });
-
-    test("job editor drag swaps sequences for same group", async ({ page }) => {
-      await page.evaluate((data) => {
-        data[0].jobs = [
-          { id: "j_a", title: "Auntimed", active: true, frequency: "daily", sequence: 1, time: "", schedule: { type: "daily" } },
-          { id: "j_b", title: "Buntimed", active: true, frequency: "daily", sequence: 2, time: "", schedule: { type: "daily" } }
-        ];
-        localStorage.setItem("planmydays_streams", JSON.stringify(data));
-      }, TEST_STREAMS);
-      await page.reload();
-      await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
-      await page.locator("a.dropdown-item").filter({ hasText: "Jobs" }).click();
-      await page.locator("#streamEditorList .stream-header-main").first().click();
-      await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible" });
-      const src = page.locator(".job-drag-card").filter({ hasText: "Buntimed" });
-      const dst = page.locator(".job-drag-card").filter({ hasText: "Auntimed" });
-      await src.dragTo(dst);
-      await page.waitForTimeout(400);
-      const seqs = await page.evaluate(() => {
-        const s = loadStreams()[0].jobs;
-        const a = s.find(j => j.title === "Auntimed");
-        const b = s.find(j => j.title === "Buntimed");
-        return { a: a.sequence, b: b.sequence };
-      });
-      expect(seqs.a !== 1 || seqs.b !== 2).toBeTruthy();
-    });
-
-    test("canSwapJobs rejects different time groups", async ({ page }) => {
-      const futureDate = futureDateStr(30);
-      const result = await page.evaluate(({ data, sleep }) => {
-        data[0].jobs = [
-          { id: "t1", title: "T1", active: true, sequence: 1, time: "09:00" },
-          { id: "t2", title: "T2", active: true, sequence: 2, time: "10:00" },
-          { id: "u1", title: "U1", active: true, sequence: 3, time: "" },
-          { id: "s1", title: "S1", active: true, sequence: 4, time: "", sleepUntil: sleep },
-          { id: "s2", title: "S2", active: true, sequence: 5, time: "", sleepUntil: sleep }
-        ];
-        localStorage.setItem("planmydays_streams", JSON.stringify(data));
-        return {
-          diffTime: canSwapJobs(0, 0, 1),
-          timeUntimed: canSwapJobs(0, 0, 2),
-          sameSleep: canSwapJobs(0, 3, 4),
-          missing: canSwapJobs(0, 0, 99)
-        };
-      }, { data: TEST_STREAMS, sleep: futureDate });
-      expect(result.diffTime).toBe(false);
-      expect(result.timeUntimed).toBe(false);
-      expect(result.sameSleep).toBe(true);
-      expect(result.missing).toBe(false);
-    });
-
     test("split list empty tab message", async ({ page }) => {
       await page.evaluate((data) => {
         data[0].tab = "progress";
@@ -4040,219 +4036,6 @@ test.describe("PlanMyDay - Regression", () => {
       expect(result.passthrough).toBe("not-svg");
       expect(decodeURIComponent(result.colored)).toContain("#abcdef");
       expect(decodeURIComponent(result.cleared)).toMatch(/stroke=["']none["']/);
-    });
-
-    test("touch DnD handlers fire for today cards", async ({ page }) => {
-      await seedTodayList(page);
-      await page.reload();
-      await page.locator("#todayCardList .today-drag-card").first().waitFor({ state: "visible" });
-      const reordered = await page.evaluate(() => {
-        const list = document.getElementById("todayCardList");
-        const cards = [...list.querySelectorAll(".today-drag-card")];
-        const c1 = cards[0];
-        const c2 = cards[1];
-        const r1 = c1.getBoundingClientRect();
-        const r2 = c2.getBoundingClientRect();
-        const fire = (type, x, y, target) => {
-          const t = new Touch({ identifier: 1, target, clientX: x, clientY: y });
-          const touching = type === "touchend" || type === "touchcancel" ? [] : [t];
-          target.dispatchEvent(new TouchEvent(type, {
-            bubbles: true, cancelable: true,
-            touches: touching,
-            changedTouches: [t],
-            targetTouches: touching
-          }));
-        };
-        fire("touchstart", r1.x + 10, r1.y + 10, c1);
-        fire("touchmove", r2.x + 10, r2.y + 10, c1);
-        fire("touchend", r2.x + 10, r2.y + 10, c1);
-        fire("touchstart", r1.x + 10, r1.y + 10, c1);
-        fire("touchcancel", r1.x + 10, r1.y + 10, c1);
-        return loadTodayOrder();
-      });
-      expect(reordered.length).toBeGreaterThanOrEqual(2);
-    });
-  });
-
-  // ── Coverage: Branch paths ─────────────────────────────────
-
-  test.describe("Coverage: Branch paths", () => {
-
-    test("touch DnD edge branches: no card, no target, same card, cancel idle", async ({ page }) => {
-      await seedTodayList(page);
-      await page.reload();
-      await page.locator("#todayCardList .today-drag-card").first().waitFor({ state: "visible" });
-      await page.evaluate(() => {
-        const list = document.getElementById("todayCardList");
-        const cards = [...list.querySelectorAll(".today-drag-card")];
-        const c1 = cards[0];
-        const c2 = cards[1];
-        const r1 = c1.getBoundingClientRect();
-        const r2 = c2.getBoundingClientRect();
-        const fire = (type, x, y, target) => {
-          const t = new Touch({ identifier: 1, target, clientX: x, clientY: y });
-          const touching = type === "touchend" || type === "touchcancel" ? [] : [t];
-          target.dispatchEvent(new TouchEvent(type, {
-            bubbles: true, cancelable: true,
-            touches: touching, changedTouches: [t], targetTouches: touching
-          }));
-        };
-        // touchstart on non-card (list itself)
-        fire("touchstart", 1, 1, list);
-        // touchmove/end/cancel with no active drag
-        fire("touchmove", 10, 10, list);
-        fire("touchend", 10, 10, list);
-        fire("touchcancel", 10, 10, list);
-        // start on card, move to empty space (no target)
-        fire("touchstart", r1.x + 5, r1.y + 5, c1);
-        fire("touchmove", 2, 2, document.body);
-        // move above midpoint vs below midpoint
-        fire("touchmove", r2.x + 5, r2.y + 2, c2);
-        fire("touchmove", r2.x + 5, r2.y + r2.height - 2, c2);
-        // end on same card (no reorder)
-        fire("touchend", r1.x + 5, r1.y + 5, c1);
-        // start and end with no target under finger
-        fire("touchstart", r1.x + 5, r1.y + 5, c1);
-        fire("touchend", 1, 1, document.body);
-        // start and cancel with active drag
-        fire("touchstart", r1.x + 5, r1.y + 5, c1);
-        fire("touchcancel", r1.x + 5, r1.y + 5, c1);
-      });
-    });
-
-    test("job DnD branch paths: wrong stream, same index, cannot swap, missing sequence", async ({ page }) => {
-      await page.evaluate((data) => {
-        data[0].jobs = [
-          { id: "j1", title: "TAuntimed", active: true, sequence: 1, time: "" },
-          { id: "j2", title: "TBuntimed", active: true, sequence: 2, time: "" },
-          { id: "j3", title: "TimedA", active: true, sequence: 3, time: "09:00" },
-          { id: "j4", title: "TimedB", active: true, time: "10:00" }
-        ];
-        data[1].jobs = [
-          { id: "j5", title: "OtherStream", active: true, sequence: 1, time: "" }
-        ];
-        localStorage.setItem("planmydays_streams", JSON.stringify(data));
-      }, TEST_STREAMS);
-      await page.reload();
-      await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
-      await page.locator("a.dropdown-item").filter({ hasText: "Jobs" }).click();
-      await page.locator("#streamEditorList .stream-header-main").first().click();
-      await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible" });
-      // expand second stream too for cross-stream target
-      await page.locator("#streamEditorList .stream-header-main").nth(1).click();
-      await page.waitForTimeout(200);
-
-      await page.evaluate(() => {
-        const list = document.getElementById("streamEditorList");
-        const untimed = [...list.querySelectorAll(".job-drag-card")].filter(c =>
-          c.textContent.includes("TAuntimed") || c.textContent.includes("TBuntimed") ||
-          c.textContent.includes("TimedA") || c.textContent.includes("TimedB") ||
-          c.textContent.includes("OtherStream")
-        );
-        const byTitle = (t) => untimed.find(c => c.textContent.includes(t));
-        const a = byTitle("TAuntimed");
-        const b = byTitle("TBuntimed");
-        const timedA = byTitle("TimedA");
-        const timedB = byTitle("TimedB");
-        const other = byTitle("OtherStream");
-        const dt = new DataTransfer();
-        const drag = (type, el, clientY) => {
-          const rect = el.getBoundingClientRect();
-          const y = clientY != null ? clientY : rect.top + rect.height / 2;
-          el.dispatchEvent(new DragEvent(type, {
-            bubbles: true, cancelable: true, dataTransfer: dt,
-            clientX: rect.left + 10, clientY: y
-          }));
-        };
-        // dragstart on non-card
-        list.dispatchEvent(new DragEvent("dragstart", { bubbles: true, dataTransfer: dt }));
-        // valid start then dragover top vs bottom
-        drag("dragstart", a);
-        drag("dragover", b, b.getBoundingClientRect().top + 2);
-        drag("dragover", b, b.getBoundingClientRect().bottom - 2);
-        // drop on self
-        drag("drop", a);
-        drag("dragend", a);
-        // start then cross-stream dragover/drop
-        drag("dragstart", a);
-        if (other) {
-          drag("dragover", other);
-          drag("drop", other);
-        }
-        drag("dragend", a);
-        // cannot swap timed different times
-        drag("dragstart", timedA);
-        drag("dragover", timedB);
-        drag("drop", timedB);
-        drag("dragend", timedA);
-        // successful swap without sequence on one job (|| 0 branch)
-        drag("dragstart", timedB);
-        // put timedB next to untimed won't swap; swap two untimed again
-        drag("dragstart", b);
-        drag("drop", a, a.getBoundingClientRect().top + 2);
-        drag("dragend", b);
-        // drop with no active drag
-        _jobDragSrcIdx = -1;
-        drag("drop", a);
-      });
-      // re-seed for stable canSwapJobs index checks
-      const r = await page.evaluate((data) => {
-        data[0].jobs = [
-          { id: "j1", title: "TAuntimed", active: true, sequence: 1, time: "" },
-          { id: "j2", title: "TBuntimed", active: true, sequence: 2, time: "" },
-          { id: "j3", title: "TimedA", active: true, sequence: 3, time: "09:00" },
-          { id: "j4", title: "TimedB", active: true, sequence: 4, time: "10:00" }
-        ];
-        localStorage.setItem("planmydays_streams", JSON.stringify(data));
-        return {
-          sameTime: canSwapJobs(0, 2, 2),
-          diffTime: canSwapJobs(0, 2, 3),
-          untimed: canSwapJobs(0, 0, 1)
-        };
-      }, TEST_STREAMS);
-      expect(r.sameTime).toBe(true);
-      expect(r.diffTime).toBe(false);
-      expect(r.untimed).toBe(true);
-    });
-
-    test("canSwapJobs sleep and time subgroup branches", async ({ page }) => {
-      const futureDateA = futureDateStr(30);
-      const futureDateB = futureDateStr(60);
-      const result = await page.evaluate(({ data, sleepA, sleepB }) => {
-        data[0].jobs = [
-          { id: "a", title: "A", active: true, sequence: 1, time: "09:00", sleepUntil: "" },
-          { id: "b", title: "B", active: true, sequence: 2, time: "09:00", sleepUntil: "" },
-          { id: "c", title: "C", active: true, sequence: 3, time: "10:00", sleepUntil: "" },
-          { id: "d", title: "D", active: true, sequence: 4, time: "", sleepUntil: sleepA },
-          { id: "e", title: "E", active: true, sequence: 5, time: "", sleepUntil: sleepA },
-          { id: "f", title: "F", active: true, sequence: 6, time: "08:00", sleepUntil: sleepA },
-          { id: "g", title: "G", active: true, sequence: 7, time: "", sleepUntil: sleepB },
-          { id: "h", title: "H", active: true, sequence: 8, time: "  ", sleepUntil: "  " }
-        ];
-        localStorage.setItem("planmydays_streams", JSON.stringify(data));
-        return {
-          sameTime: canSwapJobs(0, 0, 1),
-          diffTime: canSwapJobs(0, 0, 2),
-          sameSleep: canSwapJobs(0, 3, 4),
-          sleepDiffDate: canSwapJobs(0, 3, 6),
-          sleepDiffTime: canSwapJobs(0, 3, 5),
-          sleepVsUntimed: canSwapJobs(0, 3, 7),
-          blankTrimUntimed: canSwapJobs(0, 7, 7),
-          missingJob: canSwapJobs(0, 0, 99),
-          emptyJobsStream: (() => {
-            data.push({ id: "empty", title: "E", jobs: null });
-            localStorage.setItem("planmydays_streams", JSON.stringify(data));
-            try { return canSwapJobs(data.length - 1, 0, 1); } catch (e) { return "err"; }
-          })()
-        };
-      }, { data: TEST_STREAMS, sleepA: futureDateA, sleepB: futureDateB });
-      expect(result.sameTime).toBe(true);
-      expect(result.diffTime).toBe(false);
-      expect(result.sameSleep).toBe(true);
-      expect(result.sleepDiffDate).toBe(false);
-      expect(result.sleepDiffTime).toBe(false);
-      expect(result.sleepVsUntimed).toBe(false);
-      expect(result.missingJob).toBe(false);
     });
 
     test("addScheduleJobsToOrder time sort branches", async ({ page }) => {
@@ -4530,39 +4313,6 @@ test.describe("PlanMyDay - Regression", () => {
       expect(theme).toBe("not-a-real-theme");
       await expect(page.locator("body")).toHaveClass(/font-size-small/);
       await expect(page.locator("body")).toHaveClass(/compact/);
-    });
-
-    test("today drag drop same card and empty target branches", async ({ page }) => {
-      await seedTodayList(page);
-      await page.reload();
-      await page.locator("#todayCardList .today-drag-card").first().waitFor({ state: "visible" });
-      await page.evaluate(() => {
-        const list = document.getElementById("todayCardList");
-        const cards = [...list.querySelectorAll(".today-drag-card")];
-        const c1 = cards[0];
-        const c2 = cards[1];
-        const dt = new DataTransfer();
-        const fire = (type, el, y) => {
-          const rect = el.getBoundingClientRect();
-          el.dispatchEvent(new DragEvent(type, {
-            bubbles: true, cancelable: true, dataTransfer: dt,
-            clientX: rect.left + 5,
-            clientY: y != null ? y : rect.top + rect.height / 2
-          }));
-        };
-        // drop on self
-        fire("dragstart", c1);
-        fire("drop", c1);
-        fire("dragend", c1);
-        // dragover top and bottom
-        fire("dragstart", c1);
-        fire("dragover", c2, c2.getBoundingClientRect().top + 1);
-        fire("dragover", c2, c2.getBoundingClientRect().bottom - 1);
-        fire("drop", c2, c2.getBoundingClientRect().top + 1);
-        fire("dragend", c1);
-        // dragstart on list (no card)
-        list.dispatchEvent(new DragEvent("dragstart", { bubbles: true, dataTransfer: dt }));
-      });
     });
 
     test("markJobDone and removeAdhocJob edge branches", async ({ page }) => {
@@ -5409,7 +5159,7 @@ test.describe("PlanMyDay - Regression", () => {
       await expect(page.locator("#taskNoteRow0")).not.toBeVisible();
       await page.locator("#jobAddTaskBtn").click();
       await expect(page.locator("#taskNoteRow0")).not.toBeVisible();
-      await page.evaluate(() => reorderTask(0, 1, false));
+      await page.evaluate(() => renderJobTasks());
       await expect(page.locator("#taskNoteRow0")).not.toBeVisible();
     });
 
@@ -5513,6 +5263,8 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().click();
       await page.locator("#jobEditModal").waitFor({ state: "visible" });
       await page.locator("#jobTasks-tab").click();
+      // wait for the Tasks pane to be the active tab before adding a task
+      await expect(page.locator("#jobTasks-tab")).toHaveClass(/active/);
       await page.locator("#jobAddTaskBtn").click();
       await expect(page.locator("#jobTasksList .btn-danger")).toBeVisible();
     });
@@ -5548,14 +5300,6 @@ test.describe("PlanMyDay - Regression", () => {
       await expect(page.locator(".task-drag-card .drag-handle")).toHaveCount(2);
     });
 
-    test("task rows are draggable in edit mode", async ({ page }) => {
-      await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().click();
-      await page.locator("#jobEditModal").waitFor({ state: "visible" });
-      await page.locator("#jobTasks-tab").click();
-      await page.locator("#jobAddTaskBtn").click();
-      await expect(page.locator(".task-drag-card")).toHaveAttribute("draggable", "true");
-    });
-
     test("view-only mode hides drag handle on tasks", async ({ page }) => {
       await seedTodayList(page);
       await page.evaluate(() => {
@@ -5571,126 +5315,26 @@ test.describe("PlanMyDay - Regression", () => {
       await expect(dragHandles).toHaveCount(0);
     });
 
-    test("view-only mode task rows are not draggable", async ({ page }) => {
-      await seedTodayList(page);
-      await page.evaluate(() => {
-        const streams = JSON.parse(localStorage.getItem("planmydays_streams"));
-        streams[0].jobs[0].tasks = [{ description: "Test task", done: false }];
-        localStorage.setItem("planmydays_streams", JSON.stringify(streams));
-      });
-      await page.reload();
-      await page.locator(".job-view-btn").first().click();
-      await page.locator("#jobEditModal").waitFor({ state: "visible" });
-      await page.locator("#jobTasks-tab").click();
-      const card = page.locator(".task-drag-card").first();
-      await expect(card).not.toHaveAttribute("draggable", "true");
-    });
-
-    test("drag and drop works when a note is open", async ({ page }) => {
+    test("task rows can be reordered with drag and drop", async ({ page }) => {
       await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().click();
       await page.locator("#jobEditModal").waitFor({ state: "visible" });
       await page.locator("#jobTasks-tab").click();
       await page.locator("#jobAddTaskBtn").click();
-      await page.locator(".task-desc-input").first().fill("Task A");
+      await page.locator(".task-desc-input").first().fill("First task");
       await page.locator("#jobAddTaskBtn").click();
-      await page.locator(".task-desc-input").last().fill("Task B");
-      await page.locator(".task-note-btn").first().click();
-      await page.locator("#taskNoteRow0 textarea").fill("Open note");
-      await page.locator(".task-note-btn").last().click();
-      await page.locator("#taskNoteRow1 textarea").fill("Open note");
-      await expect(page.locator("#taskNoteRow0")).toBeVisible();
-      await expect(page.locator("#taskNoteRow1")).toBeVisible();
-      await page.evaluate(() => {
-        const list = document.getElementById("jobTasksList");
-        const cards = list.querySelectorAll(".task-drag-card");
-        const handle0 = cards[0].querySelector(".drag-handle");
-        const noteRow1 = document.getElementById("taskNoteRow1");
-        const r0 = handle0.getBoundingClientRect();
-        const r1 = noteRow1.getBoundingClientRect();
-        const top = Math.min(r1.top, cards[1].getBoundingClientRect().top);
-        const bottom = Math.max(r1.bottom, cards[1].getBoundingClientRect().bottom);
-        const dropY = (top + bottom) / 2 + 5;
-        const dt = new DataTransfer();
-        const fire = (type, target, x, y) => {
-          target.dispatchEvent(new DragEvent(type, {
-            bubbles: true, cancelable: true, clientX: x, clientY: y, dataTransfer: dt
-          }));
-        };
-        fire("dragstart", handle0, r0.x + 2, r0.y + 2);
-        fire("dragover", noteRow1, r1.x + 10, dropY);
-        fire("drop", noteRow1, r1.x + 10, dropY);
-        fire("dragend", handle0, r0.x + 2, r0.y + 2);
-      });
-      const order = await page.evaluate(() => {
-        return [...document.querySelectorAll("#jobTasksList .task-desc-input")].map(i => i.value);
-      });
-      expect(order[0]).toBe("Task B");
-      expect(order[1]).toBe("Task A");
-    });
-
-    test("trailing click after task drag does not close the edit modal", async ({ page }) => {
-      await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().click();
-      await page.locator("#jobEditModal").waitFor({ state: "visible" });
-      await page.locator("#jobTasks-tab").click();
-      await page.locator("#jobAddTaskBtn").click();
-      await page.locator(".task-desc-input").first().fill("Task A");
-      await page.locator("#jobAddTaskBtn").click();
-      await page.locator(".task-desc-input").last().fill("Task B");
-      await page.locator("#jobAddTaskBtn").click();
-      await page.locator(".task-desc-input").last().fill("Task C");
-
-      const handle = page.locator("#jobTasksList .task-drag-card").first().locator(".drag-handle");
-      const okBtn = page.locator("#jobEditOkBtn");
-      const hb = await handle.boundingBox();
-      const ob = await okBtn.boundingBox();
-      await page.mouse.move(hb.x + hb.width / 2, hb.y + hb.height / 2);
+      await page.locator(".task-desc-input").last().fill("Second task");
+      const handle = page.locator("#jobTasksList .task-row").first().locator(".drag-handle");
+      const handleBox = await handle.boundingBox();
+      const lastBox = await page.locator("#jobTasksList .task-row").last().boundingBox();
+      await page.mouse.move(handleBox.x + handleBox.width / 2, handleBox.y + handleBox.height / 2);
       await page.mouse.down();
-      await page.mouse.move(ob.x + ob.width / 2, ob.y + ob.height / 2, { steps: 20 });
+      await page.mouse.move(lastBox.x + lastBox.width / 2, lastBox.y + lastBox.height * 0.9, { steps: 15 });
       await page.mouse.up();
-
-      // Chrome synthesizes a click on the element under the pointer after a
-      // native drop — simulate it; the modal must not close.
-      const pos = { x: ob.x + ob.width / 2, y: ob.y + ob.height / 2 };
-      await page.evaluate((p) => {
-        const el = document.elementFromPoint(p.x, p.y);
-        el.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, clientX: p.x, clientY: p.y }));
-      }, pos);
-      await page.waitForTimeout(300);
-
-      await expect(page.locator("#jobEditModal")).toBeVisible();
-      const order = await page.evaluate(() => [...document.querySelectorAll("#jobTasksList .task-desc-input")].map(i => i.value));
-      expect(order).toEqual(["Task A", "Task B", "Task C"]);
-    });
-
-    test("reorderTask moves task in buffer array", async ({ page }) => {
-      await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().click();
-      await page.locator("#jobEditModal").waitFor({ state: "visible" });
-      await page.locator("#jobTasks-tab").click();
-      await page.locator("#jobAddTaskBtn").click();
-      await page.locator(".task-desc-input").first().fill("Task A");
-      await page.locator("#jobAddTaskBtn").click();
-      await page.locator(".task-desc-input").last().fill("Task B");
-      await page.evaluate(() => reorderTask(0, 1, false));
-      const tasks = await page.evaluate(() => jobsBuffer?.tasks);
-      expect(tasks[0].description).toBe("Task B");
-      expect(tasks[1].description).toBe("Task A");
-    });
-
-    test("reorderTask with above flag adjusts position", async ({ page }) => {
-      await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().click();
-      await page.locator("#jobEditModal").waitFor({ state: "visible" });
-      await page.locator("#jobTasks-tab").click();
-      await page.locator("#jobAddTaskBtn").click();
-      await page.locator(".task-desc-input").first().fill("A");
-      await page.locator("#jobAddTaskBtn").click();
-      await page.locator(".task-desc-input").last().fill("B");
-      await page.locator("#jobAddTaskBtn").click();
-      await page.locator(".task-desc-input").last().fill("C");
-      await page.evaluate(() => reorderTask(2, 0, true));
-      const tasks = await page.evaluate(() => jobsBuffer?.tasks);
-      expect(tasks[0].description).toBe("C");
-      expect(tasks[1].description).toBe("A");
-      expect(tasks[2].description).toBe("B");
+      await expect.poll(() =>
+        page.evaluate(() => (jobsBuffer?.tasks || []).map(t => t.description))
+      ).toEqual(["Second task", "First task"]);
+      await expect(page.locator("#jobTasksList .task-row")).toHaveCount(2);
+      await expect(page.locator("#jobTasksList .task-note-row")).toHaveCount(2);
     });
   });
   });
