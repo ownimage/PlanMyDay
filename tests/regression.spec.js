@@ -106,7 +106,7 @@ test.describe("PlanMyDay - Regression", () => {
     await stopCoverage(page);
   });
 
-  // â”€â”€ Main View â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Main View ──────────────────────────────────────────────
 
   test.describe("Main View", () => {
 
@@ -363,7 +363,7 @@ test.describe("PlanMyDay - Regression", () => {
     
   });
 
-  // â”€â”€ Navigation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Navigation ─────────────────────────────────────────────
 
   test.describe("Navigation", () => {
 
@@ -430,7 +430,7 @@ test.describe("PlanMyDay - Regression", () => {
     });
   });
 
-  // â”€â”€ Settings â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Settings ───────────────────────────────────────────────
 
   test.describe("Settings", () => {
 
@@ -528,7 +528,7 @@ test.describe("PlanMyDay - Regression", () => {
     });
   });
 
-  // â”€â”€ Streams Editor â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Streams Editor ─────────────────────────────────────────
 
   test.describe("Streams Editor", () => {
 
@@ -678,7 +678,7 @@ test.describe("PlanMyDay - Regression", () => {
     });
   });
 
-  // â”€â”€ Jobs Editor â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Jobs Editor ────────────────────────────────────────────
 
   test.describe("Jobs Editor", () => {
 
@@ -880,7 +880,10 @@ test.describe("PlanMyDay - Regression", () => {
       var meetingToggle = page.locator("#streamEditorList .accordion-body .active-toggle").nth(1);
       await expect(meetingToggle).toBeChecked();
       await meetingToggle.uncheck();
-      await page.waitForTimeout(300);
+      // wait for the order to reflect the removal before leaving the editor
+      await expect
+        .poll(() => page.evaluate(() => JSON.parse(localStorage.getItem("planmydays_today_order") || "[]")))
+        .not.toContain("job_2");
       // click Done to return to main view
       await page.getByRole("button", { name: "Done" }).click();
       await expect(page.locator("#countdownContainer")).toBeVisible();
@@ -891,7 +894,7 @@ test.describe("PlanMyDay - Regression", () => {
     });
   });
 
-  // â”€â”€ Schedule Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Schedule Modal ─────────────────────────────────────────
 
   test.describe("Schedule Modal", () => {
 
@@ -923,7 +926,7 @@ test.describe("PlanMyDay - Regression", () => {
     });
   });
 
-  // â”€â”€ Images Editor â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Images Editor ──────────────────────────────────────────
 
   test.describe("Images Editor", () => {
 
@@ -1127,7 +1130,7 @@ test.describe("PlanMyDay - Regression", () => {
     });
   });
 
-  // â”€â”€ Image Edit Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Image Edit Modal ───────────────────────────────────────
 
   test.describe("Image Edit Modal", () => {
 
@@ -1149,7 +1152,7 @@ test.describe("PlanMyDay - Regression", () => {
     });
   });
 
-  // â”€â”€ Image Picker Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Image Picker Modal ─────────────────────────────────────
 
   test.describe("Image Picker Modal", () => {
 
@@ -1212,7 +1215,7 @@ test.describe("PlanMyDay - Regression", () => {
     });
   });
 
-  // â”€â”€ Dev Mode â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Dev Mode ───────────────────────────────────────────────
 
   test.describe("Dev Mode", () => {
 
@@ -1233,7 +1236,7 @@ test.describe("PlanMyDay - Regression", () => {
     });
   });
 
-  // â”€â”€ Split List â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Split List ─────────────────────────────────────────────
 
   test.describe("Split List", () => {
 
@@ -1304,7 +1307,7 @@ test.describe("PlanMyDay - Regression", () => {
     });
   });
 
-  // â”€â”€ Delete Confirm Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Delete Confirm Modal ───────────────────────────────────
 
   test.describe("Delete Confirm Modal", () => {
 
@@ -1332,7 +1335,7 @@ test.describe("PlanMyDay - Regression", () => {
     });
   });
 
-  // â”€â”€ Ad Hoc Workflow â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Ad Hoc Workflow ────────────────────────────────────────
 
   test.describe("Ad Hoc Workflow", () => {
 
@@ -1378,7 +1381,7 @@ test.describe("PlanMyDay - Regression", () => {
     });
   });
 
-  // â”€â”€ Suffix Display â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Suffix Display ─────────────────────────────────────────
 
   test.describe("Suffix Display", () => {
 
@@ -1391,7 +1394,7 @@ test.describe("PlanMyDay - Regression", () => {
     });
   });
 
-  // â”€â”€ Suffix Start Setting â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Suffix Start Setting ──────────────────────────────────
 
   test.describe("Suffix Start Setting", () => {
 
@@ -1456,7 +1459,7 @@ test.describe("PlanMyDay - Regression", () => {
     });
   });
 
-  // â”€â”€ Tab Badge â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Tab Badge ──────────────────────────────────────────────
 
   test.describe("Tab Badge", () => {
 
@@ -1471,7 +1474,7 @@ test.describe("PlanMyDay - Regression", () => {
     });
   });
 
-  // â”€â”€ Hide Done â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Hide Done ──────────────────────────────────────────────
 
   test.describe("Hide Done", () => {
 
@@ -1498,7 +1501,7 @@ test.describe("PlanMyDay - Regression", () => {
     });
   });
 
-  // â”€â”€ Settings UI Controls â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Settings UI Controls ─────────────────────────────────
 
   test.describe("Settings UI Controls", () => {
 
@@ -1638,7 +1641,7 @@ test.describe("PlanMyDay - Regression", () => {
     });
   });
 
-  // â”€â”€ Job Edit Modal UI â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Job Edit Modal UI ───────────────────────────────────────
 
   test.describe("Job Edit Modal UI", () => {
 
@@ -1816,7 +1819,7 @@ test.describe("PlanMyDay - Regression", () => {
     });
   });
 
-  // â”€â”€ Stream Selector in Job Edit â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Stream Selector in Job Edit ───────────────────────────────
 
   test.describe("Stream Selector in Job Edit", () => {
 
@@ -1915,7 +1918,7 @@ test.describe("PlanMyDay - Regression", () => {
     });
   });
 
-  // â”€â”€ Image Editing UI â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Image Editing UI ────────────────────────────────────────
 
   test.describe("Image Editing UI", () => {
 
@@ -2025,7 +2028,7 @@ test.describe("PlanMyDay - Regression", () => {
     });
   });
 
-  // â”€â”€ Image Picker UI â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Image Picker UI ─────────────────────────────────────────
 
   test.describe("Image Picker UI", () => {
 
@@ -2061,14 +2064,11 @@ test.describe("PlanMyDay - Regression", () => {
 
     test("selecting image sets name in stream editor", async ({ page }) => {
       await page.locator(".image-picker-item").first().waitFor({ state: "visible" });
-      await page.evaluate(() => new Promise(resolve => {
-        const el = document.getElementById("imagePickerModal");
-        if (el.classList.contains("show") && !el.classList.contains("fade")) { resolve(); return; }
-        el.addEventListener("shown.bs.modal", () => resolve(), { once: true });
-        setTimeout(resolve, 500);
-      }));
+      await expect(page.locator("#imagePickerModal")).toHaveClass(/show/);
       await page.locator(".image-picker-item").first().dispatchEvent("click");
-      await page.waitForTimeout(400);
+      await expect
+        .poll(() => page.evaluate(() => (editBuffer && editBuffer.image) || ""), { timeout: 5000 })
+        .toBe("PickMe");
       await page.evaluate(() => {
         const modal = bootstrap.Modal.getInstance(document.getElementById("imagePickerModal"));
         if (modal) modal.hide();
@@ -2119,7 +2119,7 @@ test.describe("PlanMyDay - Regression", () => {
     });
   });
 
-  // â”€â”€ Schedule Type UI â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Schedule Type UI ────────────────────────────────────────
 
   test.describe("Schedule Type UI", () => {
 
@@ -2205,7 +2205,7 @@ test.describe("PlanMyDay - Regression", () => {
     });
   });
 
-  // â”€â”€ Dev Mode UI â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Dev Mode UI ─────────────────────────────────────────────
 
   test.describe("Dev Mode UI", () => {
 
@@ -2226,7 +2226,7 @@ test.describe("PlanMyDay - Regression", () => {
     });
   });
 
-  // â”€â”€ Image Editing: Cancel Existing â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Image Editing: Cancel Existing ──────────────────────────
 
   test.describe("Image Editing: Cancel Existing", () => {
 
@@ -2305,7 +2305,7 @@ test.describe("PlanMyDay - Regression", () => {
     });
   });
 
-  // â”€â”€ Image Picker Empty State â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Image Picker Empty State ───────────────────────────────
 
   test.describe("Image Picker Empty State", () => {
 
@@ -2343,7 +2343,7 @@ test.describe("PlanMyDay - Regression", () => {
     });
   });
 
-  // â”€â”€ Ad Hoc Confirm Removal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Ad Hoc Confirm Removal ─────────────────────────────────
 
   test.describe("Ad Hoc Confirm Removal", () => {
 
@@ -2374,7 +2374,7 @@ test.describe("PlanMyDay - Regression", () => {
     });
   });
 
-  // â”€â”€ Checkbox Uncheck â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Checkbox Uncheck ───────────────────────────────────────
 
   test.describe("Checkbox Uncheck", () => {
 
@@ -2390,7 +2390,7 @@ test.describe("PlanMyDay - Regression", () => {
     });
   });
 
-  // â”€â”€ Schedule Filtering â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Schedule Filtering ─────────────────────────────────────
 
   test.describe("Schedule Filtering", () => {
 
@@ -2588,7 +2588,7 @@ test.describe("PlanMyDay - Regression", () => {
     });
   });
 
-  // â”€â”€ Data Danger Zone â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Data Danger Zone ───────────────────────────────────────
 
   test.describe("Data Danger Zone", () => {
 
@@ -2739,7 +2739,7 @@ test.describe("PlanMyDay - Regression", () => {
 
     test("regenerate tiles respects specific days schedule", async ({ page }) => {
       await page.evaluate(() => {
-        const today = new Date();
+        const today = getTodayDate();
         const ts = today.getFullYear() + "-" + String(today.getMonth()+1).padStart(2,"0") + "-" + String(today.getDate()).padStart(2,"0");
         const day = today.getDay();
         localStorage.setItem("planmydays_streams", JSON.stringify([{
@@ -2759,13 +2759,12 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#showDanger").check();
       await page.locator("#regenerateTilesRow").waitFor({ state: "visible" });
       await page.getByRole("button", { name: "Regenerate Today's Tiles" }).click();
-      await page.waitForTimeout(500);
       await expect(page.getByText("SpecificDayRegen")).toBeVisible();
     });
 
     test("regenerate tiles respects specific days schedule mismatch", async ({ page }) => {
       await page.evaluate(() => {
-        const today = new Date();
+        const today = getTodayDate();
         const ts = today.getFullYear() + "-" + String(today.getMonth()+1).padStart(2,"0") + "-" + String(today.getDate()).padStart(2,"0");
         const day = today.getDay();
         const wrongDay = day === 0 ? 1 : 0;
@@ -2786,7 +2785,10 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#showDanger").check();
       await page.locator("#regenerateTilesRow").waitFor({ state: "visible" });
       await page.getByRole("button", { name: "Regenerate Today's Tiles" }).click();
-      await page.waitForTimeout(500);
+      // regenerating drops the non-matching job from the order; wait for it in storage first
+      await expect
+        .poll(() => page.evaluate(() => JSON.parse(localStorage.getItem("planmydays_today_order") || "[]")))
+        .not.toContain("job_1");
       await expect(page.getByText("SpecificDayMismatch")).not.toBeVisible();
     });
 
@@ -2876,7 +2878,7 @@ test.describe("PlanMyDay - Regression", () => {
     });
   });
 
-  // â”€â”€ Auto-Hide Nav Behavior â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Auto-Hide Nav Behavior ─────────────────────────────────
 
   test.describe("Auto-Hide Nav Behavior", () => {
 
@@ -2928,7 +2930,7 @@ test.describe("PlanMyDay - Regression", () => {
     });
   });
 
-  // â”€â”€ Dev Mode: Dev Today Override â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Dev Mode: Dev Today Override ───────────────────────────
 
   test.describe("Dev Mode: Dev Today Override", () => {
 
@@ -2954,7 +2956,7 @@ test.describe("PlanMyDay - Regression", () => {
     });
   });
 
-  // â”€â”€ No Active Jobs Message â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── No Active Jobs Message ─────────────────────────────────
 
   test.describe("No Active Jobs Message", () => {
 
@@ -2968,7 +2970,7 @@ test.describe("PlanMyDay - Regression", () => {
     });
   });
 
-  // â”€â”€ Schedule Filtering Carryover â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Schedule Filtering Carryover ───────────────────────────
 
   test.describe("Schedule Filtering Carryover", () => {
 
@@ -2990,7 +2992,7 @@ test.describe("PlanMyDay - Regression", () => {
     });
   });
 
-  // â”€â”€ Day Type Suffix Branches â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Day Type Suffix Branches ──────────────────────────────
 
   test.describe("Day Type Suffix Branches", () => {
 
@@ -3065,7 +3067,7 @@ test.describe("PlanMyDay - Regression", () => {
     });
   });
 
-  // â”€â”€ Job Sorting By Time â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Job Sorting By Time ────────────────────────────────────
 
   test.describe("Job Sorting By Time", () => {
 
@@ -3094,7 +3096,7 @@ test.describe("PlanMyDay - Regression", () => {
     });
   });
 
-  // â”€â”€ Dev Mode Settings â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Dev Mode Settings ──────────────────────────────────────
 
   test.describe("Dev Mode Settings", () => {
 
@@ -3109,7 +3111,7 @@ test.describe("PlanMyDay - Regression", () => {
     });
   });
 
-  // â”€â”€ Top-Level: Streams Editor Interaction â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Top-Level: Streams Editor Interaction ────────────────
 
   test.describe("Top-Level: Streams Editor", () => {
 
@@ -3215,7 +3217,7 @@ test.describe("PlanMyDay - Regression", () => {
     });
   });
 
-  // â”€â”€ Modal Stacking: Image Picker from Job Edit â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Modal Stacking: Image Picker from Job Edit ──────────
 
   test.describe("Modal Stacking: Image Picker from Job Edit", () => {
 
@@ -3241,15 +3243,13 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#imagePickerModal").waitFor({ state: "visible" });
       await expect(page.locator("#imagePickerModal")).toBeVisible();
       await page.locator(".image-picker-item").first().waitFor({ state: "visible" });
-      await page.evaluate(() => new Promise(resolve => {
-        const el = document.getElementById("imagePickerModal");
-        const handler = () => { el.removeEventListener("shown.bs.modal", handler); resolve(); };
-        if (el.classList.contains("show") && !el.classList.contains("fade")) { resolve(); return; }
-        el.addEventListener("shown.bs.modal", handler);
-        setTimeout(resolve, 500);
-      }));
+      // guard against the click landing while the picker is still mid-transition
+      await expect(page.locator("#imagePickerModal")).toHaveClass(/show/);
       await page.locator(".image-picker-item").first().dispatchEvent("click");
-      await page.waitForTimeout(400);
+      // selection writes back to the buffer; wait for it instead of a fixed sleep
+      await expect
+        .poll(() => page.evaluate(() => (jobsBuffer && jobsBuffer.image) || ""), { timeout: 5000 })
+        .toBe("TestImg");
       await page.evaluate(() => {
         const modal = bootstrap.Modal.getInstance(document.getElementById("imagePickerModal"));
         if (modal) modal.hide();
@@ -3280,22 +3280,13 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#imagePickerModal").waitFor({ state: "visible" });
       await expect(page.locator("#imagePickerModal")).toBeVisible();
       await page.locator(".image-picker-item").first().waitFor({ state: "visible" });
-      await page.evaluate(() => new Promise(resolve => {
-        const el = document.getElementById("imagePickerModal");
-        const handler = () => { el.removeEventListener("shown.bs.modal", handler); resolve(); };
-        if (el.classList.contains("show") && !el.classList.contains("fade")) { resolve(); return; }
-        el.addEventListener("shown.bs.modal", handler);
-        setTimeout(resolve, 500);
-      }));
+      // guard against the click landing while the picker is still mid-transition
+      await expect(page.locator("#imagePickerModal")).toHaveClass(/show/);
       await page.locator(".image-picker-item").first().dispatchEvent("click");
-      await page.waitForTimeout(400);
-      await page.evaluate(() => {
-        const modal = bootstrap.Modal.getInstance(document.getElementById("imagePickerModal"));
-        if (modal) modal.hide();
-      });
-      await page.locator("#imagePickerModal").waitFor({ state: "hidden", timeout: 10000 });
-      const img = await page.evaluate(() => jobsBuffer?.image || "");
-      expect(img).toBe("AddJobImg");
+      // selection writes back to the buffer; wait for it instead of a fixed sleep
+      await expect
+        .poll(() => page.evaluate(() => (jobsBuffer && jobsBuffer.image) || ""), { timeout: 5000 })
+        .toBe("AddJobImg");
     });
 
     test("searching images from job edit modal is blocked by jobEditModal backdrop", async ({ page }) => {
@@ -3318,12 +3309,7 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#jobEditModal").waitFor({ state: "visible" });
       await page.locator("#btnJobImageChange").click();
       await page.locator("#imagePickerModal").waitFor({ state: "visible" });
-      await page.evaluate(() => new Promise(resolve => {
-        const el = document.getElementById("imagePickerModal");
-        if (el.classList.contains("show") && !el.classList.contains("fade")) { resolve(); return; }
-        el.addEventListener("shown.bs.modal", () => resolve(), { once: true });
-        setTimeout(resolve, 500);
-      }));
+      await expect(page.locator("#imagePickerModal")).toHaveClass(/show/);
       await page.locator(".image-picker-search").fill("Banana");
       const banana = page.locator(".image-picker-item").filter({ hasText: "Banana" });
       await banana.waitFor({ state: "visible" });
@@ -3332,7 +3318,7 @@ test.describe("PlanMyDay - Regression", () => {
     });
   });
 
-  // â”€â”€ Modal Stacking: Image Picker from Front Page Add Card â”€
+  // ── Modal Stacking: Image Picker from Front Page Add Card ─
 
   test.describe("Modal Stacking: Image Picker from Front Page Add Card", () => {
 
@@ -3350,15 +3336,13 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#imagePickerModal").waitFor({ state: "visible" });
       await expect(page.locator("#imagePickerModal")).toBeVisible();
       await page.locator(".image-picker-item").first().waitFor({ state: "visible" });
-      await page.evaluate(() => new Promise(resolve => {
-        const el = document.getElementById("imagePickerModal");
-        const handler = () => { el.removeEventListener("shown.bs.modal", handler); resolve(); };
-        if (el.classList.contains("show") && !el.classList.contains("fade")) { resolve(); return; }
-        el.addEventListener("shown.bs.modal", handler);
-        setTimeout(resolve, 500);
-      }));
+      // guard against the click landing while the picker is still mid-transition
+      await expect(page.locator("#imagePickerModal")).toHaveClass(/show/);
       await page.locator(".image-picker-item").first().dispatchEvent("click");
-      await page.waitForTimeout(400);
+      // selection writes back to the buffer; wait for it instead of a fixed sleep
+      await expect
+        .poll(() => page.evaluate(() => (jobsBuffer && jobsBuffer.image) || ""), { timeout: 5000 })
+        .toBe("FrontImg");
       await page.evaluate(() => {
         const modal = bootstrap.Modal.getInstance(document.getElementById("imagePickerModal"));
         if (modal) modal.hide();
@@ -3369,7 +3353,7 @@ test.describe("PlanMyDay - Regression", () => {
     });
   });
 
-  // â”€â”€ Coverage: Import / Export / Upload / Edge cases â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Coverage: Import / Export / Upload / Edge cases ────────
 
   test.describe("Coverage: Import Export Upload", () => {
 
@@ -4236,7 +4220,7 @@ test.describe("PlanMyDay - Regression", () => {
 
   test.describe("Minio", () => {
 
-    // â”€â”€ Settings UI â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Settings UI ────────────────────────────────────────
 
     test("minio tab exists in settings", async ({ page }) => {
       await page.getByTitle("Settings").click();
@@ -4318,7 +4302,7 @@ test.describe("PlanMyDay - Regression", () => {
       await expect(page.locator("#minioPassword")).toHaveAttribute("type", "password");
     });
 
-    // â”€â”€ Menu visibility â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Menu visibility ────────────────────────────────────
 
     test("minio menu items hidden when disabled", async ({ page }) => {
       await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Import/Export" }).click();
@@ -4340,7 +4324,7 @@ test.describe("PlanMyDay - Regression", () => {
       await expect(page.locator("a.dropdown-item").filter({ hasText: "Import from Minio" })).toBeVisible();
     });
 
-    // â”€â”€ Export error handling â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Export error handling ──────────────────────────────
 
     test("export to minio shows alert when missing server config", async ({ page }) => {
       await page.evaluate(() => {
@@ -4368,7 +4352,7 @@ test.describe("PlanMyDay - Regression", () => {
       await expect(page.locator("#minioAlertModal")).not.toBeAttached();
     });
 
-    // â”€â”€ Import error handling â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Import error handling ──────────────────────────────
 
     test("import from minio shows alert when missing config", async ({ page }) => {
       await page.evaluate(() => {
@@ -4387,7 +4371,7 @@ test.describe("PlanMyDay - Regression", () => {
       await expect(page.locator("#minioImportModal")).not.toBeAttached();
     });
 
-    // â”€â”€ getMinioConfig returns correct shape â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── getMinioConfig returns correct shape ───────────────
 
     test("getMinioConfig parses localStorage values", async ({ page }) => {
       await page.evaluate(() => {
@@ -4415,7 +4399,7 @@ test.describe("PlanMyDay - Regression", () => {
       expect(server).toBe("http://host:9000");
     });
 
-    // â”€â”€ showMinioAlert modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── showMinioAlert modal ───────────────────────────────
 
     test("showMinioAlert creates and shows modal", async ({ page }) => {
       await page.evaluate(() => showMinioAlert("Test message"));
@@ -4446,7 +4430,7 @@ test.describe("PlanMyDay - Regression", () => {
       await expect(page.locator("#minioAlertModal").locator("p")).toContainText("Second");
     });
 
-    // â”€â”€ Crypto functions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Crypto functions ──────────────────────────────────
 
     test("sha256 computes correct hash for empty string", async ({ page }) => {
       const hash = await page.evaluate(() => sha256(""));
@@ -4521,7 +4505,7 @@ test.describe("PlanMyDay - Regression", () => {
       expect(k1.length).toBe(64);
     });
 
-    // â”€â”€ Config change functions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Config change functions ────────────────────────────
 
     test("changeMinioServer stores value", async ({ page }) => {
       await page.evaluate(() => changeMinioServer("http://srv:9000"));
@@ -4556,7 +4540,7 @@ test.describe("PlanMyDay - Regression", () => {
       expect(items).toBeGreaterThan(0);
     });
 
-    // â”€â”€ getMinioConfig defaults â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── getMinioConfig defaults ────────────────────────────
 
     test("getMinioConfig returns empty defaults", async ({ page }) => {
       const config = await page.evaluate(() => getMinioConfig());
@@ -4574,7 +4558,7 @@ test.describe("PlanMyDay - Regression", () => {
       expect(config.server).toBe("");
     });
 
-    // â”€â”€ loadMinioSettings populates form â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── loadMinioSettings populates form ───────────────────
 
     test("loadMinioSettings populates fields from localStorage", async ({ page }) => {
       await page.evaluate(() => {
@@ -4600,7 +4584,7 @@ test.describe("PlanMyDay - Regression", () => {
       await expect(page.locator("#minioBucket")).toBeDisabled();
     });
 
-    // â”€â”€ Import modal UI â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Import modal UI ────────────────────────────────────
 
     test("showMinioImportModal creates modal with loading state", async ({ page }) => {
       await page.evaluate(() => {
@@ -4631,7 +4615,7 @@ test.describe("PlanMyDay - Regression", () => {
       await expect(page.locator("#minioImportModal")).not.toBeAttached();
     });
 
-    // â”€â”€ Import modal error paths â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Import modal error paths ───────────────────────────
 
     test("import modal list buckets shows error on invalid server", async ({ page }) => {
       await page.evaluate(() => {
@@ -4648,7 +4632,7 @@ test.describe("PlanMyDay - Regression", () => {
       await expect(page.locator("#minioImportModal")).toBeVisible();
     });
 
-    // â”€â”€ Export does nothing when disabled â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Export does nothing when disabled ──────────────────
 
     test("export to minio does nothing when disabled", async ({ page }) => {
       await page.evaluate(() => exportToMinio());
@@ -4656,7 +4640,7 @@ test.describe("PlanMyDay - Regression", () => {
       await expect(page.locator("#minioAlertModal")).not.toBeAttached();
     });
 
-    // â”€â”€ toggleMinioPassword edge cases â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── toggleMinioPassword edge cases ─────────────────────
 
     test("toggleMinioPassword is safe when input missing", async ({ page }) => {
       await page.evaluate(() => {
@@ -4667,7 +4651,7 @@ test.describe("PlanMyDay - Regression", () => {
       // Should not throw
     });
 
-    // â”€â”€ updateMinioMenu edge cases â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── updateMinioMenu edge cases ─────────────────────────
 
     test("updateMinioMenu hides items when no minio items exist", async ({ page }) => {
       await page.evaluate(() => {
@@ -4678,7 +4662,7 @@ test.describe("PlanMyDay - Regression", () => {
       // Should not throw
     });
 
-    // â”€â”€ Minio request rejection for bad config â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Minio request rejection for bad config ─────────────
 
     test("minioRequest with unreachable server returns error", async ({ page }) => {
       const result = await page.evaluate(async () => {
@@ -4798,7 +4782,7 @@ test.describe("PlanMyDay - Regression", () => {
     });
   });
 
-  // â”€â”€ Job Edit Tabs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Job Edit Tabs ─────────────────────────────────────────
 
   test.describe("Job Edit Tabs", () => {
 
@@ -5085,6 +5069,8 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().click();
       await page.locator("#jobEditModal").waitFor({ state: "visible" });
       await page.locator("#jobTasks-tab").click();
+      // wait for the Tasks pane to be the active tab before adding a task
+      await expect(page.locator("#jobTasks-tab")).toHaveClass(/active/);
       await page.locator("#jobAddTaskBtn").click();
       await expect(page.locator("#jobTasksList .btn-danger")).toBeVisible();
     });
