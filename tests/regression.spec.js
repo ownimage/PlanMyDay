@@ -869,7 +869,7 @@ test.describe("PlanMyDay - Regression", () => {
       await expect(page.locator("#countdownContainer")).toBeVisible();
     });
 
-    test("timed jobs appear before untimed jobs", async ({ page }) => {
+    test("jobs render in stored order without rule sorting", async ({ page }) => {
       await page.evaluate(() => {
         var streams = JSON.parse(localStorage.getItem("planmydays_streams"));
         streams[0].jobs.push({ id: "job_late", title: "LateJob", active: true, frequency: "daily", sequence: 99, time: "", suffix: false, dayType: "dayOfYear", mod: "", tasks: [] });
@@ -881,8 +881,35 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("a.dropdown-item").filter({ hasText: "Jobs" }).click();
       await page.locator("#streamEditorList .stream-header-main").first().click();
       await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible", timeout: 5000 });
-      var jobCards = page.locator("#streamEditorList .accordion-body .job-drag-card .fw-bold");
-      await expect(jobCards.first()).toContainText("EarlyJob");
+      var jobTitles = page.locator("#streamEditorList .stream-accordion-item").first().locator(".accordion-body .job-drag-card .editor-title");
+      await expect(jobTitles).toHaveCount(4);
+      await expect(jobTitles.first()).toContainText("Report");
+      await expect(jobTitles.last()).toContainText("EarlyJob");
+    });
+
+    test("dragging a job tile by its handle reorders the stream and persists", async ({ page }) => {
+      const firstBody = page.locator("#streamEditorList .stream-accordion-item").first().locator(".accordion-body");
+      const handle = firstBody.locator(".job-drag-card .drag-handle").first();
+      const handleBox = await handle.boundingBox();
+      const lastBox = await firstBody.locator(".job-drag-card").last().boundingBox();
+      await page.mouse.move(handleBox.x + handleBox.width / 2, handleBox.y + handleBox.height / 2);
+      await page.mouse.down();
+      await page.mouse.move(lastBox.x + lastBox.width / 2, lastBox.y + lastBox.height * 0.9, { steps: 15 });
+      await page.mouse.up();
+      await expect.poll(() =>
+        page.evaluate(() => JSON.parse(localStorage.getItem("planmydays_streams"))[0].jobs.map(j => j.id))
+      ).toEqual(["job_2", "job_1"]);
+      await expect.poll(() =>
+        page.evaluate(() => JSON.parse(localStorage.getItem("planmydays_streams"))[0].jobs.map(j => j.sequence))
+      ).toEqual([1, 2]);
+      await page.reload();
+      await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
+      await page.locator("a.dropdown-item").filter({ hasText: "Jobs" }).click();
+      await page.locator("#streamEditorList .stream-header-main").first().click();
+      await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible", timeout: 5000 });
+      var jobTitles2 = page.locator("#streamEditorList .stream-accordion-item").first().locator(".accordion-body .job-drag-card .editor-title");
+      await expect(jobTitles2.first()).toContainText("Meeting");
+      await expect(jobTitles2.last()).toContainText("Report");
     });
 
     test("active label is bold on job tiles", async ({ page }) => {
@@ -2984,6 +3011,49 @@ test.describe("PlanMyDay - Regression", () => {
         return k.filter(key => key !== "planmydays_last_gen" && key !== "planmydays_today_order" && key !== "planmydays_completed");
       });
       expect(allKeys.length).toBe(0);
+    });
+  });
+
+  // ── Sort Jobs in Streams ───────────────────────────────────
+
+  test.describe("Sort Jobs in Streams", () => {
+
+    test("sort jobs in streams button shows in danger zone", async ({ page }) => {
+      await page.goto("/");
+      await page.getByTitle("Settings").click();
+      await page.locator("#danger-tab").click();
+      await expect(page.locator("#btnSortJobsInStreams")).toBeHidden();
+      await page.locator("#showDanger").check();
+      await expect(page.locator("#btnSortJobsInStreams")).toBeVisible();
+    });
+
+    test("sort jobs in streams applies rule order and persists", async ({ page }) => {
+      await page.evaluate(() => {
+        const today = new Date();
+        const ts = today.getFullYear() + "-" + String(today.getMonth()+1).padStart(2,"0") + "-" + String(today.getDate()).padStart(2,"0");
+        const future = new Date(today);
+        future.setDate(future.getDate() + 2);
+        const tms = future.getFullYear() + "-" + String(future.getMonth()+1).padStart(2,"0") + "-" + String(future.getDate()).padStart(2,"0");
+        localStorage.setItem("planmydays_streams", JSON.stringify([{
+          id: "stream_1", title: "Test", tab: "progress", image: "", sequence: 1,
+          jobs: [
+            { id: "job_sleep", title: "SleepJob", active: true, frequency: "daily", sequence: 1, sleepUntil: tms, time: "09:00", suffix: false, dayType: "dayOfYear", mod: "", tasks: [] },
+            { id: "job_plain", title: "PlainJob", active: true, frequency: "daily", sequence: 2, suffix: false, dayType: "dayOfYear", mod: "", tasks: [] },
+            { id: "job_timed", title: "TimedJob", active: true, frequency: "daily", sequence: 3, time: "08:00", suffix: false, dayType: "dayOfYear", mod: "", tasks: [] }
+          ]
+        }]));
+        localStorage.setItem("planmydays_last_gen", ts);
+        localStorage.setItem("planmydays_today_order", JSON.stringify([]));
+      });
+      await page.reload();
+      await page.getByTitle("Settings").click();
+      await page.locator("#danger-tab").click();
+      await page.locator("#showDanger").check();
+      await page.getByRole("button", { name: "Sort Jobs in Streams" }).click();
+      await expect(page.locator("#settingsPage")).toBeHidden();
+      const streams = await page.evaluate(() => JSON.parse(localStorage.getItem("planmydays_streams")));
+      expect(streams[0].jobs.map(j => j.id)).toEqual(["job_timed", "job_plain", "job_sleep"]);
+      expect(streams[0].jobs.map(j => j.sequence)).toEqual([1, 2, 3]);
     });
   });
 

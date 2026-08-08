@@ -560,6 +560,7 @@ function renderStreamsEditor() {
 
   updateNavState();
   initStreamsEditorSortable();
+  initStreamJobsSortables();
 }
 
 var streamsEditorSortable = null;
@@ -608,6 +609,43 @@ function initStreamsEditorSortable() {
   });
 }
 
+var streamJobsSortables = [];
+
+function initStreamJobsSortables() {
+  streamJobsSortables.forEach(function(s) { if (s) s.destroy(); });
+  streamJobsSortables = [];
+  if (typeof Sortable === "undefined") return;
+  var list = document.getElementById("streamEditorList");
+  if (!list) return;
+  list.querySelectorAll(".accordion-body").forEach(function(body) {
+    if (!body.querySelector(".job-drag-card")) return;
+    var item = body.closest(".stream-accordion-item");
+    if (!item) return;
+    streamJobsSortables.push(new Sortable(body, {
+      handle: ".job-drag-card .drag-handle",
+      draggable: ".job-drag-card",
+      animation: 150,
+      onEnd: function() {
+        var streamIdx = parseInt(item.getAttribute("data-stream-idx"), 10);
+        if (isNaN(streamIdx)) return;
+        var streams = loadStreams();
+        var jobs = streams[streamIdx].jobs || [];
+        var order = [];
+        body.querySelectorAll(".job-drag-card").forEach(function(card) {
+          var idx = parseInt(card.getAttribute("data-job-idx"), 10);
+          if (!isNaN(idx) && order.indexOf(idx) === -1) order.push(idx);
+        });
+        if (order.length !== jobs.length) return;
+        var reordered = order.map(function(idx) { return jobs[idx]; });
+        reordered.forEach(function(j, i) { j.sequence = i + 1; });
+        streams[streamIdx].jobs = reordered;
+        saveStreams(streams);
+        renderStreamsEditor();
+      }
+    }));
+  });
+}
+
 var todayCardsSortable = null;
 
 function initTodayCardsSortable() {
@@ -634,11 +672,11 @@ function initTodayCardsSortable() {
   });
 }
 
-function renderJobsInAccordion(stream, jobs, streamIdx) {
+function sortJobsByRules(jobs) {
   // rule 1: has sleepUntil → end (ordered by sleepUntil date, then time)
   // rule 2: no sleepUntil, has time → start (ordered by time)
   // rule 3: no sleepUntil, no time → middle (ordered by sequence)
-  var sorted = [].concat(jobs).sort(function(a, b) {
+  return [].concat(jobs).sort(function(a, b) {
     var aSleep = a.sleepUntil && a.sleepUntil.trim();
     var bSleep = b.sleepUntil && b.sleepUntil.trim();
     var aTime = a.time && a.time.trim();
@@ -662,13 +700,15 @@ function renderJobsInAccordion(stream, jobs, streamIdx) {
     }
     return (a.sequence || 0) - (b.sequence || 0);
   });
-  return sorted.map(function(j) {
-    var realIdx = jobs.indexOf(j);
+}
+
+function renderJobsInAccordion(stream, jobs, streamIdx) {
+  return jobs.map(function(j, realIdx) {
     var scheduleText = getScheduleText(j.schedule);
     var jobImgUrl = getImageDataUrl(j.image);
     var hasTime = j.time && j.time.trim();
     var hasSleep = j.sleepUntil && j.sleepUntil.trim();
-    return '<div class="card p-2 mb-0 job-drag-card">' +
+    return '<div class="card p-2 mb-0 job-drag-card" data-job-idx="' + realIdx + '">' +
       '<div class="d-flex align-items-center gap-2">' +
         '<div class="drag-handle flex-shrink-0" style="line-height:1">&#9776;</div>' +
         (jobImgUrl ? '<div style="width:32px;height:32px;flex-shrink:0"><img src="' + jobImgUrl + '" class="date-img" style="max-width:32px;max-height:32px"></div>' : '') +
@@ -1627,7 +1667,7 @@ function openSettings() {
   const skipAdhoc = localStorage.getItem("planmydays_skipAdhocConfirm") === "true";
   const skipAdhocCb = document.getElementById("skipAdhocConfirm");
   if (skipAdhocCb) skipAdhocCb.checked = skipAdhoc;
-  const dangerIds = ["clearAllDataRow", "refreshAppRow", "regenerateTilesRow", "uploadStandardImagesRow"];
+  const dangerIds = ["clearAllDataRow", "refreshAppRow", "regenerateTilesRow", "sortJobsInStreamsRow", "uploadStandardImagesRow"];
   if (isDevMode) dangerIds.push("devTodayRow", "devLastGenRow");
   dangerIds.forEach(id => {
     const el = document.getElementById(id);
@@ -1702,6 +1742,20 @@ function regenerateTiles() {
   saveTodayOrder(merged);
   saveCompletedJobs([]);
   localStorage.setItem("planmydays_last_gen", getTodayStr());
+  closeSettings();
+  renderMain();
+}
+
+function sortJobsInStreams() {
+  const streams = loadStreams();
+  streams.forEach(stream => {
+    const jobs = stream.jobs || [];
+    if (jobs.length < 2) return;
+    const sorted = sortJobsByRules(jobs);
+    sorted.forEach((j, i) => { j.sequence = i + 1; });
+    stream.jobs = sorted;
+  });
+  saveStreams(streams);
   closeSettings();
   renderMain();
 }
