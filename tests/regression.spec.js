@@ -695,6 +695,58 @@ test.describe("PlanMyDay - Regression", () => {
       await expect(items.first()).toContainText("Chores");
       await expect(items.last()).toContainText("Work");
     });
+
+    test("dragging an expanded stream keeps the same stream expanded", async ({ page }) => {
+      // expand the first stream (Work)
+      await page.locator("#streamEditorList .stream-header-main").first().click();
+      await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible", timeout: 5000 });
+      // drag it below the second stream
+      const firstItem = page.locator("#streamEditorList .stream-accordion-item").first();
+      const handleBox = await firstItem.locator(".stream-accordion-header .drag-handle").boundingBox();
+      const lastItem = page.locator("#streamEditorList .stream-accordion-item").last();
+      const lastBox = await lastItem.boundingBox();
+      await page.mouse.move(handleBox.x + handleBox.width / 2, handleBox.y + handleBox.height / 2);
+      await page.mouse.down();
+      await page.mouse.move(lastBox.x + lastBox.width / 2, lastBox.y + lastBox.height * 0.9, { steps: 15 });
+      await page.mouse.up();
+      // saved order swapped and Work (now last) is still the expanded stream
+      await expect.poll(() =>
+        page.evaluate(() => {
+          const streams = JSON.parse(localStorage.getItem("planmydays_streams"));
+          return streams.map(s => s.title);
+        })
+      ).toEqual(["Chores", "Work"]);
+      await expect(page.locator("#streamEditorList .accordion-collapse.show")).toHaveCount(1);
+      await expect(page.locator("#streamEditorList .stream-accordion-item").last().locator(".accordion-collapse.show")).toBeVisible();
+      await expect(page.locator("#streamEditorList .accordion-collapse.show")).toContainText("Report");
+    });
+
+    test("dragging keeps the same stream expanded even without stream ids", async ({ page }) => {
+      await page.evaluate(() => {
+        const streams = JSON.parse(localStorage.getItem("planmydays_streams"));
+        streams.forEach(s => { delete s.id; });
+        localStorage.setItem("planmydays_streams", JSON.stringify(streams));
+      });
+      await page.reload();
+      await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
+      await page.locator("a.dropdown-item").filter({ hasText: "Jobs" }).click();
+      await page.waitForTimeout(300);
+      // expand the first stream (Work) and drag it below the second
+      await page.locator("#streamEditorList .stream-header-main").first().click();
+      await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible", timeout: 5000 });
+      const firstItem = page.locator("#streamEditorList .stream-accordion-item").first();
+      const handleBox = await firstItem.locator(".stream-accordion-header .drag-handle").boundingBox();
+      const lastItem = page.locator("#streamEditorList .stream-accordion-item").last();
+      const lastBox = await lastItem.boundingBox();
+      await page.mouse.move(handleBox.x + handleBox.width / 2, handleBox.y + handleBox.height / 2);
+      await page.mouse.down();
+      await page.mouse.move(lastBox.x + lastBox.width / 2, lastBox.y + lastBox.height * 0.9, { steps: 15 });
+      await page.mouse.up();
+      // the moved stream keeps its open state
+      await expect(page.locator("#streamEditorList .accordion-collapse.show")).toHaveCount(1);
+      await expect(page.locator("#streamEditorList .stream-accordion-item").last().locator(".accordion-collapse.show")).toBeVisible();
+      await expect(page.locator("#streamEditorList .accordion-collapse.show")).toContainText("Report");
+    });
   });
 
   // ── Jobs Editor ────────────────────────────────────────────

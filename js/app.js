@@ -429,17 +429,24 @@ function renderStreamsEditor() {
   const filterEl = document.getElementById("streamEditorFilters");
   const singleEditor = document.getElementById("singleStreamEditor");
 
-  // remember which accordion items are expanded
+  // remember which accordion items are expanded (by index; after a drag the
+// captured indices are translated through the reorder so the same stream stays open)
+  const streams = loadStreams();
   var expandedStreams = [];
-  var openCollapses = list.querySelectorAll(".accordion-collapse.show");
-  for (var ec = 0; ec < openCollapses.length; ec++) {
-    var m = openCollapses[ec].id.match(/streamCollapse_(\d+)/);
-    if (m) expandedStreams.push(parseInt(m[1]));
+  if (streamsEditorExpandedIdxs !== null) {
+    // drag capture (onStart + onEnd) is authoritative: the DOM collapse ids no
+    // longer match stream indices once the reorder has been saved
+    expandedStreams = streamsEditorExpandedIdxs;
+    streamsEditorExpandedIdxs = null;
+  } else {
+    var openCollapses = list.querySelectorAll(".accordion-collapse.show");
+    for (var ec = 0; ec < openCollapses.length; ec++) {
+      var m = openCollapses[ec].id.match(/streamCollapse_(\d+)/);
+      if (m) expandedStreams.push(parseInt(m[1]));
+    }
   }
 
   list.innerHTML = ""; addTile.innerHTML = ""; topTile.innerHTML = ""; filterEl.innerHTML = ""; singleEditor.innerHTML = "";
-
-  const streams = loadStreams();
 
   if (editingIndex >= 0) {
     list.classList.add("d-none"); addTile.classList.add("d-none");
@@ -532,6 +539,8 @@ function renderStreamsEditor() {
     var collapseEl = document.getElementById("streamCollapse_" + idx);
     if (collapseEl) {
       collapseEl.classList.add("show");
+      var itemEl = collapseEl.closest(".stream-accordion-item");
+      if (itemEl) itemEl.classList.add("expanded");
     }
     document.querySelectorAll('#streamEditorList [data-bs-target="#streamCollapse_' + idx + '"]').forEach(function(btn) {
       btn.classList.remove("collapsed");
@@ -544,6 +553,7 @@ function renderStreamsEditor() {
 }
 
 var streamsEditorSortable = null;
+var streamsEditorExpandedIdxs = null;
 
 function initStreamsEditorSortable() {
   if (streamsEditorSortable) {
@@ -557,6 +567,14 @@ function initStreamsEditorSortable() {
     handle: ".stream-accordion-header .drag-handle",
     draggable: ".stream-accordion-item",
     animation: 150,
+    onStart: function() {
+      var idxs = [];
+      el.querySelectorAll(".accordion-collapse.show").forEach(function(coll) {
+        var m = coll.id.match(/streamCollapse_(\d+)/);
+        if (m) idxs.push(parseInt(m[1]));
+      });
+      streamsEditorExpandedIdxs = idxs.length ? idxs : null;
+    },
     onEnd: function() {
       var streams = loadStreams();
       var order = [];
@@ -565,6 +583,13 @@ function initStreamsEditorSortable() {
         if (!isNaN(idx) && order.indexOf(idx) === -1) order.push(idx);
       });
       if (order.length !== streams.length) return;
+      // translate the captured pre-drag indices to their post-reorder positions
+      // (order[k] is the old index now sitting at new position k)
+      if (streamsEditorExpandedIdxs !== null) {
+        var translated = streamsEditorExpandedIdxs.map(function(e) { return order.indexOf(e); })
+                     .filter(function(k) { return k !== -1; });
+        streamsEditorExpandedIdxs = translated.length ? translated : null;
+      }
       var reordered = order.map(function(idx) { return streams[idx]; });
       reordered.forEach(function(s, i) { s.sequence = i + 1; });
       saveStreams(reordered);

@@ -1,6 +1,6 @@
 ### Run only the regression tests
 ```bash
-npx playwright test tests/regression.spec.js
+npx playwright test tests/regression.spec.js  tests/touch.spec.js
 ```
 ```bash
 npx playwright test --last-failed
