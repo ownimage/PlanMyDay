@@ -1325,7 +1325,9 @@ test.describe("PlanMyDay - Regression", () => {
       await page.reload();
       await page.locator("button.nav-link").filter({ hasText: "Maintenance" }).click();
       await expect(page.getByText("Laundry")).toBeVisible();
-      await expect(page.getByText("Report")).not.toBeVisible();
+      const reportCard = page.locator("#todayCardList .today-drag-card").filter({ hasText: "Report" });
+      await expect(reportCard).toHaveCount(1);
+      await expect(reportCard).toBeHidden();
     });
 
     test("tab bar is visible above the job list when many jobs overflow", async ({ page }) => {

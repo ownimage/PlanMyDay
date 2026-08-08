@@ -180,10 +180,10 @@ function renderMain() {
   }
 
   const splitList = localStorage.getItem("planmydays_splitList") === "true";
-  let jobsToRender = allJobs;
+  const tab = container.dataset.todayTab || "progress";
+  let matchingStreams = null;
 
   if (splitList) {
-    const tab = container.dataset.todayTab || "progress";
     const tabWrapper = document.createElement("div");
     tabWrapper.className = "mb-3 border-bottom flex-shrink-0";
     const tabBar = document.createElement("ul");
@@ -201,9 +201,10 @@ function renderMain() {
     tabWrapper.appendChild(tabBar);
     container.appendChild(tabWrapper);
 
-    jobsToRender = allJobs.filter(({ streamIdx }) => {
+    matchingStreams = new Set();
+    allJobs.forEach(({ streamIdx }) => {
       const s = streams[streamIdx];
-      return (s.tab || "progress") === tab;
+      if ((s.tab || "progress") === tab) matchingStreams.add(streamIdx);
     });
   }
 
@@ -214,7 +215,7 @@ function renderMain() {
   const cardContainer = document.createElement("div");
   cardContainer.id = "todayCardList";
 
-  if (jobsToRender.length === 0) {
+  if (allJobs.length === 0) {
     const msg = document.createElement("p");
     msg.className = "text-secondary";
     msg.textContent = splitList ? "No jobs in this tab." : "No active jobs yet. Add streams with active jobs to get started.";
@@ -223,7 +224,14 @@ function renderMain() {
     return;
   }
 
-  jobsToRender.forEach(({ job, streamTitle, streamIdx, jobIdx }) => {
+  if (splitList && allJobs.every(({ streamIdx }) => !matchingStreams.has(streamIdx))) {
+    const msg = document.createElement("p");
+    msg.className = "text-secondary";
+    msg.textContent = "No jobs in this tab.";
+    scrollBody.appendChild(msg);
+  }
+
+  allJobs.forEach(({ job, streamTitle, streamIdx, jobIdx }) => {
     const isDone = completed.includes(job.id);
     const streams = loadStreams();
     const stream = streams[streamIdx] || {};
@@ -234,6 +242,7 @@ function renderMain() {
     card.className = `card countdown-card mb-2 today-drag-card ${isDone ? "opacity-50" : ""}`;
     card.dataset.jobId = job.id;
     card.dataset.streamIdx = streamIdx;
+    if (matchingStreams && !matchingStreams.has(streamIdx)) card.hidden = true;
     card.innerHTML = `
       <div class="row align-items-center">
         <div class="col-auto d-flex align-items-center">
