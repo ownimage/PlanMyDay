@@ -5120,6 +5120,28 @@ test.describe("PlanMyDay - Regression", () => {
       const dragHandles = page.locator(".task-drag-card .drag-handle");
       await expect(dragHandles).toHaveCount(0);
     });
+
+    test("task rows can be reordered with drag and drop", async ({ page }) => {
+      await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().click();
+      await page.locator("#jobEditModal").waitFor({ state: "visible" });
+      await page.locator("#jobTasks-tab").click();
+      await page.locator("#jobAddTaskBtn").click();
+      await page.locator(".task-desc-input").first().fill("First task");
+      await page.locator("#jobAddTaskBtn").click();
+      await page.locator(".task-desc-input").last().fill("Second task");
+      const handle = page.locator("#jobTasksList .task-row").first().locator(".drag-handle");
+      const handleBox = await handle.boundingBox();
+      const lastBox = await page.locator("#jobTasksList .task-row").last().boundingBox();
+      await page.mouse.move(handleBox.x + handleBox.width / 2, handleBox.y + handleBox.height / 2);
+      await page.mouse.down();
+      await page.mouse.move(lastBox.x + lastBox.width / 2, lastBox.y + lastBox.height * 0.9, { steps: 15 });
+      await page.mouse.up();
+      await expect.poll(() =>
+        page.evaluate(() => (jobsBuffer?.tasks || []).map(t => t.description))
+      ).toEqual(["Second task", "First task"]);
+      await expect(page.locator("#jobTasksList .task-row")).toHaveCount(2);
+      await expect(page.locator("#jobTasksList .task-note-row")).toHaveCount(2);
+    });
   });
   });
 });

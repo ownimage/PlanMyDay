@@ -743,6 +743,7 @@ var jobsEditingIdx = -1;
 var jobsBuffer = null;
 var isNewJob = false;
 var jobsTargetStreamIndex = -1;
+var jobTasksSortable = null;
 
 function jobField(field, value) {
   if (!jobsBuffer) return;
@@ -848,6 +849,34 @@ function renderJobTasks() {
       '</div>';
   });
   el.innerHTML = html;
+  initJobTasksSortable();
+}
+
+function initJobTasksSortable() {
+  if (jobTasksSortable) {
+    jobTasksSortable.destroy();
+    jobTasksSortable = null;
+  }
+  if (typeof Sortable === "undefined") return;
+  var el = document.getElementById("jobTasksList");
+  if (!el || !jobsBuffer) return;
+  if (!el.querySelector(".drag-handle")) return;
+  jobTasksSortable = new Sortable(el, {
+    handle: ".drag-handle",
+    draggable: ".task-row",
+    animation: 150,
+    onEnd: function() {
+      if (!jobsBuffer || !jobsBuffer.tasks) return;
+      var reordered = [];
+      el.querySelectorAll(".task-row").forEach(function(row) {
+        var idx = parseInt(row.getAttribute("data-task-index"), 10);
+        if (idx >= 0 && idx < jobsBuffer.tasks.length) reordered.push(jobsBuffer.tasks[idx]);
+      });
+      if (reordered.length !== jobsBuffer.tasks.length) return;
+      jobsBuffer.tasks = reordered;
+      renderJobTasks();
+    }
+  });
 }
 
 function jobTaskToggleNote(btn, index) {
@@ -1261,6 +1290,7 @@ function showJobEditModal(readOnly) {
     }
   }
   new bootstrap.Modal(document.getElementById("jobEditModal")).show();
+  if (!readOnly) initJobTasksSortable();
 }
 
 function editJobFromView() {
@@ -1299,6 +1329,7 @@ function editJobFromView() {
     });
     if (fpInput._flatpickr && fpInput._flatpickr.altInput) fpInput._flatpickr.altInput.id = "jobSleepUntilDisplay";
   }
+  initJobTasksSortable();
 }
 
 function viewJobReadOnly(streamIdx, jobIdx) {
