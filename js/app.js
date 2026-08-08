@@ -349,6 +349,7 @@ function markJobDone(jobId, cbRef) {
 }
 
   updateNavState();
+  initTodayCardsSortable();
 }
 
 function addTodayCardWithModal() {
@@ -603,6 +604,32 @@ function initStreamsEditorSortable() {
       reordered.forEach(function(s, i) { s.sequence = i + 1; });
       saveStreams(reordered);
       renderStreamsEditor();
+    }
+  });
+}
+
+var todayCardsSortable = null;
+
+function initTodayCardsSortable() {
+  if (todayCardsSortable) {
+    todayCardsSortable.destroy();
+    todayCardsSortable = null;
+  }
+  if (typeof Sortable === "undefined") return;
+  var el = document.getElementById("todayCardList");
+  if (!el || !el.querySelector(".today-drag-card")) return;
+  todayCardsSortable = new Sortable(el, {
+    handle: ".drag-handle",
+    draggable: ".today-drag-card",
+    animation: 150,
+    onEnd: function() {
+      var order = [];
+      el.querySelectorAll(".today-drag-card").forEach(function(card) {
+        var id = card.getAttribute("data-job-id");
+        if (id && order.indexOf(id) === -1) order.push(id);
+      });
+      if (order.length === 0) return;
+      saveTodayOrder(order);
     }
   });
 }

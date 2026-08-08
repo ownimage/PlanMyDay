@@ -1467,6 +1467,42 @@ test.describe("PlanMyDay - Regression", () => {
     });
   });
 
+  // ── Today List Reorder ───────────────────────────────────
+
+  test.describe("Today List Reorder", () => {
+
+    async function dragFirstCardToBottom(page) {
+      const first = page.locator("#todayCardList .today-drag-card").first();
+      await expect(first).toHaveAttribute("data-job-id", "job_1");
+      const handle = first.locator(".drag-handle");
+      const handleBox = await handle.boundingBox();
+      const lastBox = await page.locator("#todayCardList .today-drag-card").last().boundingBox();
+      await page.mouse.move(handleBox.x + handleBox.width / 2, handleBox.y + handleBox.height / 2);
+      await page.mouse.down();
+      await page.mouse.move(lastBox.x + lastBox.width / 2, lastBox.y + lastBox.height * 0.9, { steps: 15 });
+      await page.mouse.up();
+    }
+
+    test("dragging a job tile by its handle persists the new order", async ({ page }) => {
+      await seedTodayList(page);
+      await page.reload();
+      await expect(page.locator("#todayCardList .today-drag-card")).toHaveCount(2);
+      await dragFirstCardToBottom(page);
+      await expect.poll(() =>
+        page.evaluate(() => JSON.parse(localStorage.getItem("planmydays_today_order")))
+      ).toEqual(["job_3", "job_1"]);
+    });
+
+    test("persisted today order is applied after reload", async ({ page }) => {
+      await seedTodayList(page);
+      await page.reload();
+      await expect(page.locator("#todayCardList .today-drag-card")).toHaveCount(2);
+      await dragFirstCardToBottom(page);
+      await page.reload();
+      await expect(page.locator("#todayCardList .today-drag-card").first()).toHaveAttribute("data-job-id", "job_3");
+    });
+  });
+
   // ── Suffix Start Setting ──────────────────────────────────
 
   test.describe("Suffix Start Setting", () => {
