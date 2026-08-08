@@ -1008,8 +1008,12 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#streamEditorList .stream-header-main").first().click();
       await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible", timeout: 5000 });
       await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().click();
+      await page.locator("#jobEditModal").waitFor({ state: "visible" });
+      await page.waitForTimeout(400);
       await page.locator("#jobSchedule-tab").click();
       await page.locator("#btnScheduleChange").click();
+      await page.locator("#scheduleModal").waitFor({ state: "visible" });
+      await page.waitForTimeout(400);
     });
 
     test("every day radio option works", async ({ page }) => {
@@ -2279,8 +2283,10 @@ test.describe("PlanMyDay - Regression", () => {
 
     test("weekdays schedule option", async ({ page }) => {
       await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().click();
+      await page.locator("#jobEditModal").waitFor({ state: "visible" });
       await page.locator("#jobSchedule-tab").click();
       await page.locator("#btnScheduleChange").click();
+      await page.locator("#scheduleModal").waitFor({ state: "visible" });
       await page.locator("#schedWeekdays").check();
       await page.locator("#scheduleModal .btn-primary").click();
       await expect(page.locator("#jobScheduleText")).toContainText("Weekdays");
@@ -2288,8 +2294,10 @@ test.describe("PlanMyDay - Regression", () => {
 
     test("specific days schedule", async ({ page }) => {
       await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().click();
+      await page.locator("#jobEditModal").waitFor({ state: "visible" });
       await page.locator("#jobSchedule-tab").click();
       await page.locator("#btnScheduleChange").click();
+      await page.locator("#scheduleModal").waitFor({ state: "visible" });
       await page.locator("#schedDays").check();
       await page.locator("#schedDay0").check();
       await page.locator("#schedDay6").check();
@@ -2300,8 +2308,10 @@ test.describe("PlanMyDay - Regression", () => {
 
     test("monthly schedule option", async ({ page }) => {
       await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().click();
+      await page.locator("#jobEditModal").waitFor({ state: "visible" });
       await page.locator("#jobSchedule-tab").click();
       await page.locator("#btnScheduleChange").click();
+      await page.locator("#scheduleModal").waitFor({ state: "visible" });
       await page.locator("#schedMonthly").check();
       await page.locator("#schedMonthlyDay").selectOption("15");
       await page.locator("#scheduleModal .btn-primary").click();
@@ -2310,8 +2320,10 @@ test.describe("PlanMyDay - Regression", () => {
 
     test("every n days option shows ndays options", async ({ page }) => {
       await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().click();
+      await page.locator("#jobEditModal").waitFor({ state: "visible" });
       await page.locator("#jobSchedule-tab").click();
       await page.locator("#btnScheduleChange").click();
+      await page.locator("#scheduleModal").waitFor({ state: "visible" });
       await page.locator("#schedNDays").check();
       await expect(page.locator("#schedNDaysOptions")).toBeVisible();
       await expect(page.locator("#schedNInterval")).toBeVisible();
@@ -2334,10 +2346,13 @@ test.describe("PlanMyDay - Regression", () => {
 
     test("every n days shows next due display", async ({ page }) => {
       await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().click();
+      await page.locator("#jobEditModal").waitFor({ state: "visible" });
       await page.locator("#jobSchedule-tab").click();
       await page.locator("#btnScheduleChange").click();
+      await page.locator("#scheduleModal").waitFor({ state: "visible" });
+      await page.waitForTimeout(400);
       await page.locator("#schedNDays").check();
-      await expect(page.locator("#schedNextDue")).not.toBeEmpty();
+      await expect(page.locator("#schedNextDue")).toContainText("next due");
     });
   });
 
