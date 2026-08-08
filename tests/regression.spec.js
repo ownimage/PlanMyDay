@@ -676,6 +676,25 @@ test.describe("PlanMyDay - Regression", () => {
       // renamed title should be visible
       await expect(page.getByText("WorkUpdated")).toBeVisible();
     });
+
+    test("streams can be reordered with drag and drop and save immediately", async ({ page }) => {
+      const items = page.locator("#streamEditorList .stream-accordion-item");
+      await expect(items).toHaveCount(2);
+      const handleBox = await items.first().locator(".stream-accordion-header .drag-handle").boundingBox();
+      const lastBox = await items.last().boundingBox();
+      await page.mouse.move(handleBox.x + handleBox.width / 2, handleBox.y + handleBox.height / 2);
+      await page.mouse.down();
+      await page.mouse.move(lastBox.x + lastBox.width / 2, lastBox.y + lastBox.height * 0.9, { steps: 15 });
+      await page.mouse.up();
+      await expect.poll(() =>
+        page.evaluate(() => {
+          const streams = JSON.parse(localStorage.getItem("planmydays_streams"));
+          return streams.map(s => s.title + ":" + s.sequence);
+        })
+      ).toEqual(["Chores:1", "Work:2"]);
+      await expect(items.first()).toContainText("Chores");
+      await expect(items.last()).toContainText("Work");
+    });
   });
 
   // ── Jobs Editor ────────────────────────────────────────────

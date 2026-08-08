@@ -467,6 +467,7 @@ function renderStreamsEditor() {
 
     var item = document.createElement("div");
     item.className = "accordion-item stream-accordion-item stream-drag-card mb-2";
+    item.dataset.streamIdx = realIdx;
 
     var headerHtml = '<div class="accordion-header stream-accordion-header" id="streamHeading_' + realIdx + '">' +
       '<div class="drag-handle flex-shrink-0" style="cursor:grab;line-height:1">&#9776;</div>' +
@@ -539,6 +540,37 @@ function renderStreamsEditor() {
   });
 
   updateNavState();
+  initStreamsEditorSortable();
+}
+
+var streamsEditorSortable = null;
+
+function initStreamsEditorSortable() {
+  if (streamsEditorSortable) {
+    streamsEditorSortable.destroy();
+    streamsEditorSortable = null;
+  }
+  if (typeof Sortable === "undefined") return;
+  var el = document.getElementById("streamEditorList");
+  if (!el || !el.querySelector(".stream-accordion-item")) return;
+  streamsEditorSortable = new Sortable(el, {
+    handle: ".stream-accordion-header .drag-handle",
+    draggable: ".stream-accordion-item",
+    animation: 150,
+    onEnd: function() {
+      var streams = loadStreams();
+      var order = [];
+      el.querySelectorAll(".stream-accordion-item").forEach(function(item) {
+        var idx = parseInt(item.getAttribute("data-stream-idx"), 10);
+        if (!isNaN(idx) && order.indexOf(idx) === -1) order.push(idx);
+      });
+      if (order.length !== streams.length) return;
+      var reordered = order.map(function(idx) { return streams[idx]; });
+      reordered.forEach(function(s, i) { s.sequence = i + 1; });
+      saveStreams(reordered);
+      renderStreamsEditor();
+    }
+  });
 }
 
 function renderJobsInAccordion(stream, jobs, streamIdx) {
