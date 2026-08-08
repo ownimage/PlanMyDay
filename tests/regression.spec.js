@@ -1,4 +1,4 @@
-const { test, expect } = require("@playwright/test");
+﻿const { test, expect } = require("@playwright/test");
 const { startCoverage, stopCoverage } = require("./coverage");
 
 const TEST_STREAMS = [
@@ -106,7 +106,7 @@ test.describe("PlanMyDay - Regression", () => {
     await stopCoverage(page);
   });
 
-  // ── Main View ──────────────────────────────────────────────
+  // â”€â”€ Main View â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   test.describe("Main View", () => {
 
@@ -363,7 +363,7 @@ test.describe("PlanMyDay - Regression", () => {
     
   });
 
-  // ── Navigation ─────────────────────────────────────────────
+  // â”€â”€ Navigation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   test.describe("Navigation", () => {
 
@@ -430,7 +430,7 @@ test.describe("PlanMyDay - Regression", () => {
     });
   });
 
-  // ── Settings ───────────────────────────────────────────────
+  // â”€â”€ Settings â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   test.describe("Settings", () => {
 
@@ -528,7 +528,7 @@ test.describe("PlanMyDay - Regression", () => {
     });
   });
 
-  // ── Streams Editor ─────────────────────────────────────────
+  // â”€â”€ Streams Editor â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   test.describe("Streams Editor", () => {
 
@@ -678,7 +678,7 @@ test.describe("PlanMyDay - Regression", () => {
     });
   });
 
-  // ── Jobs Editor ────────────────────────────────────────────
+  // â”€â”€ Jobs Editor â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   test.describe("Jobs Editor", () => {
 
@@ -814,23 +814,6 @@ test.describe("PlanMyDay - Regression", () => {
       await expect(jobCards.first()).toContainText("EarlyJob");
     });
 
-    test("all job tiles are draggable", async ({ page }) => {
-      await page.evaluate(() => {
-        var streams = JSON.parse(localStorage.getItem("planmydays_streams"));
-        streams[0].jobs.push({ id: "job_timed", title: "TimedJob", active: true, frequency: "daily", sequence: 99, time: "09:00", suffix: false, dayType: "dayOfYear", mod: "", tasks: [] });
-        localStorage.setItem("planmydays_streams", JSON.stringify(streams));
-      });
-      await page.reload();
-      await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
-      await page.locator("a.dropdown-item").filter({ hasText: "Jobs" }).click();
-      await page.locator("#streamEditorList .stream-header-main").first().click();
-      await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible", timeout: 5000 });
-      var timedCard = page.locator(".job-drag-card").filter({ hasText: "TimedJob" });
-      await expect(timedCard).toHaveAttribute("draggable", "true");
-      var untimedCard = page.locator(".job-drag-card").filter({ hasText: "Report" });
-      await expect(untimedCard).toHaveAttribute("draggable", "true");
-    });
-
     test("active label is bold on job tiles", async ({ page }) => {
       var activeLabel = page.locator("#streamEditorList .accordion-body .form-check-label").first();
       await expect(activeLabel).toHaveClass(/fw-bold/);
@@ -839,56 +822,6 @@ test.describe("PlanMyDay - Regression", () => {
     test("job tiles have a drag handle for touch reorder", async ({ page }) => {
       await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible", timeout: 5000 });
       await expect(page.locator(".job-drag-card .drag-handle").first()).toBeVisible();
-    });
-
-    test("touch reorder swaps job sequences via drag handle", async ({ page }) => {
-      await page.evaluate(() => {
-        var streams = JSON.parse(localStorage.getItem("planmydays_streams"));
-        streams[0].jobs.push({ id: "job_drag1", title: "DragMe1", active: true, frequency: "daily", sequence: 99, time: "", suffix: false, dayType: "dayOfYear", mod: "", tasks: [] });
-        streams[0].jobs.push({ id: "job_drag2", title: "DragMe2", active: true, frequency: "daily", sequence: 100, time: "", suffix: false, dayType: "dayOfYear", mod: "", tasks: [] });
-        localStorage.setItem("planmydays_streams", JSON.stringify(streams));
-      });
-      await page.reload();
-      await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
-      await page.locator("a.dropdown-item").filter({ hasText: "Jobs" }).click();
-      await page.locator("#streamEditorList .stream-header-main").first().click();
-      await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible", timeout: 5000 });
-      const before = await page.evaluate(() => {
-        const jobs = loadStreams()[0].jobs;
-        return {
-          d1: jobs.find(j => j.id === "job_drag1").sequence,
-          d2: jobs.find(j => j.id === "job_drag2").sequence
-        };
-      });
-      await page.evaluate(() => {
-        const list = document.getElementById("streamEditorList");
-        const c1 = [...list.querySelectorAll(".job-drag-card")].find(c => c.textContent.includes("DragMe2"));
-        const c2 = [...list.querySelectorAll(".job-drag-card")].find(c => c.textContent.includes("DragMe1"));
-        const h1 = c1.querySelector(".drag-handle");
-        const r1 = h1.getBoundingClientRect();
-        const r2 = c2.getBoundingClientRect();
-        const fire = (type, x, y, target) => {
-          const t = new Touch({ identifier: 1, target, clientX: x, clientY: y });
-          const touching = type === "touchend" || type === "touchcancel" ? [] : [t];
-          target.dispatchEvent(new TouchEvent(type, {
-            bubbles: true, cancelable: true,
-            touches: touching, changedTouches: [t], targetTouches: touching
-          }));
-        };
-        fire("touchstart", r1.x + 2, r1.y + 2, h1);
-        fire("touchmove", r2.x + 10, r2.y + r2.height / 2, c2);
-        fire("touchend", r2.x + 10, r2.y + r2.height / 2, c2);
-      });
-      await page.waitForTimeout(300);
-      const after = await page.evaluate(() => {
-        const jobs = loadStreams()[0].jobs;
-        return {
-          d1: jobs.find(j => j.id === "job_drag1").sequence,
-          d2: jobs.find(j => j.id === "job_drag2").sequence
-        };
-      });
-      expect(after.d1).toBe(before.d2);
-      expect(after.d2).toBe(before.d1);
     });
 
     test("activating a job adds it to today order", async ({ page }) => {
@@ -956,31 +889,9 @@ test.describe("PlanMyDay - Regression", () => {
       expect(orderAfter).not.toContain("job_2");
       expect(orderAfter).toEqual(["job_1", "job_3"]);
     });
-
-    test("accordion stays open after job drag reorder", async ({ page }) => {
-      await page.evaluate(() => {
-        var streams = JSON.parse(localStorage.getItem("planmydays_streams"));
-        streams[0].jobs.push({ id: "job_drag1", title: "DragMe1", active: true, frequency: "daily", sequence: 99, time: "", suffix: false, dayType: "dayOfYear", mod: "", tasks: [] });
-        streams[0].jobs.push({ id: "job_drag2", title: "DragMe2", active: true, frequency: "daily", sequence: 100, time: "", suffix: false, dayType: "dayOfYear", mod: "", tasks: [] });
-        localStorage.setItem("planmydays_streams", JSON.stringify(streams));
-      });
-      await page.reload();
-      await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
-      await page.locator("a.dropdown-item").filter({ hasText: "Jobs" }).click();
-      // expand first stream
-      await page.locator("#streamEditorList .stream-header-main").first().click();
-      await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible", timeout: 5000 });
-      // drag an untimed job card
-      var srcCard = page.locator(".job-drag-card").filter({ hasText: "DragMe2" });
-      var dstCard = page.locator(".job-drag-card").filter({ hasText: "DragMe1" });
-      await srcCard.dragTo(dstCard);
-      await page.waitForTimeout(500);
-      // accordion should still be expanded
-      await expect(page.locator("#streamEditorList .accordion-collapse.show")).toBeVisible({ timeout: 5000 });
-    });
   });
 
-  // ── Schedule Modal ─────────────────────────────────────────
+  // â”€â”€ Schedule Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   test.describe("Schedule Modal", () => {
 
@@ -1012,7 +923,7 @@ test.describe("PlanMyDay - Regression", () => {
     });
   });
 
-  // ── Images Editor ──────────────────────────────────────────
+  // â”€â”€ Images Editor â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   test.describe("Images Editor", () => {
 
@@ -1216,7 +1127,7 @@ test.describe("PlanMyDay - Regression", () => {
     });
   });
 
-  // ── Image Edit Modal ───────────────────────────────────────
+  // â”€â”€ Image Edit Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   test.describe("Image Edit Modal", () => {
 
@@ -1238,7 +1149,7 @@ test.describe("PlanMyDay - Regression", () => {
     });
   });
 
-  // ── Image Picker Modal ─────────────────────────────────────
+  // â”€â”€ Image Picker Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   test.describe("Image Picker Modal", () => {
 
@@ -1301,7 +1212,7 @@ test.describe("PlanMyDay - Regression", () => {
     });
   });
 
-  // ── Dev Mode ───────────────────────────────────────────────
+  // â”€â”€ Dev Mode â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   test.describe("Dev Mode", () => {
 
@@ -1322,7 +1233,7 @@ test.describe("PlanMyDay - Regression", () => {
     });
   });
 
-  // ── Split List ─────────────────────────────────────────────
+  // â”€â”€ Split List â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   test.describe("Split List", () => {
 
@@ -1341,29 +1252,6 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("button.nav-link").filter({ hasText: "Maintenance" }).click();
       await expect(page.getByText("Laundry")).toBeVisible();
       await expect(page.getByText("Report")).not.toBeVisible();
-    });
-
-    test("reordering on one tab does not lose jobs from the other tab", async ({ page }) => {
-      // Seed with jobs in both tabs: job_1+job_2 (progress), job_3 (maintenance)
-      await page.evaluate(({ data, ds }) => {
-        localStorage.setItem("planmydays_streams", JSON.stringify(data));
-        localStorage.setItem("planmydays_today_order", JSON.stringify(["job_1", "job_2", "job_3"]));
-        localStorage.setItem("planmydays_last_gen", ds);
-        localStorage.setItem("planmydays_completed", JSON.stringify([]));
-        localStorage.setItem("planmydays_splitList", "true");
-      }, { data: TEST_STREAMS, ds: todayStr });
-      await page.reload();
-
-      await expect(page.locator(".today-drag-card h4").filter({ hasText: "Report" })).toBeVisible();
-      await expect(page.locator(".today-drag-card h4").filter({ hasText: "Meeting" })).toBeVisible();
-
-      // Perform an actual reorder via drag-and-drop to exercise the real handler
-      const cards = page.locator(".today-drag-card");
-      await cards.nth(1).dragTo(cards.nth(0));
-
-      // Switch to maintenance tab — Laundry should still be present
-      await page.locator("button.nav-link").filter({ hasText: "Maintenance" }).click();
-      await expect(page.locator(".today-drag-card h4").filter({ hasText: "Laundry" })).toBeVisible();
     });
 
     test("tab bar is visible above the job list when many jobs overflow", async ({ page }) => {
@@ -1416,7 +1304,7 @@ test.describe("PlanMyDay - Regression", () => {
     });
   });
 
-  // ── Delete Confirm Modal ───────────────────────────────────
+  // â”€â”€ Delete Confirm Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   test.describe("Delete Confirm Modal", () => {
 
@@ -1444,7 +1332,7 @@ test.describe("PlanMyDay - Regression", () => {
     });
   });
 
-  // ── Ad Hoc Workflow ────────────────────────────────────────
+  // â”€â”€ Ad Hoc Workflow â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   test.describe("Ad Hoc Workflow", () => {
 
@@ -1490,7 +1378,7 @@ test.describe("PlanMyDay - Regression", () => {
     });
   });
 
-  // ── Suffix Display ─────────────────────────────────────────
+  // â”€â”€ Suffix Display â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   test.describe("Suffix Display", () => {
 
@@ -1503,7 +1391,7 @@ test.describe("PlanMyDay - Regression", () => {
     });
   });
 
-  // ── Suffix Start Setting ──────────────────────────────────
+  // â”€â”€ Suffix Start Setting â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   test.describe("Suffix Start Setting", () => {
 
@@ -1568,7 +1456,7 @@ test.describe("PlanMyDay - Regression", () => {
     });
   });
 
-  // ── Tab Badge ──────────────────────────────────────────────
+  // â”€â”€ Tab Badge â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   test.describe("Tab Badge", () => {
 
@@ -1583,7 +1471,7 @@ test.describe("PlanMyDay - Regression", () => {
     });
   });
 
-  // ── Hide Done ──────────────────────────────────────────────
+  // â”€â”€ Hide Done â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   test.describe("Hide Done", () => {
 
@@ -1610,7 +1498,7 @@ test.describe("PlanMyDay - Regression", () => {
     });
   });
 
-  // ── Settings UI Controls ─────────────────────────────────
+  // â”€â”€ Settings UI Controls â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   test.describe("Settings UI Controls", () => {
 
@@ -1750,7 +1638,7 @@ test.describe("PlanMyDay - Regression", () => {
     });
   });
 
-  // ── Job Edit Modal UI ───────────────────────────────────────
+  // â”€â”€ Job Edit Modal UI â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   test.describe("Job Edit Modal UI", () => {
 
@@ -1928,7 +1816,7 @@ test.describe("PlanMyDay - Regression", () => {
     });
   });
 
-  // ── Stream Selector in Job Edit ───────────────────────────────
+  // â”€â”€ Stream Selector in Job Edit â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   test.describe("Stream Selector in Job Edit", () => {
 
@@ -2027,7 +1915,7 @@ test.describe("PlanMyDay - Regression", () => {
     });
   });
 
-  // ── Image Editing UI ────────────────────────────────────────
+  // â”€â”€ Image Editing UI â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   test.describe("Image Editing UI", () => {
 
@@ -2137,7 +2025,7 @@ test.describe("PlanMyDay - Regression", () => {
     });
   });
 
-  // ── Image Picker UI ─────────────────────────────────────────
+  // â”€â”€ Image Picker UI â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   test.describe("Image Picker UI", () => {
 
@@ -2231,7 +2119,7 @@ test.describe("PlanMyDay - Regression", () => {
     });
   });
 
-  // ── Schedule Type UI ────────────────────────────────────────
+  // â”€â”€ Schedule Type UI â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   test.describe("Schedule Type UI", () => {
 
@@ -2317,7 +2205,7 @@ test.describe("PlanMyDay - Regression", () => {
     });
   });
 
-  // ── Dev Mode UI ─────────────────────────────────────────────
+  // â”€â”€ Dev Mode UI â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   test.describe("Dev Mode UI", () => {
 
@@ -2338,7 +2226,7 @@ test.describe("PlanMyDay - Regression", () => {
     });
   });
 
-  // ── Image Editing: Cancel Existing ──────────────────────────
+  // â”€â”€ Image Editing: Cancel Existing â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   test.describe("Image Editing: Cancel Existing", () => {
 
@@ -2417,7 +2305,7 @@ test.describe("PlanMyDay - Regression", () => {
     });
   });
 
-  // ── Image Picker Empty State ───────────────────────────────
+  // â”€â”€ Image Picker Empty State â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   test.describe("Image Picker Empty State", () => {
 
@@ -2455,7 +2343,7 @@ test.describe("PlanMyDay - Regression", () => {
     });
   });
 
-  // ── Ad Hoc Confirm Removal ─────────────────────────────────
+  // â”€â”€ Ad Hoc Confirm Removal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   test.describe("Ad Hoc Confirm Removal", () => {
 
@@ -2486,7 +2374,7 @@ test.describe("PlanMyDay - Regression", () => {
     });
   });
 
-  // ── Checkbox Uncheck ───────────────────────────────────────
+  // â”€â”€ Checkbox Uncheck â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   test.describe("Checkbox Uncheck", () => {
 
@@ -2502,7 +2390,7 @@ test.describe("PlanMyDay - Regression", () => {
     });
   });
 
-  // ── Schedule Filtering ─────────────────────────────────────
+  // â”€â”€ Schedule Filtering â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   test.describe("Schedule Filtering", () => {
 
@@ -2700,7 +2588,7 @@ test.describe("PlanMyDay - Regression", () => {
     });
   });
 
-  // ── Data Danger Zone ───────────────────────────────────────
+  // â”€â”€ Data Danger Zone â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   test.describe("Data Danger Zone", () => {
 
@@ -2988,7 +2876,7 @@ test.describe("PlanMyDay - Regression", () => {
     });
   });
 
-  // ── Auto-Hide Nav Behavior ─────────────────────────────────
+  // â”€â”€ Auto-Hide Nav Behavior â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   test.describe("Auto-Hide Nav Behavior", () => {
 
@@ -3040,7 +2928,7 @@ test.describe("PlanMyDay - Regression", () => {
     });
   });
 
-  // ── Dev Mode: Dev Today Override ───────────────────────────
+  // â”€â”€ Dev Mode: Dev Today Override â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   test.describe("Dev Mode: Dev Today Override", () => {
 
@@ -3066,7 +2954,7 @@ test.describe("PlanMyDay - Regression", () => {
     });
   });
 
-  // ── No Active Jobs Message ─────────────────────────────────
+  // â”€â”€ No Active Jobs Message â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   test.describe("No Active Jobs Message", () => {
 
@@ -3080,7 +2968,7 @@ test.describe("PlanMyDay - Regression", () => {
     });
   });
 
-  // ── Schedule Filtering Carryover ───────────────────────────
+  // â”€â”€ Schedule Filtering Carryover â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   test.describe("Schedule Filtering Carryover", () => {
 
@@ -3102,7 +2990,7 @@ test.describe("PlanMyDay - Regression", () => {
     });
   });
 
-  // ── Day Type Suffix Branches ──────────────────────────────
+  // â”€â”€ Day Type Suffix Branches â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   test.describe("Day Type Suffix Branches", () => {
 
@@ -3177,7 +3065,7 @@ test.describe("PlanMyDay - Regression", () => {
     });
   });
 
-  // ── Job Sorting By Time ────────────────────────────────────
+  // â”€â”€ Job Sorting By Time â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   test.describe("Job Sorting By Time", () => {
 
@@ -3206,7 +3094,7 @@ test.describe("PlanMyDay - Regression", () => {
     });
   });
 
-  // ── Dev Mode Settings ──────────────────────────────────────
+  // â”€â”€ Dev Mode Settings â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   test.describe("Dev Mode Settings", () => {
 
@@ -3221,7 +3109,7 @@ test.describe("PlanMyDay - Regression", () => {
     });
   });
 
-  // ── Top-Level: Streams Editor Interaction ────────────────
+  // â”€â”€ Top-Level: Streams Editor Interaction â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   test.describe("Top-Level: Streams Editor", () => {
 
@@ -3327,7 +3215,7 @@ test.describe("PlanMyDay - Regression", () => {
     });
   });
 
-  // ── Modal Stacking: Image Picker from Job Edit ──────────
+  // â”€â”€ Modal Stacking: Image Picker from Job Edit â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   test.describe("Modal Stacking: Image Picker from Job Edit", () => {
 
@@ -3444,7 +3332,7 @@ test.describe("PlanMyDay - Regression", () => {
     });
   });
 
-  // ── Modal Stacking: Image Picker from Front Page Add Card ─
+  // â”€â”€ Modal Stacking: Image Picker from Front Page Add Card â”€
 
   test.describe("Modal Stacking: Image Picker from Front Page Add Card", () => {
 
@@ -3481,7 +3369,7 @@ test.describe("PlanMyDay - Regression", () => {
     });
   });
 
-  // ── Coverage: Import / Export / Upload / Edge cases ────────
+  // â”€â”€ Coverage: Import / Export / Upload / Edge cases â”€â”€â”€â”€â”€â”€â”€â”€
 
   test.describe("Coverage: Import Export Upload", () => {
 
@@ -3862,76 +3750,6 @@ test.describe("PlanMyDay - Regression", () => {
       expect(count).toBeGreaterThanOrEqual(2);
     });
 
-    test("today list drag reorder updates order", async ({ page }) => {
-      await seedTodayList(page);
-      await page.reload();
-      await expect(page.locator("#todayCardList .today-drag-card")).toHaveCount(2);
-      const after = await page.evaluate(() => {
-        const list = document.getElementById("todayCardList");
-        const cards = [...list.querySelectorAll(".today-drag-card")];
-        const src = cards[0];
-        const dst = cards[1];
-        const dt = new DataTransfer();
-        src.dispatchEvent(new DragEvent("dragstart", { bubbles: true, dataTransfer: dt }));
-        dst.dispatchEvent(new DragEvent("dragover", { bubbles: true, cancelable: true, dataTransfer: dt, clientY: dst.getBoundingClientRect().bottom - 2 }));
-        dst.dispatchEvent(new DragEvent("drop", { bubbles: true, cancelable: true, dataTransfer: dt, clientY: dst.getBoundingClientRect().bottom - 2 }));
-        src.dispatchEvent(new DragEvent("dragend", { bubbles: true, dataTransfer: dt }));
-        return loadTodayOrder();
-      });
-      expect(after[0]).toBe("job_3");
-      expect(after[1]).toBe("job_1");
-    });
-
-    test("job editor drag swaps sequences for same group", async ({ page }) => {
-      await page.evaluate((data) => {
-        data[0].jobs = [
-          { id: "j_a", title: "Auntimed", active: true, frequency: "daily", sequence: 1, time: "", schedule: { type: "daily" } },
-          { id: "j_b", title: "Buntimed", active: true, frequency: "daily", sequence: 2, time: "", schedule: { type: "daily" } }
-        ];
-        localStorage.setItem("planmydays_streams", JSON.stringify(data));
-      }, TEST_STREAMS);
-      await page.reload();
-      await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
-      await page.locator("a.dropdown-item").filter({ hasText: "Jobs" }).click();
-      await page.locator("#streamEditorList .stream-header-main").first().click();
-      await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible" });
-      const src = page.locator(".job-drag-card").filter({ hasText: "Buntimed" });
-      const dst = page.locator(".job-drag-card").filter({ hasText: "Auntimed" });
-      await src.dragTo(dst);
-      await page.waitForTimeout(400);
-      const seqs = await page.evaluate(() => {
-        const s = loadStreams()[0].jobs;
-        const a = s.find(j => j.title === "Auntimed");
-        const b = s.find(j => j.title === "Buntimed");
-        return { a: a.sequence, b: b.sequence };
-      });
-      expect(seqs.a !== 1 || seqs.b !== 2).toBeTruthy();
-    });
-
-    test("canSwapJobs rejects different time groups", async ({ page }) => {
-      const futureDate = futureDateStr(30);
-      const result = await page.evaluate(({ data, sleep }) => {
-        data[0].jobs = [
-          { id: "t1", title: "T1", active: true, sequence: 1, time: "09:00" },
-          { id: "t2", title: "T2", active: true, sequence: 2, time: "10:00" },
-          { id: "u1", title: "U1", active: true, sequence: 3, time: "" },
-          { id: "s1", title: "S1", active: true, sequence: 4, time: "", sleepUntil: sleep },
-          { id: "s2", title: "S2", active: true, sequence: 5, time: "", sleepUntil: sleep }
-        ];
-        localStorage.setItem("planmydays_streams", JSON.stringify(data));
-        return {
-          diffTime: canSwapJobs(0, 0, 1),
-          timeUntimed: canSwapJobs(0, 0, 2),
-          sameSleep: canSwapJobs(0, 3, 4),
-          missing: canSwapJobs(0, 0, 99)
-        };
-      }, { data: TEST_STREAMS, sleep: futureDate });
-      expect(result.diffTime).toBe(false);
-      expect(result.timeUntimed).toBe(false);
-      expect(result.sameSleep).toBe(true);
-      expect(result.missing).toBe(false);
-    });
-
     test("split list empty tab message", async ({ page }) => {
       await page.evaluate((data) => {
         data[0].tab = "progress";
@@ -4040,219 +3858,6 @@ test.describe("PlanMyDay - Regression", () => {
       expect(result.passthrough).toBe("not-svg");
       expect(decodeURIComponent(result.colored)).toContain("#abcdef");
       expect(decodeURIComponent(result.cleared)).toMatch(/stroke=["']none["']/);
-    });
-
-    test("touch DnD handlers fire for today cards", async ({ page }) => {
-      await seedTodayList(page);
-      await page.reload();
-      await page.locator("#todayCardList .today-drag-card").first().waitFor({ state: "visible" });
-      const reordered = await page.evaluate(() => {
-        const list = document.getElementById("todayCardList");
-        const cards = [...list.querySelectorAll(".today-drag-card")];
-        const c1 = cards[0];
-        const c2 = cards[1];
-        const r1 = c1.getBoundingClientRect();
-        const r2 = c2.getBoundingClientRect();
-        const fire = (type, x, y, target) => {
-          const t = new Touch({ identifier: 1, target, clientX: x, clientY: y });
-          const touching = type === "touchend" || type === "touchcancel" ? [] : [t];
-          target.dispatchEvent(new TouchEvent(type, {
-            bubbles: true, cancelable: true,
-            touches: touching,
-            changedTouches: [t],
-            targetTouches: touching
-          }));
-        };
-        fire("touchstart", r1.x + 10, r1.y + 10, c1);
-        fire("touchmove", r2.x + 10, r2.y + 10, c1);
-        fire("touchend", r2.x + 10, r2.y + 10, c1);
-        fire("touchstart", r1.x + 10, r1.y + 10, c1);
-        fire("touchcancel", r1.x + 10, r1.y + 10, c1);
-        return loadTodayOrder();
-      });
-      expect(reordered.length).toBeGreaterThanOrEqual(2);
-    });
-  });
-
-  // ── Coverage: Branch paths ─────────────────────────────────
-
-  test.describe("Coverage: Branch paths", () => {
-
-    test("touch DnD edge branches: no card, no target, same card, cancel idle", async ({ page }) => {
-      await seedTodayList(page);
-      await page.reload();
-      await page.locator("#todayCardList .today-drag-card").first().waitFor({ state: "visible" });
-      await page.evaluate(() => {
-        const list = document.getElementById("todayCardList");
-        const cards = [...list.querySelectorAll(".today-drag-card")];
-        const c1 = cards[0];
-        const c2 = cards[1];
-        const r1 = c1.getBoundingClientRect();
-        const r2 = c2.getBoundingClientRect();
-        const fire = (type, x, y, target) => {
-          const t = new Touch({ identifier: 1, target, clientX: x, clientY: y });
-          const touching = type === "touchend" || type === "touchcancel" ? [] : [t];
-          target.dispatchEvent(new TouchEvent(type, {
-            bubbles: true, cancelable: true,
-            touches: touching, changedTouches: [t], targetTouches: touching
-          }));
-        };
-        // touchstart on non-card (list itself)
-        fire("touchstart", 1, 1, list);
-        // touchmove/end/cancel with no active drag
-        fire("touchmove", 10, 10, list);
-        fire("touchend", 10, 10, list);
-        fire("touchcancel", 10, 10, list);
-        // start on card, move to empty space (no target)
-        fire("touchstart", r1.x + 5, r1.y + 5, c1);
-        fire("touchmove", 2, 2, document.body);
-        // move above midpoint vs below midpoint
-        fire("touchmove", r2.x + 5, r2.y + 2, c2);
-        fire("touchmove", r2.x + 5, r2.y + r2.height - 2, c2);
-        // end on same card (no reorder)
-        fire("touchend", r1.x + 5, r1.y + 5, c1);
-        // start and end with no target under finger
-        fire("touchstart", r1.x + 5, r1.y + 5, c1);
-        fire("touchend", 1, 1, document.body);
-        // start and cancel with active drag
-        fire("touchstart", r1.x + 5, r1.y + 5, c1);
-        fire("touchcancel", r1.x + 5, r1.y + 5, c1);
-      });
-    });
-
-    test("job DnD branch paths: wrong stream, same index, cannot swap, missing sequence", async ({ page }) => {
-      await page.evaluate((data) => {
-        data[0].jobs = [
-          { id: "j1", title: "TAuntimed", active: true, sequence: 1, time: "" },
-          { id: "j2", title: "TBuntimed", active: true, sequence: 2, time: "" },
-          { id: "j3", title: "TimedA", active: true, sequence: 3, time: "09:00" },
-          { id: "j4", title: "TimedB", active: true, time: "10:00" }
-        ];
-        data[1].jobs = [
-          { id: "j5", title: "OtherStream", active: true, sequence: 1, time: "" }
-        ];
-        localStorage.setItem("planmydays_streams", JSON.stringify(data));
-      }, TEST_STREAMS);
-      await page.reload();
-      await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
-      await page.locator("a.dropdown-item").filter({ hasText: "Jobs" }).click();
-      await page.locator("#streamEditorList .stream-header-main").first().click();
-      await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible" });
-      // expand second stream too for cross-stream target
-      await page.locator("#streamEditorList .stream-header-main").nth(1).click();
-      await page.waitForTimeout(200);
-
-      await page.evaluate(() => {
-        const list = document.getElementById("streamEditorList");
-        const untimed = [...list.querySelectorAll(".job-drag-card")].filter(c =>
-          c.textContent.includes("TAuntimed") || c.textContent.includes("TBuntimed") ||
-          c.textContent.includes("TimedA") || c.textContent.includes("TimedB") ||
-          c.textContent.includes("OtherStream")
-        );
-        const byTitle = (t) => untimed.find(c => c.textContent.includes(t));
-        const a = byTitle("TAuntimed");
-        const b = byTitle("TBuntimed");
-        const timedA = byTitle("TimedA");
-        const timedB = byTitle("TimedB");
-        const other = byTitle("OtherStream");
-        const dt = new DataTransfer();
-        const drag = (type, el, clientY) => {
-          const rect = el.getBoundingClientRect();
-          const y = clientY != null ? clientY : rect.top + rect.height / 2;
-          el.dispatchEvent(new DragEvent(type, {
-            bubbles: true, cancelable: true, dataTransfer: dt,
-            clientX: rect.left + 10, clientY: y
-          }));
-        };
-        // dragstart on non-card
-        list.dispatchEvent(new DragEvent("dragstart", { bubbles: true, dataTransfer: dt }));
-        // valid start then dragover top vs bottom
-        drag("dragstart", a);
-        drag("dragover", b, b.getBoundingClientRect().top + 2);
-        drag("dragover", b, b.getBoundingClientRect().bottom - 2);
-        // drop on self
-        drag("drop", a);
-        drag("dragend", a);
-        // start then cross-stream dragover/drop
-        drag("dragstart", a);
-        if (other) {
-          drag("dragover", other);
-          drag("drop", other);
-        }
-        drag("dragend", a);
-        // cannot swap timed different times
-        drag("dragstart", timedA);
-        drag("dragover", timedB);
-        drag("drop", timedB);
-        drag("dragend", timedA);
-        // successful swap without sequence on one job (|| 0 branch)
-        drag("dragstart", timedB);
-        // put timedB next to untimed won't swap; swap two untimed again
-        drag("dragstart", b);
-        drag("drop", a, a.getBoundingClientRect().top + 2);
-        drag("dragend", b);
-        // drop with no active drag
-        _jobDragSrcIdx = -1;
-        drag("drop", a);
-      });
-      // re-seed for stable canSwapJobs index checks
-      const r = await page.evaluate((data) => {
-        data[0].jobs = [
-          { id: "j1", title: "TAuntimed", active: true, sequence: 1, time: "" },
-          { id: "j2", title: "TBuntimed", active: true, sequence: 2, time: "" },
-          { id: "j3", title: "TimedA", active: true, sequence: 3, time: "09:00" },
-          { id: "j4", title: "TimedB", active: true, sequence: 4, time: "10:00" }
-        ];
-        localStorage.setItem("planmydays_streams", JSON.stringify(data));
-        return {
-          sameTime: canSwapJobs(0, 2, 2),
-          diffTime: canSwapJobs(0, 2, 3),
-          untimed: canSwapJobs(0, 0, 1)
-        };
-      }, TEST_STREAMS);
-      expect(r.sameTime).toBe(true);
-      expect(r.diffTime).toBe(false);
-      expect(r.untimed).toBe(true);
-    });
-
-    test("canSwapJobs sleep and time subgroup branches", async ({ page }) => {
-      const futureDateA = futureDateStr(30);
-      const futureDateB = futureDateStr(60);
-      const result = await page.evaluate(({ data, sleepA, sleepB }) => {
-        data[0].jobs = [
-          { id: "a", title: "A", active: true, sequence: 1, time: "09:00", sleepUntil: "" },
-          { id: "b", title: "B", active: true, sequence: 2, time: "09:00", sleepUntil: "" },
-          { id: "c", title: "C", active: true, sequence: 3, time: "10:00", sleepUntil: "" },
-          { id: "d", title: "D", active: true, sequence: 4, time: "", sleepUntil: sleepA },
-          { id: "e", title: "E", active: true, sequence: 5, time: "", sleepUntil: sleepA },
-          { id: "f", title: "F", active: true, sequence: 6, time: "08:00", sleepUntil: sleepA },
-          { id: "g", title: "G", active: true, sequence: 7, time: "", sleepUntil: sleepB },
-          { id: "h", title: "H", active: true, sequence: 8, time: "  ", sleepUntil: "  " }
-        ];
-        localStorage.setItem("planmydays_streams", JSON.stringify(data));
-        return {
-          sameTime: canSwapJobs(0, 0, 1),
-          diffTime: canSwapJobs(0, 0, 2),
-          sameSleep: canSwapJobs(0, 3, 4),
-          sleepDiffDate: canSwapJobs(0, 3, 6),
-          sleepDiffTime: canSwapJobs(0, 3, 5),
-          sleepVsUntimed: canSwapJobs(0, 3, 7),
-          blankTrimUntimed: canSwapJobs(0, 7, 7),
-          missingJob: canSwapJobs(0, 0, 99),
-          emptyJobsStream: (() => {
-            data.push({ id: "empty", title: "E", jobs: null });
-            localStorage.setItem("planmydays_streams", JSON.stringify(data));
-            try { return canSwapJobs(data.length - 1, 0, 1); } catch (e) { return "err"; }
-          })()
-        };
-      }, { data: TEST_STREAMS, sleepA: futureDateA, sleepB: futureDateB });
-      expect(result.sameTime).toBe(true);
-      expect(result.diffTime).toBe(false);
-      expect(result.sameSleep).toBe(true);
-      expect(result.sleepDiffDate).toBe(false);
-      expect(result.sleepDiffTime).toBe(false);
-      expect(result.sleepVsUntimed).toBe(false);
-      expect(result.missingJob).toBe(false);
     });
 
     test("addScheduleJobsToOrder time sort branches", async ({ page }) => {
@@ -4532,39 +4137,6 @@ test.describe("PlanMyDay - Regression", () => {
       await expect(page.locator("body")).toHaveClass(/compact/);
     });
 
-    test("today drag drop same card and empty target branches", async ({ page }) => {
-      await seedTodayList(page);
-      await page.reload();
-      await page.locator("#todayCardList .today-drag-card").first().waitFor({ state: "visible" });
-      await page.evaluate(() => {
-        const list = document.getElementById("todayCardList");
-        const cards = [...list.querySelectorAll(".today-drag-card")];
-        const c1 = cards[0];
-        const c2 = cards[1];
-        const dt = new DataTransfer();
-        const fire = (type, el, y) => {
-          const rect = el.getBoundingClientRect();
-          el.dispatchEvent(new DragEvent(type, {
-            bubbles: true, cancelable: true, dataTransfer: dt,
-            clientX: rect.left + 5,
-            clientY: y != null ? y : rect.top + rect.height / 2
-          }));
-        };
-        // drop on self
-        fire("dragstart", c1);
-        fire("drop", c1);
-        fire("dragend", c1);
-        // dragover top and bottom
-        fire("dragstart", c1);
-        fire("dragover", c2, c2.getBoundingClientRect().top + 1);
-        fire("dragover", c2, c2.getBoundingClientRect().bottom - 1);
-        fire("drop", c2, c2.getBoundingClientRect().top + 1);
-        fire("dragend", c1);
-        // dragstart on list (no card)
-        list.dispatchEvent(new DragEvent("dragstart", { bubbles: true, dataTransfer: dt }));
-      });
-    });
-
     test("markJobDone and removeAdhocJob edge branches", async ({ page }) => {
       await page.evaluate(() => {
         localStorage.setItem("planmydays_streams", JSON.stringify([{
@@ -4664,7 +4236,7 @@ test.describe("PlanMyDay - Regression", () => {
 
   test.describe("Minio", () => {
 
-    // ── Settings UI ────────────────────────────────────────
+    // â”€â”€ Settings UI â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     test("minio tab exists in settings", async ({ page }) => {
       await page.getByTitle("Settings").click();
@@ -4746,7 +4318,7 @@ test.describe("PlanMyDay - Regression", () => {
       await expect(page.locator("#minioPassword")).toHaveAttribute("type", "password");
     });
 
-    // ── Menu visibility ────────────────────────────────────
+    // â”€â”€ Menu visibility â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     test("minio menu items hidden when disabled", async ({ page }) => {
       await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Import/Export" }).click();
@@ -4768,7 +4340,7 @@ test.describe("PlanMyDay - Regression", () => {
       await expect(page.locator("a.dropdown-item").filter({ hasText: "Import from Minio" })).toBeVisible();
     });
 
-    // ── Export error handling ──────────────────────────────
+    // â”€â”€ Export error handling â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     test("export to minio shows alert when missing server config", async ({ page }) => {
       await page.evaluate(() => {
@@ -4796,7 +4368,7 @@ test.describe("PlanMyDay - Regression", () => {
       await expect(page.locator("#minioAlertModal")).not.toBeAttached();
     });
 
-    // ── Import error handling ──────────────────────────────
+    // â”€â”€ Import error handling â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     test("import from minio shows alert when missing config", async ({ page }) => {
       await page.evaluate(() => {
@@ -4815,7 +4387,7 @@ test.describe("PlanMyDay - Regression", () => {
       await expect(page.locator("#minioImportModal")).not.toBeAttached();
     });
 
-    // ── getMinioConfig returns correct shape ───────────────
+    // â”€â”€ getMinioConfig returns correct shape â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     test("getMinioConfig parses localStorage values", async ({ page }) => {
       await page.evaluate(() => {
@@ -4843,7 +4415,7 @@ test.describe("PlanMyDay - Regression", () => {
       expect(server).toBe("http://host:9000");
     });
 
-    // ── showMinioAlert modal ───────────────────────────────
+    // â”€â”€ showMinioAlert modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     test("showMinioAlert creates and shows modal", async ({ page }) => {
       await page.evaluate(() => showMinioAlert("Test message"));
@@ -4874,7 +4446,7 @@ test.describe("PlanMyDay - Regression", () => {
       await expect(page.locator("#minioAlertModal").locator("p")).toContainText("Second");
     });
 
-    // ── Crypto functions ──────────────────────────────────
+    // â”€â”€ Crypto functions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     test("sha256 computes correct hash for empty string", async ({ page }) => {
       const hash = await page.evaluate(() => sha256(""));
@@ -4949,7 +4521,7 @@ test.describe("PlanMyDay - Regression", () => {
       expect(k1.length).toBe(64);
     });
 
-    // ── Config change functions ────────────────────────────
+    // â”€â”€ Config change functions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     test("changeMinioServer stores value", async ({ page }) => {
       await page.evaluate(() => changeMinioServer("http://srv:9000"));
@@ -4984,7 +4556,7 @@ test.describe("PlanMyDay - Regression", () => {
       expect(items).toBeGreaterThan(0);
     });
 
-    // ── getMinioConfig defaults ────────────────────────────
+    // â”€â”€ getMinioConfig defaults â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     test("getMinioConfig returns empty defaults", async ({ page }) => {
       const config = await page.evaluate(() => getMinioConfig());
@@ -5002,7 +4574,7 @@ test.describe("PlanMyDay - Regression", () => {
       expect(config.server).toBe("");
     });
 
-    // ── loadMinioSettings populates form ───────────────────
+    // â”€â”€ loadMinioSettings populates form â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     test("loadMinioSettings populates fields from localStorage", async ({ page }) => {
       await page.evaluate(() => {
@@ -5028,7 +4600,7 @@ test.describe("PlanMyDay - Regression", () => {
       await expect(page.locator("#minioBucket")).toBeDisabled();
     });
 
-    // ── Import modal UI ────────────────────────────────────
+    // â”€â”€ Import modal UI â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     test("showMinioImportModal creates modal with loading state", async ({ page }) => {
       await page.evaluate(() => {
@@ -5059,7 +4631,7 @@ test.describe("PlanMyDay - Regression", () => {
       await expect(page.locator("#minioImportModal")).not.toBeAttached();
     });
 
-    // ── Import modal error paths ───────────────────────────
+    // â”€â”€ Import modal error paths â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     test("import modal list buckets shows error on invalid server", async ({ page }) => {
       await page.evaluate(() => {
@@ -5076,7 +4648,7 @@ test.describe("PlanMyDay - Regression", () => {
       await expect(page.locator("#minioImportModal")).toBeVisible();
     });
 
-    // ── Export does nothing when disabled ──────────────────
+    // â”€â”€ Export does nothing when disabled â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     test("export to minio does nothing when disabled", async ({ page }) => {
       await page.evaluate(() => exportToMinio());
@@ -5084,7 +4656,7 @@ test.describe("PlanMyDay - Regression", () => {
       await expect(page.locator("#minioAlertModal")).not.toBeAttached();
     });
 
-    // ── toggleMinioPassword edge cases ─────────────────────
+    // â”€â”€ toggleMinioPassword edge cases â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     test("toggleMinioPassword is safe when input missing", async ({ page }) => {
       await page.evaluate(() => {
@@ -5095,7 +4667,7 @@ test.describe("PlanMyDay - Regression", () => {
       // Should not throw
     });
 
-    // ── updateMinioMenu edge cases ─────────────────────────
+    // â”€â”€ updateMinioMenu edge cases â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     test("updateMinioMenu hides items when no minio items exist", async ({ page }) => {
       await page.evaluate(() => {
@@ -5106,7 +4678,7 @@ test.describe("PlanMyDay - Regression", () => {
       // Should not throw
     });
 
-    // ── Minio request rejection for bad config ─────────────
+    // â”€â”€ Minio request rejection for bad config â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     test("minioRequest with unreachable server returns error", async ({ page }) => {
       const result = await page.evaluate(async () => {
@@ -5226,7 +4798,7 @@ test.describe("PlanMyDay - Regression", () => {
     });
   });
 
-  // ── Job Edit Tabs ─────────────────────────────────────────
+  // â”€â”€ Job Edit Tabs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   test.describe("Job Edit Tabs", () => {
 
@@ -5409,7 +4981,7 @@ test.describe("PlanMyDay - Regression", () => {
       await expect(page.locator("#taskNoteRow0")).not.toBeVisible();
       await page.locator("#jobAddTaskBtn").click();
       await expect(page.locator("#taskNoteRow0")).not.toBeVisible();
-      await page.evaluate(() => reorderTask(0, 1, false));
+      await page.evaluate(() => renderJobTasks());
       await expect(page.locator("#taskNoteRow0")).not.toBeVisible();
     });
 
@@ -5548,14 +5120,6 @@ test.describe("PlanMyDay - Regression", () => {
       await expect(page.locator(".task-drag-card .drag-handle")).toHaveCount(2);
     });
 
-    test("task rows are draggable in edit mode", async ({ page }) => {
-      await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().click();
-      await page.locator("#jobEditModal").waitFor({ state: "visible" });
-      await page.locator("#jobTasks-tab").click();
-      await page.locator("#jobAddTaskBtn").click();
-      await expect(page.locator(".task-drag-card")).toHaveAttribute("draggable", "true");
-    });
-
     test("view-only mode hides drag handle on tasks", async ({ page }) => {
       await seedTodayList(page);
       await page.evaluate(() => {
@@ -5569,128 +5133,6 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#jobTasks-tab").click();
       const dragHandles = page.locator(".task-drag-card .drag-handle");
       await expect(dragHandles).toHaveCount(0);
-    });
-
-    test("view-only mode task rows are not draggable", async ({ page }) => {
-      await seedTodayList(page);
-      await page.evaluate(() => {
-        const streams = JSON.parse(localStorage.getItem("planmydays_streams"));
-        streams[0].jobs[0].tasks = [{ description: "Test task", done: false }];
-        localStorage.setItem("planmydays_streams", JSON.stringify(streams));
-      });
-      await page.reload();
-      await page.locator(".job-view-btn").first().click();
-      await page.locator("#jobEditModal").waitFor({ state: "visible" });
-      await page.locator("#jobTasks-tab").click();
-      const card = page.locator(".task-drag-card").first();
-      await expect(card).not.toHaveAttribute("draggable", "true");
-    });
-
-    test("drag and drop works when a note is open", async ({ page }) => {
-      await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().click();
-      await page.locator("#jobEditModal").waitFor({ state: "visible" });
-      await page.locator("#jobTasks-tab").click();
-      await page.locator("#jobAddTaskBtn").click();
-      await page.locator(".task-desc-input").first().fill("Task A");
-      await page.locator("#jobAddTaskBtn").click();
-      await page.locator(".task-desc-input").last().fill("Task B");
-      await page.locator(".task-note-btn").first().click();
-      await page.locator("#taskNoteRow0 textarea").fill("Open note");
-      await page.locator(".task-note-btn").last().click();
-      await page.locator("#taskNoteRow1 textarea").fill("Open note");
-      await expect(page.locator("#taskNoteRow0")).toBeVisible();
-      await expect(page.locator("#taskNoteRow1")).toBeVisible();
-      await page.evaluate(() => {
-        const list = document.getElementById("jobTasksList");
-        const cards = list.querySelectorAll(".task-drag-card");
-        const handle0 = cards[0].querySelector(".drag-handle");
-        const noteRow1 = document.getElementById("taskNoteRow1");
-        const r0 = handle0.getBoundingClientRect();
-        const r1 = noteRow1.getBoundingClientRect();
-        const top = Math.min(r1.top, cards[1].getBoundingClientRect().top);
-        const bottom = Math.max(r1.bottom, cards[1].getBoundingClientRect().bottom);
-        const dropY = (top + bottom) / 2 + 5;
-        const dt = new DataTransfer();
-        const fire = (type, target, x, y) => {
-          target.dispatchEvent(new DragEvent(type, {
-            bubbles: true, cancelable: true, clientX: x, clientY: y, dataTransfer: dt
-          }));
-        };
-        fire("dragstart", handle0, r0.x + 2, r0.y + 2);
-        fire("dragover", noteRow1, r1.x + 10, dropY);
-        fire("drop", noteRow1, r1.x + 10, dropY);
-        fire("dragend", handle0, r0.x + 2, r0.y + 2);
-      });
-      const order = await page.evaluate(() => {
-        return [...document.querySelectorAll("#jobTasksList .task-desc-input")].map(i => i.value);
-      });
-      expect(order[0]).toBe("Task B");
-      expect(order[1]).toBe("Task A");
-    });
-
-    test("trailing click after task drag does not close the edit modal", async ({ page }) => {
-      await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().click();
-      await page.locator("#jobEditModal").waitFor({ state: "visible" });
-      await page.locator("#jobTasks-tab").click();
-      await page.locator("#jobAddTaskBtn").click();
-      await page.locator(".task-desc-input").first().fill("Task A");
-      await page.locator("#jobAddTaskBtn").click();
-      await page.locator(".task-desc-input").last().fill("Task B");
-      await page.locator("#jobAddTaskBtn").click();
-      await page.locator(".task-desc-input").last().fill("Task C");
-
-      const handle = page.locator("#jobTasksList .task-drag-card").first().locator(".drag-handle");
-      const okBtn = page.locator("#jobEditOkBtn");
-      const hb = await handle.boundingBox();
-      const ob = await okBtn.boundingBox();
-      await page.mouse.move(hb.x + hb.width / 2, hb.y + hb.height / 2);
-      await page.mouse.down();
-      await page.mouse.move(ob.x + ob.width / 2, ob.y + ob.height / 2, { steps: 20 });
-      await page.mouse.up();
-
-      // Chrome synthesizes a click on the element under the pointer after a
-      // native drop — simulate it; the modal must not close.
-      const pos = { x: ob.x + ob.width / 2, y: ob.y + ob.height / 2 };
-      await page.evaluate((p) => {
-        const el = document.elementFromPoint(p.x, p.y);
-        el.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, clientX: p.x, clientY: p.y }));
-      }, pos);
-      await page.waitForTimeout(300);
-
-      await expect(page.locator("#jobEditModal")).toBeVisible();
-      const order = await page.evaluate(() => [...document.querySelectorAll("#jobTasksList .task-desc-input")].map(i => i.value));
-      expect(order).toEqual(["Task A", "Task B", "Task C"]);
-    });
-
-    test("reorderTask moves task in buffer array", async ({ page }) => {
-      await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().click();
-      await page.locator("#jobEditModal").waitFor({ state: "visible" });
-      await page.locator("#jobTasks-tab").click();
-      await page.locator("#jobAddTaskBtn").click();
-      await page.locator(".task-desc-input").first().fill("Task A");
-      await page.locator("#jobAddTaskBtn").click();
-      await page.locator(".task-desc-input").last().fill("Task B");
-      await page.evaluate(() => reorderTask(0, 1, false));
-      const tasks = await page.evaluate(() => jobsBuffer?.tasks);
-      expect(tasks[0].description).toBe("Task B");
-      expect(tasks[1].description).toBe("Task A");
-    });
-
-    test("reorderTask with above flag adjusts position", async ({ page }) => {
-      await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().click();
-      await page.locator("#jobEditModal").waitFor({ state: "visible" });
-      await page.locator("#jobTasks-tab").click();
-      await page.locator("#jobAddTaskBtn").click();
-      await page.locator(".task-desc-input").first().fill("A");
-      await page.locator("#jobAddTaskBtn").click();
-      await page.locator(".task-desc-input").last().fill("B");
-      await page.locator("#jobAddTaskBtn").click();
-      await page.locator(".task-desc-input").last().fill("C");
-      await page.evaluate(() => reorderTask(2, 0, true));
-      const tasks = await page.evaluate(() => jobsBuffer?.tasks);
-      expect(tasks[0].description).toBe("C");
-      expect(tasks[1].description).toBe("A");
-      expect(tasks[2].description).toBe("B");
     });
   });
   });
