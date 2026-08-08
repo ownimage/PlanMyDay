@@ -1544,6 +1544,21 @@ function doneJobEdit() {
     saveTodayOrder(remaining);
     renderMain();
   } else {
+    var editorStreams = loadStreams();
+    var savedJob = null;
+    editorStreams.forEach(function(t) {
+      if (!savedJob) {
+        var found = (t.jobs || []).find(function(j) { return j.id === savedId; });
+        if (found) savedJob = found;
+      }
+    });
+    if (savedId && savedJob && savedJob.active !== false && shouldShowJobToday(savedJob)) {
+      var editorOrder = loadTodayOrder() || [];
+      if (editorOrder.indexOf(savedId) === -1) {
+        editorOrder.push(savedId);
+        saveTodayOrder(editorOrder);
+      }
+    }
     renderStreamsEditor();
   }
 }
@@ -1568,13 +1583,29 @@ function confirmDeleteJob(index) {
   document.getElementById("deleteConfirmBtn").onclick = function() {
     var s = loadStreams();
     var jbs = s[jobsStreamIndex].jobs || [];
+    var deletedId = (jbs[index] || {}).id;
     jbs.splice(index, 1);
     jbs.forEach(function(j, i) { j.sequence = i + 1; });
     s[jobsStreamIndex].jobs = jbs;
     saveStreams(s);
+    if (deletedId) {
+      var order = loadTodayOrder();
+      if (order) {
+        order = order.filter(function(id) { return id !== deletedId; });
+        saveTodayOrder(order);
+      }
+      var completed = loadCompletedJobs();
+      if (completed.indexOf(deletedId) !== -1) {
+        saveCompletedJobs(completed.filter(function(id) { return id !== deletedId; }));
+      }
+    }
     safeHideModal("deleteConfirmModal");
     jobsEditingIdx = -1; jobsBuffer = null; isNewJob = false;
-    renderStreamsEditor();
+    if (document.getElementById("streamsEditor").classList.contains("d-none")) {
+      renderMain();
+    } else {
+      renderStreamsEditor();
+    }
   };
   new bootstrap.Modal(modalEl).show();
 }

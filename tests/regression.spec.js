@@ -1534,6 +1534,82 @@ test.describe("PlanMyDay - Regression", () => {
     });
   });
 
+  // ── Main List Sync ────────────────────────────────────────
+
+  test.describe("Main List Sync", () => {
+
+    test("deleting a job from the main view refreshes the list", async ({ page }) => {
+      await seedTodayList(page);
+      await page.reload();
+      const reportCard = page.locator("#todayCardList .today-drag-card").first();
+      await expect(reportCard).toHaveAttribute("data-job-id", "job_1");
+      await reportCard.locator(".job-view-btn").click();
+      await page.locator("#jobEditModal").waitFor({ state: "visible" });
+      await expect(page.locator("#jobEditModalTitle")).toContainText("View Job");
+      await page.locator("#btnViewJobEdit").click();
+      await page.locator("#jobEditDelBtn").click();
+      await page.locator("#deleteConfirmModal").waitFor({ state: "visible" });
+      await page.locator("#deleteConfirmBtn").click();
+      await page.locator("#deleteConfirmModal").waitFor({ state: "hidden", timeout: 10000 });
+      await expect(page.locator("#todayCardList .today-drag-card")).toHaveCount(1);
+      await expect(page.locator("#todayCardList .today-drag-card").first()).toHaveAttribute("data-job-id", "job_3");
+      const order = await page.evaluate(() => JSON.parse(localStorage.getItem("planmydays_today_order")));
+      expect(order).toEqual(["job_3"]);
+    });
+
+    test("adding an eligible job in the streams editor joins today's list", async ({ page }) => {
+      await seedTodayList(page);
+      await page.reload();
+      await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
+      await page.locator("a.dropdown-item").filter({ hasText: "Jobs" }).click();
+      await page.locator("#streamEditorList .stream-header-main").first().click();
+      await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible", timeout: 5000 });
+      await page.getByRole("button", { name: "Add Job" }).first().click();
+      await page.locator("#jobEditModal").waitFor({ state: "visible" });
+      await page.locator("#jobEditModalBody .form-control").first().fill("NewDailyJob");
+      await page.locator("#jobEditOkBtn").click();
+      await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible", timeout: 5000 });
+      const newId = await page.evaluate(() => {
+        const streams = JSON.parse(localStorage.getItem("planmydays_streams"));
+        const jobs = streams[0].jobs;
+        return jobs[jobs.length - 1].id;
+      });
+      await expect.poll(() =>
+        page.evaluate(() => JSON.parse(localStorage.getItem("planmydays_today_order")))
+      ).toContain(newId);
+      await page.getByRole("button", { name: "Done" }).click();
+      await expect(page.locator("#countdownContainer")).toBeVisible();
+      await expect(page.getByText("NewDailyJob").first()).toBeVisible();
+    });
+
+    test("a job that does not match today's schedule is not added to today's list", async ({ page }) => {
+      await seedTodayList(page);
+      await page.reload();
+      await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
+      await page.locator("a.dropdown-item").filter({ hasText: "Jobs" }).click();
+      await page.locator("#streamEditorList .stream-header-main").first().click();
+      await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible", timeout: 5000 });
+      await page.getByRole("button", { name: "Add Job" }).first().click();
+      await page.locator("#jobEditModal").waitFor({ state: "visible" });
+      await page.locator("#jobEditModalBody .form-control").first().fill("SleepingJob");
+      await page.locator("#jobSchedule-tab").click();
+      const futureDate = futureDateStr(2);
+      await page.evaluate((ds) => {
+        document.getElementById("jobSleepUntil")._flatpickr.setDate(ds, true);
+      }, futureDate);
+      await page.locator("#jobEditOkBtn").click();
+      await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible", timeout: 5000 });
+      const order = await page.evaluate(() => JSON.parse(localStorage.getItem("planmydays_today_order")));
+      expect(order).toEqual(["job_1", "job_3"]);
+      const saved = await page.evaluate(() => {
+        const streams = JSON.parse(localStorage.getItem("planmydays_streams"));
+        const jobs = streams[0].jobs;
+        return jobs[jobs.length - 1].sleepUntil;
+      });
+      expect(saved).toBe(futureDate);
+    });
+  });
+
   // ── Suffix Start Setting ──────────────────────────────────
 
   test.describe("Suffix Start Setting", () => {
