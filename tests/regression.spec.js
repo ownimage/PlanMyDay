@@ -552,7 +552,31 @@ test.describe("PlanMyDay - Regression", () => {
     test("add stream creates a new stream", async ({ page }) => {
       await page.getByRole("button", { name: "Add Stream" }).click();
       await expect(page.locator("#streamEditModal")).toBeVisible();
-      await expect(page.locator("#streamEditModalBody input[value=\"New Stream\"]")).toBeVisible();
+      await expect(page.locator("#streamTitleInput")).toHaveValue("");
+      await page.locator("#streamTitleInput").fill("New Stream");
+      await page.locator("#btnStreamEditOk").click();
+      await page.locator("#streamEditModal").waitFor({ state: "hidden", timeout: 15000 });
+      await expect(page.locator("#streamEditorList .editor-title").filter({ hasText: "New Stream" })).toBeVisible();
+    });
+
+    test("add stream OK button is disabled until title has text", async ({ page }) => {
+      await page.getByRole("button", { name: "Add Stream" }).click();
+      await expect(page.locator("#streamEditModal")).toBeVisible();
+      await expect(page.locator("#btnStreamEditOk")).toBeDisabled();
+      await page.locator("#streamTitleInput").fill("My Stream");
+      await expect(page.locator("#btnStreamEditOk")).toBeEnabled();
+      await page.locator("#streamTitleInput").fill("   ");
+      await expect(page.locator("#btnStreamEditOk")).toBeDisabled();
+      await page.locator("#streamTitleInput").fill("My Stream");
+      await expect(page.locator("#btnStreamEditOk")).toBeEnabled();
+    });
+
+    test("edit stream OK button is enabled when title exists", async ({ page }) => {
+      await page.locator("#streamEditorList .stream-header-main").first().click();
+      await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible", timeout: 5000 });
+      await page.locator("#streamEditorList .btn-primary").filter({ hasText: "Edit" }).first().click();
+      await page.locator("#streamEditModal").waitFor({ state: "visible" });
+      await expect(page.locator("#btnStreamEditOk")).toBeEnabled();
     });
 
     test("can edit a stream", async ({ page }) => {

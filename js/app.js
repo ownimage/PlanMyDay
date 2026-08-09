@@ -399,14 +399,21 @@ function showStreamEditModal() {
   const data = editBuffer || t;
   document.getElementById("streamEditModalTitle").textContent = isNew ? "Add Stream" : "Edit Stream";
   document.getElementById("streamEditModalBody").innerHTML = getStreamEditFormHTML(data);
+  updateStreamEditOkBtn();
   new bootstrap.Modal(document.getElementById("streamEditModal")).show();
+}
+
+function updateStreamEditOkBtn() {
+  const okBtn = document.getElementById("btnStreamEditOk");
+  const title = document.getElementById("streamTitleInput");
+  if (okBtn) okBtn.disabled = !title || !title.value.trim();
 }
 
 function getStreamEditFormHTML(data) {
   return `
     <div class="mb-2">
       <label class="form-label">Title</label>
-      <input class="form-control" value="${escapeHtml(data.title || "")}" oninput="editField('title', this.value)">
+      <input class="form-control" id="streamTitleInput" value="${escapeHtml(data.title || "")}" oninput="editField('title', this.value);updateStreamEditOkBtn()">
     </div>
     <div class="mb-2">
       <label class="form-label">Tab</label>
@@ -863,7 +870,7 @@ function confirmDeleteStream(index) {
 function addNewStream() {
   var streams = loadStreams();
   var seq = streams.length + 1;
-  var newStream = { title: "New Stream", sequence: seq, description: "", jobs: [], tab: "progress" };
+  var newStream = { title: "", sequence: seq, description: "", jobs: [], tab: "progress" };
   streams.push(newStream);
   saveStreams(streams);
   editBuffer = JSON.parse(JSON.stringify(newStream));

@@ -1,4 +1,4 @@
-const { test } = require("@playwright/test");
+const { test, expect } = require("@playwright/test");
 const path = require("path");
 const fs = require("fs");
 
@@ -162,19 +162,35 @@ async function setTheme(page, themeName) {
   const config = THEME_CONFIG[themeName] || THEME_CONFIG.darkly;
   await page.evaluate(({ css, bsTheme, name }) => {
     const link = document.getElementById("bootstrap-theme-css");
-    if (link) link.href = css;
     document.documentElement.setAttribute("data-bs-theme", bsTheme);
     document.documentElement.setAttribute("data-theme", name);
+    if (!link) return;
+    window.__themeReady = false;
+    const finish = () => { window.__themeReady = true; };
+    link.addEventListener("load", finish, { once: true });
+    link.addEventListener("error", finish, { once: true });
+    link.href = css;
   }, { css: config.css, bsTheme: config.bsTheme, name: themeName });
+  try {
+    await page.waitForFunction(() => window.__themeReady === true, null, { timeout: 6000 });
+  } catch (e) {
+    // CDN slow/unreachable: carry on and capture whatever style is present
+  }
+  await page.waitForTimeout(150);
 }
 
 async function screenshotAllThemes(page, fileName) {
   for (const theme of THEMES) {
     await setTheme(page, theme);
-    await page.waitForTimeout(300);
     const themeDir = path.join(SCREENSHOT_DIR, theme);
     fs.mkdirSync(themeDir, { recursive: true });
-    await page.screenshot({ path: path.join(themeDir, fileName), fullPage: false });
+    const target = path.join(themeDir, fileName);
+    try {
+      await page.screenshot({ path: target, fullPage: false });
+    } catch (e) {
+      await page.waitForTimeout(500);
+      await page.screenshot({ path: target, fullPage: false });
+    }
   }
 }
 
@@ -189,7 +205,7 @@ function seedMainView(page) {
 
 test.describe("PlanMyDay - Screenshots", () => {
 
-  test.describe.configure({ timeout: 40000 });
+  test.describe.configure({ timeout: 180000 });
 
   test.use({
     viewport: { width: 390, height: 797 },
@@ -324,10 +340,11 @@ test.describe("PlanMyDay - Screenshots", () => {
     await page.waitForSelector("#streamEditorList .accordion-item");
     await page.locator("#streamEditorList .stream-header-main").first().click();
     await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible", timeout: 5000 });
-    await page.waitForSelector(".badge.bg-info");
-    await page.locator("#streamEditorList .accordion-collapse.show .badge.bg-primary").filter({ hasText: "Weekdays" }).first().waitFor({ state: "visible" });
+    await page.waitForSelector("#streamEditorList .badge.bg-info", { state: "attached" });
+    await expect(page.locator("#streamEditorList .accordion-collapse.show .badge.bg-primary").filter({ hasText: "Weekdays" })).toHaveCount(1);
     await screenshotAllThemes(page, "edit-streams.png");
     await page.evaluate(() => changeDragSize("large"));
+    await page.waitForFunction(() => document.body.classList.contains("drag-size-large"));
     await screenshotAllThemes(page, "edit-streams-large.png");
   });
 
@@ -471,7 +488,7 @@ test.describe("PlanMyDay - Screenshots", () => {
   test("schedule modal - weekdays", async ({ page }) => {
     await openScheduleModalFromJobEdit(page);
     await page.locator("#schedWeekdays").check();
-    await page.waitForTimeout(300);
+    await expect(page.locator("#schedWeekdays")).toBeChecked();
     await screenshotAllThemes(page, "schedule-weekdays.png");
   });
 
@@ -547,9 +564,10 @@ test.describe("PlanMyDay - Screenshots", () => {
   test("job edit modal - tasks tab", async ({ page }) => {
     await openJobEditWithTasks(page);
     await page.locator("#jobTasks-tab").click();
-    await page.waitForTimeout(300);
+    await page.locator("#jobTasksList .task-drag-card").first().waitFor({ state: "visible" });
     await screenshotAllThemes(page, "job-edit-tasks.png");
     await page.evaluate(() => changeDragSize("large"));
+    await page.waitForFunction(() => document.body.classList.contains("drag-size-large"));
     await screenshotAllThemes(page, "job-edit-tasks-large.png");
   });
 
