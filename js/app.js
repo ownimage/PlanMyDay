@@ -502,7 +502,10 @@ function renderStreamsEditor() {
         '</div>' +
         '<div style="display:flex;gap:0.25rem;flex-wrap:nowrap">' +
           '<span class="badge bg-' + ((t.tab || "progress") === "progress" ? "success" : "info") + ' text-nowrap">' + escapeHtml(t.tab || "progress") + '</span>' +
-          (jobs.length > 0 ? '<span class="badge bg-secondary text-nowrap">' + jobs.length + ' job' + (jobs.length !== 1 ? 's' : '') + '</span>' : '') +
+          (jobs.length > 0 ? '<span class="badge bg-secondary text-nowrap">' +
+            jobs.filter(function(j) { return j.active !== false && shouldShowJobToday(j); }).length + '/' +
+            jobs.filter(function(j) { return j.active !== false; }).length + '/' +
+            jobs.length + ' job' + (jobs.length !== 1 ? 's' : '') + '</span>' : '') +
         '</div>' +
       '</div>' +
       '<button type="button" class="stream-header-chevron collapsed" data-bs-toggle="collapse" data-bs-target="#' + collapseId + '" aria-expanded="false" aria-label="Expand"></button>' +

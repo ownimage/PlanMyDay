@@ -632,6 +632,57 @@ test.describe("PlanMyDay - Regression", () => {
       await expect(page.locator("#streamEditorList .badge.bg-info").filter({ hasText: "maintenance" }).first()).toBeVisible();
     });
 
+    test("job count badge shows today/active/total counts", async ({ page }) => {
+      const futureDate = futureDateStr(30);
+      const badgeStream = {
+        id: "stream_badge", title: "BadgeStream", tab: "progress", image: "", sequence: 1,
+        jobs: [
+          { id: "job_a", title: "A", active: true, schedule: { type: "daily" }, tasks: [] },
+          { id: "job_b", title: "B", active: true, schedule: { type: "daily" }, tasks: [] },
+          { id: "job_sleep", title: "Sleep", active: true, schedule: { type: "daily" }, sleepUntil: futureDate, tasks: [] },
+          { id: "job_off", title: "Off", active: false, schedule: { type: "daily" }, tasks: [] }
+        ]
+      };
+      await page.evaluate((s) => {
+        localStorage.setItem("planmydays_streams", JSON.stringify([s]));
+        renderStreamsEditor();
+      }, badgeStream);
+      await expect(page.locator("#streamEditorList .stream-accordion-item").first().locator(".badge.bg-secondary")).toHaveText("2/3/4 jobs");
+    });
+
+    test("job count badge recalculates when schedule rules change", async ({ page }) => {
+      const todayWeekday = new Date().getDay();
+      const otherWeekday = (todayWeekday + 1) % 7;
+      const badgeStream = {
+        id: "stream_badge", title: "BadgeStream", tab: "progress", image: "", sequence: 1,
+        jobs: [
+          { id: "job_daily", title: "Daily", active: true, schedule: { type: "daily" }, tasks: [] },
+          { id: "job_both", title: "Both", active: true, schedule: { type: "days", days: [todayWeekday, otherWeekday] }, tasks: [] },
+          { id: "job_other", title: "Other", active: true, schedule: { type: "days", days: [otherWeekday] }, tasks: [] }
+        ]
+      };
+      const badge = page.locator("#streamEditorList .stream-accordion-item").first().locator(".badge.bg-secondary");
+      await page.evaluate((s) => {
+        localStorage.setItem("planmydays_streams", JSON.stringify([s]));
+        renderStreamsEditor();
+      }, badgeStream);
+      await expect(badge).toHaveText("2/3/3 jobs");
+      await page.evaluate((d) => {
+        const streams = JSON.parse(localStorage.getItem("planmydays_streams"));
+        streams[0].jobs[2].schedule = { type: "days", days: [d] };
+        localStorage.setItem("planmydays_streams", JSON.stringify(streams));
+        renderStreamsEditor();
+      }, todayWeekday);
+      await expect(badge).toHaveText("3/3/3 jobs");
+      await page.evaluate(() => {
+        const streams = JSON.parse(localStorage.getItem("planmydays_streams"));
+        streams[0].jobs[1].active = false;
+        localStorage.setItem("planmydays_streams", JSON.stringify(streams));
+        renderStreamsEditor();
+      });
+      await expect(badge).toHaveText("2/2/3 jobs");
+    });
+
     test("opens jobs from stream accordion", async ({ page }) => {
       await page.locator("#streamEditorList .stream-header-main").first().click();
       await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible", timeout: 5000 });
