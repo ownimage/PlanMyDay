@@ -302,15 +302,30 @@ test.describe("PlanMyDay - Screenshots", () => {
   });
 
   test("streams editor", async ({ page }) => {
+    const streamsWithSleepWait = JSON.parse(JSON.stringify(TEST_STREAMS));
+    streamsWithSleepWait[0].jobs[0].sleepUntil = futureDateStr(30);
+    streamsWithSleepWait[0].jobs[1].waitFor = "the meeting to start";
+    streamsWithSleepWait[0].jobs.push({
+      id: "job_7", title: "Water Plants", description: "", active: true,
+      frequency: "daily", sequence: 3, suffix: false, dayType: "dayOfYear", mod: "",
+      image: "", tasks: []
+    });
+    streamsWithSleepWait[0].jobs.push({
+      id: "job_8", title: "Pay Bills", description: "", active: true,
+      frequency: "weekdays", sequence: 4, suffix: false, dayType: "dayOfYear", mod: "",
+      image: "", tasks: [], schedule: { type: "weekdays" }
+    });
     await page.evaluate((data) => {
       localStorage.setItem("planmydays_streams", JSON.stringify(data));
-    }, TEST_STREAMS);
+    }, streamsWithSleepWait);
     await page.reload();
     await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
     await page.locator("a.dropdown-item").filter({ hasText: "Jobs" }).click();
     await page.waitForSelector("#streamEditorList .accordion-item");
     await page.locator("#streamEditorList .stream-header-main").first().click();
     await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible", timeout: 5000 });
+    await page.waitForSelector(".badge.bg-info");
+    await page.locator("#streamEditorList .accordion-collapse.show .badge.bg-primary").filter({ hasText: "Weekdays" }).first().waitFor({ state: "visible" });
     await screenshotAllThemes(page, "edit-streams.png");
     await page.evaluate(() => changeDragSize("large"));
     await screenshotAllThemes(page, "edit-streams-large.png");

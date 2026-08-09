@@ -364,7 +364,7 @@ function addTodayCardWithModal() {
   const streamIdx = streams.indexOf(stream);
   jobsStreamIndex = streamIdx;
   const seq = jobs.length + 1;
-  const newJob = { id: "job_" + Date.now(), title: "", sequence: seq, description: "", active: true, frequency: "daily", time: "", sleepUntil: "", schedule: { type: "daily" } };
+  const newJob = { id: "job_" + Date.now(), title: "", sequence: seq, description: "", active: true, frequency: "daily", time: "", sleepUntil: "", waitFor: "", schedule: { type: "daily" } };
   jobs.push(newJob);
   stream.jobs = jobs;
   saveStreams(streams);
@@ -724,7 +724,7 @@ function renderJobsInAccordion(stream, jobs, streamIdx) {
           'Active' +
         '</label>' +
         '<span class="badge bg-primary flex-shrink-0">' + escapeHtml(scheduleText) + '</span>' +
-        (hasSleep ? '<span class="badge bg-info flex-shrink-0">Sleep: ' + escapeHtml(formatDate(j.sleepUntil)) + '</span>' : '') +
+        (hasSleep ? '<span class="badge bg-info flex-shrink-0">Sleep: ' + escapeHtml(formatDate(j.sleepUntil)) + '</span>' : (j.waitFor && j.waitFor.trim() ? '<span class="badge bg-info flex-shrink-0">Wait: ' + escapeHtml(j.waitFor.trim()) + '</span>' : '')) +
         (hasTime ? '<span class="badge bg-secondary flex-shrink-0">' + escapeHtml(j.time) + '</span>' : '') +
       '</div>' +
     '</div>';
@@ -1356,6 +1356,12 @@ function getJobEditFormHTML(data, readOnly) {
         </div>
         <div class="row mb-2">
           <div class="col">
+            <label class="form-label">Wait for</label>
+            <input class="form-control" id="jobWaitFor" value="${escapeHtml(data.waitFor || "")}" ${ro} placeholder="e.g. the delivery to arrive" oninput="jobField('waitFor', this.value)">
+          </div>
+        </div>
+        <div class="row mb-2">
+          <div class="col">
             <label class="form-label">Schedule Time</label>
             <div class="d-flex gap-2">
               <select class="form-select" id="jobTimeHour" ${disabled} onchange="jobTimeChanged()" style="width:auto">
@@ -1617,7 +1623,7 @@ function addNewJob() {
   var streams = loadStreams();
   var jobs = streams[jobsStreamIndex].jobs || [];
   var seq = jobs.length + 1;
-  var newJob = { id: "job_" + Date.now(), title: "", sequence: seq, description: "", active: true, frequency: "daily", time: "", sleepUntil: "", schedule: { type: "daily" }, tasks: [] };
+  var newJob = { id: "job_" + Date.now(), title: "", sequence: seq, description: "", active: true, frequency: "daily", time: "", sleepUntil: "", waitFor: "", schedule: { type: "daily" }, tasks: [] };
   jobs.push(newJob);
   streams[jobsStreamIndex].jobs = jobs;
   saveStreams(streams);

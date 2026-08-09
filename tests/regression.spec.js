@@ -833,6 +833,31 @@ test.describe("PlanMyDay - Regression", () => {
       await expect(page.locator("#streamEditorList .badge.bg-info").filter({ hasText: "Sleep:" })).toContainText(shortDateStr(futureDate));
     });
 
+    test("wait badge shows wait text when job has no sleep until date", async ({ page }) => {
+      await page.evaluate(() => {
+        const streams = JSON.parse(localStorage.getItem("planmydays_streams"));
+        streams[0].jobs[0].waitFor = "the delivery to arrive";
+        streams[0].jobs[1].waitFor = "the meeting to start";
+        localStorage.setItem("planmydays_streams", JSON.stringify(streams));
+        renderStreamsEditor();
+      });
+      await expect(page.locator("#streamEditorList .badge.bg-info").filter({ hasText: "Wait: the delivery to arrive" })).toBeVisible();
+      await expect(page.locator("#streamEditorList .badge.bg-info").filter({ hasText: "Wait: the meeting to start" })).toBeVisible();
+    });
+
+    test("sleep until badge takes precedence over wait badge", async ({ page }) => {
+      const futureDate = futureDateStr(30);
+      await page.evaluate((ds) => {
+        const streams = JSON.parse(localStorage.getItem("planmydays_streams"));
+        streams[0].jobs[0].sleepUntil = ds;
+        streams[0].jobs[0].waitFor = "the delivery to arrive";
+        localStorage.setItem("planmydays_streams", JSON.stringify(streams));
+        renderStreamsEditor();
+      }, futureDate);
+      await expect(page.locator("#streamEditorList .badge.bg-info").filter({ hasText: "Sleep:" })).toContainText(shortDateStr(futureDate));
+      await expect(page.locator("#streamEditorList .badge.bg-info").filter({ hasText: "Wait:" })).toHaveCount(0);
+    });
+
     test("opens add job modal", async ({ page }) => {
       await page.getByRole("button", { name: "Add Job" }).first().click();
       await expect(page.locator("#jobEditModal")).toBeVisible();
@@ -1975,6 +2000,36 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().click();
       await page.locator("#jobSchedule-tab").click();
       await expect(page.locator("#jobSleepUntilDisplay")).toBeVisible();
+    });
+
+    test("wait for input exists in job edit", async ({ page }) => {
+      await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().click();
+      await page.locator("#jobSchedule-tab").click();
+      await expect(page.locator("#jobWaitFor")).toBeVisible();
+    });
+
+    test("wait for text persists to storage when saved", async ({ page }) => {
+      await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().click();
+      await page.locator("#jobEditModal").waitFor({ state: "visible" });
+      await page.locator("#jobSchedule-tab").click();
+      await page.locator("#jobWaitFor").fill("the delivery to arrive");
+      await page.locator("#jobEditOkBtn").click();
+      await page.locator("#jobEditModal").waitFor({ state: "hidden", timeout: 10000 });
+      const stored = await page.evaluate(() => JSON.parse(localStorage.getItem("planmydays_streams"))[0].jobs[0].waitFor);
+      expect(stored).toBe("the delivery to arrive");
+    });
+
+    test("wait for field shows existing value in edit mode", async ({ page }) => {
+      await page.evaluate(() => {
+        const streams = JSON.parse(localStorage.getItem("planmydays_streams"));
+        streams[0].jobs[0].waitFor = "the delivery to arrive";
+        localStorage.setItem("planmydays_streams", JSON.stringify(streams));
+        renderStreamsEditor();
+      });
+      await page.locator("#streamEditorList .job-drag-card").filter({ hasText: "Report" }).getByRole("button", { name: "Edit" }).click();
+      await page.locator("#jobEditModal").waitFor({ state: "visible" });
+      await page.locator("#jobSchedule-tab").click();
+      await expect(page.locator("#jobWaitFor")).toHaveValue("the delivery to arrive");
     });
 
     test("sleep until shows short date format when date is picked", async ({ page }) => {
