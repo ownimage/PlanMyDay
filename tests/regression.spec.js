@@ -1152,9 +1152,11 @@ test.describe("PlanMyDay - Regression", () => {
     test("add image modal has all fields", async ({ page }) => {
       await page.getByRole("button", { name: "Add Image" }).click();
       await expect(page.locator("#imageEditModal label").filter({ hasText: "Name" })).toBeVisible();
-      await expect(page.locator("#imageEditModal label").filter({ hasText: "Line" })).toBeVisible();
-      await expect(page.locator("#imageEditModal label").filter({ hasText: "Fill" })).toBeVisible();
-      await expect(page.locator("#imageEditModal label").filter({ hasText: "Width" })).toBeVisible();
+      await expect(page.locator("#imageEditModalBody .fw-bold").filter({ hasText: "Light theme" })).toBeVisible();
+      await expect(page.locator("#imageEditModalBody .fw-bold").filter({ hasText: "Dark theme" })).toBeVisible();
+      await expect(page.locator("#imageEditModal label").filter({ hasText: "Line" }).first()).toBeVisible();
+      await expect(page.locator("#imageEditModal label").filter({ hasText: "Fill" }).first()).toBeVisible();
+      await expect(page.locator("#imageEditModal label").filter({ hasText: "Width" }).first()).toBeVisible();
     });
 
     test("can name a new image", async ({ page }) => {
@@ -1341,14 +1343,14 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("a.dropdown-item").filter({ hasText: "Images" }).click();
       await page.getByRole("button", { name: "Add Image" }).click();
       const colorInputs = page.locator('#imageEditModal input[type="color"]');
-      await expect(colorInputs).toHaveCount(2);
+      await expect(colorInputs).toHaveCount(4);
     });
 
     test("stroke width input exists with correct range", async ({ page }) => {
       await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
       await page.locator("a.dropdown-item").filter({ hasText: "Images" }).click();
       await page.getByRole("button", { name: "Add Image" }).click();
-      const widthInput = page.locator('#imageEditModal input[type="number"]');
+      const widthInput = page.locator('#imageEditModal input[type="number"]').first();
       await expect(widthInput).toHaveAttribute("min", "0.5");
       await expect(widthInput).toHaveAttribute("max", "10");
     });
@@ -2286,20 +2288,18 @@ test.describe("PlanMyDay - Regression", () => {
       await expect(page.locator("#imageEditModal")).toBeVisible();
     });
 
-    test("changing line color updates data", async ({ page }) => {
+    test("changing line color stores light theme override", async ({ page }) => {
       await page.locator(".card:has-text('EditTest') .btn-primary").first().click();
       await page.locator("#imageEditModal").waitFor({ state: "visible" });
       const colorInput = page.locator('#imageEditModal input[type="color"]').first();
       await colorInput.fill("#ff0000");
-      await page.waitForTimeout(300);
-      const data = await page.evaluate(() => {
-        const images = JSON.parse(localStorage.getItem("planmydays_images"));
-        return images[0].data;
-      });
-      expect(data).toContain("%23ff0000");
+      await expect.poll(async () => {
+        const images = await page.evaluate(() => JSON.parse(localStorage.getItem("planmydays_images")));
+        return images?.[0]?.themes?.light?.line || "";
+      }, { timeout: 5000 }).toBe("#ff0000");
     });
 
-    test("changing fill color updates data", async ({ page }) => {
+    test("changing fill color stores light theme override", async ({ page }) => {
       test.setTimeout(30000);
       await page.locator(".card:has-text('EditTest') .btn-primary").first().click();
       await page.locator("#imageEditModal").waitFor({ state: "visible" });
@@ -2307,8 +2307,8 @@ test.describe("PlanMyDay - Regression", () => {
       await colorInput.fill("#00ff00");
       await expect.poll(async () => {
         const images = await page.evaluate(() => JSON.parse(localStorage.getItem("planmydays_images")));
-        return images?.[0]?.data || "";
-      }, { timeout: 5000 }).toContain("%2300ff00");
+        return images?.[0]?.themes?.light?.fill || "";
+      }, { timeout: 5000 }).toBe("#00ff00");
     });
 
     test("line none checkbox clears stroke", async ({ page }) => {
@@ -2317,8 +2317,8 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator('#imageEditModal input[type="checkbox"]').first().check();
       await expect.poll(async () => {
         const images = await page.evaluate(() => JSON.parse(localStorage.getItem("planmydays_images")));
-        return images?.[0]?.data || "";
-      }).toContain("none");
+        return images?.[0]?.themes?.light?.line || "";
+      }).toBe("none");
     });
 
     test("fill none checkbox clears fill", async ({ page }) => {
@@ -2327,21 +2327,19 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator('#imageEditModal input[type="checkbox"]').nth(1).check();
       await expect.poll(async () => {
         const images = await page.evaluate(() => JSON.parse(localStorage.getItem("planmydays_images")));
-        return images?.[0]?.data || "";
-      }).toContain("none");
+        return images?.[0]?.themes?.light?.fill || "";
+      }).toBe("none");
     });
 
     test("stroke width input changes value", async ({ page }) => {
       await page.locator(".card:has-text('EditTest') .btn-primary").first().click();
       await page.locator("#imageEditModal").waitFor({ state: "visible" });
-      const widthInput = page.locator('#imageEditModal input[type="number"]');
+      const widthInput = page.locator('#imageEditModal input[type="number"]').first();
       await widthInput.fill("5");
-      await page.waitForTimeout(300);
-      const data = await page.evaluate(() => {
-        const images = JSON.parse(localStorage.getItem("planmydays_images"));
-        return images[0].data;
-      });
-      expect(data).toContain("5");
+      await expect.poll(async () => {
+        const images = await page.evaluate(() => JSON.parse(localStorage.getItem("planmydays_images")));
+        return images?.[0]?.themes?.light?.width || "";
+      }, { timeout: 5000 }).toBe("5");
     });
 
     test("duplicate name validation prevents OK", async ({ page }) => {
@@ -2371,6 +2369,61 @@ test.describe("PlanMyDay - Regression", () => {
 
       const newSrc = await previewImg.getAttribute("src");
       expect(decodeURIComponent(newSrc)).toContain('stroke="#ff0000"');
+    });
+
+    test("raster image hides colour editor", async ({ page }) => {
+      const pngB64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
+      await page.locator(".card:has-text('EditTest') .btn-primary").first().click();
+      await page.locator("#imageEditModal").waitFor({ state: "visible" });
+      await page.evaluate(async (b64) => {
+        const bin = atob(b64);
+        const arr = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+        const file = new File([arr], "dot.png", { type: "image/png" });
+        const dt = new DataTransfer();
+        dt.items.add(file);
+        return new Promise(resolve => {
+          const origClick = HTMLInputElement.prototype.click;
+          HTMLInputElement.prototype.click = function() {
+            if (this.type === "file") {
+              Object.defineProperty(this, "files", { value: dt.files, configurable: true });
+              this.dispatchEvent(new Event("change"));
+              HTMLInputElement.prototype.click = origClick;
+              setTimeout(resolve, 400);
+              return;
+            }
+            return origClick.apply(this, arguments);
+          };
+          openImageUpload(editingImageIndex);
+        });
+      }, pngB64);
+      await expect.poll(async () => {
+        return page.evaluate(() => {
+          const images = JSON.parse(localStorage.getItem("planmydays_images") || "[]");
+          return images?.[editingImageIndex]?.data || "";
+        });
+      }, { timeout: 5000 }).toContain("data:image/png");
+      await expect(page.locator('#imageEditModal input[type="color"]')).toHaveCount(0);
+      await expect(page.locator('#imageEditModal input[type="number"]')).toHaveCount(0);
+    });
+
+    test("dark theme override applies and swaps on theme change", async ({ page }) => {
+      test.setTimeout(30000);
+      await page.locator(".card:has-text('EditTest') .btn-primary").first().click();
+      await page.locator("#imageEditModal").waitFor({ state: "visible" });
+      // light theme = theme 0 (first color = light line), dark = theme 1 (3rd color = dark line)
+      const darkLineInput = page.locator('#imageEditModal input[type="color"]').nth(2);
+      await darkLineInput.fill("#112233");
+      await expect.poll(async () => {
+        const images = await page.evaluate(() => JSON.parse(localStorage.getItem("planmydays_images")));
+        return images?.[0]?.themes?.dark?.line || "";
+      }, { timeout: 5000 }).toBe("#112233");
+      // themed data URL for dark contains the override
+      const darkThemed = await page.evaluate(() => getThemedImageDataUrl(loadImages()[0], "dark"));
+      expect(decodeURIComponent(darkThemed)).toContain('stroke="#112233"');
+      // light themed URL falls back to baked stroke
+      const lightThemed = await page.evaluate(() => getThemedImageDataUrl(loadImages()[0], "light"));
+      expect(decodeURIComponent(lightThemed)).toContain('stroke="#000000"');
     });
   });
 
@@ -2629,12 +2682,10 @@ test.describe("PlanMyDay - Regression", () => {
       await lineCheckbox.check();
       await page.waitForTimeout(200);
       await lineCheckbox.uncheck();
-      await page.waitForTimeout(300);
-      const data = await page.evaluate(() => {
-        const images = JSON.parse(localStorage.getItem("planmydays_images"));
-        return images[0].data;
-      });
-      expect(data).toContain("%23ff0000");
+      await expect.poll(async () => {
+        const images = await page.evaluate(() => JSON.parse(localStorage.getItem("planmydays_images")));
+        return images?.[0]?.themes?.light?.line || "";
+      }, { timeout: 5000 }).toBe("#ff0000");
     });
 
     test("uncheck fill none restores fill color", async ({ page }) => {
@@ -2653,12 +2704,10 @@ test.describe("PlanMyDay - Regression", () => {
       await fillCheckbox.check();
       await page.waitForTimeout(200);
       await fillCheckbox.uncheck();
-      await page.waitForTimeout(300);
-      const data = await page.evaluate(() => {
-        const images = JSON.parse(localStorage.getItem("planmydays_images"));
-        return images[0].data;
-      });
-      expect(data).toContain("%2300ff00");
+      await expect.poll(async () => {
+        const images = await page.evaluate(() => JSON.parse(localStorage.getItem("planmydays_images")));
+        return images?.[0]?.themes?.light?.fill || "";
+      }, { timeout: 5000 }).toBe("#00ff00");
     });
   });
 
@@ -4062,9 +4111,9 @@ test.describe("PlanMyDay - Regression", () => {
         renderImagesEditor();
       });
       await page.locator("#imageEditModal").waitFor({ state: "visible" });
-      await page.evaluate(() => editImageStrokeWidth(0, "4"));
-      const data = await page.evaluate(() => loadImages()[0].data);
-      expect(decodeURIComponent(data)).toMatch(/stroke-width=["']4["']/);
+      await page.evaluate(() => editImageStrokeWidth(0, 0, "4"));
+      const themed = await page.evaluate(() => getThemedImageDataUrl(loadImages()[0], "light"));
+      expect(decodeURIComponent(themed)).toMatch(/stroke-width=["']4["']/);
     });
 
     test("editImageField non-name field saves", async ({ page }) => {
@@ -4357,8 +4406,8 @@ test.describe("PlanMyDay - Regression", () => {
         editingImageIndex = -1;
         const out = {};
         out.dupOob = (duplicateImage(-1), duplicateImage(99), true);
-        out.editOob = (editImageField("name", "x"), editImageColor(-1, "stroke", "#000"), editImageFillNone(99, true), editImageStrokeNone(-1, true), editImageStrokeWidth(99, "2"), true);
-        out.strokeNonSvg = (editImageStrokeWidth(1, "3"), loadImages()[1].data);
+        out.editOob = (editImageField("name", "x"), editImageColor(-1, 0, "stroke", "#000"), editImageFillNone(99, 0, true), editImageStrokeNone(-1, 0, true), editImageStrokeWidth(99, 0, "2"), true);
+        out.strokeNonSvg = (editImageStrokeWidth(1, 0, "3"), loadImages()[1].data);
         // single-quote attr path in updateSvgColor
         const sq = "data:image/svg+xml," + encodeURIComponent("<svg stroke='#abc' fill='none'></svg>");
         out.singleQuote = updateSvgColor(sq, "stroke", "#fff");
@@ -4420,19 +4469,19 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#imageEditModal").waitFor({ state: "visible" });
       // uncheck none without _prev* set -> default #000000
       await page.evaluate(() => {
-        editImageStrokeNone(0, false);
-        editImageFillNone(0, false);
+        editImageStrokeNone(0, 0, false);
+        editImageFillNone(0, 0, false);
         // set none again storing prev, then restore
-        editImageStrokeNone(0, true);
-        editImageFillNone(0, true);
-        editImageStrokeNone(0, false);
-        editImageFillNone(0, false);
+        editImageStrokeNone(0, 0, true);
+        editImageFillNone(0, 0, true);
+        editImageStrokeNone(0, 0, false);
+        editImageFillNone(0, 0, false);
         // stroke width empty value fallback
-        editImageStrokeWidth(0, "");
+        editImageStrokeWidth(0, 0, "");
       });
       const img = await page.evaluate(() => loadImages()[0]);
-      expect(img.lineColor).toBeTruthy();
-      expect(img.fillColor).toBeTruthy();
+      expect(img.themes.light.line).toBeTruthy();
+      expect(img.themes.light.fill).toBeTruthy();
     });
 
     test("seedSampleImages skips when images already present", async ({ page }) => {

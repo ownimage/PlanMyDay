@@ -6,6 +6,7 @@ let imageNameSearch = "";
 let imagesPage = 0;
 let imagesTotalPages = 1;
 const IMAGES_PAGE_SIZE = 30;
+const MAX_RASTER_DIM = 1024;
 
 function loadImages() {
   return JSON.parse(localStorage.getItem("planmydays_images") || "[]");
@@ -47,6 +48,105 @@ function updateSvgColor(dataUrl, attr, newColor) {
   return "data:image/svg+xml," + encodeURIComponent(updated);
 }
 
+function isSvgDataUrl(dataUrl) {
+  return !!dataUrl && dataUrl.indexOf("data:image/svg+xml,") === 0;
+}
+
+function isDarkTheme() {
+  return (document.documentElement.getAttribute("data-bs-theme") || "dark") === "dark";
+}
+
+function getThemeKey() {
+  return isDarkTheme() ? "dark" : "light";
+}
+
+function themeKey(themeIdx) {
+  return themeIdx === 0 ? "light" : "dark";
+}
+
+function getThemeOverride(img, themeIdx) {
+  return (img.themes && img.themes[themeKey(themeIdx)]) || {};
+}
+
+function ensureThemeOverride(img, themeIdx) {
+  const key = themeKey(themeIdx);
+  if (!img.themes) img.themes = {};
+  if (!img.themes[key]) img.themes[key] = { line: null, fill: null, width: null };
+  return img.themes[key];
+}
+
+function getThemedImageDataUrl(img, themeKey) {
+  if (!img) return null;
+  if (!isSvgDataUrl(img.data)) return img.data;
+  const key = themeKey || getThemeKey();
+  const t = (img.themes && img.themes[key]) || {};
+  let out = img.data;
+  if (t.line != null && t.line !== "") out = applySvgAttr(out, "stroke", t.line);
+  if (t.fill != null && t.fill !== "") out = applySvgAttr(out, "fill", t.fill);
+  if (t.width != null && t.width !== "") out = applySvgAttr(out, "stroke-width", t.width);
+  return out;
+}
+
+function applySvgAttr(dataUrl, attr, value) {
+  const svgPart = dataUrl.substring("data:image/svg+xml,".length);
+  const decoded = decodeURIComponent(svgPart);
+  const rx = new RegExp(`\\b${attr}\\s*=\\s*["'][^"']*["']`);
+  if (rx.test(decoded)) {
+    return updateSvgColor(dataUrl, attr, value);
+  }
+  const encoded = value && value.startsWith("#") ? value : value || "none";
+  const updated = decoded.replace(/<svg([\s>])/i, `<svg ${attr}="${encoded}"$1`);
+  return "data:image/svg+xml," + encodeURIComponent(updated);
+}
+
+function updateEditPreview(img, themeIdx) {
+  const editedCard = document.querySelector('#imageEditModalBody .card.card-edited');
+  if (editedCard) {
+    const imgEl = editedCard.querySelector('img.date-img');
+    if (imgEl) imgEl.src = getThemedImageDataUrl(img, themeKey(themeIdx));
+  }
+}
+
+function buildThemeSection(themeIdx, label) {
+  const images = loadImages();
+  const img = images[editingImageIndex];
+  if (!img) return "";
+  const base = getImageColors(img.data);
+  const override = getThemeOverride(img, themeIdx);
+  const effLine = override.line != null ? override.line : base.line;
+  const effFill = override.fill != null ? override.fill : base.fill;
+  const lineVal = effLine !== "none" && effLine ? effLine : "#000000";
+  const fillVal = effFill !== "none" && effFill ? effFill : "#ffffff";
+  const widthVal = override.width != null ? override.width : (base.strokeWidth || "2");
+  return `
+        <div class="pt-2 mt-2 border-top">
+          <div class="fw-bold mb-1">${label}</div>
+          <div class="d-flex flex-column gap-2">
+            <div class="d-flex gap-2 align-items-center">
+              <label class="form-label mb-0" style="min-width:45px">Line:</label>
+              <input type="color" value="${lineVal}" oninput="editImageColor(${editingImageIndex}, ${themeIdx}, 'stroke', this.value)">
+              <label class="form-check-label mb-0">
+                <input type="checkbox" ${effLine === 'none' || !effLine ? 'checked' : ''} onchange="editImageStrokeNone(${editingImageIndex}, ${themeIdx}, this.checked)">
+                none
+              </label>
+            </div>
+            <div class="d-flex gap-2 align-items-center">
+              <label class="form-label mb-0" style="min-width:45px">Fill:</label>
+              <input type="color" value="${fillVal}" oninput="editImageColor(${editingImageIndex}, ${themeIdx}, 'fill', this.value)">
+              <label class="form-check-label mb-0">
+                <input type="checkbox" ${effFill === 'none' || !effFill ? 'checked' : ''} onchange="editImageFillNone(${editingImageIndex}, ${themeIdx}, this.checked)">
+                none
+              </label>
+            </div>
+            <div class="d-flex gap-2 align-items-center">
+              <label class="form-label mb-0" style="min-width:45px">Width:</label>
+              <input type="number" min="0.5" max="10" step="0.5" value="${widthVal}" style="width:70px" class="form-control form-control-sm d-inline-block" oninput="editImageStrokeWidth(${editingImageIndex}, ${themeIdx}, this.value)">
+            </div>
+          </div>
+        </div>
+  `;
+}
+
 function renderImagesEditor() {
   const list = document.getElementById("imagesList");
   const topTile = document.getElementById("addImageTileTop");
@@ -68,9 +168,9 @@ function renderImagesEditor() {
 
     const img = images[editingImageIndex];
     const hasData = img.data && img.data.length > 0;
-    const colors = getImageColors(img.data);
-    const lineVal = colors.line !== "none" ? colors.line : (img._prevStroke || "#000000");
-    const fillVal = colors.fill !== "none" ? colors.fill : (img._prevFill || "#ffffff");
+    const colorEditorHtml = (!img.data || isSvgDataUrl(img.data))
+      ? buildThemeSection(0, "Light theme") + buildThemeSection(1, "Dark theme")
+      : "";
 
     document.getElementById("imageEditModalTitle").textContent = isNewImage ? "Add Image" : (isDuplicateImage ? "Duplicate Image" : "Edit Image");
     document.getElementById("imageEditModalBody").innerHTML = `
@@ -83,33 +183,12 @@ function renderImagesEditor() {
         <div class="d-flex gap-2 align-items-center mb-2">
           <div style="width:45px;flex-shrink:0"></div>
           ${hasData
-            ? `<img src="${img.data}" class="date-img">`
+            ? `<img src="${getThemedImageDataUrl(img)}" class="date-img">`
             : `<div class="date-img d-flex align-items-center justify-content-center text-secondary border rounded">No image</div>`
           }
           <button id="btnImageUpload" class="btn btn-primary btn-sm text-nowrap" onclick="openImageUpload(${editingImageIndex})">Upload</button>
         </div>
-        <div class="d-flex flex-column gap-2">
-          <div class="d-flex gap-2 align-items-center">
-            <label class="form-label mb-0" style="min-width:45px">Line:</label>
-            <input type="color" value="${lineVal}" oninput="editImageColor(${editingImageIndex}, 'stroke', this.value)">
-            <label class="form-check-label mb-0">
-              <input type="checkbox" ${colors.line === 'none' || !colors.line ? 'checked' : ''} onchange="editImageStrokeNone(${editingImageIndex}, this.checked)">
-              none
-            </label>
-          </div>
-          <div class="d-flex gap-2 align-items-center">
-            <label class="form-label mb-0" style="min-width:45px">Fill:</label>
-            <input type="color" value="${fillVal}" oninput="editImageColor(${editingImageIndex}, 'fill', this.value)">
-            <label class="form-check-label mb-0">
-              <input type="checkbox" ${colors.fill === 'none' || !colors.fill ? 'checked' : ''} onchange="editImageFillNone(${editingImageIndex}, this.checked)">
-              none
-            </label>
-          </div>
-          <div class="d-flex gap-2 align-items-center">
-            <label class="form-label mb-0" style="min-width:45px">Width:</label>
-            <input type="number" min="0.5" max="10" step="0.5" value="${colors.strokeWidth || '2'}" style="width:70px" class="form-control form-control-sm d-inline-block" oninput="editImageStrokeWidth(${editingImageIndex}, this.value)">
-          </div>
-        </div>
+        ${colorEditorHtml}
         <div class="d-flex gap-2 mt-3">
           <button id="btnImageEditOk" class="btn btn-success editor-btn flex-fill" onclick="doneImageEdit(${editingImageIndex})">OK</button>
           <button id="btnImageEditCancel" class="btn btn-secondary editor-btn flex-fill" onclick="cancelImageEdit()">Cancel</button>
@@ -146,10 +225,11 @@ function renderImagesEditor() {
     const card = document.createElement("div");
     card.className = "card p-3 mb-3";
     const inUse = isImageInUse(img.name);
+    const themedData = getThemedImageDataUrl(img);
     card.innerHTML = `
       <div class="d-flex align-items-center gap-2">
         <div style="width:40px;height:40px;flex-shrink:0">
-          ${img.data ? `<img src="${img.data}" class="date-img" style="max-width:40px;max-height:40px">` : ""}
+          ${themedData ? `<img src="${themedData}" class="date-img" style="max-width:40px;max-height:40px">` : ""}
         </div>
         <span class="fw-bold editor-title flex-grow-1 text-truncate">${escapeHtml(img.name)}</span>
         <div class="image-actions d-flex gap-3 flex-shrink-0">
@@ -267,85 +347,55 @@ function editImageField(field, value) {
   saveImages(images);
 }
 
-function editImageColor(index, attr, value) {
+function editImageColor(index, themeIdx, attr, value) {
   const images = loadImages();
   if (index < 0 || index >= images.length) return;
   const img = images[index];
-  img.data = updateSvgColor(img.data, attr, value);
-  img.lineColor = attr === 'stroke' ? value : img.lineColor;
-  img.fillColor = attr === 'fill' ? value : img.fillColor;
+  const override = ensureThemeOverride(img, themeIdx);
+  if (attr === 'stroke') override.line = value;
+  else if (attr === 'fill') override.fill = value;
   saveImages(images);
-  const editedCard = document.querySelector('#imageEditModalBody .card.card-edited');
-  if (editedCard) {
-    const imgEl = editedCard.querySelector('img.date-img');
-    if (imgEl) imgEl.src = img.data;
-  }
+  updateEditPreview(img, themeIdx);
 }
 
-function editImageFillNone(index, checked) {
+function editImageFillNone(index, themeIdx, checked) {
   const images = loadImages();
   if (index < 0 || index >= images.length) return;
   const img = images[index];
+  const override = ensureThemeOverride(img, themeIdx);
   if (checked) {
-    const colors = getImageColors(img.data);
-    img._prevFill = colors.fill && colors.fill !== "none" ? colors.fill : null;
-    img.data = updateSvgColor(img.data, "fill", "none");
-    img.fillColor = "none";
+    override.fill = "none";
   } else {
-    const restore = img._prevFill || "#000000";
-    img.data = updateSvgColor(img.data, "fill", restore);
-    img.fillColor = restore;
+    const base = getImageColors(img.data);
+    override.fill = base.fill && base.fill !== "none" ? base.fill : "#000000";
   }
   saveImages(images);
-  const editedCard = document.querySelector('#imageEditModalBody .card.card-edited');
-  if (editedCard) {
-    const imgEl = editedCard.querySelector('img.date-img');
-    if (imgEl) imgEl.src = img.data;
-  }
+  updateEditPreview(img, themeIdx);
 }
 
-function editImageStrokeNone(index, checked) {
+function editImageStrokeNone(index, themeIdx, checked) {
   const images = loadImages();
   if (index < 0 || index >= images.length) return;
   const img = images[index];
+  const override = ensureThemeOverride(img, themeIdx);
   if (checked) {
-    const colors = getImageColors(img.data);
-    img._prevStroke = colors.line && colors.line !== "none" ? colors.line : null;
-    img.data = updateSvgColor(img.data, "stroke", "none");
-    img.lineColor = "none";
+    override.line = "none";
   } else {
-    const restore = img._prevStroke || "#000000";
-    img.data = updateSvgColor(img.data, "stroke", restore);
-    img.lineColor = restore;
+    const base = getImageColors(img.data);
+    override.line = base.line && base.line !== "none" ? base.line : "#000000";
   }
   saveImages(images);
-  const editedCard = document.querySelector('#imageEditModalBody .card.card-edited');
-  if (editedCard) {
-    const imgEl = editedCard.querySelector('img.date-img');
-    if (imgEl) imgEl.src = img.data;
-  }
+  updateEditPreview(img, themeIdx);
 }
 
-function editImageStrokeWidth(index, value) {
+function editImageStrokeWidth(index, themeIdx, value) {
   const images = loadImages();
   if (index < 0 || index >= images.length) return;
   const img = images[index];
-  if (!img.data || !img.data.startsWith("data:image/svg+xml,")) return;
-  const svgPart = img.data.substring("data:image/svg+xml,".length);
-  const decoded = decodeURIComponent(svgPart);
-  if (/\bstroke-width\s*=/i.test(decoded)) {
-    img.data = updateSvgColor(img.data, "stroke-width", value || "2");
-  } else {
-    const updated = decoded.replace(/^<svg/i, `<svg stroke-width="${value || "2"}"`);
-    img.data = "data:image/svg+xml," + encodeURIComponent(updated);
-  }
-  img.strokeWidth = value;
+  const override = ensureThemeOverride(img, themeIdx);
+  override.width = value || "2";
   saveImages(images);
-  const editedCard = document.querySelector('#imageEditModalBody .card.card-edited');
-  if (editedCard) {
-    const imgEl = editedCard.querySelector('img.date-img');
-    if (imgEl) imgEl.src = img.data;
-  }
+  updateEditPreview(img, themeIdx);
 }
 
 function normalizeSvgForEditing(svgText) {
@@ -368,7 +418,7 @@ function normalizeSvgForEditing(svgText) {
 function openImageUpload(index) {
   const input = document.createElement("input");
   input.type = "file";
-  input.accept = "image/*";
+  input.accept = ".png,.jpg,.jpeg,.gif,.ico,.svg,.webp";
   input.onchange = e => {
     const file = e.target.files[0];
     if (!file) return;
@@ -376,22 +426,68 @@ function openImageUpload(index) {
     reader.onload = evt => {
       const images = loadImages();
       if (index < 0 || index >= images.length) return;
-      if (file.type === "image/svg+xml" || file.name.toLowerCase().endsWith(".svg")) {
+      const img = images[index];
+      if (isSvgFile(file)) {
         const svgText = normalizeSvgForEditing(evt.target.result);
-        images[index].data = "data:image/svg+xml," + encodeURIComponent(svgText);
+        img.data = "data:image/svg+xml," + encodeURIComponent(svgText);
+        img.themes = { light: { line: null, fill: null, width: null }, dark: { line: null, fill: null, width: null } };
       } else {
-        images[index].data = evt.target.result;
+        processRasterUpload(evt.target.result, file, result => {
+          img.data = result;
+          img.themes = null;
+          saveImages(images);
+          renderImagesEditor();
+        });
+        return;
       }
       saveImages(images);
       renderImagesEditor();
     };
-    if (file.type === "image/svg+xml" || (file.name && file.name.toLowerCase().endsWith(".svg"))) {
+    if (isSvgFile(file)) {
       reader.readAsText(file);
     } else {
       reader.readAsDataURL(file);
     }
   };
   input.click();
+}
+
+function isSvgFile(file) {
+  return file.type === "image/svg+xml" || (file.name && file.name.toLowerCase().endsWith(".svg"));
+}
+
+function processRasterUpload(dataUrl, file, callback) {
+  const isGif = file.type === "image/gif" || (file.name && file.name.toLowerCase().endsWith(".gif"));
+  const isIco = file.type === "image/x-icon" || file.type === "image/vnd.microsoft.icon" || (file.name && file.name.toLowerCase().endsWith(".ico"));
+  if (isGif) {
+    callback(dataUrl);
+    return;
+  }
+  const isJpg = file.type === "image/jpeg" || (file.name && /\.jpe?g$/i.test(file.name));
+  const image = new Image();
+  image.onload = () => {
+    if (!image.naturalWidth && !image.naturalHeight) {
+      callback(dataUrl);
+      return;
+    }
+    const scale = Math.min(1, MAX_RASTER_DIM / Math.max(image.naturalWidth, image.naturalHeight));
+    if (scale >= 1 && !isIco) {
+      callback(dataUrl);
+      return;
+    }
+    const w = Math.max(1, Math.round(image.naturalWidth * scale));
+    const h = Math.max(1, Math.round(image.naturalHeight * scale));
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(image, 0, 0, w, h);
+    const mime = isIco || !isJpg ? "image/png" : "image/jpeg";
+    const out = mime === "image/jpeg" ? canvas.toDataURL("image/jpeg", 0.85) : canvas.toDataURL("image/png");
+    callback(out.length > dataUrl.length ? dataUrl : out);
+  };
+  image.onerror = () => callback(dataUrl);
+  image.src = dataUrl;
 }
 
 function addNewImage() {
@@ -506,7 +602,7 @@ function isImageInUse(name) {
 }
 function getImageDataUrl(name) {
   const img = getImageByName(name);
-  return img ? img.data : null;
+  return img ? getThemedImageDataUrl(img) : null;
 }
 
 let imagePickerCallback = null;
@@ -582,7 +678,7 @@ function renderImagePicker() {
     const item = document.createElement("div");
     item.className = "image-picker-item text-center";
     item.style.cssText = "width:95px;cursor:pointer;border:2px solid transparent;border-radius:8px;padding:6px;transition:border-color 0.15s";
-    item.innerHTML = `<img src="${img.data}" class="date-img" style="width:64px;height:64px;object-fit:contain;display:block;margin:0 auto"><div style="font-size:0.75rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:4px">${escapeHtml(img.name)}</div>`;
+    item.innerHTML = `<img src="${getThemedImageDataUrl(img)}" class="date-img" style="width:64px;height:64px;object-fit:contain;display:block;margin:0 auto"><div style="font-size:0.75rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:4px">${escapeHtml(img.name)}</div>`;
     item.onclick = () => { selectImagePickerItem(img.name); };
     item.onmouseenter = () => { item.style.borderColor = "var(--bs-primary)"; };
     item.onmouseleave = () => { item.style.borderColor = "transparent"; };
