@@ -263,9 +263,9 @@ function renderImagesEditor() {
     const nav = document.createElement("div");
     nav.className = "d-flex justify-content-center align-items-center gap-3 mt-3 mb-2";
     nav.innerHTML = `
-      <button class="btn btn-outline-secondary btn-sm" onclick="imagesPage=Math.max(0,imagesPage-1);renderImagesEditor()" ${imagesPage === 0 ? 'disabled' : ''}>Previous</button>
+      <button class="btn btn-primary btn-sm" onclick="imagesPage=Math.max(0,imagesPage-1);renderImagesEditor()" ${imagesPage === 0 ? 'disabled' : ''}>Previous</button>
       <span class="text-nowrap">Page ${imagesPage + 1} of ${imagesTotalPages}</span>
-      <button class="btn btn-outline-secondary btn-sm" onclick="imagesPage=Math.min(imagesTotalPages-1,imagesPage+1);renderImagesEditor()" ${imagesPage >= imagesTotalPages - 1 ? 'disabled' : ''}>Next</button>
+      <button class="btn btn-primary btn-sm" onclick="imagesPage=Math.min(imagesTotalPages-1,imagesPage+1);renderImagesEditor()" ${imagesPage >= imagesTotalPages - 1 ? 'disabled' : ''}>Next</button>
     `;
     list.appendChild(nav);
   }
