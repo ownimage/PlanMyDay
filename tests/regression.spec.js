@@ -2412,7 +2412,7 @@ test.describe("PlanMyDay - Regression", () => {
       expect(decodeURIComponent(newSrc)).toContain('stroke="#ff0000"');
     });
 
-    test("raster image hides colour editor", async ({ page }) => {
+    test("raster image keeps theme panels but hides colour editor controls", async ({ page }) => {
       const pngB64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
       await page.locator(".card:has-text('EditTest') .btn-primary").first().click();
       await page.locator("#imageEditModal").waitFor({ state: "visible" });
@@ -2444,8 +2444,18 @@ test.describe("PlanMyDay - Regression", () => {
           return images?.[editingImageIndex]?.data || "";
         });
       }, { timeout: 5000 }).toContain("data:image/png");
+      // theme panels still render for raster images
+      await expect(page.locator("#imageEditModalBody [data-bs-theme='light']")).toHaveCount(1);
+      await expect(page.locator("#imageEditModalBody [data-bs-theme='dark']")).toHaveCount(1);
+      await expect(page.locator("#themePreviewLight")).toBeVisible();
+      await expect(page.locator("#themePreviewDark")).toBeVisible();
+      // but line/fill/width controls are hidden
       await expect(page.locator('#imageEditModal input[type="color"]')).toHaveCount(0);
       await expect(page.locator('#imageEditModal input[type="number"]')).toHaveCount(0);
+      await expect(page.locator('#imageEditModal input[type="checkbox"]')).toHaveCount(0);
+      // previews show the uploaded raster image
+      await expect(page.locator("#themePreviewLight")).toHaveAttribute("src", /data:image\/png/);
+      await expect(page.locator("#themePreviewDark")).toHaveAttribute("src", /data:image\/png/);
     });
 
     test("dark theme override applies and swaps on theme change", async ({ page }) => {
@@ -2465,6 +2475,160 @@ test.describe("PlanMyDay - Regression", () => {
       // light themed URL falls back to baked stroke
       const lightThemed = await page.evaluate(() => getThemedImageDataUrl(loadImages()[0], "light"));
       expect(decodeURIComponent(lightThemed)).toContain('stroke="#000000"');
+    });
+
+    test("light and dark theme panels both render for SVG images", async ({ page }) => {
+      await page.locator(".card:has-text('EditTest') .btn-primary").first().click();
+      await page.locator("#imageEditModal").waitFor({ state: "visible" });
+      await expect(page.locator("#imageEditModalBody [data-bs-theme='light']")).toHaveCount(1);
+      await expect(page.locator("#imageEditModalBody [data-bs-theme='dark']")).toHaveCount(1);
+      await expect(page.locator("#imageEditModalBody .fw-bold").filter({ hasText: "Light theme" })).toBeVisible();
+      await expect(page.locator("#imageEditModalBody .fw-bold").filter({ hasText: "Dark theme" })).toBeVisible();
+    });
+
+    test("theme panels use fixed light and dark backgrounds", async ({ page }) => {
+      await page.locator(".card:has-text('EditTest') .btn-primary").first().click();
+      await page.locator("#imageEditModal").waitFor({ state: "visible" });
+      const lightPanel = page.locator("#imageEditModalBody [data-bs-theme='light']").first();
+      const darkPanel = page.locator("#imageEditModalBody [data-bs-theme='dark']").first();
+      await expect(lightPanel).toHaveCSS("background-color", "rgb(248, 249, 250)");
+      await expect(darkPanel).toHaveCSS("background-color", "rgb(33, 37, 41)");
+    });
+
+    test("changing fill color stores dark theme override", async ({ page }) => {
+      await page.locator(".card:has-text('EditTest') .btn-primary").first().click();
+      await page.locator("#imageEditModal").waitFor({ state: "visible" });
+      // color inputs: [0]=light line, [1]=light fill, [2]=dark line, [3]=dark fill
+      const darkFillInput = page.locator('#imageEditModal input[type="color"]').nth(3);
+      await darkFillInput.fill("#00ff00");
+      await expect.poll(async () => {
+        const images = await page.evaluate(() => JSON.parse(localStorage.getItem("planmydays_images")));
+        return images?.[0]?.themes?.dark?.fill || "";
+      }, { timeout: 5000 }).toBe("#00ff00");
+      const darkThemed = await page.evaluate(() => getThemedImageDataUrl(loadImages()[0], "dark"));
+      expect(decodeURIComponent(darkThemed)).toContain('fill="#00ff00"');
+    });
+
+    test("changing width stores dark theme override", async ({ page }) => {
+      await page.locator(".card:has-text('EditTest') .btn-primary").first().click();
+      await page.locator("#imageEditModal").waitFor({ state: "visible" });
+      const darkWidthInput = page.locator('#imageEditModal input[type="number"]').nth(1);
+      await darkWidthInput.fill("7");
+      await expect.poll(async () => {
+        const images = await page.evaluate(() => JSON.parse(localStorage.getItem("planmydays_images")));
+        return images?.[0]?.themes?.dark?.width || "";
+      }, { timeout: 5000 }).toBe("7");
+    });
+
+    test("dark line none checkbox clears dark stroke only", async ({ page }) => {
+      await page.locator(".card:has-text('EditTest') .btn-primary").first().click();
+      await page.locator("#imageEditModal").waitFor({ state: "visible" });
+      // set a dark line override first
+      await page.locator('#imageEditModal input[type="color"]').nth(2).fill("#112233");
+      // checkboxes: [0]=light line, [1]=light fill, [2]=dark line, [3]=dark fill
+      await page.locator('#imageEditModal input[type="checkbox"]').nth(2).check();
+      await expect.poll(async () => {
+        const images = await page.evaluate(() => JSON.parse(localStorage.getItem("planmydays_images")));
+        return images?.[0]?.themes?.dark?.line || "";
+      }).toBe("none");
+      const light = await page.evaluate(() => loadImages()[0].themes?.light?.line || "");
+      expect(light).toBe("");
+    });
+
+    test("dark fill none checkbox clears dark fill", async ({ page }) => {
+      await page.locator(".card:has-text('EditTest') .btn-primary").first().click();
+      await page.locator("#imageEditModal").waitFor({ state: "visible" });
+      await page.locator('#imageEditModal input[type="checkbox"]').nth(3).check();
+      await expect.poll(async () => {
+        const images = await page.evaluate(() => JSON.parse(localStorage.getItem("planmydays_images")));
+        return images?.[0]?.themes?.dark?.fill || "";
+      }).toBe("none");
+    });
+
+    test("editing dark line colour unchecks dark line none", async ({ page }) => {
+      await page.locator(".card:has-text('EditTest') .btn-primary").first().click();
+      await page.locator("#imageEditModal").waitFor({ state: "visible" });
+      await page.locator('#imageEditModal input[type="checkbox"]').nth(2).check();
+      const darkLineInput = page.locator('#imageEditModal input[type="color"]').nth(2);
+      await darkLineInput.fill("#112233");
+      await expect(page.locator('#imageEditModal input[type="checkbox"]').nth(2)).not.toBeChecked();
+      await expect.poll(async () => {
+        const images = await page.evaluate(() => JSON.parse(localStorage.getItem("planmydays_images")));
+        return images?.[0]?.themes?.dark?.line || "";
+      }, { timeout: 5000 }).toBe("#112233");
+    });
+
+    test("editing dark fill colour unchecks dark fill none", async ({ page }) => {
+      await page.locator(".card:has-text('EditTest') .btn-primary").first().click();
+      await page.locator("#imageEditModal").waitFor({ state: "visible" });
+      await page.locator('#imageEditModal input[type="checkbox"]').nth(3).check();
+      const darkFillInput = page.locator('#imageEditModal input[type="color"]').nth(3);
+      await darkFillInput.fill("#00ff00");
+      await expect(page.locator('#imageEditModal input[type="checkbox"]').nth(3)).not.toBeChecked();
+      await expect.poll(async () => {
+        const images = await page.evaluate(() => JSON.parse(localStorage.getItem("planmydays_images")));
+        return images?.[0]?.themes?.dark?.fill || "";
+      }, { timeout: 5000 }).toBe("#00ff00");
+    });
+
+    test("dark colour change updates dark preview image live", async ({ page }) => {
+      test.setTimeout(30000);
+      await page.locator(".card:has-text('EditTest') .btn-primary").first().click();
+      await page.locator("#imageEditModal").waitFor({ state: "visible" });
+      const previewImg = page.locator("#themePreviewDark");
+      await expect(previewImg).toBeVisible();
+      const initialSrc = await previewImg.getAttribute("src");
+
+      const darkLineInput = page.locator('#imageEditModal input[type="color"]').nth(2);
+      await darkLineInput.fill("#112233");
+
+      await expect.poll(async () => {
+        return previewImg.getAttribute("src");
+      }, { timeout: 5000 }).not.toBe(initialSrc);
+
+      const newSrc = await previewImg.getAttribute("src");
+      expect(decodeURIComponent(newSrc)).toContain('stroke="#112233"');
+    });
+
+    test("light and dark overrides stored independently", async ({ page }) => {
+      await page.locator(".card:has-text('EditTest') .btn-primary").first().click();
+      await page.locator("#imageEditModal").waitFor({ state: "visible" });
+      await page.locator('#imageEditModal input[type="color"]').nth(0).fill("#ff0000");
+      await page.locator('#imageEditModal input[type="color"]').nth(2).fill("#0000ff");
+      await expect.poll(async () => {
+        const images = await page.evaluate(() => JSON.parse(localStorage.getItem("planmydays_images")));
+        return images?.[0]?.themes?.light?.line || "";
+      }, { timeout: 5000 }).toBe("#ff0000");
+      await expect.poll(async () => {
+        const images = await page.evaluate(() => JSON.parse(localStorage.getItem("planmydays_images")));
+        return images?.[0]?.themes?.dark?.line || "";
+      }, { timeout: 5000 }).toBe("#0000ff");
+      const lightThemed = await page.evaluate(() => getThemedImageDataUrl(loadImages()[0], "light"));
+      const darkThemed = await page.evaluate(() => getThemedImageDataUrl(loadImages()[0], "dark"));
+      expect(decodeURIComponent(lightThemed)).toContain('stroke="#ff0000"');
+      expect(decodeURIComponent(darkThemed)).toContain('stroke="#0000ff"');
+      expect(decodeURIComponent(lightThemed)).not.toContain('stroke="#0000ff"');
+      expect(decodeURIComponent(darkThemed)).not.toContain('stroke="#ff0000"');
+    });
+
+    test("current app theme selects active override in main view", async ({ page }) => {
+      test.setTimeout(30000);
+      // set distinct light and dark line overrides
+      await page.evaluate(() => {
+        const images = loadImages();
+        images[0].themes = {
+          light: { line: "#ff0000", fill: null, width: null },
+          dark: { line: "#0000ff", fill: null, width: null }
+        };
+        saveImages(images);
+        applyTheme("darkly");
+      });
+      // darkly is a dark theme -> default themed URL should use dark override
+      const darkUrl = await page.evaluate(() => getThemedImageDataUrl(loadImages()[0]));
+      expect(decodeURIComponent(darkUrl)).toContain('stroke="#0000ff"');
+      await page.evaluate(() => applyTheme("flatly"));
+      const lightUrl = await page.evaluate(() => getThemedImageDataUrl(loadImages()[0]));
+      expect(decodeURIComponent(lightUrl)).toContain('stroke="#ff0000"');
     });
   });
 

@@ -124,11 +124,8 @@ function buildThemeSection(themeIdx, label) {
   const panelTheme = isLight ? "light" : "dark";
   const previewId = isLight ? "themePreviewLight" : "themePreviewDark";
   const previewSrc = getThemedImageDataUrl(img, key);
-  return `
-    <div class="p-3 rounded mb-2" data-bs-theme="${panelTheme}" style="${panelStyle}">
-      <div class="fw-bold mb-1">${label}</div>
-      <div class="d-flex gap-3 align-items-start">
-        <div class="d-flex flex-column gap-2 flex-grow-1">
+  const showControls = isSvgDataUrl(img.data);
+  const controlsHtml = showControls ? `
           <div class="d-flex gap-2 align-items-center">
             <label class="form-label mb-0" style="min-width:45px">Line:</label>
             <input type="color" value="${lineVal}" oninput="editImageColor(${editingImageIndex}, ${themeIdx}, 'stroke', this.value, this)">
@@ -148,7 +145,13 @@ function buildThemeSection(themeIdx, label) {
           <div class="d-flex gap-2 align-items-center">
             <label class="form-label mb-0" style="min-width:45px">Width:</label>
             <input type="number" min="0.5" max="10" step="0.5" value="${widthVal}" style="width:70px" class="form-control form-control-sm d-inline-block" oninput="editImageStrokeWidth(${editingImageIndex}, ${themeIdx}, this.value)">
-          </div>
+          </div>` : "";
+  return `
+    <div class="p-3 rounded mb-2" data-bs-theme="${panelTheme}" style="${panelStyle}">
+      <div class="fw-bold mb-1">${label}</div>
+      <div class="d-flex gap-3 align-items-start">
+        <div class="d-flex flex-column gap-2 flex-grow-1">
+          ${controlsHtml}
         </div>
         <div class="flex-shrink-0 d-flex align-items-center justify-content-center" style="width:110px;height:110px">
           <img id="${previewId}" src="${previewSrc}" class="date-img" style="max-width:110px;max-height:110px">
@@ -179,7 +182,7 @@ function renderImagesEditor() {
 
     const img = images[editingImageIndex];
     const hasData = img.data && img.data.length > 0;
-    const colorEditorHtml = isSvgDataUrl(img.data)
+    const colorEditorHtml = hasData
       ? buildThemeSection(0, "Light theme") + buildThemeSection(1, "Dark theme")
       : "";
 
