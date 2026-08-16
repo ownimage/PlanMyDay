@@ -1152,11 +1152,16 @@ test.describe("PlanMyDay - Regression", () => {
     test("add image modal has all fields", async ({ page }) => {
       await page.getByRole("button", { name: "Add Image" }).click();
       await expect(page.locator("#imageEditModal label").filter({ hasText: "Name" })).toBeVisible();
-      await expect(page.locator("#imageEditModalBody .fw-bold").filter({ hasText: "Light theme" })).toBeVisible();
-      await expect(page.locator("#imageEditModalBody .fw-bold").filter({ hasText: "Dark theme" })).toBeVisible();
-      await expect(page.locator("#imageEditModal label").filter({ hasText: "Line" }).first()).toBeVisible();
-      await expect(page.locator("#imageEditModal label").filter({ hasText: "Fill" }).first()).toBeVisible();
-      await expect(page.locator("#imageEditModal label").filter({ hasText: "Width" }).first()).toBeVisible();
+      await expect(page.locator("#btnImageUpload")).toBeVisible();
+      await expect(page.locator("#btnImageEditOk")).toBeVisible();
+      await expect(page.locator("#btnImageEditCancel")).toBeVisible();
+    });
+
+    test("theme panels hidden when adding new image", async ({ page }) => {
+      await page.getByRole("button", { name: "Add Image" }).click();
+      await expect(page.locator("#imageEditModalBody .fw-bold").filter({ hasText: "Light theme" })).toHaveCount(0);
+      await expect(page.locator("#imageEditModalBody .fw-bold").filter({ hasText: "Dark theme" })).toHaveCount(0);
+      await expect(page.locator('#imageEditModal input[type="color"]')).toHaveCount(0);
     });
 
     test("can name a new image", async ({ page }) => {
@@ -1338,18 +1343,28 @@ test.describe("PlanMyDay - Regression", () => {
 
   test.describe("Image Edit Modal", () => {
 
-    test("color pickers for line and fill exist", async ({ page }) => {
+    test.beforeEach(async ({ page }) => {
+      await startCoverage(page);
+      const svg = "data:image/svg+xml," + encodeURIComponent('<svg stroke="#000000" fill="#ffffff" stroke-width="2" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100"/></svg>');
+      await page.goto("/");
+      await page.evaluate((svgData) => {
+        localStorage.clear();
+        localStorage.setItem("planmydays_images", JSON.stringify([{ name: "EditTest", data: svgData }]));
+      }, svg);
+      await page.reload();
       await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
       await page.locator("a.dropdown-item").filter({ hasText: "Images" }).click();
-      await page.getByRole("button", { name: "Add Image" }).click();
+      await page.locator("#imagesEditor").waitFor({ state: "visible" });
+      await page.locator(".card:has-text('EditTest') .btn-primary").first().click();
+      await page.locator("#imageEditModal").waitFor({ state: "visible" });
+    });
+
+    test("color pickers for line and fill exist", async ({ page }) => {
       const colorInputs = page.locator('#imageEditModal input[type="color"]');
       await expect(colorInputs).toHaveCount(4);
     });
 
     test("stroke width input exists with correct range", async ({ page }) => {
-      await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
-      await page.locator("a.dropdown-item").filter({ hasText: "Images" }).click();
-      await page.getByRole("button", { name: "Add Image" }).click();
       const widthInput = page.locator('#imageEditModal input[type="number"]').first();
       await expect(widthInput).toHaveAttribute("min", "0.5");
       await expect(widthInput).toHaveAttribute("max", "10");
@@ -2356,7 +2371,7 @@ test.describe("PlanMyDay - Regression", () => {
       test.setTimeout(30000);
       await page.locator(".card:has-text('EditTest') .btn-primary").first().click();
       await page.locator("#imageEditModal").waitFor({ state: "visible" });
-      const previewImg = page.locator("#imageEditModalBody .card-edited img.date-img");
+      const previewImg = page.locator("#themePreviewLight");
       await expect(previewImg).toBeVisible();
       const initialSrc = await previewImg.getAttribute("src");
 

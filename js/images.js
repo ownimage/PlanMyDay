@@ -100,17 +100,16 @@ function applySvgAttr(dataUrl, attr, value) {
 }
 
 function updateEditPreview(img, themeIdx) {
-  const editedCard = document.querySelector('#imageEditModalBody .card.card-edited');
-  if (editedCard) {
-    const imgEl = editedCard.querySelector('img.date-img');
-    if (imgEl) imgEl.src = getThemedImageDataUrl(img, themeKey(themeIdx));
-  }
+  const key = themeKey(themeIdx);
+  const previewEl = document.getElementById(key === "light" ? "themePreviewLight" : "themePreviewDark");
+  if (previewEl) previewEl.src = getThemedImageDataUrl(img, key);
 }
 
 function buildThemeSection(themeIdx, label) {
   const images = loadImages();
   const img = images[editingImageIndex];
   if (!img) return "";
+  const key = themeKey(themeIdx);
   const base = getImageColors(img.data);
   const override = getThemeOverride(img, themeIdx);
   const effLine = override.line != null ? override.line : base.line;
@@ -118,32 +117,44 @@ function buildThemeSection(themeIdx, label) {
   const lineVal = effLine !== "none" && effLine ? effLine : "#000000";
   const fillVal = effFill !== "none" && effFill ? effFill : "#ffffff";
   const widthVal = override.width != null ? override.width : (base.strokeWidth || "2");
+  const isLight = themeIdx === 0;
+  const panelStyle = isLight
+    ? "background-color:#f8f9fa;border:1px solid #dee2e6;color:#212529"
+    : "background-color:#212529;border:1px solid #495057;color:#f8f9fa";
+  const panelTheme = isLight ? "light" : "dark";
+  const previewId = isLight ? "themePreviewLight" : "themePreviewDark";
+  const previewSrc = getThemedImageDataUrl(img, key);
   return `
-        <div class="pt-2 mt-2 border-top">
-          <div class="fw-bold mb-1">${label}</div>
-          <div class="d-flex flex-column gap-2">
-            <div class="d-flex gap-2 align-items-center">
-              <label class="form-label mb-0" style="min-width:45px">Line:</label>
-              <input type="color" value="${lineVal}" oninput="editImageColor(${editingImageIndex}, ${themeIdx}, 'stroke', this.value)">
-              <label class="form-check-label mb-0">
-                <input type="checkbox" ${effLine === 'none' || !effLine ? 'checked' : ''} onchange="editImageStrokeNone(${editingImageIndex}, ${themeIdx}, this.checked)">
-                none
-              </label>
-            </div>
-            <div class="d-flex gap-2 align-items-center">
-              <label class="form-label mb-0" style="min-width:45px">Fill:</label>
-              <input type="color" value="${fillVal}" oninput="editImageColor(${editingImageIndex}, ${themeIdx}, 'fill', this.value)">
-              <label class="form-check-label mb-0">
-                <input type="checkbox" ${effFill === 'none' || !effFill ? 'checked' : ''} onchange="editImageFillNone(${editingImageIndex}, ${themeIdx}, this.checked)">
-                none
-              </label>
-            </div>
-            <div class="d-flex gap-2 align-items-center">
-              <label class="form-label mb-0" style="min-width:45px">Width:</label>
-              <input type="number" min="0.5" max="10" step="0.5" value="${widthVal}" style="width:70px" class="form-control form-control-sm d-inline-block" oninput="editImageStrokeWidth(${editingImageIndex}, ${themeIdx}, this.value)">
-            </div>
+    <div class="p-3 rounded mb-2" data-bs-theme="${panelTheme}" style="${panelStyle}">
+      <div class="fw-bold mb-1">${label}</div>
+      <div class="d-flex gap-3 align-items-start">
+        <div class="d-flex flex-column gap-2 flex-grow-1">
+          <div class="d-flex gap-2 align-items-center">
+            <label class="form-label mb-0" style="min-width:45px">Line:</label>
+            <input type="color" value="${lineVal}" oninput="editImageColor(${editingImageIndex}, ${themeIdx}, 'stroke', this.value)">
+            <label class="form-check-label mb-0">
+              <input type="checkbox" ${effLine === 'none' || !effLine ? 'checked' : ''} onchange="editImageStrokeNone(${editingImageIndex}, ${themeIdx}, this.checked)">
+              none
+            </label>
+          </div>
+          <div class="d-flex gap-2 align-items-center">
+            <label class="form-label mb-0" style="min-width:45px">Fill:</label>
+            <input type="color" value="${fillVal}" oninput="editImageColor(${editingImageIndex}, ${themeIdx}, 'fill', this.value)">
+            <label class="form-check-label mb-0">
+              <input type="checkbox" ${effFill === 'none' || !effFill ? 'checked' : ''} onchange="editImageFillNone(${editingImageIndex}, ${themeIdx}, this.checked)">
+              none
+            </label>
+          </div>
+          <div class="d-flex gap-2 align-items-center">
+            <label class="form-label mb-0" style="min-width:45px">Width:</label>
+            <input type="number" min="0.5" max="10" step="0.5" value="${widthVal}" style="width:70px" class="form-control form-control-sm d-inline-block" oninput="editImageStrokeWidth(${editingImageIndex}, ${themeIdx}, this.value)">
           </div>
         </div>
+        <div class="flex-shrink-0 d-flex align-items-center justify-content-center" style="width:110px;height:110px">
+          <img id="${previewId}" src="${previewSrc}" class="date-img" style="max-width:110px;max-height:110px">
+        </div>
+      </div>
+    </div>
   `;
 }
 
@@ -168,13 +179,13 @@ function renderImagesEditor() {
 
     const img = images[editingImageIndex];
     const hasData = img.data && img.data.length > 0;
-    const colorEditorHtml = (!img.data || isSvgDataUrl(img.data))
+    const colorEditorHtml = isSvgDataUrl(img.data)
       ? buildThemeSection(0, "Light theme") + buildThemeSection(1, "Dark theme")
       : "";
 
     document.getElementById("imageEditModalTitle").textContent = isNewImage ? "Add Image" : (isDuplicateImage ? "Duplicate Image" : "Edit Image");
     document.getElementById("imageEditModalBody").innerHTML = `
-      <div class="card p-3 card-edited">
+      <div class="card p-3">
         <div class="mb-2">
           <label class="form-label mb-1">Name</label>
           <input class="form-control" value="${escapeHtml(img.name)}" onchange="editImageField('name', this.value); checkDuplicateName()" oninput="checkDuplicateName()">
@@ -507,7 +518,7 @@ function addNewImage() {
 
 function checkDuplicateName() {
   const images = loadImages();
-  const input = document.querySelector('#imageEditModalBody .card-edited input.form-control');
+  const input = document.querySelector('#imageEditModalBody .card input.form-control');
   if (!input) return;
   const trimmed = input.value.trim();
   const hasDuplicate = images.some((img, i) => i !== editingImageIndex && img.name === trimmed);
