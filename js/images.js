@@ -131,7 +131,7 @@ function buildThemeSection(themeIdx, label) {
         <div class="d-flex flex-column gap-2 flex-grow-1">
           <div class="d-flex gap-2 align-items-center">
             <label class="form-label mb-0" style="min-width:45px">Line:</label>
-            <input type="color" value="${lineVal}" oninput="editImageColor(${editingImageIndex}, ${themeIdx}, 'stroke', this.value)">
+            <input type="color" value="${lineVal}" oninput="editImageColor(${editingImageIndex}, ${themeIdx}, 'stroke', this.value, this)">
             <label class="form-check-label mb-0">
               <input type="checkbox" ${effLine === 'none' || !effLine ? 'checked' : ''} onchange="editImageStrokeNone(${editingImageIndex}, ${themeIdx}, this.checked)">
               none
@@ -139,7 +139,7 @@ function buildThemeSection(themeIdx, label) {
           </div>
           <div class="d-flex gap-2 align-items-center">
             <label class="form-label mb-0" style="min-width:45px">Fill:</label>
-            <input type="color" value="${fillVal}" oninput="editImageColor(${editingImageIndex}, ${themeIdx}, 'fill', this.value)">
+            <input type="color" value="${fillVal}" oninput="editImageColor(${editingImageIndex}, ${themeIdx}, 'fill', this.value, this)">
             <label class="form-check-label mb-0">
               <input type="checkbox" ${effFill === 'none' || !effFill ? 'checked' : ''} onchange="editImageFillNone(${editingImageIndex}, ${themeIdx}, this.checked)">
               none
@@ -358,7 +358,7 @@ function editImageField(field, value) {
   saveImages(images);
 }
 
-function editImageColor(index, themeIdx, attr, value) {
+function editImageColor(index, themeIdx, attr, value, el) {
   const images = loadImages();
   if (index < 0 || index >= images.length) return;
   const img = images[index];
@@ -367,6 +367,10 @@ function editImageColor(index, themeIdx, attr, value) {
   else if (attr === 'fill') override.fill = value;
   saveImages(images);
   updateEditPreview(img, themeIdx);
+  if (el) {
+    const cb = el.parentElement && el.parentElement.querySelector('input[type="checkbox"]');
+    if (cb && cb.checked) cb.checked = false;
+  }
 }
 
 function editImageFillNone(index, themeIdx, checked) {

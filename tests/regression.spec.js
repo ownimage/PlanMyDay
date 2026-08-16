@@ -2346,6 +2346,32 @@ test.describe("PlanMyDay - Regression", () => {
       }).toBe("none");
     });
 
+    test("editing line colour unchecks line none", async ({ page }) => {
+      await page.locator(".card:has-text('EditTest') .btn-primary").first().click();
+      await page.locator("#imageEditModal").waitFor({ state: "visible" });
+      await page.locator('#imageEditModal input[type="checkbox"]').first().check();
+      const colorInput = page.locator('#imageEditModal input[type="color"]').first();
+      await colorInput.fill("#ff0000");
+      await expect(page.locator('#imageEditModal input[type="checkbox"]').first()).not.toBeChecked();
+      await expect.poll(async () => {
+        const images = await page.evaluate(() => JSON.parse(localStorage.getItem("planmydays_images")));
+        return images?.[0]?.themes?.light?.line || "";
+      }, { timeout: 5000 }).toBe("#ff0000");
+    });
+
+    test("editing fill colour unchecks fill none", async ({ page }) => {
+      await page.locator(".card:has-text('EditTest') .btn-primary").first().click();
+      await page.locator("#imageEditModal").waitFor({ state: "visible" });
+      await page.locator('#imageEditModal input[type="checkbox"]').nth(1).check();
+      const colorInput = page.locator('#imageEditModal input[type="color"]').nth(1);
+      await colorInput.fill("#00ff00");
+      await expect(page.locator('#imageEditModal input[type="checkbox"]').nth(1)).not.toBeChecked();
+      await expect.poll(async () => {
+        const images = await page.evaluate(() => JSON.parse(localStorage.getItem("planmydays_images")));
+        return images?.[0]?.themes?.light?.fill || "";
+      }, { timeout: 5000 }).toBe("#00ff00");
+    });
+
     test("stroke width input changes value", async ({ page }) => {
       await page.locator(".card:has-text('EditTest') .btn-primary").first().click();
       await page.locator("#imageEditModal").waitFor({ state: "visible" });
