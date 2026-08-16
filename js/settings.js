@@ -40,6 +40,11 @@ function applyTheme(name) {
 
 function changeTheme(name) {
   applyTheme(name);
+  if (typeof renderMain === "function") renderMain();
+  if (typeof renderImagesEditor === "function") {
+    const imagesEditor = document.getElementById("imagesEditor");
+    if (imagesEditor && !imagesEditor.classList.contains("d-none")) renderImagesEditor();
+  }
 }
 
 // FONT SIZE

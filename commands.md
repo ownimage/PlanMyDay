@@ -12,6 +12,10 @@ npx playwright test tests/regression.spec.js --repeat-each=100
 ```bash
 npx http-server
 ```
+### SampleImages
+```bash
+npx playwright test tests/sampleImages.spec.js --workers 1
+```
 ### Screenshots
 ```bash
 npx playwright test tests/screenshots.spec.js --workers 16

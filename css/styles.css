@@ -594,11 +594,6 @@ body.auto-hide-menu #mainNav.nav-hidden ~ .container-fluid {
   font-weight: 800;
 }
 
-.card-edited {
-  box-shadow: inset 0 0 0 3px var(--bs-primary);
-  background-color: rgba(var(--bs-primary-rgb), 0.08);
-}
-
 .editor-btn {
   min-width: 100px;
   padding: 0.5rem 1rem;

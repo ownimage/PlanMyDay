@@ -177,6 +177,36 @@ async function setTheme(page, themeName) {
     // CDN slow/unreachable: carry on and capture whatever style is present
   }
   await page.waitForTimeout(150);
+  // Re-render themed images so they reflect the newly selected theme,
+  // mirroring changeTheme() in js/settings.js (which calls renderMain).
+  await page.evaluate(() => {
+    if (typeof renderMain === "function") renderMain();
+    if (typeof renderImagesEditor === "function") {
+      const imagesEditor = document.getElementById("imagesEditor");
+      if (imagesEditor && !imagesEditor.classList.contains("d-none")) renderImagesEditor();
+    }
+    // The streams editor list also shows themed images but is not re-rendered
+    // by changeTheme(); rebuild it unless the stream edit modal is open on top
+    // (editingIndex >= 0 makes renderStreamsEditor early-return via the modal).
+    const streamsEditor = document.getElementById("streamsEditor");
+    const streamModalOpen = !!document.getElementById("streamEditModal") && document.getElementById("streamEditModal").classList.contains("show");
+    if (streamsEditor && !streamsEditor.classList.contains("d-none") && !streamModalOpen && typeof renderStreamsEditor === "function") {
+      renderStreamsEditor();
+    }
+    // Refresh themed preview images in open modals, preserving form/tab state.
+    const jobModalOpen = !!document.getElementById("jobEditModal") && document.getElementById("jobEditModal").classList.contains("show");
+    if (jobModalOpen) {
+      if (typeof updateJobStreamPreview === "function") updateJobStreamPreview();
+      if (typeof updateJobImagePreview === "function" && typeof jobsBuffer !== "undefined" && jobsBuffer) {
+        updateJobImagePreview(jobsBuffer.image);
+      }
+    }
+    if (streamModalOpen) {
+      if (typeof updateStreamImagePreview === "function" && typeof editBuffer !== "undefined" && editBuffer) {
+        updateStreamImagePreview(editBuffer.image);
+      }
+    }
+  });
 }
 
 async function screenshotAllThemes(page, fileName) {
