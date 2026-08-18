@@ -1427,7 +1427,7 @@ function showJobEditModal(readOnly) {
         altInput: true,
         altFormat: "D j M Y",
         altInputClass: "form-control",
-        allowInput: true,
+        allowInput: false,
         monthSelectorType: "dropdown",
         disableMobile: true,
         onChange: function(selectedDates, dateStr) {
@@ -1468,7 +1468,7 @@ function editJobFromView() {
       altInput: true,
       altFormat: "D j M Y",
       altInputClass: "form-control",
-      allowInput: true,
+      allowInput: false,
       monthSelectorType: "dropdown",
       disableMobile: true,
       onChange: function(selectedDates, dateStr) {
