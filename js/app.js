@@ -483,6 +483,18 @@ function renderStreamsEditor() {
 
   var sorted = [].concat(streams).sort(function(a, b) { return (a.sequence || 0) - (b.sequence || 0); });
 
+  var totalDue = 0, totalActive = 0, totalJobs = 0;
+  streams.forEach(function(s) {
+    var jbs = s.jobs || [];
+    totalDue += jbs.filter(function(j) { return j.active !== false && shouldShowJobToday(j); }).length;
+    totalActive += jbs.filter(function(j) { return j.active !== false; }).length;
+    totalJobs += jbs.length;
+  });
+  var totalBadge = document.getElementById("editJobsTotalBadge");
+  if (totalBadge) {
+    totalBadge.textContent = totalDue + "/" + totalActive + "/" + totalJobs + " job" + (totalJobs !== 1 ? "s" : "");
+  }
+
   sorted.forEach(function(t, displayIdx) {
     var realIdx = streams.indexOf(t);
     var streamImgUrl = getImageDataUrl(t.image);
