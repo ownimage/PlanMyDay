@@ -824,6 +824,154 @@ test.describe("PlanMyDay - Regression", () => {
     });
   });
 
+  // ── Search Jobs ────────────────────────────────────────────
+
+  test.describe("Search Jobs", () => {
+
+    async function openSearchJobs(page) {
+      await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
+      await page.locator("button.dropdown-item").filter({ hasText: "Search Jobs" }).click();
+      await page.locator("#jobSearchEditor:not(.d-none)").waitFor({ state: "visible" });
+    }
+
+    test.beforeEach(async ({ page }) => {
+      await startCoverage(page);
+      await page.goto("/");
+      await page.evaluate((data) => {
+        localStorage.setItem("planmydays_streams", JSON.stringify(data));
+      }, TEST_STREAMS);
+      await page.reload();
+      await openSearchJobs(page);
+    });
+
+    test("shows all jobs from all streams", async ({ page }) => {
+      await expect(page.getByRole("heading", { name: /Search Jobs/ })).toBeVisible();
+      await expect(page.locator("#jobSearchList .card")).toHaveCount(3);
+      await expect(page.getByText("Report")).toBeVisible();
+      await expect(page.getByText("Meeting")).toBeVisible();
+      await expect(page.getByText("Laundry")).toBeVisible();
+    });
+
+    test("header shows total job count badge", async ({ page }) => {
+      await page.evaluate(() => {
+        var streams = [{
+          id: "stream_badge", title: "Badge", tab: "progress", image: "", sequence: 1, jobs: [
+            { id: "job_b1", title: "Alpha", active: true, frequency: "daily", sequence: 1, dayType: "dayOfYear", mod: "" },
+            { id: "job_b2", title: "Beta", active: true, frequency: "daily", sequence: 2, dayType: "dayOfYear", mod: "" }
+          ]
+        }];
+        localStorage.setItem("planmydays_streams", JSON.stringify(streams));
+      });
+      await page.reload();
+      await openSearchJobs(page);
+      await expect(page.locator("#jobSearchTotalBadge")).toHaveText("2/2/2 jobs");
+    });
+
+    test("search filters jobs by partial title", async ({ page }) => {
+      await page.fill("#jobSearchInput", "meet");
+      await page.locator("#btnJobSearch").click();
+      await expect(page.locator("#jobSearchList .card")).toHaveCount(1);
+      await expect(page.locator("#jobSearchList .editor-title").filter({ hasText: "Meeting" })).toBeVisible();
+      await expect(page.getByText("Report")).not.toBeVisible();
+      await expect(page.getByText("Laundry")).not.toBeVisible();
+    });
+
+    test("search is case insensitive", async ({ page }) => {
+      await page.fill("#jobSearchInput", "MEETING");
+      await page.locator("#btnJobSearch").click();
+      await expect(page.locator("#jobSearchList .card")).toHaveCount(1);
+      await expect(page.locator("#jobSearchList .editor-title").filter({ hasText: "Meeting" })).toBeVisible();
+    });
+
+    test("enter key triggers search", async ({ page }) => {
+      await page.fill("#jobSearchInput", "laundry");
+      await page.keyboard.press("Enter");
+      await expect(page.locator("#jobSearchList .card")).toHaveCount(1);
+      await expect(page.locator("#jobSearchList .editor-title").filter({ hasText: "Laundry" })).toBeVisible();
+    });
+
+    test("shows message when no jobs match", async ({ page }) => {
+      await page.fill("#jobSearchInput", "zzz");
+      await page.locator("#btnJobSearch").click();
+      await expect(page.locator("#jobSearchList .card")).toHaveCount(0);
+      await expect(page.locator("#jobSearchList")).toContainText("No jobs match");
+    });
+
+    test("clear resets the search", async ({ page }) => {
+      await page.fill("#jobSearchInput", "meet");
+      await page.locator("#btnJobSearch").click();
+      await expect(page.locator("#jobSearchList .card")).toHaveCount(1);
+      await page.locator("#btnJobSearchClear").click();
+      await expect(page.locator("#jobSearchList .card")).toHaveCount(3);
+    });
+
+    test("tile shows stream name and badges instead of active label", async ({ page }) => {
+      const firstTile = page.locator("#jobSearchList .card").first();
+      await expect(firstTile).toContainText("Work");
+      await expect(firstTile.locator(".badge.bg-success").filter({ hasText: "progress" })).toBeVisible();
+      await expect(firstTile.locator(".badge.bg-primary")).toBeVisible();
+      await expect(page.locator("#jobSearchList")).not.toContainText("Active");
+    });
+
+    test("sleep and wait badges shown when present", async ({ page }) => {
+      const futureDate = futureDateStr(30);
+      await page.evaluate((ds) => {
+        var streams = JSON.parse(localStorage.getItem("planmydays_streams"));
+        streams[0].jobs[1].waitFor = "the meeting to start";
+        streams[1].jobs[0].sleepUntil = ds;
+        localStorage.setItem("planmydays_streams", JSON.stringify(streams));
+      }, futureDate);
+      await page.reload();
+      await openSearchJobs(page);
+      const meetingTile = page.locator("#jobSearchList .card").filter({ hasText: "Meeting" });
+      await expect(meetingTile.locator(".badge").filter({ hasText: "Wait:" })).toContainText("Wait: the meeting to start");
+      const laundryTile = page.locator("#jobSearchList .card").filter({ hasText: "Laundry" });
+      await expect(laundryTile.locator(".badge").filter({ hasText: "Sleep:" })).toContainText("Sleep: " + shortDateStr(futureDate));
+    });
+
+    test("tiles have no drag handles", async ({ page }) => {
+      await expect(page.locator("#jobSearchList .drag-handle")).toHaveCount(0);
+    });
+
+    test("active checkbox toggles job active state without label", async ({ page }) => {
+      const cb = page.locator("#jobSearchList .active-toggle").first();
+      await expect(page.locator("#jobSearchList")).not.toContainText("Active");
+      await cb.uncheck();
+      await expect(cb).not.toBeChecked();
+      var active = await page.evaluate(() => JSON.parse(localStorage.getItem("planmydays_streams"))[0].jobs[0].active);
+      expect(active).toBe(false);
+      await cb.check();
+      await expect(cb).toBeChecked();
+      active = await page.evaluate(() => JSON.parse(localStorage.getItem("planmydays_streams"))[0].jobs[0].active);
+      expect(active).toBe(true);
+    });
+
+    test("edit button opens edit job modal and returns to search", async ({ page }) => {
+      await page.locator("#jobSearchList .card").first().getByRole("button", { name: "Edit" }).click();
+      await expect(page.locator("#jobEditModal")).toBeVisible();
+      await expect(page.locator("#jobEditModalTitle")).toHaveText("Edit Job");
+      await page.locator("#jobEditCancelBtn").click();
+      await page.locator("#jobEditModal").waitFor({ state: "hidden" });
+      await expect(page.locator("#jobSearchEditor:not(.d-none)")).toBeVisible();
+      await expect(page.locator("#jobSearchList .card")).toHaveCount(3);
+    });
+
+    test("add job button opens add job modal", async ({ page }) => {
+      await page.locator("#btnJobSearchAdd").click();
+      await expect(page.locator("#jobEditModal")).toBeVisible();
+      await expect(page.locator("#jobEditModalTitle")).toHaveText("Add Job");
+      await page.locator("#jobEditCancelBtn").click();
+      await page.locator("#jobEditModal").waitFor({ state: "hidden" });
+      await expect(page.locator("#jobSearchEditor:not(.d-none)")).toBeVisible();
+    });
+
+    test("done button returns to main view", async ({ page }) => {
+      await page.locator("#btnJobSearchDone").click();
+      await expect(page.locator("#jobSearchEditor")).toHaveClass(/d-none/);
+      await expect(page.locator("#countdownContainer:not(.d-none)")).toBeVisible();
+    });
+  });
+
   // ── Jobs Editor ────────────────────────────────────────────
 
   test.describe("Jobs Editor", () => {

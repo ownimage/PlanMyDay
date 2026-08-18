@@ -56,6 +56,12 @@ function safeHideModal(modalId) {
   else el.addEventListener("shown.bs.modal", hide, { once: true });
 }
 
+function showInfoConfirm(message) {
+  const modalEl = document.getElementById("infoConfirmModal");
+  document.getElementById("infoConfirmMessage").textContent = message;
+  new bootstrap.Modal(modalEl).show();
+}
+
 // JOB COMPLETION STORAGE
 function loadCompletedJobs() {
   const data = localStorage.getItem("planmydays_completed");
@@ -383,6 +389,7 @@ function openStreamsEditor() {
   document.getElementById("streamsEditor").classList.remove("d-none");
   document.getElementById("settingsPage").classList.add("d-none");
   document.getElementById("imagesEditor").classList.add("d-none");
+  document.getElementById("jobSearchEditor").classList.add("d-none");
   renderStreamsEditor();
 }
 
@@ -391,6 +398,133 @@ function closeStreamsEditor() {
   document.getElementById("countdownContainer").classList.remove("d-none");
   editingIndex = -1; editBuffer = null; isNew = false;
   renderMain();
+}
+
+// JOB SEARCH
+var jobSearchQuery = "";
+
+function openSearchJobs() {
+  document.getElementById("countdownContainer").classList.add("d-none");
+  document.getElementById("streamsEditor").classList.add("d-none");
+  document.getElementById("settingsPage").classList.add("d-none");
+  document.getElementById("imagesEditor").classList.add("d-none");
+  document.getElementById("jobSearchEditor").classList.remove("d-none");
+  var input = document.getElementById("jobSearchInput");
+  if (input) input.value = "";
+  jobSearchQuery = "";
+  renderSearchJobs();
+  updateNavState();
+}
+
+function closeSearchJobs() {
+  document.getElementById("jobSearchEditor").classList.add("d-none");
+  document.getElementById("countdownContainer").classList.remove("d-none");
+  renderMain();
+}
+
+function searchJobsFilter() {
+  var input = document.getElementById("jobSearchInput");
+  jobSearchQuery = input ? input.value.trim() : "";
+  renderSearchJobs();
+}
+
+function addNewJobFromSearch() {
+  addTodayCardWithModal();
+}
+
+function getJobCountBadgeText(streams) {
+  var totalDue = 0, totalActive = 0, totalJobs = 0;
+  streams.forEach(function(s) {
+    var jbs = s.jobs || [];
+    totalDue += jbs.filter(function(j) { return j.active !== false && shouldShowJobToday(j); }).length;
+    totalActive += jbs.filter(function(j) { return j.active !== false; }).length;
+    totalJobs += jbs.length;
+  });
+  return totalDue + "/" + totalActive + "/" + totalJobs + " job" + (totalJobs !== 1 ? "s" : "");
+}
+
+function updateEditorJobCountBadges() {
+  var text = getJobCountBadgeText(loadStreams());
+  ["editJobsTotalBadge", "jobSearchTotalBadge"].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.textContent = text;
+  });
+  return text;
+}
+
+function renderSearchJobs() {
+  const list = document.getElementById("jobSearchList");
+  if (!list) return;
+  const streams = loadStreams();
+  updateEditorJobCountBadges();
+  const query = jobSearchQuery.toLowerCase();
+  const matches = [];
+  streams.forEach(function(stream, streamIdx) {
+    (stream.jobs || []).forEach(function(job, jobIdx) {
+      if (query && !(job.title || "").toLowerCase().includes(query)) return;
+      matches.push({ stream, streamIdx, job, jobIdx });
+    });
+  });
+  list.innerHTML = "";
+  if (matches.length === 0) {
+    list.innerHTML = '<div class="text-secondary small p-2">' + (query ? 'No jobs match "' + escapeHtml(jobSearchQuery) + '".' : "No jobs found.") + '</div>';
+    updateNavState();
+    return;
+  }
+  matches.forEach(function(m) {
+    list.appendChild(buildJobSearchCard(m.stream, m.streamIdx, m.job, m.jobIdx));
+  });
+  list.addEventListener("change", handleJobActiveToggleChange);
+  updateNavState();
+}
+
+function buildJobSearchCard(stream, streamIdx, job, jobIdx) {
+  const streamImageUrl = getImageDataUrl(stream.image);
+  const jobImageUrl = getImageDataUrl(job.image);
+  const suffixLabel = getJobSuffix(job);
+  const scheduleText = getScheduleText(job.schedule);
+  const hasSleep = job.sleepUntil && job.sleepUntil.trim();
+  const hasWait = job.waitFor && job.waitFor.trim();
+  const hasTime = job.time && job.time.trim();
+  const card = document.createElement("div");
+  card.className = "card p-2 mb-2";
+  card.dataset.jobId = job.id;
+  card.innerHTML =
+    '<div class="d-flex align-items-center gap-2">' +
+      '<div style="width:32px;height:32px;flex-shrink:0">' + (streamImageUrl ? '<img src="' + streamImageUrl + '" class="date-img" style="max-width:32px;max-height:32px">' : '') + '</div>' +
+      (jobImageUrl ? '<div style="width:32px;height:32px;flex-shrink:0"><img src="' + jobImageUrl + '" class="date-img" style="max-width:32px;max-height:32px"></div>' : '') +
+      '<div class="fw-bold editor-title" style="min-width:0;flex:1">' + escapeHtml(job.title) + (suffixLabel ? ' <span class="badge bg-secondary">' + escapeHtml(suffixLabel.trim()) + '</span>' : '') + '</div>' +
+      '<button class="btn btn-primary btn-sm editor-btn flex-shrink-0 align-self-center ms-3" style="min-width:50px" onclick="editJobInAccordion(' + streamIdx + ', ' + jobIdx + ')">Edit</button>' +
+    '</div>' +
+    '<div class="d-flex align-items-center gap-2 mt-1 small">' +
+      '<input class="form-check-input active-toggle m-0 position-static flex-shrink-0" type="checkbox" data-job-idx="' + jobIdx + '" data-stream-idx="' + streamIdx + '" ' + (job.active !== false ? "checked" : "") + ' style="cursor:pointer">' +
+      '<span class="fw-bold flex-shrink-0">' + escapeHtml(stream.title) + '</span>' +
+      '<span class="badge bg-' + ((stream.tab || "progress") === "progress" ? "success" : "info") + ' flex-shrink-0">' + escapeHtml(stream.tab || "progress") + '</span>' +
+      (hasSleep ? '<span class="badge bg-info flex-shrink-0">Sleep: ' + escapeHtml(formatDate(job.sleepUntil)) + '</span>' : (hasWait ? '<span class="badge bg-info flex-shrink-0">Wait: ' + escapeHtml(job.waitFor.trim()) + '</span>' : '')) +
+      '<span class="badge bg-primary flex-shrink-0">' + escapeHtml(scheduleText) + '</span>' +
+      (hasTime ? '<span class="badge bg-secondary flex-shrink-0">' + escapeHtml(job.time) + '</span>' : '') +
+    '</div>';
+  return card;
+}
+
+function handleJobActiveToggleChange(e) {
+  if (!e.target.classList.contains("active-toggle")) return;
+  var jobIdx = parseInt(e.target.dataset.jobIdx);
+  var streamIdx = parseInt(e.target.dataset.streamIdx);
+  var streams = loadStreams();
+  var jobs = streams[streamIdx].jobs || [];
+  if (jobs[jobIdx]) jobs[jobIdx].active = e.target.checked;
+  saveStreams(streams);
+  var jobId = jobs[jobIdx] ? jobs[jobIdx].id : null;
+  if (jobId) {
+    var order = loadTodayOrder() || [];
+    if (e.target.checked && shouldShowJobToday(jobs[jobIdx])) {
+      if (!order.includes(jobId)) order.push(jobId);
+    } else {
+      order = order.filter(function(id) { return id !== jobId; });
+    }
+    saveTodayOrder(order);
+  }
 }
 
 function showStreamEditModal() {
@@ -483,17 +617,7 @@ function renderStreamsEditor() {
 
   var sorted = [].concat(streams).sort(function(a, b) { return (a.sequence || 0) - (b.sequence || 0); });
 
-  var totalDue = 0, totalActive = 0, totalJobs = 0;
-  streams.forEach(function(s) {
-    var jbs = s.jobs || [];
-    totalDue += jbs.filter(function(j) { return j.active !== false && shouldShowJobToday(j); }).length;
-    totalActive += jbs.filter(function(j) { return j.active !== false; }).length;
-    totalJobs += jbs.length;
-  });
-  var totalBadge = document.getElementById("editJobsTotalBadge");
-  if (totalBadge) {
-    totalBadge.textContent = totalDue + "/" + totalActive + "/" + totalJobs + " job" + (totalJobs !== 1 ? "s" : "");
-  }
+  updateEditorJobCountBadges();
 
   sorted.forEach(function(t, displayIdx) {
     var realIdx = streams.indexOf(t);
@@ -541,25 +665,7 @@ function renderStreamsEditor() {
   });
 
   // delegated active toggle handler for jobs
-  list.addEventListener("change", function(e) {
-    if (!e.target.classList.contains("active-toggle")) return;
-    var jobIdx = parseInt(e.target.dataset.jobIdx);
-    var streamIdx = parseInt(e.target.dataset.streamIdx);
-    var streams = loadStreams();
-    var jobs = streams[streamIdx].jobs || [];
-    if (jobs[jobIdx]) jobs[jobIdx].active = e.target.checked;
-    saveStreams(streams);
-    var jobId = jobs[jobIdx] ? jobs[jobIdx].id : null;
-    if (jobId) {
-      var order = loadTodayOrder() || [];
-      if (e.target.checked && shouldShowJobToday(jobs[jobIdx])) {
-        if (!order.includes(jobId)) order.push(jobId);
-      } else {
-        order = order.filter(function(id) { return id !== jobId; });
-      }
-      saveTodayOrder(order);
-    }
-  });
+  list.addEventListener("change", handleJobActiveToggleChange);
 
   topTile.innerHTML = '<div class="d-flex gap-2">' +
     '<button class="btn btn-secondary editor-btn btn-wide" id="btnAddStream" onclick="addNewStream()">Add Stream</button>' +
@@ -1525,6 +1631,7 @@ function editJob(index) {
 
 function cancelJobEdit() {
   safeHideModal("jobEditModal");
+  var searchOpen = document.getElementById("jobSearchEditor") && !document.getElementById("jobSearchEditor").classList.contains("d-none");
   var fromMain = document.getElementById("streamsEditor").classList.contains("d-none");
   if (isNewJob && jobsEditingIdx >= 0) {
     var streams = loadStreams();
@@ -1534,10 +1641,11 @@ function cancelJobEdit() {
     saveStreams(streams);
   }
   jobsEditingIdx = -1; jobsBuffer = null; isNewJob = false; jobsTargetStreamIndex = -1;
-  if (fromMain) { renderMain(); } else { renderStreamsEditor(); }
+  if (searchOpen) { renderSearchJobs(); } else if (fromMain) { renderMain(); } else { renderStreamsEditor(); }
 }
 
 function doneJobEdit() {
+  var searchOpen = document.getElementById("jobSearchEditor") && !document.getElementById("jobSearchEditor").classList.contains("d-none");
   var fromMain = document.getElementById("streamsEditor").classList.contains("d-none");
   var savedId = null;
   if (jobsEditingIdx >= 0 && jobsBuffer) {
@@ -1561,7 +1669,7 @@ function doneJobEdit() {
   }
   safeHideModal("jobEditModal");
   jobsEditingIdx = -1; jobsBuffer = null; isNewJob = false; jobsTargetStreamIndex = -1;
-  if (fromMain) {
+  if (searchOpen) { renderSearchJobs(); } else if (fromMain) {
     var streams = loadStreams();
     var order = loadTodayOrder() || [];
     var allActive = [];
@@ -1695,6 +1803,7 @@ function openSettings() {
   document.getElementById("streamsEditor").classList.add("d-none");
   document.getElementById("settingsPage").classList.remove("d-none");
   document.getElementById("imagesEditor").classList.add("d-none");
+  document.getElementById("jobSearchEditor").classList.add("d-none");
 
   const savedTheme = localStorage.getItem("planmydays_theme") || "darkly";
   const themeSel = document.getElementById("themeSelector");

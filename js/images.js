@@ -594,6 +594,7 @@ function openImagesEditor() {
   document.getElementById("streamsEditor").classList.add("d-none");
   document.getElementById("settingsPage").classList.add("d-none");
   document.getElementById("imagesEditor").classList.remove("d-none");
+  document.getElementById("jobSearchEditor").classList.add("d-none");
   imagesPage = 0;
   renderImagesEditor();
 }
@@ -772,6 +773,7 @@ function uploadStandardImages() {
         saveImages(existing);
         renderImagesEditor();
       }
+      showInfoConfirm("Sample images loaded.");
     })
     .catch(() => {})
     .finally(() => hideUploadDialog());
