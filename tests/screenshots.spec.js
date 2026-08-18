@@ -422,6 +422,37 @@ test.describe("PlanMyDay - Screenshots", () => {
     await screenshotAllThemes(page, "stream-add-job.png");
   });
 
+  test("search jobs", async ({ page }) => {
+    const streamsWithSleepWait = JSON.parse(JSON.stringify(TEST_STREAMS));
+    streamsWithSleepWait[0].jobs[0].sleepUntil = futureDateStr(30);
+    streamsWithSleepWait[0].jobs[0].time = "09:00";
+    streamsWithSleepWait[0].jobs[1].waitFor = "the meeting to start";
+    await page.evaluate((data) => {
+      localStorage.setItem("planmydays_streams", JSON.stringify(data));
+    }, streamsWithSleepWait);
+    await page.reload();
+    await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
+    await page.locator("button.dropdown-item").filter({ hasText: "Search Jobs" }).click();
+    await page.waitForSelector("#jobSearchEditor:not(.d-none)");
+    await page.waitForSelector("#jobSearchList .card");
+    await screenshotAllThemes(page, "search-jobs.png");
+  });
+
+  test("search jobs - filtered", async ({ page }) => {
+    await page.evaluate((data) => {
+      localStorage.setItem("planmydays_streams", JSON.stringify(data));
+    }, TEST_STREAMS);
+    await page.reload();
+    await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
+    await page.locator("button.dropdown-item").filter({ hasText: "Search Jobs" }).click();
+    await page.waitForSelector("#jobSearchEditor:not(.d-none)");
+    await page.waitForSelector("#jobSearchList .card");
+    await page.locator("#jobSearchInput").fill("meet");
+    await page.locator("#btnJobSearch").click();
+    await page.waitForTimeout(200);
+    await screenshotAllThemes(page, "search-jobs-filtered.png");
+  });
+
   async function openViewJobWithData(page) {
     await page.evaluate((data) => {
       var streams = JSON.parse(JSON.stringify(data));
