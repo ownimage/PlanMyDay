@@ -1548,6 +1548,7 @@ function showJobEditModal(readOnly) {
         allowInput: false,
         monthSelectorType: "dropdown",
         disableMobile: true,
+        locale: { firstDayOfWeek: parseInt(localStorage.getItem("planmydays_startWeek") || "1", 10) },
         onChange: function(selectedDates, dateStr) {
           jobField("sleepUntil", dateStr);
           updateSleepUntilClearBtn();
@@ -1589,6 +1590,7 @@ function editJobFromView() {
       allowInput: false,
       monthSelectorType: "dropdown",
       disableMobile: true,
+      locale: { firstDayOfWeek: parseInt(localStorage.getItem("planmydays_startWeek") || "1", 10) },
       onChange: function(selectedDates, dateStr) {
         jobField("sleepUntil", dateStr);
         updateSleepUntilClearBtn();
@@ -1829,6 +1831,9 @@ function openSettings() {
   const monday = localStorage.getItem("planmydays_monday") || "1";
   const mondaySel = document.getElementById("mondaySelector");
   if (mondaySel) mondaySel.value = monday;
+  const startWeek = localStorage.getItem("planmydays_startWeek") || "1";
+  const startWeekSel = document.getElementById("startWeekSelector");
+  if (startWeekSel) startWeekSel.value = startWeek;
   const showDanger = localStorage.getItem("planmydays_showDanger") === "true";
   const showDangerCb = document.getElementById("showDanger");
   if (showDangerCb) showDangerCb.checked = showDanger;

@@ -111,6 +111,10 @@ function changeMonday(value) {
   if (typeof renderMain === "function") renderMain();
 }
 
+function changeStartWeek(value) {
+  localStorage.setItem("planmydays_startWeek", value);
+}
+
 function changeShowDanger(enabled) {
   localStorage.setItem("planmydays_showDanger", enabled);
   const dangerIds = ["clearAllDataRow", "refreshAppRow", "regenerateTilesRow", "sortJobsInStreamsRow", "uploadStandardImagesRow"];

@@ -2094,6 +2094,13 @@ test.describe("PlanMyDay - Regression", () => {
       expect(val).toBe("0");
     });
 
+    test("start week selector persists value", async ({ page }) => {
+      await page.locator("#schedule-tab").click();
+      await page.locator("#startWeekSelector").selectOption("2");
+      const val = await page.evaluate(() => localStorage.getItem("planmydays_startWeek"));
+      expect(val).toBe("2");
+    });
+
     test("auto hide menu toggle enables auto-hide", async ({ page }) => {
       await page.locator("#autoHideMenu").check();
       const autoHide = await page.evaluate(() => localStorage.getItem("planmydays_autoHideMenu") === "true");
@@ -2189,6 +2196,17 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().click();
       await page.locator("#jobSchedule-tab").click();
       await expect(page.locator("#jobSleepUntilDisplay")).toBeVisible();
+    });
+
+    test("sleep until picker starts week on configured day", async ({ page }) => {
+      await page.evaluate(() => localStorage.setItem("planmydays_startWeek", "2"));
+      await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().click();
+      await page.locator("#jobEditModal").waitFor({ state: "visible" });
+      await page.locator("#jobSchedule-tab").click();
+      await page.locator("#jobSleepUntilDisplay").click();
+      const firstHead = page.locator(".flatpickr-weekday").first();
+      await expect(firstHead).toBeVisible();
+      await expect(firstHead).toHaveText("Tue");
     });
 
     test("wait for input exists in job edit", async ({ page }) => {
