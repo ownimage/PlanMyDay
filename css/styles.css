@@ -799,6 +799,10 @@ body.drag-size-large .task-drag-card .drag-handle {
   backdrop-filter: none;
 }
 
+#infoConfirmMessage {
+  white-space: pre-line;
+}
+
 /* Outline-secondary buttons: some themes define --bs-secondary as white/very light,
    making the resting text unreadable. Use body color for contrast; keep the theme's
    own hover/active/disabled treatment. */

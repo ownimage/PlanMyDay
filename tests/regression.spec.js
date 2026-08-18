@@ -4883,6 +4883,25 @@ test.describe("PlanMyDay - Regression", () => {
       expect(new Set(names).size).toBe(names.length);
     });
 
+    test("upload summary modal shows counts", async ({ page }) => {
+      test.setTimeout(60000);
+      await page.evaluate(async () => {
+        const res = await fetch("sampleImages.json");
+        const data = await res.json();
+        if (data.images && data.images[0]) {
+          localStorage.setItem("planmydays_images", JSON.stringify([data.images[0]]));
+        }
+      });
+      await page.evaluate(() => uploadStandardImages());
+      await page.locator("#infoConfirmModal").waitFor({ state: "visible", timeout: 15000 });
+      const total = await page.evaluate(async () => (await (await fetch("sampleImages.json")).json()).images.length);
+      await expect(page.locator("#infoConfirmMessage")).toContainText(`${total} images uploaded`);
+      await expect(page.locator("#infoConfirmMessage")).toContainText(`${total - 1} added`);
+      await expect(page.locator("#infoConfirmMessage")).toContainText("1 duplicate ignored");
+      const msg = await page.locator("#infoConfirmMessage").textContent();
+      expect(msg.split("\n").length).toBe(4);
+    });
+
     test("settings auto-hide branch guards", async ({ page }) => {
       await page.evaluate(() => {
         // unbind when not bound
