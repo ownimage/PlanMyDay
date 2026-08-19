@@ -1043,6 +1043,12 @@ function jobAddTask() {
   if (!jobsBuffer.tasks) jobsBuffer.tasks = [];
   jobsBuffer.tasks.push({ description: "", done: false, note: "" });
   renderJobTasks();
+  var inputs = document.querySelectorAll("#jobTasksList .task-desc-input");
+  var last = inputs[inputs.length - 1];
+  if (last) {
+    last.focus();
+    last.scrollIntoView({ block: "nearest" });
+  }
 }
 
 function jobDeleteTask(index) {
@@ -1513,6 +1519,9 @@ function getJobEditFormHTML(data, readOnly) {
         <div class="mt-2">
           <button class="btn btn-primary btn-sm mb-2" id="jobAddTaskBtn" ${disabled} onclick="jobAddTask()">Add Task</button>
           <div id="jobTasksList">${tasksHTML}</div>
+          <div class="mt-2">
+            <button class="btn btn-primary btn-sm" id="jobAddTaskBottomBtn" ${disabled} onclick="jobAddTask()">Add Task</button>
+          </div>
         </div>
       </div>
     </div>
