@@ -527,6 +527,17 @@ function handleJobActiveToggleChange(e) {
   }
 }
 
+function focusTitleOnShow(inputId, modalId) {
+  const el = document.getElementById(inputId);
+  const modalEl = document.getElementById(modalId);
+  if (!el || !modalEl) return;
+  const handler = function() {
+    el.focus();
+    modalEl.removeEventListener("shown.bs.modal", handler);
+  };
+  modalEl.addEventListener("shown.bs.modal", handler);
+}
+
 function showStreamEditModal() {
   const streams = loadStreams();
   const t = streams[editingIndex];
@@ -535,6 +546,7 @@ function showStreamEditModal() {
   document.getElementById("streamEditModalBody").innerHTML = getStreamEditFormHTML(data);
   updateStreamEditOkBtn();
   new bootstrap.Modal(document.getElementById("streamEditModal")).show();
+  if (isNew) focusTitleOnShow("streamTitleInput", "streamEditModal");
 }
 
 function updateStreamEditOkBtn() {
@@ -547,7 +559,7 @@ function getStreamEditFormHTML(data) {
   return `
     <div class="mb-2">
       <label class="form-label">Title</label>
-      <input class="form-control" id="streamTitleInput" value="${escapeHtml(data.title || "")}" oninput="editField('title', this.value);updateStreamEditOkBtn()">
+      <input class="form-control" id="streamTitleInput" value="${escapeHtml(data.title || "")}" oninput="editField('title', this.value);updateStreamEditOkBtn()" onkeydown="if(event.key==='Enter') document.getElementById('btnStreamEditOk').click()">
     </div>
     <div class="mb-2">
       <label class="form-label">Tab</label>
@@ -1378,7 +1390,7 @@ function getJobEditFormHTML(data, readOnly) {
       </div>
     </div>
     <div class="mb-2">
-      <input class="form-control" id="jobTitleInput" value="${escapeHtml(data.title || "")}" ${ro} oninput="jobField('title', this.value);updateJobEditOkBtn()">
+      <input class="form-control" id="jobTitleInput" value="${escapeHtml(data.title || "")}" ${ro} oninput="jobField('title', this.value);updateJobEditOkBtn()" ${readOnly ? "" : "onkeydown=\"if(event.key==='Enter') document.getElementById('jobEditOkBtn').click()\""}>
     </div>
 
     <ul class="nav nav-tabs nav-tabs-info" id="jobEditTabs" role="tablist">
@@ -1568,6 +1580,7 @@ function showJobEditModal(readOnly) {
   }
   new bootstrap.Modal(document.getElementById("jobEditModal")).show();
   if (!readOnly) initJobTasksSortable();
+  if (!readOnly && isNewJob) focusTitleOnShow("jobTitleInput", "jobEditModal");
 }
 
 function editJobFromView() {

@@ -571,6 +571,22 @@ test.describe("PlanMyDay - Regression", () => {
       await expect(page.locator("#btnStreamEditOk")).toBeEnabled();
     });
 
+    test("add stream focuses the title input", async ({ page }) => {
+      await page.getByRole("button", { name: "Add Stream" }).click();
+      await page.locator("#streamEditModal").waitFor({ state: "visible" });
+      await expect(page.locator("#streamTitleInput")).toBeFocused();
+    });
+
+    test("add stream Enter key confirms via OK", async ({ page }) => {
+      await page.getByRole("button", { name: "Add Stream" }).click();
+      await page.locator("#streamEditModal").waitFor({ state: "visible" });
+      await expect(page.locator("#streamTitleInput")).toBeFocused();
+      await page.locator("#streamTitleInput").fill("Enter Stream");
+      await page.keyboard.press("Enter");
+      await page.locator("#streamEditModal").waitFor({ state: "hidden", timeout: 15000 });
+      await expect(page.locator("#streamEditorList .editor-title").filter({ hasText: "Enter Stream" })).toBeVisible();
+    });
+
     test("edit stream OK button is enabled when title exists", async ({ page }) => {
       await page.locator("#streamEditorList .stream-header-main").first().click();
       await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible", timeout: 5000 });
@@ -5888,6 +5904,22 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#jobEditModal").waitFor({ state: "visible" });
       const tasks = await page.evaluate(() => jobsBuffer?.tasks);
       expect(tasks).toEqual([]);
+    });
+
+    test("add job focuses the title input", async ({ page }) => {
+      await page.getByRole("button", { name: "Add Job" }).first().click();
+      await page.locator("#jobEditModal").waitFor({ state: "visible" });
+      await expect(page.locator("#jobTitleInput")).toBeFocused();
+    });
+
+    test("add job Enter key confirms via OK", async ({ page }) => {
+      await page.getByRole("button", { name: "Add Job" }).first().click();
+      await page.locator("#jobEditModal").waitFor({ state: "visible" });
+      await expect(page.locator("#jobTitleInput")).toBeFocused();
+      await page.locator("#jobTitleInput").fill("Enter Job");
+      await page.keyboard.press("Enter");
+      await page.locator("#jobEditModal").waitFor({ state: "hidden", timeout: 15000 });
+      await expect(page.locator("#streamEditorList .accordion-collapse.show")).toContainText("Enter Job");
     });
 
     test("add task renders task at top of list", async ({ page }) => {
