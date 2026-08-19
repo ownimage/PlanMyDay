@@ -527,6 +527,17 @@ function handleJobActiveToggleChange(e) {
   }
 }
 
+function focusTitleOnShow(inputId, modalId) {
+  const el = document.getElementById(inputId);
+  const modalEl = document.getElementById(modalId);
+  if (!el || !modalEl) return;
+  const handler = function() {
+    el.focus();
+    modalEl.removeEventListener("shown.bs.modal", handler);
+  };
+  modalEl.addEventListener("shown.bs.modal", handler);
+}
+
 function showStreamEditModal() {
   const streams = loadStreams();
   const t = streams[editingIndex];
@@ -535,6 +546,7 @@ function showStreamEditModal() {
   document.getElementById("streamEditModalBody").innerHTML = getStreamEditFormHTML(data);
   updateStreamEditOkBtn();
   new bootstrap.Modal(document.getElementById("streamEditModal")).show();
+  if (isNew) focusTitleOnShow("streamTitleInput", "streamEditModal");
 }
 
 function updateStreamEditOkBtn() {
@@ -547,7 +559,7 @@ function getStreamEditFormHTML(data) {
   return `
     <div class="mb-2">
       <label class="form-label">Title</label>
-      <input class="form-control" id="streamTitleInput" value="${escapeHtml(data.title || "")}" oninput="editField('title', this.value);updateStreamEditOkBtn()">
+      <input class="form-control" id="streamTitleInput" value="${escapeHtml(data.title || "")}" oninput="editField('title', this.value);updateStreamEditOkBtn()" onkeydown="if(event.key==='Enter') document.getElementById('btnStreamEditOk').click()">
     </div>
     <div class="mb-2">
       <label class="form-label">Tab</label>
@@ -668,7 +680,7 @@ function renderStreamsEditor() {
   list.addEventListener("change", handleJobActiveToggleChange);
 
   topTile.innerHTML = '<div class="d-flex gap-2">' +
-    '<button class="btn btn-secondary editor-btn btn-wide" id="btnAddStream" onclick="addNewStream()">Add Stream</button>' +
+    '<button class="btn btn-primary editor-btn btn-wide" id="btnAddStream" onclick="addNewStream()">Add Stream</button>' +
     '<button class="btn btn-success editor-btn btn-wide ms-auto" id="btnStreamsDone" onclick="closeStreamsEditor()">Done</button>' +
   '</div>';
 
@@ -1043,6 +1055,12 @@ function jobAddTask() {
   if (!jobsBuffer.tasks) jobsBuffer.tasks = [];
   jobsBuffer.tasks.push({ description: "", done: false, note: "" });
   renderJobTasks();
+  var inputs = document.querySelectorAll("#jobTasksList .task-desc-input");
+  var last = inputs[inputs.length - 1];
+  if (last) {
+    last.focus();
+    last.scrollIntoView({ block: "nearest" });
+  }
 }
 
 function jobDeleteTask(index) {
@@ -1353,7 +1371,7 @@ function getJobEditFormHTML(data, readOnly) {
         <input class="form-check-input task-done-cb" type="checkbox" ${task.done ? "checked" : ""} ${disabled} onchange="jobTaskField(${i}, 'done', this.checked)">
         <input class="form-control task-desc-input" value="${escapeHtml(task.description || "")}" ${ro} placeholder="Task description" oninput="jobTaskField(${i}, 'description', this.value)">
         <button class="btn btn-sm ${task.note ? 'btn-outline-info' : 'btn-info'} task-note-btn" ${noteBtnDisabled} onclick="jobTaskToggleNote(this, ${i})" title="Note"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path d="M12.854.146a.5.5 0 0 0-.707 0L10.5 1.793 14.207 5.5l1.647-1.646a.5.5 0 0 0 0-.708l-3-3zm.646 6.061L9.854 2.56a.5.5 0 0 0-.707 0L1.5 10.207V14.5h4.293L13.5 6.207zM12.793 3.207L4 12V14h2L13.793 4.207l-1-1z"/></svg></button>
-        <button class="btn btn-sm btn-danger" ${disabled} onclick="jobDeleteTask(${i})">&times;</button>
+        <button class="btn btn-sm btn-danger d-flex align-items-center justify-content-center" style="width:32px;height:32px" ${disabled} onclick="jobDeleteTask(${i})" title="Delete"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/><path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z"/></svg></button>
       </div>
       <div class="task-note-row mb-1 ms-4" id="taskNoteRow${i}" style="display:${taskNoteOpen(task) ? 'block' : 'none'}">
         <textarea class="form-control" rows="2" placeholder="Note" ${ro} oninput="jobTaskField(${i}, 'note', this.value)">${escapeHtml(task.note || "")}</textarea>
@@ -1372,7 +1390,7 @@ function getJobEditFormHTML(data, readOnly) {
       </div>
     </div>
     <div class="mb-2">
-      <input class="form-control" id="jobTitleInput" value="${escapeHtml(data.title || "")}" ${ro} oninput="jobField('title', this.value);updateJobEditOkBtn()">
+      <input class="form-control" id="jobTitleInput" value="${escapeHtml(data.title || "")}" ${ro} oninput="jobField('title', this.value);updateJobEditOkBtn()" ${readOnly ? "" : "onkeydown=\"if(event.key==='Enter') document.getElementById('jobEditOkBtn').click()\""}>
     </div>
 
     <ul class="nav nav-tabs nav-tabs-info" id="jobEditTabs" role="tablist">
@@ -1513,6 +1531,9 @@ function getJobEditFormHTML(data, readOnly) {
         <div class="mt-2">
           <button class="btn btn-primary btn-sm mb-2" id="jobAddTaskBtn" ${disabled} onclick="jobAddTask()">Add Task</button>
           <div id="jobTasksList">${tasksHTML}</div>
+          <div class="mt-2">
+            <button class="btn btn-primary btn-sm" id="jobAddTaskBottomBtn" ${disabled} onclick="jobAddTask()">Add Task</button>
+          </div>
         </div>
       </div>
     </div>
@@ -1559,6 +1580,7 @@ function showJobEditModal(readOnly) {
   }
   new bootstrap.Modal(document.getElementById("jobEditModal")).show();
   if (!readOnly) initJobTasksSortable();
+  if (!readOnly && isNewJob) focusTitleOnShow("jobTitleInput", "jobEditModal");
 }
 
 function editJobFromView() {

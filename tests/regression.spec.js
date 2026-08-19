@@ -571,6 +571,22 @@ test.describe("PlanMyDay - Regression", () => {
       await expect(page.locator("#btnStreamEditOk")).toBeEnabled();
     });
 
+    test("add stream focuses the title input", async ({ page }) => {
+      await page.getByRole("button", { name: "Add Stream" }).click();
+      await page.locator("#streamEditModal").waitFor({ state: "visible" });
+      await expect(page.locator("#streamTitleInput")).toBeFocused();
+    });
+
+    test("add stream Enter key confirms via OK", async ({ page }) => {
+      await page.getByRole("button", { name: "Add Stream" }).click();
+      await page.locator("#streamEditModal").waitFor({ state: "visible" });
+      await expect(page.locator("#streamTitleInput")).toBeFocused();
+      await page.locator("#streamTitleInput").fill("Enter Stream");
+      await page.keyboard.press("Enter");
+      await page.locator("#streamEditModal").waitFor({ state: "hidden", timeout: 15000 });
+      await expect(page.locator("#streamEditorList .editor-title").filter({ hasText: "Enter Stream" })).toBeVisible();
+    });
+
     test("edit stream OK button is enabled when title exists", async ({ page }) => {
       await page.locator("#streamEditorList .stream-header-main").first().click();
       await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible", timeout: 5000 });
@@ -5890,6 +5906,22 @@ test.describe("PlanMyDay - Regression", () => {
       expect(tasks).toEqual([]);
     });
 
+    test("add job focuses the title input", async ({ page }) => {
+      await page.getByRole("button", { name: "Add Job" }).first().click();
+      await page.locator("#jobEditModal").waitFor({ state: "visible" });
+      await expect(page.locator("#jobTitleInput")).toBeFocused();
+    });
+
+    test("add job Enter key confirms via OK", async ({ page }) => {
+      await page.getByRole("button", { name: "Add Job" }).first().click();
+      await page.locator("#jobEditModal").waitFor({ state: "visible" });
+      await expect(page.locator("#jobTitleInput")).toBeFocused();
+      await page.locator("#jobTitleInput").fill("Enter Job");
+      await page.keyboard.press("Enter");
+      await page.locator("#jobEditModal").waitFor({ state: "hidden", timeout: 15000 });
+      await expect(page.locator("#streamEditorList .accordion-collapse.show")).toContainText("Enter Job");
+    });
+
     test("add task renders task at top of list", async ({ page }) => {
       await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().click();
       await page.locator("#jobEditModal").waitFor({ state: "visible" });
@@ -5981,6 +6013,67 @@ test.describe("PlanMyDay - Regression", () => {
       await expect(page.locator("#jobTasksList .task-row")).toHaveCount(2);
       await expect(page.locator("#jobTasksList .task-note-row")).toHaveCount(2);
     });
+
+    async function openJobTasksTab(page, mode) {
+      if (mode === "add") {
+        await page.getByRole("button", { name: "Add Job" }).first().click();
+      } else {
+        await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().click();
+      }
+      await page.locator("#jobEditModal").waitFor({ state: "visible" });
+      await page.locator("#jobTasks-tab").click();
+      await expect(page.locator("#jobTasks-tab")).toHaveClass(/active/);
+    }
+
+    for (const [mode, title] of [["edit", "Edit Job"], ["add", "Add Job"]]) {
+      test(`bottom add task button is visible on the ${title} tasks tab`, async ({ page }) => {
+        await openJobTasksTab(page, mode);
+        const bottomBtn = page.locator("#jobAddTaskBottomBtn");
+        await expect(bottomBtn).toBeVisible();
+        await expect(bottomBtn).toHaveText("Add Task");
+        await expect(page.locator("#jobAddTaskBtn")).toBeVisible();
+      });
+
+      test(`bottom add task adds a task and focuses it on ${title}`, async ({ page }) => {
+        await openJobTasksTab(page, mode);
+        const startLen = await page.evaluate(() => (jobsBuffer?.tasks || []).length);
+        await page.locator("#jobAddTaskBottomBtn").click();
+        await expect(page.locator("#jobTasksList .task-row")).toHaveCount(startLen + 1);
+        const focused = await page.evaluate(() => {
+          const el = document.activeElement;
+          if (!el || !el.classList.contains("task-desc-input")) return null;
+          const row = el.closest(".task-row");
+          return row ? Number(row.getAttribute("data-task-index")) : null;
+        });
+        expect(focused).toBe(startLen);
+      });
+
+      test(`bottom add task scrolls to show the new task on ${title}`, async ({ page }) => {
+        await openJobTasksTab(page, mode);
+        await page.evaluate(() => {
+          for (let i = 0; i < 20; i++) jobsBuffer.tasks.push({ description: "Task " + i, done: false, note: "" });
+          renderJobTasks();
+        });
+        await page.evaluate(() => { const body = document.getElementById("jobEditModalBody"); body.scrollTop = 0; });
+        await expect.poll(() => page.evaluate(() => document.getElementById("jobEditModalBody").scrollTop)).toBe(0);
+        await page.evaluate(() => document.getElementById("jobAddTaskBottomBtn").click());
+        const result = await page.evaluate(() => {
+          const body = document.getElementById("jobEditModalBody");
+          const inputs = body.querySelectorAll(".task-row .task-desc-input");
+          const el = inputs[inputs.length - 1];
+          const br = el.getBoundingClientRect();
+          const bb = body.getBoundingClientRect();
+          return {
+            scrollTop: body.scrollTop,
+            focused: el === document.activeElement,
+            visible: br.top >= bb.top && br.bottom <= bb.bottom
+          };
+        });
+        expect(result.scrollTop).toBeGreaterThan(0);
+        expect(result.focused).toBe(true);
+        expect(result.visible).toBe(true);
+      });
+    }
   });
   });
 });
