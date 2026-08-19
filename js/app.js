@@ -680,7 +680,7 @@ function renderStreamsEditor() {
   list.addEventListener("change", handleJobActiveToggleChange);
 
   topTile.innerHTML = '<div class="d-flex gap-2">' +
-    '<button class="btn btn-secondary editor-btn btn-wide" id="btnAddStream" onclick="addNewStream()">Add Stream</button>' +
+    '<button class="btn btn-primary editor-btn btn-wide" id="btnAddStream" onclick="addNewStream()">Add Stream</button>' +
     '<button class="btn btn-success editor-btn btn-wide ms-auto" id="btnStreamsDone" onclick="closeStreamsEditor()">Done</button>' +
   '</div>';
 
