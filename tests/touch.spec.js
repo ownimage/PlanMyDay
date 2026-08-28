@@ -47,12 +47,11 @@ async function touchDrag(page, fromLocator, toBox) {
         pressure: type === "pointerup" ? 0 : 0.7,
         buttons,
       });
-      const flatFromPoint = (root, depth = 0) => {
-        if (depth > 8) return null;
-        let el = root.elementFromPoint(x, y);
+      const flatFromPoint = (root) => {
+        const el = root.elementFromPoint(x, y);
         if (!el) return null;
-        if (el.shadowRoot && el.shadowRoot !== root) {
-          const inner = flatFromPoint(el.shadowRoot, depth + 1);
+        if (el.shadowRoot) {
+          const inner = flatFromPoint(el.shadowRoot);
           if (inner) return inner;
         }
         return el;
@@ -71,8 +70,8 @@ async function touchDrag(page, fromLocator, toBox) {
 }
 
 async function openStreamsEditor(page) {
-  await page.locator("#btnMainMenu").tap();
-  await page.locator("a.dropdown-item").filter({ hasText: "Streams" }).tap();
+  await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).tap();
+  await page.locator("a.dropdown-item").filter({ hasText: "Jobs" }).tap();
   await page.waitForTimeout(300);
 }
 
@@ -129,7 +128,7 @@ test.describe("PlanMyDay - iPhone 12 Pro touch", () => {
     await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().tap();
     await page.locator("#jobEditPage").waitFor({ state: "visible" });
     await page.locator("#jobTasks-tab").tap();
-    await page.locator("#jobAddTaskBottomBtn").waitFor({ state: "visible" });
+    await page.locator("#jobAddTaskBtn").waitFor({ state: "visible" });
     const rows = page.locator("#jobTasksList .task-row");
     await expect(rows).toHaveCount(2);
     const lastBox = await rows.last().boundingBox();
