@@ -117,7 +117,7 @@ test.describe("PlanMyDay - iPhone 12 Pro touch", () => {
     // open the first stream's jobs and edit the first job
     await page.locator("#streamEditorList .stream-header-main").first().tap();
     await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().tap();
-    await page.locator("#jobEditModal").waitFor({ state: "visible" });
+    await page.locator("#jobEditPage").waitFor({ state: "visible" });
     await page.locator("#jobTasks-tab").tap();
     await page.locator("#jobAddTaskBtn").waitFor({ state: "visible" });
     const rows = page.locator("#jobTasksList .task-row");

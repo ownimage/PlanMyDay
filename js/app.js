@@ -376,7 +376,7 @@ function addTodayCardWithModal() {
   saveStreams(streams);
   jobsBuffer = JSON.parse(JSON.stringify(newJob));
   jobsEditingIdx = jobs.length - 1; isNewJob = true;
-  showJobEditModal();
+  buildJobEditPage(false);
 }
 
 // THREADS EDITOR
@@ -900,9 +900,9 @@ function updateStreamImagePreview(name) {
   }
 }
 function updateJobImagePreview(name) {
-  var preview = document.getElementById("jobImagePreview");
-  var nameEl = document.getElementById("jobImageName");
-  var removeBtn = document.getElementById("jobImageRemoveBtn");
+  var preview = $id("jobImagePreview");
+  var nameEl = $id("jobImageName");
+  var removeBtn = $id("jobImageRemoveBtn");
   if (!preview) return;
   var url = getImageDataUrl(name);
   if (url) {
@@ -919,15 +919,15 @@ function updateJobStreamPreview() {
   var streams = loadStreams();
   var stream = streams[jobsTargetStreamIndex >= 0 ? jobsTargetStreamIndex : jobsStreamIndex];
   var url = getImageDataUrl(stream && stream.image);
-  var btnIcon = document.getElementById("jobStreamBtnIcon");
+  var btnIcon = $id("jobStreamBtnIcon");
   if (btnIcon) {
     btnIcon.innerHTML = url ? '<img src="' + url + '" style="max-width:24px;max-height:24px">' : '<span style="width:24px;height:24px;display:inline-block"></span>';
   }
-  var btnText = document.getElementById("jobStreamBtnText");
+  var btnText = $id("jobStreamBtnText");
   if (btnText) {
     btnText.textContent = stream ? stream.title : "";
   }
-  var menu = document.getElementById("jobStreamDropdownMenu");
+  var menu = $id("jobStreamDropdownMenu");
   if (menu) {
     var items = menu.querySelectorAll(".dropdown-item");
     var targetIdx = jobsTargetStreamIndex >= 0 ? jobsTargetStreamIndex : jobsStreamIndex;
@@ -943,11 +943,40 @@ function updateJobStreamPreview() {
 function jobChangeStream(newIdx) {
   jobsTargetStreamIndex = newIdx;
   updateJobStreamPreview();
-  var btn = document.getElementById("jobStreamDropdownBtn");
-  if (btn) {
-    var dd = bootstrap.Dropdown.getInstance(btn);
-    if (dd) dd.hide();
-  }
+  closeJobStreamMenu();
+}
+
+function initJobStreamDropdown() {
+  const btn = $id("jobStreamDropdownBtn");
+  if (!btn || btn._smdDropdownBound) return;
+  btn._smdDropdownBound = true;
+  btn.addEventListener("click", function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    const open = toggleJobStreamMenu();
+    document.addEventListener("click", function onDoc(e2) {
+      document.removeEventListener("click", onDoc);
+      if (!open) return;
+      const menu = $id("jobStreamDropdownMenu");
+      const btnEl = $id("jobStreamDropdownBtn");
+      if (!menu || !btnEl) return;
+      if (menu.contains(e2.target) || btnEl.contains(e2.target)) return;
+      menu.classList.remove("show");
+    });
+  });
+}
+
+function toggleJobStreamMenu() {
+  const menu = $id("jobStreamDropdownMenu");
+  if (!menu) return false;
+  const willOpen = !menu.classList.contains("show");
+  menu.classList.toggle("show", willOpen);
+  return willOpen;
+}
+
+function closeJobStreamMenu() {
+  const menu = $id("jobStreamDropdownMenu");
+  if (menu) menu.classList.remove("show");
 }
 
 function editStream(index) {
@@ -1023,30 +1052,30 @@ function jobField(field, value) {
   jobsBuffer[field] = value;
 }
 function jobTimeChanged() {
-  const h = document.getElementById("jobTimeHour").value;
-  const m = document.getElementById("jobTimeMin").value;
+  const h = $id("jobTimeHour").value;
+  const m = $id("jobTimeMin").value;
   jobField("time", h && m ? h + ":" + m : "");
 }
 function clearSleepUntil() {
   jobField("sleepUntil", "");
-  const fpInput = document.getElementById("jobSleepUntil");
+  const fpInput = $id("jobSleepUntil");
   if (fpInput) {
     if (fpInput._flatpickr) fpInput._flatpickr.clear();
     fpInput.value = "";
   }
-  const btn = document.getElementById("jobSleepUntilClearBtn");
+  const btn = $id("jobSleepUntilClearBtn");
   if (btn) btn.classList.add("d-none");
 }
 function updateJobEditOkBtn() {
-  const okBtn = document.getElementById("jobEditOkBtn");
+  const okBtn = getJobEditFooterBtn("done");
   if (!okBtn) return;
-  const title = document.getElementById("jobTitleInput");
+  const title = $id("jobTitleInput");
   okBtn.disabled = !title || !title.value.trim();
 }
 function updateSleepUntilClearBtn() {
-  const btn = document.getElementById("jobSleepUntilClearBtn");
+  const btn = $id("jobSleepUntilClearBtn");
   if (!btn) return;
-  const val = document.getElementById("jobSleepUntil").value;
+  const val = $id("jobSleepUntil").value;
   btn.classList.toggle("d-none", !val);
 }
 
@@ -1055,7 +1084,8 @@ function jobAddTask() {
   if (!jobsBuffer.tasks) jobsBuffer.tasks = [];
   jobsBuffer.tasks.push({ description: "", done: false, note: "" });
   renderJobTasks();
-  var inputs = document.querySelectorAll("#jobTasksList .task-desc-input");
+  var listEl = $id("jobTasksList");
+  var inputs = listEl ? listEl.querySelectorAll(".task-desc-input") : [];
   var last = inputs[inputs.length - 1];
   if (last) {
     last.focus();
@@ -1111,7 +1141,7 @@ function setTaskNoteBtnClass(btn, task) {
 }
 
 function renderJobTasks() {
-  var el = document.getElementById("jobTasksList");
+  var el = $id("jobTasksList");
   if (!el || !jobsBuffer) return;
   var tasks = jobsBuffer.tasks || [];
   var html = "";
@@ -1137,7 +1167,7 @@ function initJobTasksSortable() {
     jobTasksSortable = null;
   }
   if (typeof Sortable === "undefined") return;
-  var el = document.getElementById("jobTasksList");
+  var el = $id("jobTasksList");
   if (!el || !jobsBuffer) return;
   if (!el.querySelector(".drag-handle")) return;
   jobTasksSortable = new Sortable(el, {
@@ -1159,7 +1189,7 @@ function initJobTasksSortable() {
 }
 
 function jobTaskToggleNote(btn, index) {
-  var row = document.getElementById("taskNoteRow" + index);
+  var row = $id("taskNoteRow" + index);
   if (!row) return;
   row.style.display = row.style.display === "none" ? "block" : "none";
   var shown = row.style.display === "block";
@@ -1327,7 +1357,7 @@ function saveScheduleModal() {
     schedule.offset = parseInt(document.getElementById("schedNOffset").value, 10) || 0;
   }
   jobField("schedule", schedule);
-  const el = document.getElementById("jobScheduleText");
+  const el = $id("jobScheduleText");
   if (el) el.textContent = getScheduleText(schedule);
   closeScheduleModal();
 }
@@ -1354,29 +1384,9 @@ function shouldShowJobToday(job) {
   return true;
 }
 
-function getJobEditFormHTML(data, readOnly) {
-  const streams = loadStreams();
-  const currentStream = streams[jobsTargetStreamIndex >= 0 ? jobsTargetStreamIndex : jobsStreamIndex] || {};
-  const streamImgUrl = getImageDataUrl(currentStream.image);
+function getJobEditPageContent(data, readOnly) {
   const disabled = readOnly ? "disabled" : "";
   const ro = readOnly ? "readonly" : "";
-  const tasks = data.tasks || [];
-  var tasksHTML = "";
-  tasks.forEach(function(task, i) {
-    var dragHandleHtml = readOnly ? "" : '<div class="drag-handle">&#9776;</div>';
-    var noteBtnDisabled = "";
-    tasksHTML += `
-      <div class="d-flex align-items-center gap-2 mb-1 task-row task-drag-card" data-task-index="${i}">
-        ${dragHandleHtml}
-        <input class="form-check-input task-done-cb" type="checkbox" ${task.done ? "checked" : ""} ${disabled} onchange="jobTaskField(${i}, 'done', this.checked)">
-        <input class="form-control task-desc-input" value="${escapeHtml(task.description || "")}" ${ro} placeholder="Task description" oninput="jobTaskField(${i}, 'description', this.value)">
-        <button class="btn btn-sm ${task.note ? 'btn-outline-info' : 'btn-info'} task-note-btn" ${noteBtnDisabled} onclick="jobTaskToggleNote(this, ${i})" title="Note"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path d="M12.854.146a.5.5 0 0 0-.707 0L10.5 1.793 14.207 5.5l1.647-1.646a.5.5 0 0 0 0-.708l-3-3zm.646 6.061L9.854 2.56a.5.5 0 0 0-.707 0L1.5 10.207V14.5h4.293L13.5 6.207zM12.793 3.207L4 12V14h2L13.793 4.207l-1-1z"/></svg></button>
-        <button class="btn btn-sm btn-danger d-flex align-items-center justify-content-center" style="width:32px;height:32px" ${disabled} onclick="jobDeleteTask(${i})" title="Delete"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/><path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z"/></svg></button>
-      </div>
-      <div class="task-note-row mb-1 ms-4" id="taskNoteRow${i}" style="display:${taskNoteOpen(task) ? 'block' : 'none'}">
-        <textarea class="form-control" rows="2" placeholder="Note" ${ro} oninput="jobTaskField(${i}, 'note', this.value)">${escapeHtml(task.note || "")}</textarea>
-      </div>`;
-  });
   return `
     <div class="row mb-1">
       <div class="col">
@@ -1390,237 +1400,305 @@ function getJobEditFormHTML(data, readOnly) {
       </div>
     </div>
     <div class="mb-2">
-      <input class="form-control" id="jobTitleInput" value="${escapeHtml(data.title || "")}" ${ro} oninput="jobField('title', this.value);updateJobEditOkBtn()" ${readOnly ? "" : "onkeydown=\"if(event.key==='Enter') document.getElementById('jobEditOkBtn').click()\""}>
+      <input class="form-control" id="jobTitleInput" value="${escapeHtml(data.title || "")}" ${ro} oninput="jobField('title', this.value);updateJobEditOkBtn()" ${readOnly ? "" : "onkeydown=\"if(event.key==='Enter') jobEditOk()\""}>
     </div>
+    <smd-tabs id="jobEditTabs"></smd-tabs>
+  `;
+}
 
-    <ul class="nav nav-tabs nav-tabs-info" id="jobEditTabs" role="tablist">
-      <li class="nav-item" role="presentation">
-        <button class="nav-link active" id="jobGeneral-tab" data-bs-toggle="tab" data-bs-target="#jobGeneral" type="button" role="tab" aria-controls="jobGeneral" aria-selected="true">General</button>
-      </li>
-      <li class="nav-item" role="presentation">
-        <button class="nav-link" id="jobSchedule-tab" data-bs-toggle="tab" data-bs-target="#jobSchedule" type="button" role="tab" aria-controls="jobSchedule" aria-selected="false">Schedule</button>
-      </li>
-      <li class="nav-item" role="presentation">
-        <button class="nav-link" id="jobTasks-tab" data-bs-toggle="tab" data-bs-target="#jobTasks" type="button" role="tab" aria-controls="jobTasks" aria-selected="false">Tasks</button>
-      </li>
-    </ul>
+function getJobEditSections(data, readOnly) {
+  return [
+    { title: "General", id: "jobGeneral-tab", content: getJobGeneralTabHTML(data, readOnly) },
+    { title: "Schedule", id: "jobSchedule-tab", content: getJobScheduleTabHTML(data, readOnly) },
+    { title: "Tasks", id: "jobTasks-tab", content: getJobTasksTabHTML(data, readOnly) }
+  ];
+}
 
-    <div class="tab-content" id="jobEditTabsContent">
-      <div class="tab-pane fade show active" id="jobGeneral" role="tabpanel" aria-labelledby="jobGeneral-tab">
-        <div class="row mb-2 mt-2">
-          <div class="col-6 d-flex flex-column" style="min-height:61px">
-            <label class="form-label mb-0">Stream</label>
-            <div class="dropdown mt-1" id="jobStreamDropdown" style="flex-grow:1">
-              <button class="btn btn-outline-secondary dropdown-toggle w-100 d-flex align-items-center gap-2 h-100" type="button" id="jobStreamDropdownBtn" data-bs-toggle="dropdown" ${disabled} style="text-align:left">
-                <span id="jobStreamBtnIcon" style="width:45px;height:45px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;border:1px solid var(--bs-border-color);border-radius:6px">
-                  ${streamImgUrl ? `<img src="${streamImgUrl}" style="max-width:45px;max-height:45px">` : `<span style="width:45px;height:45px;display:inline-block"></span>`}
-                </span>
-                <span id="jobStreamBtnText" class="flex-grow-1">${escapeHtml(currentStream.title || "")}</span>
-              </button>
-              <ul class="dropdown-menu w-100" id="jobStreamDropdownMenu">
-                ${streams.map((s, i) => {
-                  const sImg = getImageDataUrl(s.image);
-                  return `
-                    <li>
-                      <a class="dropdown-item d-flex align-items-center gap-2 ${i === (jobsTargetStreamIndex >= 0 ? jobsTargetStreamIndex : jobsStreamIndex) ? "active" : ""}" href="#" data-stream-idx="${i}" onclick="event.preventDefault();jobChangeStream(${i})">
-                        <span style="width:45px;height:45px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;border:1px solid var(--bs-border-color);border-radius:6px">
-                          ${sImg ? `<img src="${sImg}" style="max-width:45px;max-height:45px">` : `<span style="width:45px;height:45px;display:inline-block"></span>`}
-                        </span>
-                        ${escapeHtml(s.title)}
-                      </a>
-                    </li>
-                  `;
-                }).join("")}
-              </ul>
-            </div>
-          </div>
-          <div class="col-6 d-flex flex-column" style="min-height:61px">
-            <label class="form-label mb-0">Image</label>
-            <div class="d-flex align-items-center gap-2 mt-1" style="flex-grow:1">
-              <div style="width:45px;height:45px;border:1px solid var(--bs-border-color);border-radius:6px;overflow:hidden;display:flex;align-items:center;justify-content:center;flex-shrink:0" id="jobImagePreview">
-                ${getImageDataUrl(data.image) ? `<img src="${getImageDataUrl(data.image)}" class="date-img" style="max-width:45px;max-height:45px">` : `<span class="text-secondary small">none</span>`}
-              </div>
-              <div>
-                <div id="jobImageName">${escapeHtml(data.image || "")}</div>
-                <div class="d-flex gap-1 mt-1">
-                  <button class="btn btn-primary btn-sm" id="btnJobImageChange" ${disabled} onclick="openImagePicker(function(name){ jobField('image', name); updateJobImagePreview(name); })">Edit</button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="mb-2">
-          <label class="form-label">Description</label>
-          <textarea class="form-control" rows="3" ${ro} oninput="jobField('description', this.value)">${escapeHtml(data.description || "")}</textarea>
-        </div>
-        <div class="row mb-2">
-          <div class="col-auto d-flex align-items-center">
-            <div class="form-check mb-0">
-              <input class="form-check-input" type="checkbox" id="jobSuffixCb" ${data.suffix ? "checked" : ""} ${disabled} onchange="jobField('suffix', this.checked)">
-              <label class="form-check-label" for="jobSuffixCb">Suffix</label>
-            </div>
-          </div>
-          <div class="col">
-            <select class="form-select" ${disabled} onchange="jobField('dayType', this.value)">
-              <option value="dayOfYear" ${(data.dayType || "dayOfYear") === "dayOfYear" ? "selected" : ""}>Day of Year</option>
-              <option value="dayOfMonth" ${data.dayType === "dayOfMonth" ? "selected" : ""}>Day of Month</option>
-              <option value="dayOfWeek" ${data.dayType === "dayOfWeek" ? "selected" : ""}>Day of Week</option>
-            </select>
-          </div>
-          <div class="col">
-            <select class="form-select" ${disabled} onchange="jobField('mod', this.value)">
-              <option value="" ${!data.mod ? "selected" : ""}>None</option>
-              <option value="2" ${data.mod === "2" ? "selected" : ""}>2</option>
-              <option value="3" ${data.mod === "3" ? "selected" : ""}>3</option>
-              <option value="4" ${data.mod === "4" ? "selected" : ""}>4</option>
-              <option value="5" ${data.mod === "5" ? "selected" : ""}>5</option>
-              <option value="6" ${data.mod === "6" ? "selected" : ""}>6</option>
-              <option value="7" ${data.mod === "7" ? "selected" : ""}>7</option>
-            </select>
-          </div>
+function getJobGeneralTabHTML(data, readOnly) {
+  const streams = loadStreams();
+  const currentStream = streams[jobsTargetStreamIndex >= 0 ? jobsTargetStreamIndex : jobsStreamIndex] || {};
+  const streamImgUrl = getImageDataUrl(currentStream.image);
+  const disabled = readOnly ? "disabled" : "";
+  return `
+    <div class="row mb-2 mt-2">
+      <div class="col-6 d-flex flex-column" style="min-height:61px">
+        <label class="form-label mb-0">Stream</label>
+        <div class="dropdown mt-1" id="jobStreamDropdown" style="flex-grow:1">
+          <button class="btn btn-outline-secondary dropdown-toggle w-100 d-flex align-items-center gap-2 h-100" type="button" id="jobStreamDropdownBtn" ${disabled} style="text-align:left">
+            <span id="jobStreamBtnIcon" style="width:45px;height:45px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;border:1px solid var(--bs-border-color);border-radius:6px">
+              ${streamImgUrl ? `<img src="${streamImgUrl}" style="max-width:45px;max-height:45px">` : `<span style="width:45px;height:45px;display:inline-block"></span>`}
+            </span>
+            <span id="jobStreamBtnText" class="flex-grow-1">${escapeHtml(currentStream.title || "")}</span>
+          </button>
+          <ul class="dropdown-menu w-100" id="jobStreamDropdownMenu">
+            ${streams.map((s, i) => {
+              const sImg = getImageDataUrl(s.image);
+              return `
+                <li>
+                  <a class="dropdown-item d-flex align-items-center gap-2 ${i === (jobsTargetStreamIndex >= 0 ? jobsTargetStreamIndex : jobsStreamIndex) ? "active" : ""}" href="#" data-stream-idx="${i}" onclick="event.preventDefault();jobChangeStream(${i})">
+                    <span style="width:45px;height:45px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;border:1px solid var(--bs-border-color);border-radius:6px">
+                      ${sImg ? `<img src="${sImg}" style="max-width:45px;max-height:45px">` : `<span style="width:45px;height:45px;display:inline-block"></span>`}
+                    </span>
+                    ${escapeHtml(s.title)}
+                  </a>
+                </li>
+              `;
+            }).join("")}
+          </ul>
         </div>
       </div>
-      <div class="tab-pane fade" id="jobSchedule" role="tabpanel" aria-labelledby="jobSchedule-tab">
-        <div class="mb-2 mt-2">
-          <label class="form-label">Schedule</label>
-          <div class="d-flex align-items-center gap-2">
-            <span id="jobScheduleText">${escapeHtml(getScheduleText(data.schedule))}</span>
-            <button class="btn btn-primary btn-sm" id="btnScheduleChange" ${disabled} onclick="openScheduleModal()">Edit</button>
+      <div class="col-6 d-flex flex-column" style="min-height:61px">
+        <label class="form-label mb-0">Image</label>
+        <div class="d-flex align-items-center gap-2 mt-1" style="flex-grow:1">
+          <div style="width:45px;height:45px;border:1px solid var(--bs-border-color);border-radius:6px;overflow:hidden;display:flex;align-items:center;justify-content:center;flex-shrink:0" id="jobImagePreview">
+            ${getImageDataUrl(data.image) ? `<img src="${getImageDataUrl(data.image)}" class="date-img" style="max-width:45px;max-height:45px">` : `<span class="text-secondary small">none</span>`}
           </div>
-        </div>
-        <div class="row mb-2">
-          <div class="col">
-            <label class="form-label">Sleep Until</label>
-            <div class="d-flex gap-2">
-              <input class="form-control" id="jobSleepUntil" value="${escapeHtml(readOnly ? formatDate(data.sleepUntil) : (data.sleepUntil || ""))}" ${ro} placeholder="Pick a date">
-              <button class="btn btn-danger btn-sm ${data.sleepUntil ? "" : "d-none"}" id="jobSleepUntilClearBtn" ${disabled} onclick="clearSleepUntil()">Clear</button>
-            </div>
-          </div>
-        </div>
-        <div class="row mb-2">
-          <div class="col">
-            <label class="form-label">Wait for</label>
-            <input class="form-control" id="jobWaitFor" value="${escapeHtml(data.waitFor || "")}" ${ro} placeholder="e.g. the delivery to arrive" oninput="jobField('waitFor', this.value)">
-          </div>
-        </div>
-        <div class="row mb-2">
-          <div class="col">
-            <label class="form-label">Schedule Time</label>
-            <div class="d-flex gap-2">
-              <select class="form-select" id="jobTimeHour" ${disabled} onchange="jobTimeChanged()" style="width:auto">
-                <option value="" ${!data.time ? "selected" : ""}>-</option>
-                ${Array.from({length: 24}, (_, i) => {
-                  const h = String(i).padStart(2, "0");
-                  const cur = data.time ? data.time.split(":")[0] : "";
-                  return `<option value="${h}" ${cur === h ? "selected" : ""}>${h}</option>`;
-                }).join("")}
-              </select>
-              <span class="align-self-center">:</span>
-              <select class="form-select" id="jobTimeMin" ${disabled} onchange="jobTimeChanged()" style="width:auto">
-                <option value="" ${!data.time ? "selected" : ""}>-</option>
-                <option value="00" ${data.time && data.time.split(":")[1] === "00" ? "selected" : ""}>00</option>
-                <option value="15" ${data.time && data.time.split(":")[1] === "15" ? "selected" : ""}>15</option>
-                <option value="30" ${data.time && data.time.split(":")[1] === "30" ? "selected" : ""}>30</option>
-                <option value="45" ${data.time && data.time.split(":")[1] === "45" ? "selected" : ""}>45</option>
-              </select>
+          <div>
+            <div id="jobImageName">${escapeHtml(data.image || "")}</div>
+            <div class="d-flex gap-1 mt-1">
+              <button class="btn btn-primary btn-sm" id="btnJobImageChange" ${disabled} onclick="openImagePicker(function(name){ jobField('image', name); updateJobImagePreview(name); })">Edit</button>
             </div>
           </div>
         </div>
       </div>
-      <div class="tab-pane fade" id="jobTasks" role="tabpanel" aria-labelledby="jobTasks-tab">
-        <div class="mt-2">
-          <button class="btn btn-primary btn-sm mb-2" id="jobAddTaskBtn" ${disabled} onclick="jobAddTask()">Add Task</button>
-          <div id="jobTasksList">${tasksHTML}</div>
-          <div class="mt-2">
-            <button class="btn btn-primary btn-sm" id="jobAddTaskBottomBtn" ${disabled} onclick="jobAddTask()">Add Task</button>
-          </div>
+    </div>
+    <div class="mb-2">
+      <label class="form-label">Description</label>
+      <textarea class="form-control" rows="3" ${readOnly ? "readonly" : ""} oninput="jobField('description', this.value)">${escapeHtml(data.description || "")}</textarea>
+    </div>
+    <div class="row mb-2">
+      <div class="col-auto d-flex align-items-center">
+        <div class="form-check mb-0">
+          <input class="form-check-input" type="checkbox" id="jobSuffixCb" ${data.suffix ? "checked" : ""} ${disabled} onchange="jobField('suffix', this.checked)">
+          <label class="form-check-label" for="jobSuffixCb">Suffix</label>
+        </div>
+      </div>
+      <div class="col">
+        <select class="form-select" ${disabled} onchange="jobField('dayType', this.value)">
+          <option value="dayOfYear" ${(data.dayType || "dayOfYear") === "dayOfYear" ? "selected" : ""}>Day of Year</option>
+          <option value="dayOfMonth" ${data.dayType === "dayOfMonth" ? "selected" : ""}>Day of Month</option>
+          <option value="dayOfWeek" ${data.dayType === "dayOfWeek" ? "selected" : ""}>Day of Week</option>
+        </select>
+      </div>
+      <div class="col">
+        <select class="form-select" ${disabled} onchange="jobField('mod', this.value)">
+          <option value="" ${!data.mod ? "selected" : ""}>None</option>
+          <option value="2" ${data.mod === "2" ? "selected" : ""}>2</option>
+          <option value="3" ${data.mod === "3" ? "selected" : ""}>3</option>
+          <option value="4" ${data.mod === "4" ? "selected" : ""}>4</option>
+          <option value="5" ${data.mod === "5" ? "selected" : ""}>5</option>
+          <option value="6" ${data.mod === "6" ? "selected" : ""}>6</option>
+          <option value="7" ${data.mod === "7" ? "selected" : ""}>7</option>
+        </select>
+      </div>
+    </div>
+  `;
+}
+
+function getJobScheduleTabHTML(data, readOnly) {
+  const disabled = readOnly ? "disabled" : "";
+  const ro = readOnly ? "readonly" : "";
+  return `
+    <div class="mb-2 mt-2">
+      <label class="form-label">Schedule</label>
+      <div class="d-flex align-items-center gap-2">
+        <span id="jobScheduleText">${escapeHtml(getScheduleText(data.schedule))}</span>
+        <button class="btn btn-primary btn-sm" id="btnScheduleChange" ${disabled} onclick="openScheduleModal()">Edit</button>
+      </div>
+    </div>
+    <div class="row mb-2">
+      <div class="col">
+        <label class="form-label">Sleep Until</label>
+        <div class="d-flex gap-2">
+          <input class="form-control" id="jobSleepUntil" value="${escapeHtml(readOnly ? formatDate(data.sleepUntil) : (data.sleepUntil || ""))}" ${ro} placeholder="Pick a date">
+          <button class="btn btn-danger btn-sm ${data.sleepUntil ? "" : "d-none"}" id="jobSleepUntilClearBtn" ${disabled} onclick="clearSleepUntil()">Clear</button>
+        </div>
+      </div>
+    </div>
+    <div class="row mb-2">
+      <div class="col">
+        <label class="form-label">Wait for</label>
+        <input class="form-control" id="jobWaitFor" value="${escapeHtml(data.waitFor || "")}" ${ro} placeholder="e.g. the delivery to arrive" oninput="jobField('waitFor', this.value)">
+      </div>
+    </div>
+    <div class="row mb-2">
+      <div class="col">
+        <label class="form-label">Schedule Time</label>
+        <div class="d-flex gap-2">
+          <select class="form-select" id="jobTimeHour" ${disabled} onchange="jobTimeChanged()" style="width:auto">
+            <option value="" ${!data.time ? "selected" : ""}>-</option>
+            ${Array.from({length: 24}, (_, i) => {
+              const h = String(i).padStart(2, "0");
+              const cur = data.time ? data.time.split(":")[0] : "";
+              return `<option value="${h}" ${cur === h ? "selected" : ""}>${h}</option>`;
+            }).join("")}
+          </select>
+          <span class="align-self-center">:</span>
+          <select class="form-select" id="jobTimeMin" ${disabled} onchange="jobTimeChanged()" style="width:auto">
+            <option value="" ${!data.time ? "selected" : ""}>-</option>
+            <option value="00" ${data.time && data.time.split(":")[1] === "00" ? "selected" : ""}>00</option>
+            <option value="15" ${data.time && data.time.split(":")[1] === "15" ? "selected" : ""}>15</option>
+            <option value="30" ${data.time && data.time.split(":")[1] === "30" ? "selected" : ""}>30</option>
+            <option value="45" ${data.time && data.time.split(":")[1] === "45" ? "selected" : ""}>45</option>
+          </select>
         </div>
       </div>
     </div>
   `;
 }
 
-function showJobEditModal(readOnly) {
+function getJobTasksTabHTML(data, readOnly) {
+  const disabled = readOnly ? "disabled" : "";
+  const ro = readOnly ? "readonly" : "";
+  const tasks = data.tasks || [];
+  let tasksHTML = "";
+  tasks.forEach(function(task, i) {
+    var dragHandleHtml = readOnly ? "" : '<div class="drag-handle">&#9776;</div>';
+    tasksHTML += `
+      <div class="d-flex align-items-center gap-2 mb-1 task-row task-drag-card" data-task-index="${i}">
+        ${dragHandleHtml}
+        <input class="form-check-input task-done-cb" type="checkbox" ${task.done ? "checked" : ""} ${disabled} onchange="jobTaskField(${i}, 'done', this.checked)">
+        <input class="form-control task-desc-input" value="${escapeHtml(task.description || "")}" ${ro} placeholder="Task description" oninput="jobTaskField(${i}, 'description', this.value)">
+        <button class="btn btn-sm ${task.note ? 'btn-outline-info' : 'btn-info'} task-note-btn" ${disabled} onclick="jobTaskToggleNote(this, ${i})" title="Note"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path d="M12.854.146a.5.5 0 0 0-.707 0L10.5 1.793 14.207 5.5l1.647-1.646a.5.5 0 0 0 0-.708l-3-3zm.646 6.061L9.854 2.56a.5.5 0 0 0-.707 0L1.5 10.207V14.5h4.293L13.5 6.207zM12.793 3.207L4 12V14h2L13.793 4.207l-1-1z"/></svg></button>
+        <button class="btn btn-sm btn-danger d-flex align-items-center justify-content-center" style="width:32px;height:32px" ${disabled} onclick="jobDeleteTask(${i})" title="Delete"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/><path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z"/></svg></button>
+      </div>
+      <div class="task-note-row mb-1 ms-4" id="taskNoteRow${i}" style="display:${taskNoteOpen(task) ? 'block' : 'none'}">
+        <textarea class="form-control" rows="2" placeholder="Note" ${ro} oninput="jobTaskField(${i}, 'note', this.value)">${escapeHtml(task.note || "")}</textarea>
+      </div>`;
+  });
+  return `
+    <div class="mt-2">
+      <button class="btn btn-primary btn-sm mb-2" id="jobAddTaskBtn" ${disabled} onclick="jobAddTask()">Add Task</button>
+      <div id="jobTasksList">${tasksHTML}</div>
+      <div class="mt-2">
+        <button class="btn btn-primary btn-sm" id="jobAddTaskBottomBtn" ${disabled} onclick="jobAddTask()">Add Task</button>
+      </div>
+    </div>
+  `;
+}
+
+var _jobEditButtons = [];
+var _jobEditCloseTimer = null;
+
+function buildJobEditPage(readOnly, activeTabIndex) {
   if (!jobsBuffer) return;
   const data = jobsBuffer;
   const title = readOnly ? "View Job" : (isNewJob ? "Add Job" : "Edit Job");
-  document.getElementById("jobEditModalTitle").textContent = title;
-  jobsTargetStreamIndex = jobsStreamIndex;
-  document.getElementById("jobEditModalBody").innerHTML = getJobEditFormHTML(data, readOnly);
-  const firstTab = document.querySelector("#jobEditTabs .nav-link");
-  if (firstTab) { new bootstrap.Tab(firstTab).show(); }
-  const footer = document.getElementById("jobEditModalFooter");
-  if (readOnly) {
-    footer.innerHTML = '<button class="btn btn-primary editor-btn flex-fill" id="btnViewJobEdit" onclick="editJobFromView()">Edit</button><button class="btn btn-success editor-btn flex-fill" id="btnViewJobOk" onclick="cancelJobEdit()">OK</button>';
-  } else {
-    const delBtnHtml = isNewJob ? "" : '<button class="btn btn-danger editor-btn flex-fill" id="jobEditDelBtn" onclick="deleteJobFromEdit()">Delete</button>';
-    footer.innerHTML = '<button class="btn btn-secondary editor-btn flex-fill" id="jobEditCancelBtn" onclick="cancelJobEdit()">Cancel</button>' + delBtnHtml + '<button class="btn btn-success editor-btn flex-fill" id="jobEditOkBtn" onclick="doneJobEdit()">OK</button>';
-    updateJobEditOkBtn();
+  const page = document.getElementById("jobEditPage");
+  if (!page) return;
+
+  destroyJobEditTransient();
+  if (_jobEditCloseTimer) {
+    clearTimeout(_jobEditCloseTimer);
+    _jobEditCloseTimer = null;
   }
-  const fpInput = document.getElementById("jobSleepUntil");
-  if (fpInput) {
-    if (fpInput._flatpickr) fpInput._flatpickr.destroy();
-    if (!readOnly) {
-      flatpickr(fpInput, {
-        dateFormat: "Y-m-d",
-        altInput: true,
-        altFormat: "D j M Y",
-        altInputClass: "form-control",
-        allowInput: false,
-        monthSelectorType: "dropdown",
-        disableMobile: true,
-        locale: { firstDayOfWeek: parseInt(localStorage.getItem("planmydays_startWeek") || "1", 10) },
-        onChange: function(selectedDates, dateStr) {
-          jobField("sleepUntil", dateStr);
-          updateSleepUntilClearBtn();
-        }
-      });
-      if (fpInput._flatpickr && fpInput._flatpickr.altInput) fpInput._flatpickr.altInput.id = "jobSleepUntilDisplay";
+  jobsTargetStreamIndex = jobsStreamIndex;
+
+  _jobEditButtons = readOnly
+    ? [
+        { text: "Edit", variant: "primary", action: "edit", id: "btnViewJobEdit" },
+        { text: "OK", variant: "success", action: "cancel", id: "jobEditOkBtn" }
+      ]
+    : [
+        { text: "Cancel", variant: "secondary", action: "cancel", id: "jobEditCancelBtn" },
+        ...(isNewJob ? [] : [{ text: "Delete", variant: "danger", action: "delete", id: "jobEditDelBtn" }]),
+        { text: "OK", variant: "success", action: "done", id: "jobEditOkBtn" }
+      ];
+
+  page.classList.remove("d-none");
+  page.title = title;
+  page.content = getJobEditPageContent(data, readOnly);
+  page.buttons = _jobEditButtons;
+
+  const tabsEl = $id("jobEditTabs");
+  if (tabsEl) {
+    tabsEl.tabs = getJobEditSections(data, readOnly);
+    if (typeof activeTabIndex === "number" && activeTabIndex > 0 && activeTabIndex < tabsEl.tabs.length) {
+      tabsEl.activeIndex = activeTabIndex;
     }
   }
-  new bootstrap.Modal(document.getElementById("jobEditModal")).show();
-  if (!readOnly) initJobTasksSortable();
-  if (!readOnly && isNewJob) focusTitleOnShow("jobTitleInput", "jobEditModal");
+  injectJobEditStyles();
+  initJobStreamDropdown();
+  initJobSleepUntilPicker(readOnly);
+  if (!readOnly) {
+    initJobTasksSortable();
+    updateJobEditOkBtn();
+  }
+  page.show();
+  if (!readOnly && isNewJob) focusJobTitle();
+}
+
+function destroyJobEditTransient() {
+  if (jobTasksSortable) {
+    jobTasksSortable.destroy();
+    jobTasksSortable = null;
+  }
+  const fp = $id("jobSleepUntil");
+  if (fp && fp._flatpickr) {
+    try { fp._flatpickr.destroy(); } catch (e) {}
+  }
+}
+
+function hideJobEditPage() {
+  destroyJobEditTransient();
+  const page = document.getElementById("jobEditPage");
+  if (page) {
+    page.hide();
+    clearTimeout(_jobEditCloseTimer);
+    _jobEditCloseTimer = setTimeout(function() {
+      page.classList.add("d-none");
+    }, 320);
+  }
+}
+
+function initJobSleepUntilPicker(readOnly) {
+  const fpInput = $id("jobSleepUntil");
+  if (!fpInput) return;
+  if (readOnly) return;
+  flatpickr(fpInput, {
+    dateFormat: "Y-m-d",
+    altInput: true,
+    altFormat: "D j M Y",
+    altInputClass: "form-control",
+    allowInput: false,
+    monthSelectorType: "dropdown",
+    disableMobile: true,
+    locale: { firstDayOfWeek: parseInt(localStorage.getItem("planmydays_startWeek") || "1", 10) },
+    onChange: function(selectedDates, dateStr) {
+      jobField("sleepUntil", dateStr);
+      updateSleepUntilClearBtn();
+    }
+  });
+  if (fpInput._flatpickr && fpInput._flatpickr.altInput) fpInput._flatpickr.altInput.id = "jobSleepUntilDisplay";
+}
+
+function focusJobTitle() {
+  requestAnimationFrame(function() {
+    var el = $id("jobTitleInput");
+    if (el) el.focus();
+  });
+}
+
+function getJobEditFooterBtn(action) {
+  const page = document.getElementById("jobEditPage");
+  if (!page || !page.shadowRoot) return null;
+  const config = _jobEditButtons.find(function(b) { return b.action === action; });
+  if (!config || !config.id) return null;
+  return page.shadowRoot.getElementById(config.id);
+}
+
+function jobEditOk() {
+  const okBtn = getJobEditFooterBtn("done");
+  if (okBtn && okBtn.disabled) return;
+  doneJobEdit();
 }
 
 function editJobFromView() {
   if (!jobsBuffer) return;
-  var activeTabId = null;
-  var activeTab = document.querySelector("#jobEditTabs .nav-link.active");
-  if (activeTab) {
-    activeTabId = activeTab.id;
-  }
-  document.getElementById("jobEditModalTitle").textContent = "Edit Job";
-  document.getElementById("jobEditModalBody").innerHTML = getJobEditFormHTML(jobsBuffer, false);
-  if (activeTabId) {
-    var tabEl = document.getElementById(activeTabId);
-    if (tabEl) { new bootstrap.Tab(tabEl).show(); }
-  } else {
-    var firstTab = document.querySelector("#jobEditTabs .nav-link");
-    if (firstTab) { new bootstrap.Tab(firstTab).show(); }
-  }
-  document.getElementById("jobEditModalFooter").innerHTML = '<button class="btn btn-secondary editor-btn flex-fill" id="jobEditCancelBtn" onclick="cancelJobEdit()">Cancel</button><button class="btn btn-danger editor-btn flex-fill" id="jobEditDelBtn" onclick="deleteJobFromEdit()">Delete</button><button class="btn btn-success editor-btn flex-fill" id="jobEditOkBtn" onclick="doneJobEdit()">OK</button>';
-  updateJobEditOkBtn();
-  const fpInput = document.getElementById("jobSleepUntil");
-  if (fpInput) {
-    if (fpInput._flatpickr) fpInput._flatpickr.destroy();
-    flatpickr(fpInput, {
-      dateFormat: "Y-m-d",
-      altInput: true,
-      altFormat: "D j M Y",
-      altInputClass: "form-control",
-      allowInput: false,
-      monthSelectorType: "dropdown",
-      disableMobile: true,
-      locale: { firstDayOfWeek: parseInt(localStorage.getItem("planmydays_startWeek") || "1", 10) },
-      onChange: function(selectedDates, dateStr) {
-        jobField("sleepUntil", dateStr);
-        updateSleepUntilClearBtn();
-      }
-    });
-    if (fpInput._flatpickr && fpInput._flatpickr.altInput) fpInput._flatpickr.altInput.id = "jobSleepUntilDisplay";
-  }
-  initJobTasksSortable();
+  var activeIdx = 0;
+  var tabsEl = $id("jobEditTabs");
+  if (tabsEl) activeIdx = tabsEl.activeIndex;
+  buildJobEditPage(false, activeIdx);
 }
 
 function viewJobReadOnly(streamIdx, jobIdx) {
@@ -1638,7 +1716,7 @@ function viewJobReadOnly(streamIdx, jobIdx) {
   jobsStreamIndex = streamIdx;
   jobsEditingIdx = jobIdx;
   isNewJob = false;
-  showJobEditModal(true);
+  buildJobEditPage(true);
 }
 
 function editJob(index) {
@@ -1650,11 +1728,11 @@ function editJob(index) {
     if (jobsBuffer.sleepUntil < today) jobsBuffer.sleepUntil = "";
   }
   jobsEditingIdx = index; isNewJob = false;
-  showJobEditModal();
+  buildJobEditPage(false);
 }
 
 function cancelJobEdit() {
-  safeHideModal("jobEditModal");
+  hideJobEditPage();
   var searchOpen = document.getElementById("jobSearchEditor") && !document.getElementById("jobSearchEditor").classList.contains("d-none");
   var fromMain = document.getElementById("streamsEditor").classList.contains("d-none");
   if (isNewJob && jobsEditingIdx >= 0) {
@@ -1691,7 +1769,7 @@ function doneJobEdit() {
     }
     saveStreams(streams);
   }
-  safeHideModal("jobEditModal");
+  hideJobEditPage();
   jobsEditingIdx = -1; jobsBuffer = null; isNewJob = false; jobsTargetStreamIndex = -1;
   if (searchOpen) { renderSearchJobs(); } else if (fromMain) {
     var streams = loadStreams();
@@ -1725,11 +1803,8 @@ function doneJobEdit() {
 
 function deleteJobFromEdit() {
   var idx = jobsEditingIdx;
-  var el = document.getElementById("jobEditModal");
-  el.addEventListener("hidden.bs.modal", function() {
-    confirmDeleteJob(idx);
-  }, { once: true });
-  safeHideModal("jobEditModal");
+  hideJobEditPage();
+  confirmDeleteJob(idx);
 }
 
 function confirmDeleteJob(index) {
@@ -1780,7 +1855,7 @@ function addNewJob() {
   saveStreams(streams);
   jobsBuffer = JSON.parse(JSON.stringify(newJob));
   jobsEditingIdx = jobs.length - 1; isNewJob = true;
-  showJobEditModal();
+  buildJobEditPage(false);
 }
 
 function getJobSuffix(job) {
@@ -1841,6 +1916,229 @@ function getSettingsSections() {
   template.remove();
   return { sections: _settingsSections, footerHtml: _settingsFooterHtml };
 }
+
+var JOBS_EDITOR_STYLES = `
+  .smd-page-body *, .smd-page-body *::before, .smd-page-body *::after,
+  .smd-tab-panel *, .smd-tab-panel *::before, .smd-tab-panel *::after {
+    box-sizing: border-box;
+  }
+  .smd-page-body .row, .smd-tab-panel .row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    width: 100%;
+    max-width: 1040px;
+    margin-bottom: 1rem;
+  }
+  .smd-page-body .col, .smd-page-body .col-auto, .smd-page-body .col-6,
+  .smd-tab-panel .col, .smd-tab-panel .col-auto, .smd-tab-panel .col-6 {
+    position: relative;
+    padding-right: 0.75rem;
+    padding-left: 0.75rem;
+  }
+  .smd-page-body .col, .smd-tab-panel .col { flex: 1 0 0%; }
+  .smd-page-body .col-auto, .smd-tab-panel .col-auto { flex: 0 0 auto; width: auto; }
+  .smd-page-body .col-6, .smd-tab-panel .col-6 { flex: 0 0 50%; max-width: 50%; }
+  .smd-page-body .form-label, .smd-tab-panel .form-label {
+    margin-bottom: 0.25rem;
+    font-weight: 500;
+    color: var(--bs-body-color, #f8f9fa);
+  }
+  .smd-page-body .form-control, .smd-tab-panel .form-control {
+    display: block;
+    width: 100%;
+    padding: 0.375rem 0.75rem;
+    font-size: 0.95rem;
+    font-weight: 400;
+    line-height: 1.5;
+    color: var(--bs-body-color, #f8f9fa);
+    background-color: var(--bs-body-bg, #222222);
+    background-clip: padding-box;
+    border: 1px solid var(--bs-border-color, #495057);
+    border-radius: 0.375rem;
+  }
+  .smd-page-body .form-select, .smd-tab-panel .form-select {
+    display: block;
+    width: 100%;
+    padding: 0.375rem 0.75rem;
+    font-size: 0.95rem;
+    color: var(--bs-body-color, #f8f9fa);
+    background-color: var(--bs-body-bg, #222222);
+    border: 1px solid var(--bs-border-color, #495057);
+    border-radius: 0.375rem;
+  }
+  .smd-page-body .form-check, .smd-tab-panel .form-check {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: 1.5rem;
+  }
+  .smd-page-body .form-check-label, .smd-tab-panel .form-check-label {
+    color: var(--bs-body-color, #f8f9fa);
+  }
+  .smd-page-body .form-check-input, .smd-tab-panel .form-check-input {
+    width: 1.1em;
+    height: 1.1em;
+    margin: 0;
+    flex-shrink: 0;
+    appearance: none;
+    -webkit-appearance: none;
+    vertical-align: middle;
+    background-color: var(--bs-secondary-bg, #495057);
+    border: 1px solid var(--bs-border-color, #495057);
+    border-radius: 0.25em;
+    cursor: pointer;
+  }
+  .smd-page-body .form-check-input:checked, .smd-tab-panel .form-check-input:checked {
+    background-color: var(--bs-primary, #0d6efd);
+    border-color: var(--bs-primary, #0d6efd);
+  }
+  .smd-page-body .form-check-input:disabled, .smd-tab-panel .form-check-input:disabled { opacity: 0.55; }
+  .smd-tab-panel .form-switch { padding-left: 0; }
+  .smd-tab-panel .form-switch .form-check-input {
+    width: 2.5em;
+    height: 1.5em;
+    border-radius: 2em;
+    position: relative;
+  }
+  .smd-tab-panel .form-switch .form-check-input::before {
+    content: "";
+    position: absolute;
+    top: 0.15em;
+    left: 0.15em;
+    width: 1.2em;
+    height: 1.2em;
+    border-radius: 50%;
+    background-color: #fff;
+    transition: transform 0.15s ease-in-out;
+  }
+  .smd-tab-panel .form-switch .form-check-input:checked::before { transform: translateX(1em); }
+  .smd-tab-panel .input-group {
+    display: flex;
+    align-items: stretch;
+    width: 100%;
+  }
+  .smd-tab-panel .input-group > .form-control {
+    flex: 1 1 auto;
+    width: 1%;
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+  .smd-tab-panel .input-group > .btn-outline-secondary {
+    flex: 0 0 auto;
+    border: 1px solid var(--bs-border-color, #6c757d);
+    border-left: 0;
+    background: var(--bs-tertiary-bg, #303030);
+    color: var(--bs-secondary-color, #adb5bd);
+    padding: 0.375rem 0.75rem;
+    border-radius: 0 0.375rem 0.375rem 0;
+    cursor: pointer;
+  }
+  .smd-page-body .btn, .smd-tab-panel .btn {
+    display: inline-block;
+    padding: 0.375rem 0.75rem;
+    font-size: 0.95rem;
+    font-weight: 400;
+    line-height: 1.5;
+    text-align: center;
+    border: 1px solid transparent;
+    border-radius: 0.375rem;
+    cursor: pointer;
+    text-decoration: none;
+  }
+  .smd-page-body .btn:disabled, .smd-tab-panel .btn:disabled { opacity: 0.55; pointer-events: none; }
+  .smd-tab-panel .btn-primary { background: var(--bs-primary, #0d6efd); color: #fff; }
+  .smd-tab-panel .btn-danger { background: var(--bs-danger, #e74c3c); color: #fff; }
+  .smd-tab-panel .btn-info { background: var(--bs-info, #0dcaf0); color: #000; }
+  .smd-tab-panel .btn-outline-info { background: transparent; color: var(--bs-info, #31d2f2); border-color: var(--bs-info, #31d2f2); }
+  .smd-tab-panel .btn-outline-secondary { background: transparent; color: var(--bs-secondary-color, #adb5bd); border-color: var(--bs-secondary-color, #6c757d); }
+  .smd-tab-panel .btn-sm { padding: 0.25rem 0.5rem; font-size: 0.85rem; border-radius: 0.25rem; }
+  .smd-tab-panel .btn-wide, .smd-tab-panel .w-100 { width: 100%; }
+  .smd-tab-panel .dropdown { position: relative; }
+  .smd-tab-panel .dropdown-toggle {
+    border: 1px solid var(--bs-border-color, #6c757d);
+    background: var(--bs-tertiary-bg, #303030);
+    color: var(--bs-body-color, #eee);
+    text-align: left;
+  }
+  .smd-tab-panel .dropdown-toggle::after {
+    content: "";
+    display: inline-block;
+    margin-left: 0.5rem;
+    vertical-align: middle;
+    border-top: 0.3em solid;
+    border-right: 0.3em solid transparent;
+    border-bottom: 0;
+    border-left: 0.3em solid transparent;
+    opacity: 0.7;
+  }
+  .smd-tab-panel .dropdown-menu {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    z-index: 1000;
+    min-width: 100%;
+    padding: 0.25rem 0;
+    margin: 0.125rem 0 0;
+    list-style: none;
+    background: var(--bs-body-bg, #222);
+    border: 1px solid var(--bs-border-color, #444);
+    border-radius: 0.375rem;
+  }
+  .smd-tab-panel .dropdown-menu.show { display: block; }
+  .smd-tab-panel .dropdown-menu-end { right: 0; left: auto; }
+  .smd-tab-panel .dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.35rem 1rem;
+    color: var(--bs-body-color, #eee);
+    text-decoration: none;
+    cursor: pointer;
+    background: transparent;
+    border: none;
+    text-align: left;
+  }
+  .smd-tab-panel .dropdown-item:hover, .smd-tab-panel .dropdown-item.active {
+    background: var(--bs-primary, #0d6efd);
+    color: #fff;
+  }
+  .smd-page-body .d-flex, .smd-tab-panel .d-flex { display: flex; }
+  .smd-tab-panel .flex-column { flex-direction: column; }
+  .smd-tab-panel .flex-grow-1 { flex-grow: 1; }
+  .smd-tab-panel .flex-shrink-0 { flex-shrink: 0; }
+  .smd-tab-panel .align-items-center { align-items: center; }
+  .smd-tab-panel .align-self-center { align-self: center; }
+  .smd-tab-panel .gap-1 { gap: 0.25rem; }
+  .smd-tab-panel .gap-2 { gap: 0.5rem; }
+  .smd-page-body .mb-0, .smd-tab-panel .mb-0 { margin-bottom: 0; }
+  .smd-page-body .mb-1, .smd-tab-panel .mb-1 { margin-bottom: 0.25rem; }
+  .smd-page-body .mb-2, .smd-tab-panel .mb-2 { margin-bottom: 0.5rem; }
+  .smd-tab-panel .mb-3 { margin-bottom: 1rem; }
+  .smd-tab-panel .mb-4 { margin-bottom: 1.5rem; }
+  .smd-tab-panel .mt-1 { margin-top: 0.25rem; }
+  .smd-tab-panel .mt-2 { margin-top: 0.5rem; }
+  .smd-tab-panel .mt-3 { margin-top: 1rem; }
+  .smd-tab-panel .ms-4 { margin-left: 1.5rem; }
+  .smd-tab-panel .text-secondary { color: var(--bs-secondary-color, #adb5bd); }
+  .smd-tab-panel .h-100 { height: 100%; }
+  .smd-tab-panel .position-relative { position: relative; }
+  .smd-tab-panel .task-drag-card {
+    background: var(--bs-tertiary-bg, #2a2a2a);
+    border-radius: 6px;
+    padding: 0.25rem 0.5rem;
+  }
+  .smd-tab-panel .drag-handle {
+    cursor: grab;
+    color: var(--bs-secondary-color, #aaa);
+    padding: 0 0.25rem;
+    user-select: none;
+  }
+  .smd-tab-panel .task-desc-input { flex: 1 1 auto; min-width: 0; }
+  .d-none { display: none !important; }
+`;
 
 var SETTINGS_STYLES = `
   .smd-tab-btn {
@@ -1987,11 +2285,22 @@ function injectSettingsStyles() {
   }
 }
 
-function injectStyleInto(root) {
-  if (!root || root.querySelector(".smd-settings-style")) return;
+function injectJobEditStyles() {
+  var page = document.getElementById("jobEditPage");
+  if (page && page.shadowRoot) {
+    injectStyleInto(page.shadowRoot, JOBS_EDITOR_STYLES);
+  }
+  var tabs = $id("jobEditTabs");
+  if (tabs && tabs.shadowRoot) {
+    injectStyleInto(tabs.shadowRoot, JOBS_EDITOR_STYLES);
+  }
+}
+
+function injectStyleInto(root, css) {
+  if (!root || root.querySelector(".smd-shared-style")) return;
   var style = document.createElement("style");
-  style.className = "smd-settings-style";
-  style.textContent = SETTINGS_STYLES;
+  style.className = "smd-shared-style";
+  style.textContent = css || SETTINGS_STYLES;
   root.appendChild(style);
 }
 
@@ -2218,6 +2527,23 @@ document.addEventListener("DOMContentLoaded", () => {
   const settingsPage = document.getElementById("settingsPage");
   if (settingsPage) {
     settingsPage.addEventListener("smd-page-action", () => closeSettings());
+  }
+
+  const jobEditPage = document.getElementById("jobEditPage");
+  if (jobEditPage) {
+    jobEditPage.addEventListener("smd-page-action", (e) => {
+      const action = e.detail && (typeof e.detail === "string" ? e.detail : e.detail.action);
+      if (!action) return;
+      if (action === "edit") {
+        editJobFromView();
+      } else if (action === "cancel") {
+        cancelJobEdit();
+      } else if (action === "done") {
+        doneJobEdit();
+      } else if (action === "delete") {
+        deleteJobFromEdit();
+      }
+    });
   }
 
   const savedTheme = localStorage.getItem("planmydays_theme") || "darkly";
