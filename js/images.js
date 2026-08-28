@@ -630,7 +630,7 @@ let imagePickerSearch = "";
 function openImagePicker(callback) {
   imagePickerCallback = callback;
   imagePickerSearch = "";
-  const modalIds = ["streamEditModal", "jobEditModal"];
+  const modalIds = ["streamEditModal"];
   const openModals = [];
   modalIds.forEach(id => {
     const el = document.getElementById(id);

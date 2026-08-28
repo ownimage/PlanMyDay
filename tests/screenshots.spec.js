@@ -194,8 +194,9 @@ async function setTheme(page, themeName) {
       renderStreamsEditor();
     }
     // Refresh themed preview images in open modals, preserving form/tab state.
-    const jobModalOpen = !!document.getElementById("jobEditModal") && document.getElementById("jobEditModal").classList.contains("show");
-    if (jobModalOpen) {
+    const jobEditPageEl = document.getElementById("jobEditPage");
+    const jobPageOpen = !!jobEditPageEl && !jobEditPageEl.classList.contains("d-none");
+    if (jobPageOpen) {
       if (typeof updateJobStreamPreview === "function") updateJobStreamPreview();
       if (typeof updateJobImagePreview === "function" && typeof jobsBuffer !== "undefined" && jobsBuffer) {
         updateJobImagePreview(jobsBuffer.image);
@@ -307,7 +308,7 @@ test.describe("PlanMyDay - Screenshots", () => {
     await seedMainView(page);
     await page.reload();
     await page.getByText("+ Add Job").click();
-    await page.locator("#jobEditModal").waitFor({ state: "visible" });
+    await page.locator("#jobEditPage").waitFor({ state: "visible" });
     await page.waitForTimeout(400);
     await screenshotAllThemes(page, "main-screen-add-job.png");
   });
@@ -417,7 +418,7 @@ test.describe("PlanMyDay - Screenshots", () => {
     await page.locator("#streamEditorList .stream-header-main").first().click();
     await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible", timeout: 5000 });
     await page.getByRole("button", { name: "Add Job" }).first().click();
-    await page.locator("#jobEditModal").waitFor({ state: "visible" });
+    await page.locator("#jobEditPage").waitFor({ state: "visible" });
     await page.waitForTimeout(400);
     await screenshotAllThemes(page, "stream-add-job.png");
   });
@@ -475,7 +476,7 @@ test.describe("PlanMyDay - Screenshots", () => {
     await page.reload();
     await page.waitForSelector(".today-drag-card");
     await page.locator(".job-view-btn").first().click();
-    await page.locator("#jobEditModal").waitFor({ state: "visible" });
+    await page.locator("#jobEditPage").waitFor({ state: "visible" });
     await page.waitForTimeout(400);
   }
 
@@ -509,7 +510,7 @@ test.describe("PlanMyDay - Screenshots", () => {
     await page.locator("#streamEditorList .stream-header-main").first().click();
     await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible", timeout: 5000 });
     await page.locator("#streamEditorList .accordion-body .card").first().getByRole("button", { name: "Edit" }).click();
-    await page.locator("#jobEditModal").waitFor({ state: "visible" });
+    await page.locator("#jobEditPage").waitFor({ state: "visible" });
     await page.waitForTimeout(400);
     await screenshotAllThemes(page, "edit-job.png");
   });
@@ -525,7 +526,7 @@ test.describe("PlanMyDay - Screenshots", () => {
     await page.locator("#streamEditorList .stream-header-main").first().click();
     await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible", timeout: 5000 });
     await page.locator("#streamEditorList .accordion-body .card").first().getByRole("button", { name: "Edit" }).click();
-    await page.locator("#jobEditModal").waitFor({ state: "visible" });
+    await page.locator("#jobEditPage").waitFor({ state: "visible" });
     await page.locator("#jobSchedule-tab").click();
     await page.locator("#btnScheduleChange").click();
     await page.locator("#scheduleModal").waitFor({ state: "visible" });
@@ -620,7 +621,7 @@ test.describe("PlanMyDay - Screenshots", () => {
     await page.locator("#streamEditorList .stream-header-main").first().click();
     await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible", timeout: 5000 });
     await page.locator("#streamEditorList .job-drag-card").filter({ hasText: "Report" }).getByRole("button", { name: "Edit" }).click();
-    await page.locator("#jobEditModal").waitFor({ state: "visible" });
+    await page.locator("#jobEditPage").waitFor({ state: "visible" });
     await page.waitForTimeout(400);
   }
 
