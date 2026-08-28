@@ -5380,6 +5380,8 @@ test.describe("PlanMyDay - Regression", () => {
     // ── loadMinioSettings populates form ───────────────────
 
     test("loadMinioSettings populates fields from localStorage", async ({ page }) => {
+      await page.getByTitle("Settings").click();
+      await page.locator("#minio-tab").click();
       await page.evaluate(() => {
         localStorage.setItem("planmydays_minio_enabled", "true");
         localStorage.setItem("planmydays_minio_server", "http://srv:9000");
@@ -5396,6 +5398,8 @@ test.describe("PlanMyDay - Regression", () => {
     });
 
     test("loadMinioSettings disables fields when not enabled", async ({ page }) => {
+      await page.getByTitle("Settings").click();
+      await page.locator("#minio-tab").click();
       await page.evaluate(() => loadMinioSettings());
       await expect(page.locator("#minioServer")).toBeDisabled();
       await expect(page.locator("#minioUsername")).toBeDisabled();
@@ -6004,7 +6008,8 @@ test.describe("PlanMyDay - Regression", () => {
         await page.locator("#jobAddTaskBottomBtn").click();
         await expect(page.locator("#jobTasksList .task-row")).toHaveCount(startLen + 1);
         const focused = await page.evaluate(() => {
-          const el = document.activeElement;
+          const tabs = $id("jobEditTabs");
+          const el = tabs && tabs.shadowRoot ? tabs.shadowRoot.activeElement : null;
           if (!el || !el.classList.contains("task-desc-input")) return null;
           const row = el.closest(".task-row");
           return row ? Number(row.getAttribute("data-task-index")) : null;
@@ -6024,12 +6029,14 @@ test.describe("PlanMyDay - Regression", () => {
         const result = await page.evaluate(() => {
           const body = document.querySelector("#jobEditPage").shadowRoot.querySelector(".smd-page-body");
           const inputs = $id("jobTasksList").querySelectorAll(".task-row .task-desc-input");
+          const tabs = $id("jobEditTabs");
+          const active = tabs && tabs.shadowRoot ? tabs.shadowRoot.activeElement : null;
           const el = inputs[inputs.length - 1];
           const br = el.getBoundingClientRect();
           const bb = body.getBoundingClientRect();
           return {
             scrollTop: body.scrollTop,
-            focused: el === document.activeElement,
+            focused: el === active,
             visible: br.top >= bb.top && br.bottom <= bb.bottom
           };
         });

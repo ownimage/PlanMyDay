@@ -1122,8 +1122,11 @@ function jobTaskField(index, field, value) {
   if (!jobsBuffer || !jobsBuffer.tasks) return;
   jobsBuffer.tasks[index][field] = value;
   if (field === "note") {
-    var row = document.querySelector('.task-row[data-task-index="' + index + '"]');
-    if (row) setTaskNoteBtnClass(row.querySelector(".task-note-btn"), jobsBuffer.tasks[index]);
+    var list = $id("jobTasksList");
+    if (list) {
+      var row = list.querySelector('.task-row[data-task-index="' + index + '"]');
+      if (row) setTaskNoteBtnClass(row.querySelector(".task-note-btn"), jobsBuffer.tasks[index]);
+    }
   }
 }
 
@@ -2332,6 +2335,7 @@ function openSettings() {
   settingsPage.classList.remove("d-none");
   buildSettingsContent();
   settingsPage.show();
+  if (typeof bindMinioSettingsTabBehavior === "function") bindMinioSettingsTabBehavior();
 
   const savedTheme = localStorage.getItem("planmydays_theme") || "darkly";
   const themeSel = $id("themeSelector");

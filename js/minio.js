@@ -544,7 +544,12 @@ function importMinioFile(bucket, key) {
   });
 }
 
-document.addEventListener("DOMContentLoaded", function() {
-  var minioTab = document.getElementById("minio-tab");
-  if (minioTab) minioTab.addEventListener("hidden.bs.tab", hideMinioPassword);
-});
+function bindMinioSettingsTabBehavior() {
+  var tabs = $id("settingsTabs");
+  if (!tabs || tabs.__minioTabBound) return;
+  tabs.__minioTabBound = true;
+  tabs.addEventListener("smd-tabs-change", function(e) {
+    var tab = e.detail && e.detail.tab;
+    if ((!tab || tab.id !== "minio-tab")) hideMinioPassword();
+  });
+}
