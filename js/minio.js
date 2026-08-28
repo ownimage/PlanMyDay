@@ -2,8 +2,11 @@
 
 function changeMinioEnabled(enabled) {
   localStorage.setItem("planmydays_minio_enabled", String(enabled));
-  var fields = document.querySelectorAll("#minioFields input, #minioFields button");
-  for (var i = 0; i < fields.length; i++) fields[i].disabled = !enabled;
+  var fields = $id("minioFields");
+  if (fields) {
+    var inputs = fields.querySelectorAll("input, button");
+    for (var i = 0; i < inputs.length; i++) inputs[i].disabled = !enabled;
+  }
   updateMinioMenu();
 }
 
@@ -20,8 +23,8 @@ function changeMinioPassword(value) {
 }
 
 function setMinioPasswordVisible(show) {
-  var input = document.getElementById("minioPassword");
-  var eye = document.getElementById("minioPasswordEye");
+  var input = $id("minioPassword");
+  var eye = $id("minioPasswordEye");
   if (!input || !eye) return;
   input.type = show ? "text" : "password";
   if (show) {
@@ -32,7 +35,7 @@ function setMinioPasswordVisible(show) {
 }
 
 function toggleMinioPassword() {
-  var input = document.getElementById("minioPassword");
+  var input = $id("minioPassword");
   if (!input) return;
   setMinioPasswordVisible(input.type === "password");
 }
@@ -43,6 +46,14 @@ function hideMinioPassword() {
 
 function changeMinioBucket(value) {
   localStorage.setItem("planmydays_minio_bucket", value);
+}
+
+function minioFriendlyError(e) {
+  var msg = (e && e.message) || String(e);
+  if (msg.indexOf("Failed to fetch") !== -1 || msg.indexOf("NetworkError") !== -1 || msg.indexOf("ERR_") !== -1) {
+    msg = "Cannot reach Minio server. Check: (1) server URL is correct, (2) device and server are on the same network, (3) Minio has CORS set (mc admin config set myminio api cors_allow_origin=\"*\"), (4) HTTPS mixed content if the PWA is on HTTPS but Minio is on HTTP.";
+  }
+  return msg;
 }
 
 function showMinioAlert(message, type) {
@@ -86,18 +97,21 @@ function getMinioConfig() {
 
 function loadMinioSettings() {
   var config = getMinioConfig();
-  var el = document.getElementById("minioEnabled");
+  var el = $id("minioEnabled");
   if (el) el.checked = config.enabled;
-  el = document.getElementById("minioServer");
+  el = $id("minioServer");
   if (el) el.value = config.server;
-  el = document.getElementById("minioUsername");
+  el = $id("minioUsername");
   if (el) el.value = config.username;
-  el = document.getElementById("minioPassword");
+  el = $id("minioPassword");
   if (el) el.value = config.password;
-  el = document.getElementById("minioBucket");
+  el = $id("minioBucket");
   if (el) el.value = config.bucket;
-  var fields = document.querySelectorAll("#minioFields input, #minioFields button");
-  for (var i = 0; i < fields.length; i++) fields[i].disabled = !config.enabled;
+  var fields = $id("minioFields");
+  if (fields) {
+    var inputs = fields.querySelectorAll("input, button");
+    for (var i = 0; i < inputs.length; i++) inputs[i].disabled = !config.enabled;
+  }
 }
 
 function updateMinioMenu() {
@@ -109,21 +123,106 @@ function updateMinioMenu() {
   }
 }
 
-// --- Crypto helpers (Web Crypto API) ---
+// --- Crypto helpers (Web Crypto API + pure JS fallback) ---
+
+function hasSubtleCrypto() {
+  return typeof crypto !== "undefined" && !!crypto.subtle;
+}
 
 function sha256(message) {
-  var msg = new TextEncoder().encode(message);
-  return crypto.subtle.digest("SHA-256", msg).then(function(buf) {
-    return Array.from(new Uint8Array(buf)).map(function(b) { return b.toString(16).padStart(2, "0"); }).join("");
-  });
+  var raw = new TextEncoder().encode(String(message));
+  if (hasSubtleCrypto()) {
+    return crypto.subtle.digest("SHA-256", raw).then(function(buf) {
+      return bufToHex(new Uint8Array(buf));
+    });
+  }
+  return Promise.resolve(hexFromBytes(sha256Core(raw)));
 }
 
 function hmacSign(keyData, message) {
-  var raw = typeof keyData === "string" ? new TextEncoder().encode(keyData) : keyData;
-  return crypto.subtle.importKey("raw", raw, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]).then(function(cKey) {
-    var msg = new TextEncoder().encode(message);
-    return crypto.subtle.sign("HMAC", cKey, msg);
-  });
+  var key = typeof keyData === "string" ? new TextEncoder().encode(keyData) : new Uint8Array(keyData);
+  var msg = new TextEncoder().encode(message);
+  if (hasSubtleCrypto()) {
+    return crypto.subtle.importKey("raw", key, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]).then(function(cKey) {
+      return crypto.subtle.sign("HMAC", cKey, msg);
+    });
+  }
+  return Promise.resolve(hmacSha256Core(key, msg));
+}
+
+function hexFromBytes(bytes) {
+  var s = "";
+  for (var i = 0; i < bytes.length; i++) s += ("0" + bytes[i].toString(16)).slice(-2);
+  return s;
+}
+
+function sha256Core(bytes) {
+  var K = [0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2];
+  var H = [0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,0x510e527f,0x9b05688c,0x1f83d9ab,0x5be0cd19];
+  var l = bytes.length;
+  var bitLenHi = Math.floor(l / 0x20000000);
+  var bitLenLo = (l << 3) >>> 0;
+  var paddedLength = Math.ceil((l + 9) / 64) * 64;
+  var m = new Uint8Array(paddedLength);
+  m.set(bytes);
+  m[l] = 0x80;
+  m[paddedLength - 8] = bitLenHi >>> 24;
+  m[paddedLength - 7] = bitLenHi >>> 16;
+  m[paddedLength - 6] = bitLenHi >>> 8;
+  m[paddedLength - 5] = bitLenHi;
+  m[paddedLength - 4] = bitLenLo >>> 24;
+  m[paddedLength - 3] = bitLenLo >>> 16;
+  m[paddedLength - 2] = bitLenLo >>> 8;
+  m[paddedLength - 1] = bitLenLo;
+  var w = new Int32Array(64);
+  function rotr(x, n) { return ((x >>> n) | (x << (32 - n))) >>> 0; }
+  for (var chunk = 0; chunk < paddedLength; chunk += 64) {
+    for (var i = 0; i < 16; i++) {
+      w[i] = (m[chunk + i * 4] << 24) | (m[chunk + i * 4 + 1] << 16) | (m[chunk + i * 4 + 2] << 8) | (m[chunk + i * 4 + 3]);
+    }
+    for (var j = 16; j < 64; j++) {
+      var s0 = rotr(w[j - 15], 7) ^ rotr(w[j - 15], 18) ^ (w[j - 15] >>> 3);
+      var s1 = rotr(w[j - 2], 17) ^ rotr(w[j - 2], 19) ^ (w[j - 2] >>> 10);
+      w[j] = (w[j - 16] + s0 + w[j - 7] + s1) | 0;
+    }
+    var a = H[0], b = H[1], c = H[2], d = H[3], e = H[4], f = H[5], g = H[6], h = H[7];
+    for (var k = 0; k < 64; k++) {
+      var S1 = rotr(e, 6) ^ rotr(e, 11) ^ rotr(e, 25);
+      var ch = (e & f) ^ (~e & g);
+      var temp1 = (h + S1 + ch + K[k] + w[k]) | 0;
+      var S0 = rotr(a, 2) ^ rotr(a, 13) ^ rotr(a, 22);
+      var maj = (a & b) ^ (a & c) ^ (b & c);
+      var temp2 = (S0 + maj) | 0;
+      h = g; g = f; f = e; e = (d + temp1) | 0; d = c; c = b; b = a; a = (temp1 + temp2) | 0;
+    }
+    H[0] = (H[0] + a) | 0; H[1] = (H[1] + b) | 0; H[2] = (H[2] + c) | 0; H[3] = (H[3] + d) | 0;
+    H[4] = (H[4] + e) | 0; H[5] = (H[5] + f) | 0; H[6] = (H[6] + g) | 0; H[7] = (H[7] + h) | 0;
+  }
+  var out = new Uint8Array(32);
+  for (var n = 0; n < 8; n++) {
+    out[n * 4] = H[n] >>> 24; out[n * 4 + 1] = H[n] >>> 16; out[n * 4 + 2] = H[n] >>> 8; out[n * 4 + 3] = H[n];
+  }
+  return out;
+}
+
+function hmacSha256Core(key, msg) {
+  var blockSize = 64;
+  if (key.length > blockSize) key = sha256Core(key);
+  var ipad = new Uint8Array(blockSize);
+  var opad = new Uint8Array(blockSize);
+  for (var i = 0; i < blockSize; i++) {
+    var kb = i < key.length ? key[i] : 0;
+    ipad[i] = kb ^ 0x36;
+    opad[i] = kb ^ 0x5c;
+  }
+  var inner = new Uint8Array(ipad.length + msg.length);
+  inner.set(ipad);
+  inner.set(msg, ipad.length);
+  var innerHash = sha256Core(inner);
+  var outer = new Uint8Array(opad.length + innerHash.length);
+  outer.set(opad);
+  outer.set(innerHash, opad.length);
+  return sha256Core(outer);
 }
 
 function getSignatureKey(key, dateStamp, region, service) {
@@ -286,11 +385,7 @@ function exportToMinio() {
   minioPutObject(config.bucket, filename, body, config).then(function() {
     showMinioAlert("Exported " + filename + " to Minio bucket " + config.bucket, "info");
   }).catch(function(e) {
-    var msg = e.message || "";
-    if (msg.indexOf("Failed to fetch") !== -1 || msg.indexOf("NetworkError") !== -1) {
-      msg = "Cannot reach Minio server. Check: (1) server URL is correct, (2) iPhone and server are on the same network, (3) Minio has CORS set (mc admin config set myminio api cors_allow_origin=\"*\"), (4) HTTPS mixed content if PWA is on HTTPS but Minio is on HTTP.";
-    }
-    showMinioAlert("Minio export failed: " + msg, "error");
+    showMinioAlert("Minio export failed: " + minioFriendlyError(e), "error");
   });
 }
 
@@ -369,7 +464,7 @@ function loadMinioBuckets() {
       }).join("");
   }).catch(function(e) {
     closeMinioImport();
-    showMinioAlert("Failed to list buckets: " + e.message, "error");
+    showMinioAlert("Failed to list buckets: " + minioFriendlyError(e), "error");
   });
 }
 
@@ -406,7 +501,7 @@ function loadMinioBucketFiles(bucket) {
       "</ul>";
   }).catch(function(e) {
     closeMinioImport();
-    showMinioAlert("Failed to list files: " + e.message, "error");
+    showMinioAlert("Failed to list files: " + minioFriendlyError(e), "error");
   });
 }
 

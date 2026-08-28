@@ -124,34 +124,12 @@
     </div>
 
     <!-- SETTINGS PAGE -->
-    <div id="settingsPage" class="d-none">
-      <div class="d-flex align-items-center mb-3">
-        <h2 class="mb-0">Settings</h2>
-        <button id="btnSettingsDone" class="btn btn-success editor-btn ms-auto" onclick="closeSettings()">Done</button>
-      </div>
-
-      <ul class="nav nav-tabs nav-tabs-info" id="settingsTabs" role="tablist">
-        <li class="nav-item" role="presentation">
-          <button class="nav-link active" id="general-tab" data-bs-toggle="tab" data-bs-target="#general" type="button" role="tab" aria-controls="general" aria-selected="true">General</button>
-        </li>
-        <li class="nav-item" role="presentation">
-          <button class="nav-link" id="appearance-tab" data-bs-toggle="tab" data-bs-target="#appearance" type="button" role="tab" aria-controls="appearance" aria-selected="false">Appearance</button>
-        </li>
-        <li class="nav-item" role="presentation">
-          <button class="nav-link" id="schedule-tab" data-bs-toggle="tab" data-bs-target="#schedule" type="button" role="tab" aria-controls="schedule" aria-selected="false">Schedule</button>
-        </li>
-        <li class="nav-item" role="presentation">
-          <button class="nav-link" id="minio-tab" data-bs-toggle="tab" data-bs-target="#minio" type="button" role="tab" aria-controls="minio" aria-selected="false">Minio</button>
-        </li>
-        <li class="nav-item" role="presentation">
-          <button class="nav-link" id="danger-tab" data-bs-toggle="tab" data-bs-target="#danger" type="button" role="tab" aria-controls="danger" aria-selected="false">Danger</button>
-        </li>
-      </ul>
-
-      <div class="tab-content flex-grow-1" id="settingsTabsContent">
+    <smd-page id="settingsPage" class="d-none"></smd-page>
+    <template id="settingsTemplate">
+      <div class="smd-settings">
 
         <!-- General -->
-        <div class="tab-pane fade show active" id="general" role="tabpanel" aria-labelledby="general-tab">
+        <section class="smd-settings-tab" data-tab="General" data-tab-id="general-tab">
           <div class="row mb-4 align-items-center col-md-8 mt-3">
             <div class="col-4 text-end"><label class="form-label mb-0">Split list</label></div>
             <div class="col-8">
@@ -187,10 +165,10 @@
               </div>
             </div>
           </div>
-        </div>
+        </section>
 
         <!-- Appearance -->
-        <div class="tab-pane fade" id="appearance" role="tabpanel" aria-labelledby="appearance-tab">
+        <section class="smd-settings-tab" data-tab="Appearance" data-tab-id="appearance-tab">
           <div class="row mb-3 align-items-center col-md-8 mt-3">
             <div class="col-4 text-end"><label class="form-label mb-0">Theme</label></div>
             <div class="col-8">
@@ -273,10 +251,10 @@
               <span id="screenResolution" class="form-control-plaintext"></span>
             </div>
           </div>
-        </div>
+        </section>
 
         <!-- Schedule -->
-        <div class="tab-pane fade" id="schedule" role="tabpanel" aria-labelledby="schedule-tab">
+        <section class="smd-settings-tab" data-tab="Schedule" data-tab-id="schedule-tab">
           <div class="row mb-4 align-items-center col-md-8 mt-3">
             <div class="col-4 text-end"><label class="form-label mb-0">Suffix start</label></div>
             <div class="col-8">
@@ -321,10 +299,10 @@
               </select>
             </div>
           </div>
-        </div>
+        </section>
 
         <!-- Minio -->
-        <div class="tab-pane fade" id="minio" role="tabpanel" aria-labelledby="minio-tab">
+        <section class="smd-settings-tab" data-tab="Minio" data-tab-id="minio-tab">
           <div class="row mb-4 align-items-center col-md-8 mt-3">
             <div class="col-4 text-end"><label class="form-label mb-0">Enable</label></div>
             <div class="col-8">
@@ -367,10 +345,10 @@
               </div>
             </div>
           </div>
-        </div>
+        </section>
 
         <!-- Danger -->
-        <div class="tab-pane fade" id="danger" role="tabpanel" aria-labelledby="danger-tab">
+        <section class="smd-settings-tab" data-tab="Danger" data-tab-id="danger-tab">
           <div class="row mb-4 align-items-center col-md-8 mt-3">
             <div class="col-4 text-end"><label class="form-label mb-0">Show danger</label></div>
             <div class="col-8">
@@ -424,31 +402,29 @@
               <input class="form-control" id="devLastGenInput" placeholder="Pick a date">
             </div>
           </div>
-        </div>
+        </section>
 
-      </div>
-
-      <div class="mt-3">
-        <div class="row align-items-center col-md-8 mb-3">
-          <div class="col-4 text-end"></div>
-          <div class="col-8">
-            <a href="https://buymeacoffee.com/ownimage" target="_blank" rel="noopener">
-              <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height:50px">
-            </a>
+        <div id="settingsFooter" class="mt-3">
+          <div class="row align-items-center col-md-8 mb-3">
+            <div class="col-4 text-end"></div>
+            <div class="col-8">
+              <a href="https://buymeacoffee.com/ownimage" target="_blank" rel="noopener">
+                <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height:50px">
+              </a>
+            </div>
           </div>
-        </div>
 
-        <div class="row mb-4 align-items-center col-md-8">
-          <div class="col-4 text-end"><label class="form-label mb-0">Share app</label></div>
-          <div class="col-8">
-            <div id="shareQrCode" style="background:white;padding:10px;display:inline-block;border-radius:8px;"></div>
+          <div class="row mb-4 align-items-center col-md-8">
+            <div class="col-4 text-end"><label class="form-label mb-0">Share app</label></div>
+            <div class="col-8">
+              <div id="shareQrCode" style="background:white;padding:10px;display:inline-block;border-radius:8px;"></div>
+            </div>
           </div>
-        </div>
 
-        <div class="mt-5 small build-number">Build <span id="buildNumber"></span></div>
+          <div class="mt-5 small build-number">Build <span id="buildNumber"></span></div>
+        </div>
       </div>
-    </div>
-    <script>document.getElementById("buildNumber").textContent = BUILD_NUMBER;</script>
+    </template>
     <!-- hidden sample data for icons, loaded on first visit -->
     <script id="sampleDataScript" type="application/json"></script>
 
@@ -607,6 +583,8 @@
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
 
   <script>
+  document.write('<script src="js/components/smd-page.js?v=' + BUILD_NUMBER + '"><\/script>');
+  document.write('<script src="js/components/smd-tabs.js?v=' + BUILD_NUMBER + '"><\/script>');
   document.write('<script src="js/minio.js?v=' + BUILD_NUMBER + '"><\/script>');
   document.write('<script src="js/settings.js?v=' + BUILD_NUMBER + '"><\/script>');
   document.write('<script src="js/app.js?v=' + BUILD_NUMBER + '"><\/script>');

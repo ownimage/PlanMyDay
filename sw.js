@@ -10,6 +10,8 @@ const PRECACHE_URLS = [
   "sampleImages.json",
   "css/styles.css",
   "js/build-number.js",
+  "js/components/smd-page.js",
+  "js/components/smd-tabs.js",
   "js/minio.js",
   "js/settings.js",
   "js/app.js",
