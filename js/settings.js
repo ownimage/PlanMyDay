@@ -36,6 +36,38 @@ function applyTheme(name) {
   document.documentElement.setAttribute("data-bs-theme", config.bsTheme);
   document.documentElement.setAttribute("data-theme", name);
   localStorage.setItem("planmydays_theme", name);
+  applySmdVars();
+}
+
+function applySmdVars() {
+  const root = document.documentElement;
+  root.style.setProperty("--smd-primary", "var(--bs-primary, #0d6efd)");
+  root.style.setProperty("--smd-secondary", "var(--bs-secondary, #6c757d)");
+  root.style.setProperty("--smd-success", "var(--bs-success, #198754)");
+  root.style.setProperty("--smd-danger", "var(--bs-danger, #dc3545)");
+  root.style.setProperty("--smd-warning", "var(--bs-warning, #ffc107)");
+  root.style.setProperty("--smd-primary-text", "#fff");
+}
+
+// Shadow-aware id lookup. Falls back to searching within shadow roots so
+// settings controls rendered by smd-page/smd-tabs remain reachable by id.
+function $id(id, root) {
+  root = root || document;
+  if (typeof root.getElementById === "function") {
+    const el = root.getElementById(id);
+    if (el) return el;
+  }
+  const base = root === document ? (root.body || root) : root;
+  if (!base) return null;
+  const walker = document.createTreeWalker(base, NodeFilter.SHOW_ELEMENT);
+  let node;
+  while ((node = walker.nextNode())) {
+    if (node.shadowRoot) {
+      const found = $id(id, node.shadowRoot);
+      if (found) return found;
+    }
+  }
+  return null;
 }
 
 function changeTheme(name) {
@@ -120,7 +152,7 @@ function changeShowDanger(enabled) {
   const dangerIds = ["clearAllDataRow", "refreshAppRow", "regenerateTilesRow", "sortJobsInStreamsRow", "uploadStandardImagesRow"];
   if (isDevMode) dangerIds.push("devTodayRow", "devLastGenRow");
   dangerIds.forEach(id => {
-    const el = document.getElementById(id);
+    const el = $id(id);
     if (el) el.classList.toggle("d-none", !enabled);
   });
 }
@@ -196,7 +228,7 @@ function changeAutoHideMenu(enabled) {
 }
 
 function updateScreenResolution() {
-  const el = document.getElementById("screenResolution");
+  const el = $id("screenResolution");
   if (!el) return;
   const w = window.innerWidth;
   const h = window.innerHeight;

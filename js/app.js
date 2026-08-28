@@ -1822,50 +1822,242 @@ function getJobSuffix(job) {
 }
 
 // SETTINGS
+let _settingsSections = null;
+let _settingsFooterHtml = null;
+let _settingsCloseTimer = null;
+
+function getSettingsSections() {
+  if (_settingsSections) return { sections: _settingsSections, footerHtml: _settingsFooterHtml };
+  const template = document.getElementById("settingsTemplate");
+  if (!template) return { sections: [], footerHtml: "" };
+  const clone = template.content.cloneNode(true);
+  _settingsSections = Array.from(clone.querySelectorAll(".smd-settings-tab")).map(sec => ({
+    id: sec.dataset.tabId || null,
+    title: sec.dataset.tab,
+    content: sec.innerHTML
+  }));
+  const footer = clone.querySelector("#settingsFooter");
+  _settingsFooterHtml = (footer ? footer.outerHTML : "").replace('id="buildNumber"></span>', 'id="buildNumber">' + (typeof BUILD_NUMBER !== "undefined" ? BUILD_NUMBER : "") + '</span>');
+  template.remove();
+  return { sections: _settingsSections, footerHtml: _settingsFooterHtml };
+}
+
+var SETTINGS_STYLES = `
+  .smd-tab-panel *, .smd-tab-panel *::before, .smd-tab-panel *::after,
+  #settingsFooter *, #settingsFooter *::before, #settingsFooter *::after {
+    box-sizing: border-box;
+  }
+  .smd-tab-panel .row, #settingsFooter .row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    width: 100%;
+    max-width: 1040px;
+    margin-bottom: 1.5rem;
+  }
+  .smd-tab-panel .col-md-8, #settingsFooter .col-md-8 { max-width: 1040px; }
+  .smd-tab-panel .col-4, #settingsFooter .col-4 {
+    flex: 0 0 33.333333%;
+    max-width: 33.333333%;
+    padding-right: 0.75rem;
+  }
+  .smd-tab-panel .col-8, #settingsFooter .col-8 {
+    flex: 0 0 66.666667%;
+    max-width: 66.666667%;
+    padding-left: 0.75rem;
+  }
+  .smd-tab-panel .text-end, #settingsFooter .text-end { text-align: right; }
+  .smd-tab-panel .form-label, #settingsFooter .form-label {
+    margin-bottom: 0;
+    font-weight: 500;
+    color: var(--bs-body-color, #f8f9fa);
+  }
+  .smd-tab-panel .form-select,
+  .smd-tab-panel .form-control {
+    display: block;
+    width: 100%;
+    padding: 0.375rem 0.75rem;
+    font-size: 0.95rem;
+    font-weight: 400;
+    line-height: 1.5;
+    color: var(--bs-body-color, #f8f9fa);
+    background-color: var(--bs-body-bg, #222222);
+    background-clip: padding-box;
+    border: 1px solid var(--bs-border-color, #495057);
+    border-radius: 0.375rem;
+  }
+  .smd-tab-panel .form-control-plaintext {
+    display: block;
+    width: 100%;
+    padding: 0.375rem 0.75rem;
+    color: var(--bs-body-color, #f8f9fa);
+  }
+  .smd-tab-panel .form-switch { padding-left: 0; }
+  .smd-tab-panel .form-check-input[type="checkbox"] {
+    width: 2.5em;
+    height: 1.5em;
+    appearance: none;
+    -webkit-appearance: none;
+    margin: 0;
+    vertical-align: middle;
+    position: relative;
+    background-color: var(--bs-secondary-bg, #495057);
+    border: 1px solid var(--bs-border-color, #495057);
+    border-radius: 2em;
+    cursor: pointer;
+    transition: background-color 0.15s ease-in-out;
+  }
+  .smd-tab-panel .form-check-input[type="checkbox"]::before {
+    content: "";
+    position: absolute;
+    top: 0.15em;
+    left: 0.15em;
+    width: 1.2em;
+    height: 1.2em;
+    border-radius: 50%;
+    background-color: #fff;
+    transition: transform 0.15s ease-in-out;
+  }
+  .smd-tab-panel .form-check-input[type="checkbox"]:checked {
+    background-color: var(--bs-primary, #0d6efd);
+    border-color: var(--bs-primary, #0d6efd);
+  }
+  .smd-tab-panel .form-check-input[type="checkbox"]:checked::before {
+    transform: translateX(1em);
+  }
+  .smd-tab-panel .input-group {
+    display: flex;
+    align-items: stretch;
+    width: 100%;
+  }
+  .smd-tab-panel .input-group > .form-control {
+    flex: 1 1 auto;
+    width: 1%;
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+  .smd-tab-panel .input-group > .btn-outline-secondary {
+    flex: 0 0 auto;
+    border: 1px solid var(--bs-border-color, #6c757d);
+    border-left: 0;
+    background: var(--bs-tertiary-bg, #303030);
+    color: var(--bs-secondary-color, #adb5bd);
+    padding: 0.375rem 0.75rem;
+    border-radius: 0 0.375rem 0.375rem 0;
+    cursor: pointer;
+  }
+  .smd-tab-panel .btn {
+    display: inline-block;
+    padding: 0.375rem 0.75rem;
+    font-size: 0.95rem;
+    line-height: 1.5;
+    text-align: center;
+    border: 1px solid transparent;
+    border-radius: 0.375rem;
+    cursor: pointer;
+  }
+  .smd-tab-panel .btn-danger { background: var(--bs-danger, #e74c3c); color: #fff; }
+  .smd-tab-panel .btn-warning { background: var(--bs-warning, #f39c12); color: #000; }
+  .smd-tab-panel .btn-primary { background: var(--bs-primary, #0d6efd); color: #fff; }
+  .smd-tab-panel .editor-btn, .smd-tab-panel .btn-wide, .smd-tab-panel .w-100 { display: block; width: 100%; }
+  .smd-tab-panel .mb-2 { margin-bottom: 0.5rem; }
+  .smd-tab-panel .mb-3 { margin-bottom: 1rem; }
+  .smd-tab-panel .mb-4 { margin-bottom: 1.5rem; }
+  .smd-tab-panel .mt-1 { margin-top: 0.25rem; }
+  .smd-tab-panel .mt-3 { margin-top: 1rem; }
+  .d-none { display: none !important; }
+  #settingsFooter .mt-3 { margin-top: 1rem; }
+  #settingsFooter .mt-5 { margin-top: 3rem; }
+  #settingsFooter .mb-3 { margin-bottom: 1rem; }
+  #settingsFooter .small { font-size: 0.875em; }
+  #settingsFooter .build-number { color: var(--bs-secondary-color, #adb5bd); }
+`;
+
+function injectSettingsStyles() {
+  var sp = document.getElementById("settingsPage");
+  if (sp && sp.shadowRoot) {
+    injectStyleInto(sp.shadowRoot);
+  }
+  var tabs = $id("settingsTabs");
+  if (tabs && tabs.shadowRoot) {
+    injectStyleInto(tabs.shadowRoot);
+  }
+}
+
+function injectStyleInto(root) {
+  if (!root || root.querySelector(".smd-settings-style")) return;
+  var style = document.createElement("style");
+  style.className = "smd-settings-style";
+  style.textContent = SETTINGS_STYLES;
+  root.appendChild(style);
+}
+
+function buildSettingsContent() {
+  const settingsPage = document.getElementById("settingsPage");
+  if (!settingsPage) return;
+  const { sections, footerHtml } = getSettingsSections();
+
+  settingsPage.title = "Settings";
+  settingsPage.content = '<smd-tabs id="settingsTabs"></smd-tabs>' + footerHtml;
+  settingsPage.buttons = [{ text: "Done", variant: "success", action: "done" }];
+
+  const tabsEl = $id("settingsTabs");
+  if (tabsEl) tabsEl.tabs = sections;
+  injectSettingsStyles();
+}
+
 function openSettings() {
   document.getElementById("countdownContainer").classList.add("d-none");
   document.getElementById("streamsEditor").classList.add("d-none");
-  document.getElementById("settingsPage").classList.remove("d-none");
   document.getElementById("imagesEditor").classList.add("d-none");
   document.getElementById("jobSearchEditor").classList.add("d-none");
 
+  const settingsPage = document.getElementById("settingsPage");
+  if (_settingsCloseTimer) {
+    clearTimeout(_settingsCloseTimer);
+    _settingsCloseTimer = null;
+  }
+  settingsPage.classList.remove("d-none");
+  buildSettingsContent();
+  settingsPage.show();
+
   const savedTheme = localStorage.getItem("planmydays_theme") || "darkly";
-  const themeSel = document.getElementById("themeSelector");
+  const themeSel = $id("themeSelector");
   if (themeSel) themeSel.value = savedTheme;
   const savedFontSize = localStorage.getItem("planmydays_fontSize") || "xlarge";
-  const fontSizeSel = document.getElementById("fontSizeSelector");
+  const fontSizeSel = $id("fontSizeSelector");
   if (fontSizeSel) fontSizeSel.value = savedFontSize;
   const splitList = localStorage.getItem("planmydays_splitList") === "true";
-  const splitListCb = document.getElementById("splitList");
+  const splitListCb = $id("splitList");
   if (splitListCb) splitListCb.checked = splitList;
   const autoHide = localStorage.getItem("planmydays_autoHideMenu") === "true";
-  const autoHideCb = document.getElementById("autoHideMenu");
+  const autoHideCb = $id("autoHideMenu");
   if (autoHideCb) autoHideCb.checked = autoHide;
   const hideDone = localStorage.getItem("planmydays_hideDone") === "true";
-  const hideDoneCb = document.getElementById("hideDone");
+  const hideDoneCb = $id("hideDone");
   if (hideDoneCb) hideDoneCb.checked = hideDone;
   const suffixStart = localStorage.getItem("planmydays_suffixStart") || "0";
-  const suffixStartSel = document.getElementById("suffixStartSelector");
+  const suffixStartSel = $id("suffixStartSelector");
   if (suffixStartSel) suffixStartSel.value = suffixStart;
   const jan1 = localStorage.getItem("planmydays_jan1") || "1";
-  const jan1Sel = document.getElementById("jan1Selector");
+  const jan1Sel = $id("jan1Selector");
   if (jan1Sel) jan1Sel.value = jan1;
   const monday = localStorage.getItem("planmydays_monday") || "1";
-  const mondaySel = document.getElementById("mondaySelector");
+  const mondaySel = $id("mondaySelector");
   if (mondaySel) mondaySel.value = monday;
   const startWeek = localStorage.getItem("planmydays_startWeek") || "1";
-  const startWeekSel = document.getElementById("startWeekSelector");
+  const startWeekSel = $id("startWeekSelector");
   if (startWeekSel) startWeekSel.value = startWeek;
   const showDanger = localStorage.getItem("planmydays_showDanger") === "true";
-  const showDangerCb = document.getElementById("showDanger");
+  const showDangerCb = $id("showDanger");
   if (showDangerCb) showDangerCb.checked = showDanger;
   const skipAdhoc = localStorage.getItem("planmydays_skipAdhocConfirm") === "true";
-  const skipAdhocCb = document.getElementById("skipAdhocConfirm");
+  const skipAdhocCb = $id("skipAdhocConfirm");
   if (skipAdhocCb) skipAdhocCb.checked = skipAdhoc;
   const dangerIds = ["clearAllDataRow", "refreshAppRow", "regenerateTilesRow", "sortJobsInStreamsRow", "uploadStandardImagesRow"];
   if (isDevMode) dangerIds.push("devTodayRow", "devLastGenRow");
   dangerIds.forEach(id => {
-    const el = document.getElementById(id);
+    const el = $id(id);
     if (el) el.classList.toggle("d-none", !showDanger);
   });
 
@@ -1873,7 +2065,7 @@ function openSettings() {
 
   if (isDevMode) {
     ["devTodayInput", "devLastGenInput"].forEach(id => {
-      const el = document.getElementById(id);
+      const el = $id(id);
       if (!el) return;
       const key = id === "devTodayInput" ? "devToday" : "devLastGen";
       const saved = localStorage.getItem(key) || "";
@@ -1891,7 +2083,7 @@ function openSettings() {
     });
   }
 
-  const qrContainer = document.getElementById("shareQrCode");
+  const qrContainer = $id("shareQrCode");
   if (qrContainer) {
     qrContainer.innerHTML = "";
     new QRCode(qrContainer, {
@@ -1903,20 +2095,27 @@ function openSettings() {
   }
 
   const savedIconSize = localStorage.getItem("planmydays_iconSize") || "large";
-  const iconSel = document.getElementById("iconSizeSelector");
+  const iconSel = $id("iconSizeSelector");
   if (iconSel) iconSel.value = savedIconSize;
   const savedDensity = localStorage.getItem("planmydays_density") || "normal";
-  const densitySel = document.getElementById("densitySelector");
+  const densitySel = $id("densitySelector");
   if (densitySel) densitySel.value = savedDensity;
   const savedDragSize = localStorage.getItem("planmydays_dragSize") || "large";
-  const dragSizeSel = document.getElementById("dragSizeSelector");
+  const dragSizeSel = $id("dragSizeSelector");
   if (dragSizeSel) dragSizeSel.value = savedDragSize;
 
   if (typeof updateScreenResolution === "function") updateScreenResolution();
 }
 
 function closeSettings() {
-  document.getElementById("settingsPage").classList.add("d-none");
+  const settingsPage = document.getElementById("settingsPage");
+  if (settingsPage) {
+    settingsPage.hide();
+    if (_settingsCloseTimer) clearTimeout(_settingsCloseTimer);
+    _settingsCloseTimer = setTimeout(function() {
+      settingsPage.classList.add("d-none");
+    }, 320);
+  }
   document.getElementById("countdownContainer").classList.remove("d-none");
   delete document.getElementById("countdownContainer").dataset.showAll;
   renderMain();
@@ -2013,6 +2212,11 @@ function importData() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+  const settingsPage = document.getElementById("settingsPage");
+  if (settingsPage) {
+    settingsPage.addEventListener("smd-page-action", () => closeSettings());
+  }
+
   const savedTheme = localStorage.getItem("planmydays_theme") || "darkly";
   applyTheme(savedTheme);
   if (typeof seedSampleImages === "function") seedSampleImages();
