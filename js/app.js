@@ -43,10 +43,6 @@ function escapeHtml(str) {
   return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
-function escAttr(str) {
-  return escapeHtml(str).replace(/"/g, "&quot;");
-}
-
 // MODAL HELPERS
 // Bootstrap ignores hide() while a modal's show transition is running, so track the
 // fully-shown state and defer hide() until the "shown" event fires when necessary.
@@ -61,33 +57,9 @@ function safeHideModal(modalId) {
 }
 
 function showInfoConfirm(message) {
-  showSmdModal({
-    title: "Sample images loaded",
-    content: escapeHtml(message).replace(/\n/g, "<br>"),
-    buttons: [
-      { text: "OK", variant: "primary", action: "ok" }
-    ]
-  });
-}
-
-let _smdModalHost = null;
-function showSmdModal(options) {
-  if (!_smdModalHost) {
-    _smdModalHost = document.createElement("smd-modal");
-    _smdModalHost.id = "smdConfirmModal";
-    document.body.appendChild(_smdModalHost);
-  }
-  const modal = _smdModalHost;
-  modal.title = options.title || "";
-  modal.content = options.content || "";
-  modal.buttons = options.buttons || [{ text: "OK", variant: "primary", action: "ok" }];
-  const onAction = options.onAction;
-  const handler = function(e) {
-    modal.removeEventListener("smd-modal-action", handler);
-    if (onAction) onAction(e.detail);
-  };
-  modal.addEventListener("smd-modal-action", handler);
-  modal.show();
+  const modalEl = document.getElementById("infoConfirmModal");
+  document.getElementById("infoConfirmMessage").textContent = message;
+  new bootstrap.Modal(modalEl).show();
 }
 
 // JOB COMPLETION STORAGE
@@ -219,23 +191,20 @@ function renderMain() {
 
   if (splitList) {
     const tabWrapper = document.createElement("div");
-    tabWrapper.className = "mb-3 flex-shrink-0";
-    const tabsEl = document.createElement("smd-tabs");
-    tabsEl.id = "todayTabs";
-    tabsEl.tabs = [
-      { title: "Progress", content: "" },
-      { title: "Maintenance", content: "" }
-    ];
-    tabsEl.activeIndex = tab === "maintenance" ? 1 : 0;
-    const hidePanels = document.createElement("style");
-    hidePanels.textContent = ".smd-tab-panel { display: none !important; }";
-    tabsEl.shadowRoot.appendChild(hidePanels);
-    tabsEl.addEventListener("smd-tabs-change", function(e) {
-      const tabTitle = e.detail && e.detail.tab ? (e.detail.tab.title || "") : "";
-      container.dataset.todayTab = tabTitle.toLowerCase() === "maintenance" ? "maintenance" : "progress";
-      renderMain();
+    tabWrapper.className = "mb-3 border-bottom flex-shrink-0";
+    const tabBar = document.createElement("ul");
+    tabBar.className = "nav nav-tabs border-bottom-0 nav-tabs-info";
+    ["progress", "maintenance"].forEach(t => {
+      const li = document.createElement("li");
+      li.className = "nav-item";
+      const btn = document.createElement("button");
+      btn.className = `nav-link ${t === tab ? "active" : ""}`;
+      btn.textContent = t.charAt(0).toUpperCase() + t.slice(1);
+      btn.onclick = function() { container.dataset.todayTab = t; renderMain(); };
+      li.appendChild(btn);
+      tabBar.appendChild(li);
     });
-    tabWrapper.appendChild(tabsEl);
+    tabWrapper.appendChild(tabBar);
     container.appendChild(tabWrapper);
 
     matchingStreams = new Set();
@@ -323,19 +292,23 @@ function renderMain() {
           const skipConfirm = localStorage.getItem("planmydays_skipAdhocConfirm") === "true";
           if (!skipConfirm) {
             const job = (stream.jobs || []).find(j => j.id === jobId);
+            const modalEl = document.getElementById("deleteConfirmModal");
+            const confirmBtn = document.getElementById("deleteConfirmBtn");
+            document.getElementById("deleteConfirmMessage").innerHTML = `Remove "<strong>${escapeHtml(job?.title || jobId)}</strong>" from Ad Hoc?`;
+            confirmBtn.className = "btn btn-danger editor-btn btn-wide";
+            confirmBtn.textContent = "Remove";
             const cbRef = this;
-            showSmdModal({
-              title: "Remove from Ad Hoc?",
-              content: `Remove "<strong>${escapeHtml(job?.title || jobId)}</strong>" from Ad Hoc?`,
-              buttons: [
-                { text: "Cancel", variant: "secondary", action: "cancel" },
-                { text: "Remove", variant: "danger", action: "remove" }
-              ],
-              onAction: (detail) => {
-                if (detail.action === "remove") removeAdhocJob(streamIdx, jobId, cbRef);
-                else cbRef.checked = false;
-              }
+            let confirmed = false;
+            confirmBtn.onclick = function() {
+              confirmed = true;
+              safeHideModal("deleteConfirmModal");
+              removeAdhocJob(streamIdx, jobId, cbRef);
+            };
+            modalEl.addEventListener("hidden.bs.modal", function handler() {
+              modalEl.removeEventListener("hidden.bs.modal", handler);
+              if (!confirmed) cbRef.checked = false;
             });
+            new bootstrap.Modal(modalEl).show();
             return;
           }
           removeAdhocJob(streamIdx, jobId, this);
@@ -403,7 +376,7 @@ function addTodayCardWithModal() {
   saveStreams(streams);
   jobsBuffer = JSON.parse(JSON.stringify(newJob));
   jobsEditingIdx = jobs.length - 1; isNewJob = true;
-  buildJobEditPage(false);
+  showJobEditModal();
 }
 
 // THREADS EDITOR
@@ -411,33 +384,17 @@ let editingIndex = -1;
 let editBuffer = null;
 let isNew = false;
 
-var _streamsCloseTimer = null;
-
 function openStreamsEditor() {
   document.getElementById("countdownContainer").classList.add("d-none");
+  document.getElementById("streamsEditor").classList.remove("d-none");
   document.getElementById("settingsPage").classList.add("d-none");
   document.getElementById("imagesEditor").classList.add("d-none");
   document.getElementById("jobSearchEditor").classList.add("d-none");
-
-  const page = document.getElementById("streamsEditor");
-  if (_streamsCloseTimer) {
-    clearTimeout(_streamsCloseTimer);
-    _streamsCloseTimer = null;
-  }
-  page.classList.remove("d-none");
   renderStreamsEditor();
-  page.show();
 }
 
 function closeStreamsEditor() {
-  const page = document.getElementById("streamsEditor");
-  if (page) {
-    page.hide();
-    clearTimeout(_streamsCloseTimer);
-    _streamsCloseTimer = setTimeout(function() {
-      page.classList.add("d-none");
-    }, Math.max(0, (page.slideDuration || 0) + 50));
-  }
+  document.getElementById("streamsEditor").classList.add("d-none");
   document.getElementById("countdownContainer").classList.remove("d-none");
   editingIndex = -1; editBuffer = null; isNew = false;
   renderMain();
@@ -445,75 +402,28 @@ function closeStreamsEditor() {
 
 // JOB SEARCH
 var jobSearchQuery = "";
-var _jobSearchCloseTimer = null;
 
 function openSearchJobs() {
   document.getElementById("countdownContainer").classList.add("d-none");
   document.getElementById("streamsEditor").classList.add("d-none");
   document.getElementById("settingsPage").classList.add("d-none");
   document.getElementById("imagesEditor").classList.add("d-none");
-  const page = document.getElementById("jobSearchEditor");
-  page.classList.remove("d-none");
-  jobSearchQuery = "";
-  buildSearchJobsContent();
-  const sjPage = document.getElementById("jobSearchEditor");
-  if (sjPage && sjPage.shadowRoot) {
-    injectStyleInto(sjPage.shadowRoot, JOBS_EDITOR_STYLES);
-  }
-  page.show();
-  const input = $id("jobSearchInput");
+  document.getElementById("jobSearchEditor").classList.remove("d-none");
+  var input = document.getElementById("jobSearchInput");
   if (input) input.value = "";
+  jobSearchQuery = "";
   renderSearchJobs();
   updateNavState();
 }
 
 function closeSearchJobs() {
-  const page = document.getElementById("jobSearchEditor");
-  if (page) {
-    page.hide();
-    clearTimeout(_jobSearchCloseTimer);
-    _jobSearchCloseTimer = setTimeout(function() {
-      page.classList.add("d-none");
-    }, Math.max(0, (page.slideDuration || 0) + 50));
-  }
+  document.getElementById("jobSearchEditor").classList.add("d-none");
   document.getElementById("countdownContainer").classList.remove("d-none");
   renderMain();
 }
 
-function buildSearchJobsContent() {
-  const page = document.getElementById("jobSearchEditor");
-  if (!page) return;
-  page.title = "Search Jobs";
-  page.headerHtml = '<span id="jobSearchTotalBadge" class="badge bg-info" style="font-size:0.8em;vertical-align:middle"></span>';
-  page.content =
-    '<div id="jobSearchHeader">' +
-      '<div id="jobSearchFilters" class="mt-3">' +
-        '<div class="row align-items-center">' +
-          '<div class="col" style="padding-left:0">' +
-            '<input type="search" class="form-control" id="jobSearchInput" placeholder="Search job titles..." oninput="searchJobsFilter()">' +
-          '</div>' +
-          '<div class="col-auto" style="padding-left:0;padding-right:0">' +
-            '<smd-button variant="danger" id="btnJobSearchClear" onclick="clearJobSearchFilter()">Clear</smd-button>' +
-          '</div>' +
-        '</div>' +
-      '</div>' +
-    '</div>' +
-    '<div id="jobSearchList"></div>';
-  page.buttons = [
-    { text: "Add Job", variant: "secondary", action: "add", id: "btnJobSearchAdd", close: false },
-    { text: "Done", variant: "success", action: "done", id: "btnJobSearchDone" }
-  ];
-}
-
-function clearJobSearchFilter() {
-  jobSearchQuery = "";
-  const input = $id("jobSearchInput");
-  if (input) input.value = "";
-  renderSearchJobs();
-}
-
 function searchJobsFilter() {
-  var input = $id("jobSearchInput");
+  var input = document.getElementById("jobSearchInput");
   jobSearchQuery = input ? input.value.trim() : "";
   renderSearchJobs();
 }
@@ -534,33 +444,16 @@ function getJobCountBadgeText(streams) {
 }
 
 function updateEditorJobCountBadges() {
-  var streams = loadStreams();
-  var text = getJobCountBadgeText(streams);
+  var text = getJobCountBadgeText(loadStreams());
   ["editJobsTotalBadge", "jobSearchTotalBadge"].forEach(function(id) {
-    var el = $id(id);
+    var el = document.getElementById(id);
     if (el) el.textContent = text;
   });
-  var page = document.getElementById("streamsEditor");
-  if (page && page.shadowRoot) {
-    page.shadowRoot.querySelectorAll("pmd-stream-header").forEach(function(header) {
-      var idx = parseInt(header.getAttribute("stream-idx"), 10);
-      if (isNaN(idx) || !streams[idx]) return;
-      var jobs = streams[idx].jobs || [];
-      var activeJobs = jobs.filter(function(j) { return j.active !== false; });
-      var counts = "";
-      if (jobs.length > 0) {
-        counts = activeJobs.filter(function(j) { return shouldShowJobToday(j); }).length + '/' +
-                 activeJobs.length + '/' + jobs.length + ' job' + (jobs.length !== 1 ? 's' : '');
-      }
-      if (counts) header.setAttribute("jobcounts", counts);
-      else header.removeAttribute("jobcounts");
-    });
-  }
   return text;
 }
 
 function renderSearchJobs() {
-  const list = $id("jobSearchList");
+  const list = document.getElementById("jobSearchList");
   if (!list) return;
   const streams = loadStreams();
   updateEditorJobCountBadges();
@@ -581,110 +474,92 @@ function renderSearchJobs() {
   matches.forEach(function(m) {
     list.appendChild(buildJobSearchCard(m.stream, m.streamIdx, m.job, m.jobIdx));
   });
-  list.addEventListener("pmd-job-edit", handleJobSearchCardEdit);
-  list.addEventListener("pmd-job-toggle-active", handleJobSearchCardToggle);
+  list.addEventListener("change", handleJobActiveToggleChange);
   updateNavState();
 }
 
 function buildJobSearchCard(stream, streamIdx, job, jobIdx) {
-  const card = document.createElement("pmd-job-search-card");
+  const streamImageUrl = getImageDataUrl(stream.image);
+  const jobImageUrl = getImageDataUrl(job.image);
+  const suffixLabel = getJobSuffix(job);
+  const scheduleText = getScheduleText(job.schedule);
+  const hasSleep = job.sleepUntil && job.sleepUntil.trim();
+  const hasWait = job.waitFor && job.waitFor.trim();
+  const hasTime = job.time && job.time.trim();
+  const card = document.createElement("div");
+  card.className = "card p-2 mb-2";
   card.dataset.jobId = job.id;
-  const set = (name, value) => {
-    if (value !== undefined && value !== null && value !== "") card.setAttribute(name, value);
-  };
-  set("stream-idx", streamIdx);
-  set("job-idx", jobIdx);
-  set("title", job.title || "");
-  set("stream-title", stream.title || "");
-  set("tab", stream.tab || "progress");
-  set("schedule", getScheduleText(job.schedule));
-  set("active", job.active !== false ? "true" : "false");
-  set("stream-image", getImageDataUrl(stream.image));
-  set("image", getImageDataUrl(job.image));
-  set("suffix", (getJobSuffix(job) || "").trim());
-  if (job.sleepUntil && job.sleepUntil.trim()) set("extra", "Sleep: " + formatDate(job.sleepUntil));
-  else if (job.waitFor && job.waitFor.trim()) set("extra", "Wait: " + job.waitFor.trim());
-  if (job.time && job.time.trim()) set("time", job.time.trim());
+  card.innerHTML =
+    '<div class="d-flex align-items-center gap-2">' +
+      '<div style="width:32px;height:32px;flex-shrink:0">' + (streamImageUrl ? '<img src="' + streamImageUrl + '" class="date-img" style="max-width:32px;max-height:32px">' : '') + '</div>' +
+      (jobImageUrl ? '<div style="width:32px;height:32px;flex-shrink:0"><img src="' + jobImageUrl + '" class="date-img" style="max-width:32px;max-height:32px"></div>' : '') +
+      '<div class="fw-bold editor-title" style="min-width:0;flex:1">' + escapeHtml(job.title) + (suffixLabel ? ' <span class="badge bg-secondary">' + escapeHtml(suffixLabel.trim()) + '</span>' : '') + '</div>' +
+      '<button class="btn btn-primary btn-sm editor-btn flex-shrink-0 align-self-center ms-3" style="min-width:50px" onclick="editJobInAccordion(' + streamIdx + ', ' + jobIdx + ')">Edit</button>' +
+    '</div>' +
+    '<div class="d-flex align-items-center gap-2 mt-1 small">' +
+      '<input class="form-check-input active-toggle m-0 position-static flex-shrink-0" type="checkbox" data-job-idx="' + jobIdx + '" data-stream-idx="' + streamIdx + '" ' + (job.active !== false ? "checked" : "") + ' style="cursor:pointer">' +
+      '<span class="fw-bold flex-shrink-0">' + escapeHtml(stream.title) + '</span>' +
+      '<span class="badge bg-' + ((stream.tab || "progress") === "progress" ? "success" : "info") + ' flex-shrink-0">' + escapeHtml(stream.tab || "progress") + '</span>' +
+      (hasSleep ? '<span class="badge bg-info flex-shrink-0">Sleep: ' + escapeHtml(formatDate(job.sleepUntil)) + '</span>' : (hasWait ? '<span class="badge bg-info flex-shrink-0">Wait: ' + escapeHtml(job.waitFor.trim()) + '</span>' : '')) +
+      '<span class="badge bg-primary flex-shrink-0">' + escapeHtml(scheduleText) + '</span>' +
+      (hasTime ? '<span class="badge bg-secondary flex-shrink-0">' + escapeHtml(job.time) + '</span>' : '') +
+    '</div>';
   return card;
 }
 
-function handleJobSearchCardEdit(e) {
-  editJobInAccordion(e.detail.streamIdx, e.detail.jobIdx);
-}
-
-function handleJobSearchCardToggle(e) {
-  handleAccordionJobActiveToggle(e.detail.streamIdx, e.detail.jobIdx, e.detail.checked);
-}
-
-function handleAccordionJobActiveToggle(streamIdx, jobIdx, checked) {
+function handleJobActiveToggleChange(e) {
+  if (!e.target.classList.contains("active-toggle")) return;
+  var jobIdx = parseInt(e.target.dataset.jobIdx);
+  var streamIdx = parseInt(e.target.dataset.streamIdx);
   var streams = loadStreams();
   var jobs = streams[streamIdx].jobs || [];
-  if (jobs[jobIdx]) jobs[jobIdx].active = checked;
+  if (jobs[jobIdx]) jobs[jobIdx].active = e.target.checked;
   saveStreams(streams);
   var jobId = jobs[jobIdx] ? jobs[jobIdx].id : null;
   if (jobId) {
     var order = loadTodayOrder() || [];
-    if (checked && shouldShowJobToday(jobs[jobIdx])) {
+    if (e.target.checked && shouldShowJobToday(jobs[jobIdx])) {
       if (!order.includes(jobId)) order.push(jobId);
     } else {
       order = order.filter(function(id) { return id !== jobId; });
     }
     saveTodayOrder(order);
   }
-  updateEditorJobCountBadges();
 }
 
-var _streamEditCloseTimer = null;
+function focusTitleOnShow(inputId, modalId) {
+  const el = document.getElementById(inputId);
+  const modalEl = document.getElementById(modalId);
+  if (!el || !modalEl) return;
+  const handler = function() {
+    el.focus();
+    modalEl.removeEventListener("shown.bs.modal", handler);
+  };
+  modalEl.addEventListener("shown.bs.modal", handler);
+}
 
-function openStreamEditPage() {
+function showStreamEditModal() {
   const streams = loadStreams();
   const t = streams[editingIndex];
   const data = editBuffer || t;
-  const page = document.getElementById("streamEditPage");
-  if (!page) return;
-  page.classList.remove("d-none");
-  page.title = isNew ? "Add Stream" : "Edit Stream";
-  page.content = getStreamEditFormHTML(data);
-  page.buttons = [
-    { text: "Cancel", variant: "secondary", action: "cancel", id: "btnStreamEditCancel" },
-    { text: "OK", variant: "success", action: "done", id: "btnStreamEditOk" }
-  ];
-  injectStyleInto(page.shadowRoot, JOBS_EDITOR_STYLES);
-  page.show();
+  document.getElementById("streamEditModalTitle").textContent = isNew ? "Add Stream" : "Edit Stream";
+  document.getElementById("streamEditModalBody").innerHTML = getStreamEditFormHTML(data);
   updateStreamEditOkBtn();
-  if (isNew) {
-    const input = $id("streamTitleInput");
-    if (input) input.focus();
-  }
-}
-
-function hideStreamEditPage() {
-  const page = document.getElementById("streamEditPage");
-  if (page) {
-    page.hide();
-    clearTimeout(_streamEditCloseTimer);
-    _streamEditCloseTimer = setTimeout(function() {
-      page.classList.add("d-none");
-    }, Math.max(0, (page.slideDuration || 0) + 50));
-  }
+  new bootstrap.Modal(document.getElementById("streamEditModal")).show();
+  if (isNew) focusTitleOnShow("streamTitleInput", "streamEditModal");
 }
 
 function updateStreamEditOkBtn() {
-  const okBtn = $id("btnStreamEditOk");
-  const title = $id("streamTitleInput");
+  const okBtn = document.getElementById("btnStreamEditOk");
+  const title = document.getElementById("streamTitleInput");
   if (okBtn) okBtn.disabled = !title || !title.value.trim();
-}
-
-function streamEditSubmit() {
-  const okBtn = $id("btnStreamEditOk");
-  if (okBtn && !okBtn.disabled) doneEdit();
 }
 
 function getStreamEditFormHTML(data) {
   return `
     <div class="mb-2">
       <label class="form-label">Title</label>
-      <input class="form-control" id="streamTitleInput" value="${escapeHtml(data.title || "")}" oninput="editField('title', this.value);updateStreamEditOkBtn()" onkeydown="if(event.key==='Enter') streamEditSubmit()">
+      <input class="form-control" id="streamTitleInput" value="${escapeHtml(data.title || "")}" oninput="editField('title', this.value);updateStreamEditOkBtn()" onkeydown="if(event.key==='Enter') document.getElementById('btnStreamEditOk').click()">
     </div>
     <div class="mb-2">
       <label class="form-label">Tab</label>
@@ -711,11 +586,14 @@ function getStreamEditFormHTML(data) {
 }
 
 function renderStreamsEditor() {
-  const page = document.getElementById("streamsEditor");
-  if (!page || !page.shadowRoot) return;
+  const list = document.getElementById("streamEditorList");
+  const addTile = document.getElementById("addStreamTile");
+  const topTile = document.getElementById("addStreamTileTop");
+  const filterEl = document.getElementById("streamEditorFilters");
+  const singleEditor = document.getElementById("singleStreamEditor");
 
   // remember which accordion items are expanded (by index; after a drag the
-  // captured indices are translated through the reorder so the same stream stays open)
+// captured indices are translated through the reorder so the same stream stays open)
   const streams = loadStreams();
   var expandedStreams = [];
   if (streamsEditorExpandedIdxs !== null) {
@@ -724,109 +602,105 @@ function renderStreamsEditor() {
     expandedStreams = streamsEditorExpandedIdxs;
     streamsEditorExpandedIdxs = null;
   } else {
-    var openCollapses = page.shadowRoot.querySelectorAll(".accordion-collapse.show");
+    var openCollapses = list.querySelectorAll(".accordion-collapse.show");
     for (var ec = 0; ec < openCollapses.length; ec++) {
       var m = openCollapses[ec].id.match(/streamCollapse_(\d+)/);
       if (m) expandedStreams.push(parseInt(m[1]));
     }
   }
 
+  list.innerHTML = ""; addTile.innerHTML = ""; topTile.innerHTML = ""; filterEl.innerHTML = ""; singleEditor.innerHTML = "";
+
+  if (editingIndex >= 0) {
+    list.classList.add("d-none"); addTile.classList.add("d-none");
+    topTile.classList.add("d-none"); filterEl.classList.add("d-none");
+    singleEditor.classList.add("d-none");
+    showStreamEditModal();
+    updateNavState();
+    return;
+  }
+
+  list.classList.remove("d-none"); addTile.classList.remove("d-none");
+  topTile.classList.remove("d-none"); filterEl.classList.remove("d-none");
+  singleEditor.classList.add("d-none");
+
+  list.className = "accordion";
+  list.setAttribute("id", "streamEditorList");
+
   var sorted = [].concat(streams).sort(function(a, b) { return (a.sequence || 0) - (b.sequence || 0); });
 
-  var accordionHtml = "";
+  updateEditorJobCountBadges();
+
   sorted.forEach(function(t, displayIdx) {
     var realIdx = streams.indexOf(t);
     var streamImgUrl = getImageDataUrl(t.image);
     var jobs = t.jobs || [];
     var collapseId = "streamCollapse_" + realIdx;
-    var isExpanded = expandedStreams.indexOf(realIdx) !== -1;
 
-    var activeJobs = jobs.filter(function(j) { return j.active !== false; });
-    var headerJobCounts = jobs.length > 0
-      ? activeJobs.filter(function(j) { return shouldShowJobToday(j); }).length + '/' + activeJobs.length + '/' + jobs.length + ' job' + (jobs.length !== 1 ? 's' : '')
-      : "";
-    var headerAttrs = [
-      'stream-idx="' + realIdx + '"',
-      'title="' + escAttr(t.title || "") + '"',
-      'tab="' + escAttr(t.tab || "progress") + '"',
-      (isExpanded ? 'expanded' : ''),
-      (jobs.length === 0 ? 'can-delete' : '')
-    ];
-    if (streamImgUrl) headerAttrs.push('image="' + escAttr(streamImgUrl) + '"');
-    if (headerJobCounts) headerAttrs.push('jobcounts="' + escAttr(headerJobCounts) + '"');
-    var headerHtml = '<pmd-stream-header ' + headerAttrs.filter(Boolean).join(" ") + '></pmd-stream-header>';
+    var item = document.createElement("div");
+    item.className = "accordion-item stream-accordion-item stream-drag-card mb-2";
+    item.dataset.streamIdx = realIdx;
 
-    var bodyHtml = '<div id="' + collapseId + '" class="accordion-collapse collapse' + (isExpanded ? " show" : "") + '">' +
+    var headerHtml = '<div class="accordion-header stream-accordion-header" id="streamHeading_' + realIdx + '">' +
+      '<div class="drag-handle flex-shrink-0" style="cursor:grab;line-height:1">&#9776;</div>' +
+      '<div style="width:40px;height:40px;flex-shrink-0" class="mx-2">' + (streamImgUrl ? '<img src="' + streamImgUrl + '" class="date-img" style="max-width:40px;max-height:40px">' : '') + '</div>' +
+      '<div style="display:flex;flex-direction:column;min-width:0;flex:1;gap:0.25rem;overflow:hidden" class="me-2">' +
+        '<div style="display:flex;align-items:center;gap:0.35rem">' +
+          '<button type="button" class="stream-header-main collapsed flex-grow-1" style="min-width:0;padding:0;border:0;background:transparent;color:inherit;text-align:left" data-bs-toggle="collapse" data-bs-target="#' + collapseId + '" aria-expanded="false">' +
+            '<span class="fw-bold editor-title text-truncate">' + escapeHtml(t.title) + '</span>' +
+          '</button>' +
+          '<div class="stream-header-actions">' +
+            '<button type="button" class="btn btn-secondary btn-sm" onclick="addNewJobForStream(' + realIdx + ')">Add Job</button>' +
+            '<button type="button" class="btn btn-primary editor-btn" style="min-width:50px" onclick="editStream(' + realIdx + ')">Edit</button>' +
+            (jobs.length === 0 ? '<button type="button" class="btn btn-danger editor-btn" style="min-width:50px" onclick="confirmDeleteStream(' + realIdx + ')">Delete</button>' : '') +
+          '</div>' +
+        '</div>' +
+        '<div style="display:flex;gap:0.25rem;flex-wrap:nowrap">' +
+          '<span class="badge bg-' + ((t.tab || "progress") === "progress" ? "success" : "info") + ' text-nowrap">' + escapeHtml(t.tab || "progress") + '</span>' +
+          (jobs.length > 0 ? '<span class="badge bg-secondary text-nowrap">' +
+            jobs.filter(function(j) { return j.active !== false && shouldShowJobToday(j); }).length + '/' +
+            jobs.filter(function(j) { return j.active !== false; }).length + '/' +
+            jobs.length + ' job' + (jobs.length !== 1 ? 's' : '') + '</span>' : '') +
+        '</div>' +
+      '</div>' +
+      '<button type="button" class="stream-header-chevron collapsed" data-bs-toggle="collapse" data-bs-target="#' + collapseId + '" aria-expanded="false" aria-label="Expand"></button>' +
+    '</div>';
+
+    var bodyHtml = '<div id="' + collapseId + '" class="accordion-collapse collapse" data-bs-parent="#streamEditorList">' +
       '<div class="accordion-body stream-accordion-body">' +
         (jobs.length > 0 ? renderJobsInAccordion(t, jobs, realIdx) : '<div class="text-secondary small p-2">No jobs</div>') +
       '</div>' +
     '</div>';
 
-    accordionHtml += '<div class="accordion-item stream-accordion-item stream-drag-card mb-2' + (isExpanded ? " expanded" : "") + '" data-stream-idx="' + realIdx + '">' + headerHtml + bodyHtml + '</div>';
+    item.innerHTML = headerHtml + bodyHtml;
+    list.appendChild(item);
   });
 
-  page.headerHtml = '<span id="editJobsTotalBadge" class="badge bg-info" style="font-size:0.8em;vertical-align:middle"></span>';
-  page.content =
-    '<div id="streamsEditorHeader">' +
-      '<div id="addStreamTileTop" class="mb-3"></div>' +
-      '<div id="streamEditorFilters" class="mb-3"></div>' +
-    '</div>' +
-    '<div id="streamEditorList" class="accordion">' + accordionHtml + '</div>' +
-    '<div id="addStreamTile" class="mt-3"></div>' +
-    '<div id="singleStreamEditor" class="d-none"></div>';
+  // delegated active toggle handler for jobs
+  list.addEventListener("change", handleJobActiveToggleChange);
 
-  page.buttons = [
-    { text: "Add Stream", variant: "primary", action: "add", id: "btnAddStream", close: false },
-    { text: "Done", variant: "success", action: "done", id: "btnStreamsDone" }
-  ];
-  page.title = "Edit Streams";
+  topTile.innerHTML = '<div class="d-flex gap-2">' +
+    '<button class="btn btn-primary editor-btn btn-wide" id="btnAddStream" onclick="addNewStream()">Add Stream</button>' +
+    '<button class="btn btn-success editor-btn btn-wide ms-auto" id="btnStreamsDone" onclick="closeStreamsEditor()">Done</button>' +
+  '</div>';
 
-  if (editingIndex >= 0) {
-    openStreamEditPage();
-  }
+  // restore previously expanded accordion items
+  expandedStreams.forEach(function(idx) {
+    var collapseEl = document.getElementById("streamCollapse_" + idx);
+    if (collapseEl) {
+      collapseEl.classList.add("show");
+      var itemEl = collapseEl.closest(".stream-accordion-item");
+      if (itemEl) itemEl.classList.add("expanded");
+    }
+    document.querySelectorAll('#streamEditorList [data-bs-target="#streamCollapse_' + idx + '"]').forEach(function(btn) {
+      btn.classList.remove("collapsed");
+      btn.setAttribute("aria-expanded", "true");
+    });
+  });
 
-  updateEditorJobCountBadges();
   updateNavState();
-  injectStreamsEditorStyles();
   initStreamsEditorSortable();
   initStreamJobsSortables();
-}
-
-function setStreamExpanded(index, expanded) {
-  const page = document.getElementById("streamsEditor");
-  if (!page || !page.shadowRoot) return;
-  const root = page.shadowRoot;
-  const collapseEl = root.getElementById("streamCollapse_" + index);
-  const itemEl = collapseEl ? collapseEl.closest(".stream-accordion-item") : null;
-  if (expanded) {
-    // only one accordion section open at a time
-    root.querySelectorAll(".accordion-collapse.show").forEach(function(coll) {
-      if (coll === collapseEl) return;
-      coll.classList.remove("show");
-      const it = coll.closest(".stream-accordion-item");
-      if (it) {
-        it.classList.remove("expanded");
-        const h = it.querySelector("pmd-stream-header");
-        if (h) h.removeAttribute("expanded");
-      }
-    });
-  }
-  if (collapseEl) collapseEl.classList.toggle("show", expanded);
-  if (itemEl) itemEl.classList.toggle("expanded", expanded);
-  if (itemEl) {
-    const header = itemEl.querySelector("pmd-stream-header");
-    if (header) {
-      if (expanded) header.setAttribute("expanded", "");
-      else header.removeAttribute("expanded");
-    }
-  }
-}
-
-function injectStreamsEditorStyles() {
-  var page = document.getElementById("streamsEditor");
-  if (page && page.shadowRoot) {
-    injectStyleInto(page.shadowRoot, JOBS_EDITOR_STYLES + STREAMS_EDITOR_STYLES);
-  }
 }
 
 var streamsEditorSortable = null;
@@ -838,19 +712,12 @@ function initStreamsEditorSortable() {
     streamsEditorSortable = null;
   }
   if (typeof Sortable === "undefined") return;
-  var el = $id("streamEditorList");
+  var el = document.getElementById("streamEditorList");
   if (!el || !el.querySelector(".stream-accordion-item")) return;
   streamsEditorSortable = new Sortable(el, {
     handle: ".stream-accordion-header .drag-handle",
     draggable: ".stream-accordion-item",
     animation: 150,
-    forceFallback: true,
-    fallbackOnBody: true,
-    fallbackTolerance: 0,
-    fallbackClass: "sortable-fallback",
-    ghostClass: "sortable-ghost",
-    chosenClass: "sortable-chosen",
-    dragClass: "sortable-drag",
     onStart: function() {
       var idxs = [];
       el.querySelectorAll(".accordion-collapse.show").forEach(function(coll) {
@@ -888,7 +755,7 @@ function initStreamJobsSortables() {
   streamJobsSortables.forEach(function(s) { if (s) s.destroy(); });
   streamJobsSortables = [];
   if (typeof Sortable === "undefined") return;
-  var list = $id("streamEditorList");
+  var list = document.getElementById("streamEditorList");
   if (!list) return;
   list.querySelectorAll(".accordion-body").forEach(function(body) {
     if (!body.querySelector(".job-drag-card")) return;
@@ -898,13 +765,6 @@ function initStreamJobsSortables() {
       handle: ".job-drag-card .drag-handle",
       draggable: ".job-drag-card",
       animation: 150,
-      forceFallback: true,
-      fallbackOnBody: true,
-      fallbackTolerance: 0,
-      fallbackClass: "sortable-fallback",
-      ghostClass: "sortable-ghost",
-      chosenClass: "sortable-chosen",
-      dragClass: "sortable-drag",
       onEnd: function() {
         var streamIdx = parseInt(item.getAttribute("data-stream-idx"), 10);
         if (isNaN(streamIdx)) return;
@@ -986,27 +846,24 @@ function renderJobsInAccordion(stream, jobs, streamIdx) {
   return jobs.map(function(j, realIdx) {
     var scheduleText = getScheduleText(j.schedule);
     var jobImgUrl = getImageDataUrl(j.image);
+    var hasTime = j.time && j.time.trim();
     var hasSleep = j.sleepUntil && j.sleepUntil.trim();
-    var hasWait = j.waitFor && j.waitFor.trim();
-    var suffix = (getJobSuffix(j) || "").trim();
-    var extra = "";
-    if (hasSleep) extra = "Sleep: " + formatDate(j.sleepUntil);
-    else if (hasWait) extra = "Wait: " + j.waitFor.trim();
-    var attrs = [
-      'stream-idx="' + streamIdx + '"',
-      'job-idx="' + realIdx + '"',
-      'title="' + escAttr(j.title || "") + '"',
-      'schedule="' + escAttr(scheduleText) + '"',
-      'active="' + (j.active !== false ? "true" : "false") + '"'
-    ];
-    if (jobImgUrl) attrs.push('image="' + escAttr(jobImgUrl) + '"');
-    if (j.time && j.time.trim()) attrs.push('time="' + escAttr(j.time.trim()) + '"');
-    if (suffix) attrs.push('suffix="' + escAttr(suffix) + '"');
-    if (extra) attrs.push('extra="' + escAttr(extra) + '"');
-    return '<div class="job-drag-card" data-job-idx="' + realIdx + '">' +
-      '<pmd-stream-job-card ' + attrs.join(" ") + '>' +
-        '<div class="drag-handle" title="drag" slot="drag-handle">&#9776;</div>' +
-      '</pmd-stream-job-card>' +
+    return '<div class="card p-2 mb-0 job-drag-card" data-job-idx="' + realIdx + '">' +
+      '<div class="d-flex align-items-center gap-2">' +
+        '<div class="drag-handle flex-shrink-0" style="line-height:1">&#9776;</div>' +
+        (jobImgUrl ? '<div style="width:32px;height:32px;flex-shrink:0"><img src="' + jobImgUrl + '" class="date-img" style="max-width:32px;max-height:32px"></div>' : '') +
+        '<div class="fw-bold editor-title" style="min-width:0;flex:1">' + escapeHtml(j.title) + (getJobSuffix(j) ? ' <span class="badge bg-secondary">' + escapeHtml(getJobSuffix(j).trim()) + '</span>' : '') + '</div>' +
+        '<button class="btn btn-primary btn-sm editor-btn flex-shrink-0 align-self-center ms-3" style="min-width:50px" onclick="editJobInAccordion(' + streamIdx + ', ' + realIdx + ')">Edit</button>' +
+      '</div>' +
+      '<div class="d-flex align-items-center gap-2 mt-1 small">' +
+        '<label class="form-check-label mb-0 fw-bold flex-shrink-0" style="cursor:pointer;display:flex;align-items:center;gap:2px">' +
+          '<input class="form-check-input active-toggle m-0 position-static" type="checkbox" data-job-idx="' + realIdx + '" data-stream-idx="' + streamIdx + '" ' + (j.active !== false ? "checked" : "") + ' style="cursor:pointer">' +
+          'Active' +
+        '</label>' +
+        '<span class="badge bg-primary flex-shrink-0">' + escapeHtml(scheduleText) + '</span>' +
+        (hasSleep ? '<span class="badge bg-info flex-shrink-0">Sleep: ' + escapeHtml(formatDate(j.sleepUntil)) + '</span>' : (j.waitFor && j.waitFor.trim() ? '<span class="badge bg-info flex-shrink-0">Wait: ' + escapeHtml(j.waitFor.trim()) + '</span>' : '')) +
+        (hasTime ? '<span class="badge bg-secondary flex-shrink-0">' + escapeHtml(j.time) + '</span>' : '') +
+      '</div>' +
     '</div>';
   }).join("");
 }
@@ -1030,8 +887,8 @@ function editField(field, value) {
 }
 
 function updateStreamImagePreview(name) {
-  var preview = $id("streamImagePreview");
-  var nameEl = $id("streamImageName");
+  var preview = document.getElementById("streamImagePreview");
+  var nameEl = document.getElementById("streamImageName");
   if (!preview) return;
   var url = getImageDataUrl(name);
   if (url) {
@@ -1043,9 +900,9 @@ function updateStreamImagePreview(name) {
   }
 }
 function updateJobImagePreview(name) {
-  var preview = $id("jobImagePreview");
-  var nameEl = $id("jobImageName");
-  var removeBtn = $id("jobImageRemoveBtn");
+  var preview = document.getElementById("jobImagePreview");
+  var nameEl = document.getElementById("jobImageName");
+  var removeBtn = document.getElementById("jobImageRemoveBtn");
   if (!preview) return;
   var url = getImageDataUrl(name);
   if (url) {
@@ -1062,15 +919,15 @@ function updateJobStreamPreview() {
   var streams = loadStreams();
   var stream = streams[jobsTargetStreamIndex >= 0 ? jobsTargetStreamIndex : jobsStreamIndex];
   var url = getImageDataUrl(stream && stream.image);
-  var btnIcon = $id("jobStreamBtnIcon");
+  var btnIcon = document.getElementById("jobStreamBtnIcon");
   if (btnIcon) {
     btnIcon.innerHTML = url ? '<img src="' + url + '" style="max-width:24px;max-height:24px">' : '<span style="width:24px;height:24px;display:inline-block"></span>';
   }
-  var btnText = $id("jobStreamBtnText");
+  var btnText = document.getElementById("jobStreamBtnText");
   if (btnText) {
     btnText.textContent = stream ? stream.title : "";
   }
-  var menu = $id("jobStreamDropdownMenu");
+  var menu = document.getElementById("jobStreamDropdownMenu");
   if (menu) {
     var items = menu.querySelectorAll(".dropdown-item");
     var targetIdx = jobsTargetStreamIndex >= 0 ? jobsTargetStreamIndex : jobsStreamIndex;
@@ -1086,51 +943,22 @@ function updateJobStreamPreview() {
 function jobChangeStream(newIdx) {
   jobsTargetStreamIndex = newIdx;
   updateJobStreamPreview();
-  closeJobStreamMenu();
-}
-
-function initJobStreamDropdown() {
-  const btn = $id("jobStreamDropdownBtn");
-  if (!btn || btn._smdDropdownBound) return;
-  btn._smdDropdownBound = true;
-  btn.addEventListener("click", function(e) {
-    e.preventDefault();
-    e.stopPropagation();
-    const open = toggleJobStreamMenu();
-    document.addEventListener("click", function onDoc(e2) {
-      document.removeEventListener("click", onDoc);
-      if (!open) return;
-      const menu = $id("jobStreamDropdownMenu");
-      const btnEl = $id("jobStreamDropdownBtn");
-      if (!menu || !btnEl) return;
-      if (menu.contains(e2.target) || btnEl.contains(e2.target)) return;
-      menu.classList.remove("show");
-    });
-  });
-}
-
-function toggleJobStreamMenu() {
-  const menu = $id("jobStreamDropdownMenu");
-  if (!menu) return false;
-  const willOpen = !menu.classList.contains("show");
-  menu.classList.toggle("show", willOpen);
-  return willOpen;
-}
-
-function closeJobStreamMenu() {
-  const menu = $id("jobStreamDropdownMenu");
-  if (menu) menu.classList.remove("show");
+  var btn = document.getElementById("jobStreamDropdownBtn");
+  if (btn) {
+    var dd = bootstrap.Dropdown.getInstance(btn);
+    if (dd) dd.hide();
+  }
 }
 
 function editStream(index) {
   var streams = loadStreams();
   editBuffer = JSON.parse(JSON.stringify(streams[index]));
   editingIndex = index; isNew = false;
-  openStreamEditPage();
+  showStreamEditModal();
 }
 
 function cancelEdit() {
-  hideStreamEditPage();
+  safeHideModal("streamEditModal");
   if (isNew && editingIndex >= 0) {
     var streams = loadStreams();
     streams.splice(editingIndex, 1);
@@ -1146,7 +974,7 @@ function doneEdit() {
     streams[editingIndex] = editBuffer;
     saveStreams(streams);
   }
-  hideStreamEditPage();
+  safeHideModal("streamEditModal");
   editingIndex = -1; editBuffer = null; isNew = false;
   renderStreamsEditor();
 }
@@ -1155,23 +983,18 @@ function confirmDeleteStream(index) {
   editingIndex = index;
   var streams = loadStreams();
   var stream = streams[index] || {};
-  showSmdModal({
-    title: "Delete Stream?",
-    content: 'Delete stream "' + escapeHtml(stream.title || "") + '"?',
-    buttons: [
-      { text: "Cancel", variant: "secondary", action: "cancel" },
-      { text: "Delete", variant: "danger", action: "delete" }
-    ],
-    onAction: function(detail) {
-      if (detail.action !== "delete") return;
-      var s = loadStreams();
-      s.splice(index, 1);
-      s.forEach(function(t, i) { t.sequence = i + 1; });
-      saveStreams(s);
-      editingIndex = -1; editBuffer = null; isNew = false;
-      renderStreamsEditor();
-    }
-  });
+  var modalEl = document.getElementById("deleteConfirmModal");
+  document.getElementById("deleteConfirmMessage").textContent = 'Delete stream "' + (stream.title || "") + '"?';
+  document.getElementById("deleteConfirmBtn").onclick = function() {
+    var s = loadStreams();
+    s.splice(index, 1);
+    s.forEach(function(t, i) { t.sequence = i + 1; });
+    saveStreams(s);
+    safeHideModal("deleteConfirmModal");
+    editingIndex = -1; editBuffer = null; isNew = false;
+    renderStreamsEditor();
+  };
+  new bootstrap.Modal(modalEl).show();
 }
 
 function addNewStream() {
@@ -1182,7 +1005,9 @@ function addNewStream() {
   saveStreams(streams);
   editBuffer = JSON.parse(JSON.stringify(newStream));
   editingIndex = streams.length - 1; isNew = true;
-  openStreamEditPage();
+  showStreamEditModal();
+  var el = document.getElementById("streamsEditor");
+  if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 // JOBS EDITOR
@@ -1198,30 +1023,30 @@ function jobField(field, value) {
   jobsBuffer[field] = value;
 }
 function jobTimeChanged() {
-  const h = $id("jobTimeHour").value;
-  const m = $id("jobTimeMin").value;
+  const h = document.getElementById("jobTimeHour").value;
+  const m = document.getElementById("jobTimeMin").value;
   jobField("time", h && m ? h + ":" + m : "");
 }
 function clearSleepUntil() {
   jobField("sleepUntil", "");
-  const fpInput = $id("jobSleepUntil");
+  const fpInput = document.getElementById("jobSleepUntil");
   if (fpInput) {
     if (fpInput._flatpickr) fpInput._flatpickr.clear();
     fpInput.value = "";
   }
-  const btn = $id("jobSleepUntilClearBtn");
+  const btn = document.getElementById("jobSleepUntilClearBtn");
   if (btn) btn.classList.add("d-none");
 }
 function updateJobEditOkBtn() {
-  const okBtn = getJobEditFooterBtn("done");
+  const okBtn = document.getElementById("jobEditOkBtn");
   if (!okBtn) return;
-  const title = $id("jobTitleInput");
+  const title = document.getElementById("jobTitleInput");
   okBtn.disabled = !title || !title.value.trim();
 }
 function updateSleepUntilClearBtn() {
-  const btn = $id("jobSleepUntilClearBtn");
+  const btn = document.getElementById("jobSleepUntilClearBtn");
   if (!btn) return;
-  const val = $id("jobSleepUntil").value;
+  const val = document.getElementById("jobSleepUntil").value;
   btn.classList.toggle("d-none", !val);
 }
 
@@ -1230,8 +1055,7 @@ function jobAddTask() {
   if (!jobsBuffer.tasks) jobsBuffer.tasks = [];
   jobsBuffer.tasks.push({ description: "", done: false, note: "" });
   renderJobTasks();
-  var listEl = $id("jobTasksList");
-  var inputs = listEl ? listEl.querySelectorAll(".task-desc-input") : [];
+  var inputs = document.querySelectorAll("#jobTasksList .task-desc-input");
   var last = inputs[inputs.length - 1];
   if (last) {
     last.focus();
@@ -1239,46 +1063,37 @@ function jobAddTask() {
   }
 }
 
-function jobAddTaskTop() {
-  if (!jobsBuffer) return;
-  if (!jobsBuffer.tasks) jobsBuffer.tasks = [];
-  jobsBuffer.tasks.unshift({ description: "", done: false, note: "" });
-  renderJobTasks();
-  var first = $id("jobTasksList");
-  first = first ? first.querySelector(".task-desc-input") : null;
-  if (first) {
-    first.focus();
-    first.scrollIntoView({ block: "nearest" });
-  }
-}
-
 function jobDeleteTask(index) {
   if (!jobsBuffer || !jobsBuffer.tasks) return;
   var taskText = (jobsBuffer.tasks[index] && jobsBuffer.tasks[index].description) ? jobsBuffer.tasks[index].description : "Unnamed task";
-  showSmdModal({
-    title: "Delete Task?",
-    content: 'Delete task "' + escapeHtml(taskText) + '"?',
-    buttons: [
-      { text: "Cancel", variant: "secondary", action: "cancel" },
-      { text: "Delete", variant: "danger", action: "delete" }
-    ],
-    onAction: function(detail) {
-      if (detail.action !== "delete") return;
-      jobsBuffer.tasks.splice(index, 1);
-      renderJobTasks();
-    }
+  var modalEl = document.getElementById("deleteConfirmModal");
+  document.getElementById("deleteConfirmMessage").textContent = 'Delete task "' + taskText + '"?';
+  modalEl.addEventListener("show.bs.modal", function boostZ() {
+    modalEl.removeEventListener("show.bs.modal", boostZ);
+    modalEl.style.zIndex = 2000;
+    var backdrops = document.querySelectorAll(".modal-backdrop");
+    if (backdrops.length > 0) backdrops[backdrops.length - 1].style.zIndex = 1999;
   });
+  modalEl.addEventListener("hidden.bs.modal", function resetZ() {
+    modalEl.removeEventListener("hidden.bs.modal", resetZ);
+    modalEl.style.zIndex = "";
+    var backdrops = document.querySelectorAll(".modal-backdrop");
+    if (backdrops.length > 0) backdrops[backdrops.length - 1].style.zIndex = "";
+  });
+  document.getElementById("deleteConfirmBtn").onclick = function() {
+    jobsBuffer.tasks.splice(index, 1);
+    renderJobTasks();
+    safeHideModal("deleteConfirmModal");
+  };
+  new bootstrap.Modal(modalEl).show();
 }
 
 function jobTaskField(index, field, value) {
   if (!jobsBuffer || !jobsBuffer.tasks) return;
   jobsBuffer.tasks[index][field] = value;
   if (field === "note") {
-    var list = $id("jobTasksList");
-    if (list) {
-      var row = list.querySelector('.task-row[data-task-index="' + index + '"]');
-      if (row) setTaskNoteBtnClass(row.querySelector(".task-note-btn"), jobsBuffer.tasks[index]);
-    }
+    var row = document.querySelector('.task-row[data-task-index="' + index + '"]');
+    if (row) setTaskNoteBtnClass(row.querySelector(".task-note-btn"), jobsBuffer.tasks[index]);
   }
 }
 
@@ -1296,7 +1111,7 @@ function setTaskNoteBtnClass(btn, task) {
 }
 
 function renderJobTasks() {
-  var el = $id("jobTasksList");
+  var el = document.getElementById("jobTasksList");
   if (!el || !jobsBuffer) return;
   var tasks = jobsBuffer.tasks || [];
   var html = "";
@@ -1313,10 +1128,6 @@ function renderJobTasks() {
       '</div>';
   });
   el.innerHTML = html;
-  var topBtn = $id("jobAddTaskBtn");
-  if (topBtn) {
-    topBtn.style.display = tasks.length >= 1 ? "" : "none";
-  }
   initJobTasksSortable();
 }
 
@@ -1326,7 +1137,7 @@ function initJobTasksSortable() {
     jobTasksSortable = null;
   }
   if (typeof Sortable === "undefined") return;
-  var el = $id("jobTasksList");
+  var el = document.getElementById("jobTasksList");
   if (!el || !jobsBuffer) return;
   if (!el.querySelector(".drag-handle")) return;
   jobTasksSortable = new Sortable(el, {
@@ -1348,7 +1159,7 @@ function initJobTasksSortable() {
 }
 
 function jobTaskToggleNote(btn, index) {
-  var row = $id("taskNoteRow" + index);
+  var row = document.getElementById("taskNoteRow" + index);
   if (!row) return;
   row.style.display = row.style.display === "none" ? "block" : "none";
   var shown = row.style.display === "block";
@@ -1415,119 +1226,18 @@ function getScheduleText(schedule) {
   return "Every day";
 }
 
-var SCHEDULE_MODAL_STYLES = `
-  .smd-body .form-check { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; }
-  .smd-body .form-check-input { position: relative; flex: 0 0 auto; width: 1rem; height: 1rem; margin: 0; accent-color: var(--smd-primary, #0d6efd); }
-  .smd-body .form-check-label { margin: 0; }
-  .smd-body .form-label { margin-bottom: 0.25rem; font-weight: 500; color: var(--bs-body-color, #f8f9fa); }
-  .smd-body .form-select {
-    background-color: var(--bs-body-bg, #222);
-    color: var(--bs-body-color, #eee);
-    border: 1px solid var(--bs-border-color, #444);
-    border-radius: 0.35rem;
-    padding: 0.375rem 2rem 0.375rem 0.75rem;
-    font-size: 0.9rem;
-  }
-  .smd-body .form-select option { background-color: var(--bs-body-bg, #222); }
-  .smd-body .d-none { display: none !important; }
-  .smd-body .ms-4 { margin-left: 1.5rem; }
-  .smd-body .mb-0 { margin-bottom: 0; }
-  .smd-body .mb-1 { margin-bottom: 0.25rem; }
-  .smd-body .mb-2 { margin-bottom: 0.5rem; }
-  .smd-body .mb-3 { margin-bottom: 1rem; }
-  .smd-body .d-flex { display: flex; }
-  .smd-body .align-items-center { align-items: center; }
-  .smd-body .gap-2 { gap: 0.5rem; }
-  .smd-body .flex-wrap { flex-wrap: wrap; }
-  .smd-body .text-muted { opacity: 0.75; }
-  .smd-body .small { font-size: 0.875em; }
-`;
-
-function scheduleEl(id) {
-  const host = document.getElementById("smdConfirmModal");
-  return host && host.shadowRoot ? host.shadowRoot.getElementById(id) : null;
-}
-function scheduleRadios() {
-  const host = document.getElementById("smdConfirmModal");
-  return host && host.shadowRoot ? host.shadowRoot.querySelectorAll('input[name="scheduleType"]') : [];
-}
-
-function getScheduleFormHTML() {
-  return `
-    <div class="mb-3">
-      <div class="form-check mb-2">
-        <input class="form-check-input" type="radio" name="scheduleType" id="schedDaily" value="daily" onchange="onScheduleTypeChange()">
-        <label class="form-check-label" for="schedDaily">Every day</label>
-      </div>
-      <div class="form-check mb-2">
-        <input class="form-check-input" type="radio" name="scheduleType" id="schedNDays" value="ndays" onchange="onScheduleTypeChange()">
-        <label class="form-check-label" for="schedNDays">Every n days</label>
-      </div>
-      <div id="schedNDaysOptions" class="d-none ms-4 mb-2">
-        <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
-          <label class="form-label mb-0">Every</label>
-          <select class="form-select" id="schedNInterval" onchange="onScheduleNDaysChange()" style="width:auto;min-width:60px"></select>
-          <label class="form-label mb-0">day(s)</label>
-          <label class="form-label mb-0 ms-2">Offset</label>
-          <select class="form-select" id="schedNOffset" onchange="onScheduleNDaysChange()" style="width:auto;min-width:60px"></select>
-        </div>
-        <div id="schedNextDue" class="text-muted small"></div>
-      </div>
-      <div class="form-check mb-2">
-        <input class="form-check-input" type="radio" name="scheduleType" id="schedWeekdays" value="weekdays" onchange="onScheduleTypeChange()">
-        <label class="form-check-label" for="schedWeekdays">Weekdays (Mon&ndash;Fri)</label>
-      </div>
-      <div class="form-check mb-2">
-        <input class="form-check-input" type="radio" name="scheduleType" id="schedWeekends" value="weekends" onchange="onScheduleTypeChange()">
-        <label class="form-check-label" for="schedWeekends">Weekends (Sat&ndash;Sun)</label>
-      </div>
-      <div class="form-check mb-2">
-        <input class="form-check-input" type="radio" name="scheduleType" id="schedDays" value="days" onchange="onScheduleTypeChange()">
-        <label class="form-check-label" for="schedDays">Specific days</label>
-      </div>
-      <div id="schedDaysOptions" class="d-none ms-4 mb-2 d-flex gap-2 flex-wrap">
-        <div class="form-check"><input class="form-check-input" type="checkbox" id="schedDay0" value="0"><label class="form-check-label" for="schedDay0">Sun</label></div>
-        <div class="form-check"><input class="form-check-input" type="checkbox" id="schedDay1" value="1"><label class="form-check-label" for="schedDay1">Mon</label></div>
-        <div class="form-check"><input class="form-check-input" type="checkbox" id="schedDay2" value="2"><label class="form-check-label" for="schedDay2">Tue</label></div>
-        <div class="form-check"><input class="form-check-input" type="checkbox" id="schedDay3" value="3"><label class="form-check-label" for="schedDay3">Wed</label></div>
-        <div class="form-check"><input class="form-check-input" type="checkbox" id="schedDay4" value="4"><label class="form-check-label" for="schedDay4">Thu</label></div>
-        <div class="form-check"><input class="form-check-input" type="checkbox" id="schedDay5" value="5"><label class="form-check-label" for="schedDay5">Fri</label></div>
-        <div class="form-check"><input class="form-check-input" type="checkbox" id="schedDay6" value="6"><label class="form-check-label" for="schedDay6">Sat</label></div>
-      </div>
-      <div class="form-check mb-2">
-        <input class="form-check-input" type="radio" name="scheduleType" id="schedMonthly" value="monthly" onchange="onScheduleTypeChange()">
-        <label class="form-check-label" for="schedMonthly">Day of month</label>
-      </div>
-      <div id="schedMonthlyOptions" class="d-none ms-4 mb-2">
-        <select class="form-select" id="schedMonthlyDay" style="width:auto"></select>
-      </div>
-    </div>
-  `;
-}
+let scheduleModalCallback = null;
 
 function openScheduleModal() {
   const s = (jobsBuffer && jobsBuffer.schedule) || { type: "daily" };
-  showSmdModal({
-    title: "Schedule",
-    content: getScheduleFormHTML(),
-    buttons: [
-      { text: "Cancel", variant: "secondary", action: "cancel" },
-      { text: "OK", variant: "primary", action: "ok" }
-    ],
-    onAction: function(detail) {
-      if (detail.action === "ok") saveScheduleModal();
-    }
-  });
-  const host = document.getElementById("smdConfirmModal");
-  if (host && host.shadowRoot) injectStyleInto(host.shadowRoot, SCHEDULE_MODAL_STYLES);
-  scheduleRadios().forEach(r => r.checked = r.value === s.type);
-  scheduleEl("schedDaysOptions").classList.toggle("d-none", s.type !== "days");
-  scheduleEl("schedMonthlyOptions").classList.toggle("d-none", s.type !== "monthly");
-  scheduleEl("schedNDaysOptions").classList.toggle("d-none", s.type !== "ndays");
+  document.querySelectorAll('input[name="scheduleType"]').forEach(r => r.checked = r.value === s.type);
+  document.getElementById("schedDaysOptions").classList.toggle("d-none", s.type !== "days");
+  document.getElementById("schedMonthlyOptions").classList.toggle("d-none", s.type !== "monthly");
+  document.getElementById("schedNDaysOptions").classList.toggle("d-none", s.type !== "ndays");
   for (let i = 0; i < 7; i++) {
-    scheduleEl("schedDay" + i).checked = (s.days || []).includes(i);
+    document.getElementById("schedDay" + i).checked = (s.days || []).includes(i);
   }
-  const mSel = scheduleEl("schedMonthlyDay");
+  const mSel = document.getElementById("schedMonthlyDay");
   mSel.innerHTML = "";
   for (let i = 1; i <= 31; i++) {
     const opt = document.createElement("option");
@@ -1536,7 +1246,7 @@ function openScheduleModal() {
     if (i === (s.date || 1)) opt.selected = true;
     mSel.appendChild(opt);
   }
-  const intervalSel = scheduleEl("schedNInterval");
+  const intervalSel = document.getElementById("schedNInterval");
   intervalSel.innerHTML = "";
   for (let i = 2; i <= 7; i++) {
     const opt = document.createElement("option");
@@ -1546,7 +1256,7 @@ function openScheduleModal() {
     intervalSel.appendChild(opt);
   }
   const curInterval = s.interval || 2;
-  const offsetSel = scheduleEl("schedNOffset");
+  const offsetSel = document.getElementById("schedNOffset");
   offsetSel.innerHTML = "";
   for (let i = 0; i < curInterval; i++) {
     const opt = document.createElement("option");
@@ -1556,21 +1266,38 @@ function openScheduleModal() {
     offsetSel.appendChild(opt);
   }
   if (s.type === "ndays") onScheduleNDaysChange();
+  const modalEl = document.getElementById("scheduleModal");
+  modalEl.addEventListener("show.bs.modal", function boostZ() {
+    modalEl.removeEventListener("show.bs.modal", boostZ);
+    modalEl.style.zIndex = 2000;
+    const backdrops = document.querySelectorAll(".modal-backdrop");
+    if (backdrops.length > 0) backdrops[backdrops.length - 1].style.zIndex = 1999;
+  });
+  modalEl.addEventListener("hidden.bs.modal", function resetZ() {
+    modalEl.removeEventListener("hidden.bs.modal", resetZ);
+    modalEl.style.zIndex = "";
+    const backdrops = document.querySelectorAll(".modal-backdrop");
+    if (backdrops.length > 0) backdrops[backdrops.length - 1].style.zIndex = "";
+  });
+  new bootstrap.Modal(modalEl).show();
+}
+
+function closeScheduleModal() {
+  safeHideModal("scheduleModal");
 }
 
 function onScheduleTypeChange() {
-  let checked = null;
-  scheduleRadios().forEach(r => { if (r.checked) checked = r; });
-  const type = checked ? checked.value : "daily";
-  scheduleEl("schedDaysOptions").classList.toggle("d-none", type !== "days");
-  scheduleEl("schedMonthlyOptions").classList.toggle("d-none", type !== "monthly");
-  scheduleEl("schedNDaysOptions").classList.toggle("d-none", type !== "ndays");
+  const val = document.querySelector('input[name="scheduleType"]:checked');
+  const type = val ? val.value : "daily";
+  document.getElementById("schedDaysOptions").classList.toggle("d-none", type !== "days");
+  document.getElementById("schedMonthlyOptions").classList.toggle("d-none", type !== "monthly");
+  document.getElementById("schedNDaysOptions").classList.toggle("d-none", type !== "ndays");
   if (type === "ndays") onScheduleNDaysChange();
 }
 
 function onScheduleNDaysChange() {
-  const interval = parseInt(scheduleEl("schedNInterval").value, 10) || 2;
-  const offsetSel = scheduleEl("schedNOffset");
+  const interval = parseInt(document.getElementById("schedNInterval").value, 10) || 2;
+  const offsetSel = document.getElementById("schedNOffset");
   const currentOffset = parseInt(offsetSel.value, 10) || 0;
   offsetSel.innerHTML = "";
   for (let i = 0; i < interval; i++) {
@@ -1581,29 +1308,28 @@ function onScheduleNDaysChange() {
     offsetSel.appendChild(opt);
   }
   const offset = parseInt(offsetSel.value, 10) || 0;
-  scheduleEl("schedNextDue").textContent = getNextDueText(interval, offset);
+  document.getElementById("schedNextDue").textContent = getNextDueText(interval, offset);
 }
 
 function saveScheduleModal() {
-  let checked = null;
-  scheduleRadios().forEach(r => { if (r.checked) checked = r; });
-  const type = checked ? checked.value : "daily";
+  const type = (document.querySelector('input[name="scheduleType"]:checked') || {}).value || "daily";
   let schedule = { type: type };
   if (type === "days") {
     schedule.days = [];
     for (let i = 0; i < 7; i++) {
-      if (scheduleEl("schedDay" + i).checked) schedule.days.push(i);
+      if (document.getElementById("schedDay" + i).checked) schedule.days.push(i);
     }
     if (schedule.days.length === 0) schedule = { type: "daily" };
   } else if (type === "monthly") {
-    schedule.date = parseInt(scheduleEl("schedMonthlyDay").value, 10) || 1;
+    schedule.date = parseInt(document.getElementById("schedMonthlyDay").value, 10) || 1;
   } else if (type === "ndays") {
-    schedule.interval = parseInt(scheduleEl("schedNInterval").value, 10) || 2;
-    schedule.offset = parseInt(scheduleEl("schedNOffset").value, 10) || 0;
+    schedule.interval = parseInt(document.getElementById("schedNInterval").value, 10) || 2;
+    schedule.offset = parseInt(document.getElementById("schedNOffset").value, 10) || 0;
   }
   jobField("schedule", schedule);
-  const el = $id("jobScheduleText");
+  const el = document.getElementById("jobScheduleText");
   if (el) el.textContent = getScheduleText(schedule);
+  closeScheduleModal();
 }
 
 function shouldShowJobToday(job) {
@@ -1628,9 +1354,29 @@ function shouldShowJobToday(job) {
   return true;
 }
 
-function getJobEditPageContent(data, readOnly) {
+function getJobEditFormHTML(data, readOnly) {
+  const streams = loadStreams();
+  const currentStream = streams[jobsTargetStreamIndex >= 0 ? jobsTargetStreamIndex : jobsStreamIndex] || {};
+  const streamImgUrl = getImageDataUrl(currentStream.image);
   const disabled = readOnly ? "disabled" : "";
   const ro = readOnly ? "readonly" : "";
+  const tasks = data.tasks || [];
+  var tasksHTML = "";
+  tasks.forEach(function(task, i) {
+    var dragHandleHtml = readOnly ? "" : '<div class="drag-handle">&#9776;</div>';
+    var noteBtnDisabled = "";
+    tasksHTML += `
+      <div class="d-flex align-items-center gap-2 mb-1 task-row task-drag-card" data-task-index="${i}">
+        ${dragHandleHtml}
+        <input class="form-check-input task-done-cb" type="checkbox" ${task.done ? "checked" : ""} ${disabled} onchange="jobTaskField(${i}, 'done', this.checked)">
+        <input class="form-control task-desc-input" value="${escapeHtml(task.description || "")}" ${ro} placeholder="Task description" oninput="jobTaskField(${i}, 'description', this.value)">
+        <button class="btn btn-sm ${task.note ? 'btn-outline-info' : 'btn-info'} task-note-btn" ${noteBtnDisabled} onclick="jobTaskToggleNote(this, ${i})" title="Note"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path d="M12.854.146a.5.5 0 0 0-.707 0L10.5 1.793 14.207 5.5l1.647-1.646a.5.5 0 0 0 0-.708l-3-3zm.646 6.061L9.854 2.56a.5.5 0 0 0-.707 0L1.5 10.207V14.5h4.293L13.5 6.207zM12.793 3.207L4 12V14h2L13.793 4.207l-1-1z"/></svg></button>
+        <button class="btn btn-sm btn-danger d-flex align-items-center justify-content-center" style="width:32px;height:32px" ${disabled} onclick="jobDeleteTask(${i})" title="Delete"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/><path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z"/></svg></button>
+      </div>
+      <div class="task-note-row mb-1 ms-4" id="taskNoteRow${i}" style="display:${taskNoteOpen(task) ? 'block' : 'none'}">
+        <textarea class="form-control" rows="2" placeholder="Note" ${ro} oninput="jobTaskField(${i}, 'note', this.value)">${escapeHtml(task.note || "")}</textarea>
+      </div>`;
+  });
   return `
     <div class="row mb-1">
       <div class="col">
@@ -1644,306 +1390,237 @@ function getJobEditPageContent(data, readOnly) {
       </div>
     </div>
     <div class="mb-2">
-      <input class="form-control" id="jobTitleInput" value="${escapeHtml(data.title || "")}" ${ro} oninput="jobField('title', this.value);updateJobEditOkBtn()" ${readOnly ? "" : "onkeydown=\"if(event.key==='Enter') jobEditOk()\""}>
+      <input class="form-control" id="jobTitleInput" value="${escapeHtml(data.title || "")}" ${ro} oninput="jobField('title', this.value);updateJobEditOkBtn()" ${readOnly ? "" : "onkeydown=\"if(event.key==='Enter') document.getElementById('jobEditOkBtn').click()\""}>
     </div>
-    <smd-tabs id="jobEditTabs"></smd-tabs>
-  `;
-}
 
-function getJobEditSections(data, readOnly) {
-  return [
-    { title: "General", id: "jobGeneral-tab", content: getJobGeneralTabHTML(data, readOnly) },
-    { title: "Schedule", id: "jobSchedule-tab", content: getJobScheduleTabHTML(data, readOnly) },
-    { title: "Tasks", id: "jobTasks-tab", content: getJobTasksTabHTML(data, readOnly) }
-  ];
-}
+    <ul class="nav nav-tabs nav-tabs-info" id="jobEditTabs" role="tablist">
+      <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="jobGeneral-tab" data-bs-toggle="tab" data-bs-target="#jobGeneral" type="button" role="tab" aria-controls="jobGeneral" aria-selected="true">General</button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="jobSchedule-tab" data-bs-toggle="tab" data-bs-target="#jobSchedule" type="button" role="tab" aria-controls="jobSchedule" aria-selected="false">Schedule</button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="jobTasks-tab" data-bs-toggle="tab" data-bs-target="#jobTasks" type="button" role="tab" aria-controls="jobTasks" aria-selected="false">Tasks</button>
+      </li>
+    </ul>
 
-function getJobGeneralTabHTML(data, readOnly) {
-  const streams = loadStreams();
-  const currentStream = streams[jobsTargetStreamIndex >= 0 ? jobsTargetStreamIndex : jobsStreamIndex] || {};
-  const streamImgUrl = getImageDataUrl(currentStream.image);
-  const disabled = readOnly ? "disabled" : "";
-  return `
-    <div class="row mb-2 mt-2">
-      <div class="col-6 d-flex flex-column" style="min-height:61px">
-        <label class="form-label mb-0">Stream</label>
-        <div class="dropdown mt-1" id="jobStreamDropdown" style="flex-grow:1">
-          <button class="btn btn-outline-secondary dropdown-toggle w-100 d-flex align-items-center gap-2 h-100" type="button" id="jobStreamDropdownBtn" ${disabled} style="text-align:left">
-            <span id="jobStreamBtnIcon" style="width:45px;height:45px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;border:1px solid var(--bs-border-color);border-radius:6px">
-              ${streamImgUrl ? `<img src="${streamImgUrl}" style="max-width:45px;max-height:45px">` : `<span style="width:45px;height:45px;display:inline-block"></span>`}
-            </span>
-            <span id="jobStreamBtnText" class="flex-grow-1">${escapeHtml(currentStream.title || "")}</span>
-          </button>
-          <ul class="dropdown-menu w-100" id="jobStreamDropdownMenu">
-            ${streams.map((s, i) => {
-              const sImg = getImageDataUrl(s.image);
-              return `
-                <li>
-                  <a class="dropdown-item d-flex align-items-center gap-2 ${i === (jobsTargetStreamIndex >= 0 ? jobsTargetStreamIndex : jobsStreamIndex) ? "active" : ""}" href="#" data-stream-idx="${i}" onclick="event.preventDefault();jobChangeStream(${i})">
-                    <span style="width:45px;height:45px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;border:1px solid var(--bs-border-color);border-radius:6px">
-                      ${sImg ? `<img src="${sImg}" style="max-width:45px;max-height:45px">` : `<span style="width:45px;height:45px;display:inline-block"></span>`}
-                    </span>
-                    ${escapeHtml(s.title)}
-                  </a>
-                </li>
-              `;
-            }).join("")}
-          </ul>
+    <div class="tab-content" id="jobEditTabsContent">
+      <div class="tab-pane fade show active" id="jobGeneral" role="tabpanel" aria-labelledby="jobGeneral-tab">
+        <div class="row mb-2 mt-2">
+          <div class="col-6 d-flex flex-column" style="min-height:61px">
+            <label class="form-label mb-0">Stream</label>
+            <div class="dropdown mt-1" id="jobStreamDropdown" style="flex-grow:1">
+              <button class="btn btn-outline-secondary dropdown-toggle w-100 d-flex align-items-center gap-2 h-100" type="button" id="jobStreamDropdownBtn" data-bs-toggle="dropdown" ${disabled} style="text-align:left">
+                <span id="jobStreamBtnIcon" style="width:45px;height:45px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;border:1px solid var(--bs-border-color);border-radius:6px">
+                  ${streamImgUrl ? `<img src="${streamImgUrl}" style="max-width:45px;max-height:45px">` : `<span style="width:45px;height:45px;display:inline-block"></span>`}
+                </span>
+                <span id="jobStreamBtnText" class="flex-grow-1">${escapeHtml(currentStream.title || "")}</span>
+              </button>
+              <ul class="dropdown-menu w-100" id="jobStreamDropdownMenu">
+                ${streams.map((s, i) => {
+                  const sImg = getImageDataUrl(s.image);
+                  return `
+                    <li>
+                      <a class="dropdown-item d-flex align-items-center gap-2 ${i === (jobsTargetStreamIndex >= 0 ? jobsTargetStreamIndex : jobsStreamIndex) ? "active" : ""}" href="#" data-stream-idx="${i}" onclick="event.preventDefault();jobChangeStream(${i})">
+                        <span style="width:45px;height:45px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;border:1px solid var(--bs-border-color);border-radius:6px">
+                          ${sImg ? `<img src="${sImg}" style="max-width:45px;max-height:45px">` : `<span style="width:45px;height:45px;display:inline-block"></span>`}
+                        </span>
+                        ${escapeHtml(s.title)}
+                      </a>
+                    </li>
+                  `;
+                }).join("")}
+              </ul>
+            </div>
+          </div>
+          <div class="col-6 d-flex flex-column" style="min-height:61px">
+            <label class="form-label mb-0">Image</label>
+            <div class="d-flex align-items-center gap-2 mt-1" style="flex-grow:1">
+              <div style="width:45px;height:45px;border:1px solid var(--bs-border-color);border-radius:6px;overflow:hidden;display:flex;align-items:center;justify-content:center;flex-shrink:0" id="jobImagePreview">
+                ${getImageDataUrl(data.image) ? `<img src="${getImageDataUrl(data.image)}" class="date-img" style="max-width:45px;max-height:45px">` : `<span class="text-secondary small">none</span>`}
+              </div>
+              <div>
+                <div id="jobImageName">${escapeHtml(data.image || "")}</div>
+                <div class="d-flex gap-1 mt-1">
+                  <button class="btn btn-primary btn-sm" id="btnJobImageChange" ${disabled} onclick="openImagePicker(function(name){ jobField('image', name); updateJobImagePreview(name); })">Edit</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="mb-2">
+          <label class="form-label">Description</label>
+          <textarea class="form-control" rows="3" ${ro} oninput="jobField('description', this.value)">${escapeHtml(data.description || "")}</textarea>
+        </div>
+        <div class="row mb-2">
+          <div class="col-auto d-flex align-items-center">
+            <div class="form-check mb-0">
+              <input class="form-check-input" type="checkbox" id="jobSuffixCb" ${data.suffix ? "checked" : ""} ${disabled} onchange="jobField('suffix', this.checked)">
+              <label class="form-check-label" for="jobSuffixCb">Suffix</label>
+            </div>
+          </div>
+          <div class="col">
+            <select class="form-select" ${disabled} onchange="jobField('dayType', this.value)">
+              <option value="dayOfYear" ${(data.dayType || "dayOfYear") === "dayOfYear" ? "selected" : ""}>Day of Year</option>
+              <option value="dayOfMonth" ${data.dayType === "dayOfMonth" ? "selected" : ""}>Day of Month</option>
+              <option value="dayOfWeek" ${data.dayType === "dayOfWeek" ? "selected" : ""}>Day of Week</option>
+            </select>
+          </div>
+          <div class="col">
+            <select class="form-select" ${disabled} onchange="jobField('mod', this.value)">
+              <option value="" ${!data.mod ? "selected" : ""}>None</option>
+              <option value="2" ${data.mod === "2" ? "selected" : ""}>2</option>
+              <option value="3" ${data.mod === "3" ? "selected" : ""}>3</option>
+              <option value="4" ${data.mod === "4" ? "selected" : ""}>4</option>
+              <option value="5" ${data.mod === "5" ? "selected" : ""}>5</option>
+              <option value="6" ${data.mod === "6" ? "selected" : ""}>6</option>
+              <option value="7" ${data.mod === "7" ? "selected" : ""}>7</option>
+            </select>
+          </div>
         </div>
       </div>
-      <div class="col-6 d-flex flex-column" style="min-height:61px">
-        <label class="form-label mb-0">Image</label>
-        <div class="d-flex align-items-center gap-2 mt-1" style="flex-grow:1">
-          <div style="width:45px;height:45px;border:1px solid var(--bs-border-color);border-radius:6px;overflow:hidden;display:flex;align-items:center;justify-content:center;flex-shrink:0" id="jobImagePreview">
-            ${getImageDataUrl(data.image) ? `<img src="${getImageDataUrl(data.image)}" class="date-img" style="max-width:45px;max-height:45px">` : `<span class="text-secondary small">none</span>`}
+      <div class="tab-pane fade" id="jobSchedule" role="tabpanel" aria-labelledby="jobSchedule-tab">
+        <div class="mb-2 mt-2">
+          <label class="form-label">Schedule</label>
+          <div class="d-flex align-items-center gap-2">
+            <span id="jobScheduleText">${escapeHtml(getScheduleText(data.schedule))}</span>
+            <button class="btn btn-primary btn-sm" id="btnScheduleChange" ${disabled} onclick="openScheduleModal()">Edit</button>
           </div>
-          <div>
-            <div id="jobImageName">${escapeHtml(data.image || "")}</div>
-            <div class="d-flex gap-1 mt-1">
-              <button class="btn btn-primary btn-sm" id="btnJobImageChange" ${disabled} onclick="openImagePicker(function(name){ jobField('image', name); updateJobImagePreview(name); })">Edit</button>
+        </div>
+        <div class="row mb-2">
+          <div class="col">
+            <label class="form-label">Sleep Until</label>
+            <div class="d-flex gap-2">
+              <input class="form-control" id="jobSleepUntil" value="${escapeHtml(readOnly ? formatDate(data.sleepUntil) : (data.sleepUntil || ""))}" ${ro} placeholder="Pick a date">
+              <button class="btn btn-danger btn-sm ${data.sleepUntil ? "" : "d-none"}" id="jobSleepUntilClearBtn" ${disabled} onclick="clearSleepUntil()">Clear</button>
+            </div>
+          </div>
+        </div>
+        <div class="row mb-2">
+          <div class="col">
+            <label class="form-label">Wait for</label>
+            <input class="form-control" id="jobWaitFor" value="${escapeHtml(data.waitFor || "")}" ${ro} placeholder="e.g. the delivery to arrive" oninput="jobField('waitFor', this.value)">
+          </div>
+        </div>
+        <div class="row mb-2">
+          <div class="col">
+            <label class="form-label">Schedule Time</label>
+            <div class="d-flex gap-2">
+              <select class="form-select" id="jobTimeHour" ${disabled} onchange="jobTimeChanged()" style="width:auto">
+                <option value="" ${!data.time ? "selected" : ""}>-</option>
+                ${Array.from({length: 24}, (_, i) => {
+                  const h = String(i).padStart(2, "0");
+                  const cur = data.time ? data.time.split(":")[0] : "";
+                  return `<option value="${h}" ${cur === h ? "selected" : ""}>${h}</option>`;
+                }).join("")}
+              </select>
+              <span class="align-self-center">:</span>
+              <select class="form-select" id="jobTimeMin" ${disabled} onchange="jobTimeChanged()" style="width:auto">
+                <option value="" ${!data.time ? "selected" : ""}>-</option>
+                <option value="00" ${data.time && data.time.split(":")[1] === "00" ? "selected" : ""}>00</option>
+                <option value="15" ${data.time && data.time.split(":")[1] === "15" ? "selected" : ""}>15</option>
+                <option value="30" ${data.time && data.time.split(":")[1] === "30" ? "selected" : ""}>30</option>
+                <option value="45" ${data.time && data.time.split(":")[1] === "45" ? "selected" : ""}>45</option>
+              </select>
             </div>
           </div>
         </div>
       </div>
-    </div>
-    <div class="mb-2">
-      <label class="form-label">Description</label>
-      <textarea class="form-control" rows="3" ${readOnly ? "readonly" : ""} oninput="jobField('description', this.value)">${escapeHtml(data.description || "")}</textarea>
-    </div>
-    <div class="row mb-2">
-      <div class="col-auto d-flex align-items-center">
-        <div class="form-check mb-0">
-          <input class="form-check-input" type="checkbox" id="jobSuffixCb" ${data.suffix ? "checked" : ""} ${disabled} onchange="jobField('suffix', this.checked)">
-          <label class="form-check-label" for="jobSuffixCb">Suffix</label>
-        </div>
-      </div>
-      <div class="col">
-        <select class="form-select" ${disabled} onchange="jobField('dayType', this.value)">
-          <option value="dayOfYear" ${(data.dayType || "dayOfYear") === "dayOfYear" ? "selected" : ""}>Day of Year</option>
-          <option value="dayOfMonth" ${data.dayType === "dayOfMonth" ? "selected" : ""}>Day of Month</option>
-          <option value="dayOfWeek" ${data.dayType === "dayOfWeek" ? "selected" : ""}>Day of Week</option>
-        </select>
-      </div>
-      <div class="col">
-        <select class="form-select" ${disabled} onchange="jobField('mod', this.value)">
-          <option value="" ${!data.mod ? "selected" : ""}>None</option>
-          <option value="2" ${data.mod === "2" ? "selected" : ""}>2</option>
-          <option value="3" ${data.mod === "3" ? "selected" : ""}>3</option>
-          <option value="4" ${data.mod === "4" ? "selected" : ""}>4</option>
-          <option value="5" ${data.mod === "5" ? "selected" : ""}>5</option>
-          <option value="6" ${data.mod === "6" ? "selected" : ""}>6</option>
-          <option value="7" ${data.mod === "7" ? "selected" : ""}>7</option>
-        </select>
-      </div>
-    </div>
-  `;
-}
-
-function getJobScheduleTabHTML(data, readOnly) {
-  const disabled = readOnly ? "disabled" : "";
-  const ro = readOnly ? "readonly" : "";
-  return `
-    <div class="mb-2 mt-2">
-      <label class="form-label">Schedule</label>
-      <div class="d-flex align-items-center gap-2">
-        <span id="jobScheduleText">${escapeHtml(getScheduleText(data.schedule))}</span>
-        <button class="btn btn-primary btn-sm" id="btnScheduleChange" ${disabled} onclick="openScheduleModal()">Edit</button>
-      </div>
-    </div>
-    <div class="row mb-2">
-      <div class="col">
-        <label class="form-label">Sleep Until</label>
-        <div class="d-flex gap-2">
-          <input class="form-control" id="jobSleepUntil" value="${escapeHtml(readOnly ? formatDate(data.sleepUntil) : (data.sleepUntil || ""))}" ${ro} placeholder="Pick a date">
-          <button class="btn btn-danger btn-sm ${data.sleepUntil ? "" : "d-none"}" id="jobSleepUntilClearBtn" ${disabled} onclick="clearSleepUntil()">Clear</button>
-        </div>
-      </div>
-    </div>
-    <div class="row mb-2">
-      <div class="col">
-        <label class="form-label">Wait for</label>
-        <input class="form-control" id="jobWaitFor" value="${escapeHtml(data.waitFor || "")}" ${ro} placeholder="e.g. the delivery to arrive" oninput="jobField('waitFor', this.value)">
-      </div>
-    </div>
-    <div class="row mb-2">
-      <div class="col">
-        <label class="form-label">Schedule Time</label>
-        <div class="d-flex gap-2">
-          <select class="form-select" id="jobTimeHour" ${disabled} onchange="jobTimeChanged()" style="width:auto">
-            <option value="" ${!data.time ? "selected" : ""}>-</option>
-            ${Array.from({length: 24}, (_, i) => {
-              const h = String(i).padStart(2, "0");
-              const cur = data.time ? data.time.split(":")[0] : "";
-              return `<option value="${h}" ${cur === h ? "selected" : ""}>${h}</option>`;
-            }).join("")}
-          </select>
-          <span class="align-self-center">:</span>
-          <select class="form-select" id="jobTimeMin" ${disabled} onchange="jobTimeChanged()" style="width:auto">
-            <option value="" ${!data.time ? "selected" : ""}>-</option>
-            <option value="00" ${data.time && data.time.split(":")[1] === "00" ? "selected" : ""}>00</option>
-            <option value="15" ${data.time && data.time.split(":")[1] === "15" ? "selected" : ""}>15</option>
-            <option value="30" ${data.time && data.time.split(":")[1] === "30" ? "selected" : ""}>30</option>
-            <option value="45" ${data.time && data.time.split(":")[1] === "45" ? "selected" : ""}>45</option>
-          </select>
+      <div class="tab-pane fade" id="jobTasks" role="tabpanel" aria-labelledby="jobTasks-tab">
+        <div class="mt-2">
+          <button class="btn btn-primary btn-sm mb-2" id="jobAddTaskBtn" ${disabled} onclick="jobAddTask()">Add Task</button>
+          <div id="jobTasksList">${tasksHTML}</div>
+          <div class="mt-2">
+            <button class="btn btn-primary btn-sm" id="jobAddTaskBottomBtn" ${disabled} onclick="jobAddTask()">Add Task</button>
+          </div>
         </div>
       </div>
     </div>
   `;
 }
 
-function getJobTasksTabHTML(data, readOnly) {
-  const disabled = readOnly ? "disabled" : "";
-  const ro = readOnly ? "readonly" : "";
-  const tasks = data.tasks || [];
-  let tasksHTML = "";
-  tasks.forEach(function(task, i) {
-    var dragHandleHtml = readOnly ? "" : '<div class="drag-handle">&#9776;</div>';
-    tasksHTML += `
-      <div class="d-flex align-items-center gap-2 mb-1 task-row task-drag-card" data-task-index="${i}">
-        ${dragHandleHtml}
-        <input class="form-check-input task-done-cb" type="checkbox" ${task.done ? "checked" : ""} ${disabled} onchange="jobTaskField(${i}, 'done', this.checked)">
-        <input class="form-control task-desc-input" value="${escapeHtml(task.description || "")}" ${ro} placeholder="Task description" oninput="jobTaskField(${i}, 'description', this.value)">
-        <button class="btn btn-sm ${task.note ? 'btn-outline-info' : 'btn-info'} task-note-btn" ${disabled} onclick="jobTaskToggleNote(this, ${i})" title="Note"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path d="M12.854.146a.5.5 0 0 0-.707 0L10.5 1.793 14.207 5.5l1.647-1.646a.5.5 0 0 0 0-.708l-3-3zm.646 6.061L9.854 2.56a.5.5 0 0 0-.707 0L1.5 10.207V14.5h4.293L13.5 6.207zM12.793 3.207L4 12V14h2L13.793 4.207l-1-1z"/></svg></button>
-        <button class="btn btn-sm btn-danger d-flex align-items-center justify-content-center" style="width:32px;height:32px" ${disabled} onclick="jobDeleteTask(${i})" title="Delete"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/><path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z"/></svg></button>
-      </div>
-      <div class="task-note-row mb-1 ms-4" id="taskNoteRow${i}" style="display:${taskNoteOpen(task) ? 'block' : 'none'}">
-        <textarea class="form-control" rows="2" placeholder="Note" ${ro} oninput="jobTaskField(${i}, 'note', this.value)">${escapeHtml(task.note || "")}</textarea>
-      </div>`;
-  });
-  return `
-    <div class="mt-2">
-      <button class="btn btn-primary btn-sm mb-2" id="jobAddTaskBtn" ${disabled} onclick="jobAddTaskTop()">Add Task</button>
-      <div id="jobTasksList">${tasksHTML}</div>
-      <div class="mt-2">
-        <button class="btn btn-primary btn-sm" id="jobAddTaskBottomBtn" ${disabled} onclick="jobAddTask()">Add Task</button>
-      </div>
-    </div>
-  `;
-}
-
-var _jobEditButtons = [];
-var _jobEditCloseTimer = null;
-
-function buildJobEditPage(readOnly, activeTabIndex) {
+function showJobEditModal(readOnly) {
   if (!jobsBuffer) return;
   const data = jobsBuffer;
   const title = readOnly ? "View Job" : (isNewJob ? "Add Job" : "Edit Job");
-  const page = document.getElementById("jobEditPage");
-  if (!page) return;
-
-  destroyJobEditTransient();
-  if (_jobEditCloseTimer) {
-    clearTimeout(_jobEditCloseTimer);
-    _jobEditCloseTimer = null;
-  }
+  document.getElementById("jobEditModalTitle").textContent = title;
   jobsTargetStreamIndex = jobsStreamIndex;
-
-  _jobEditButtons = readOnly
-    ? [
-        { text: "Edit", variant: "primary", action: "edit", id: "btnViewJobEdit", close: false },
-        { text: "OK", variant: "success", action: "cancel", id: "jobEditOkBtn" }
-      ]
-    : [
-        { text: "Cancel", variant: "secondary", action: "cancel", id: "jobEditCancelBtn" },
-        ...(isNewJob ? [] : [{ text: "Delete", variant: "danger", action: "delete", id: "jobEditDelBtn" }]),
-        { text: "OK", variant: "success", action: "done", id: "jobEditOkBtn" }
-      ];
-
-  page.classList.remove("d-none");
-  page.title = title;
-  page.content = getJobEditPageContent(data, readOnly);
-  page.buttons = _jobEditButtons;
-
-  const tabsEl = $id("jobEditTabs");
-  if (tabsEl) {
-    tabsEl.tabs = getJobEditSections(data, readOnly);
-    if (typeof activeTabIndex === "number" && activeTabIndex > 0 && activeTabIndex < tabsEl.tabs.length) {
-      tabsEl.activeIndex = activeTabIndex;
-    }
-  }
-  injectJobEditStyles();
-  initJobStreamDropdown();
-  initJobSleepUntilPicker(readOnly);
-  if (!readOnly) {
-    initJobTasksSortable();
-    renderJobTasks();
+  document.getElementById("jobEditModalBody").innerHTML = getJobEditFormHTML(data, readOnly);
+  const firstTab = document.querySelector("#jobEditTabs .nav-link");
+  if (firstTab) { new bootstrap.Tab(firstTab).show(); }
+  const footer = document.getElementById("jobEditModalFooter");
+  if (readOnly) {
+    footer.innerHTML = '<button class="btn btn-primary editor-btn flex-fill" id="btnViewJobEdit" onclick="editJobFromView()">Edit</button><button class="btn btn-success editor-btn flex-fill" id="btnViewJobOk" onclick="cancelJobEdit()">OK</button>';
+  } else {
+    const delBtnHtml = isNewJob ? "" : '<button class="btn btn-danger editor-btn flex-fill" id="jobEditDelBtn" onclick="deleteJobFromEdit()">Delete</button>';
+    footer.innerHTML = '<button class="btn btn-secondary editor-btn flex-fill" id="jobEditCancelBtn" onclick="cancelJobEdit()">Cancel</button>' + delBtnHtml + '<button class="btn btn-success editor-btn flex-fill" id="jobEditOkBtn" onclick="doneJobEdit()">OK</button>';
     updateJobEditOkBtn();
   }
-  page.show();
-  if (!readOnly && isNewJob) focusJobTitle();
-}
-
-function destroyJobEditTransient() {
-  if (jobTasksSortable) {
-    jobTasksSortable.destroy();
-    jobTasksSortable = null;
-  }
-  const fp = $id("jobSleepUntil");
-  if (fp && fp._flatpickr) {
-    try { fp._flatpickr.destroy(); } catch (e) {}
-  }
-}
-
-function hideJobEditPage() {
-  destroyJobEditTransient();
-  const page = document.getElementById("jobEditPage");
-  if (page) {
-    page.hide();
-    clearTimeout(_jobEditCloseTimer);
-    _jobEditCloseTimer = setTimeout(function() {
-      page.classList.add("d-none");
-    }, Math.max(0, (page.slideDuration || 0) + 50));
-  }
-}
-
-function initJobSleepUntilPicker(readOnly) {
-  const fpInput = $id("jobSleepUntil");
-  if (!fpInput) return;
-  if (readOnly) return;
-  flatpickr(fpInput, {
-    dateFormat: "Y-m-d",
-    altInput: true,
-    altFormat: "D j M Y",
-    altInputClass: "form-control",
-    allowInput: false,
-    monthSelectorType: "dropdown",
-    disableMobile: true,
-    locale: { firstDayOfWeek: parseInt(localStorage.getItem("planmydays_startWeek") || "1", 10) },
-    onChange: function(selectedDates, dateStr) {
-      jobField("sleepUntil", dateStr);
-      updateSleepUntilClearBtn();
+  const fpInput = document.getElementById("jobSleepUntil");
+  if (fpInput) {
+    if (fpInput._flatpickr) fpInput._flatpickr.destroy();
+    if (!readOnly) {
+      flatpickr(fpInput, {
+        dateFormat: "Y-m-d",
+        altInput: true,
+        altFormat: "D j M Y",
+        altInputClass: "form-control",
+        allowInput: false,
+        monthSelectorType: "dropdown",
+        disableMobile: true,
+        locale: { firstDayOfWeek: parseInt(localStorage.getItem("planmydays_startWeek") || "1", 10) },
+        onChange: function(selectedDates, dateStr) {
+          jobField("sleepUntil", dateStr);
+          updateSleepUntilClearBtn();
+        }
+      });
+      if (fpInput._flatpickr && fpInput._flatpickr.altInput) fpInput._flatpickr.altInput.id = "jobSleepUntilDisplay";
     }
-  });
-  if (fpInput._flatpickr && fpInput._flatpickr.altInput) fpInput._flatpickr.altInput.id = "jobSleepUntilDisplay";
-}
-
-function focusJobTitle() {
-  requestAnimationFrame(function() {
-    var el = $id("jobTitleInput");
-    if (el) el.focus();
-  });
-}
-
-function getJobEditFooterBtn(action) {
-  const page = document.getElementById("jobEditPage");
-  if (!page || !page.shadowRoot) return null;
-  const config = _jobEditButtons.find(function(b) { return b.action === action; });
-  if (!config || !config.id) return null;
-  return page.shadowRoot.getElementById(config.id);
-}
-
-function jobEditOk() {
-  const okBtn = getJobEditFooterBtn("done");
-  if (okBtn && okBtn.disabled) return;
-  doneJobEdit();
+  }
+  new bootstrap.Modal(document.getElementById("jobEditModal")).show();
+  if (!readOnly) initJobTasksSortable();
+  if (!readOnly && isNewJob) focusTitleOnShow("jobTitleInput", "jobEditModal");
 }
 
 function editJobFromView() {
   if (!jobsBuffer) return;
-  var activeIdx = 0;
-  var tabsEl = $id("jobEditTabs");
-  if (tabsEl) activeIdx = tabsEl.activeIndex;
-  buildJobEditPage(false, activeIdx);
+  var activeTabId = null;
+  var activeTab = document.querySelector("#jobEditTabs .nav-link.active");
+  if (activeTab) {
+    activeTabId = activeTab.id;
+  }
+  document.getElementById("jobEditModalTitle").textContent = "Edit Job";
+  document.getElementById("jobEditModalBody").innerHTML = getJobEditFormHTML(jobsBuffer, false);
+  if (activeTabId) {
+    var tabEl = document.getElementById(activeTabId);
+    if (tabEl) { new bootstrap.Tab(tabEl).show(); }
+  } else {
+    var firstTab = document.querySelector("#jobEditTabs .nav-link");
+    if (firstTab) { new bootstrap.Tab(firstTab).show(); }
+  }
+  document.getElementById("jobEditModalFooter").innerHTML = '<button class="btn btn-secondary editor-btn flex-fill" id="jobEditCancelBtn" onclick="cancelJobEdit()">Cancel</button><button class="btn btn-danger editor-btn flex-fill" id="jobEditDelBtn" onclick="deleteJobFromEdit()">Delete</button><button class="btn btn-success editor-btn flex-fill" id="jobEditOkBtn" onclick="doneJobEdit()">OK</button>';
+  updateJobEditOkBtn();
+  const fpInput = document.getElementById("jobSleepUntil");
+  if (fpInput) {
+    if (fpInput._flatpickr) fpInput._flatpickr.destroy();
+    flatpickr(fpInput, {
+      dateFormat: "Y-m-d",
+      altInput: true,
+      altFormat: "D j M Y",
+      altInputClass: "form-control",
+      allowInput: false,
+      monthSelectorType: "dropdown",
+      disableMobile: true,
+      locale: { firstDayOfWeek: parseInt(localStorage.getItem("planmydays_startWeek") || "1", 10) },
+      onChange: function(selectedDates, dateStr) {
+        jobField("sleepUntil", dateStr);
+        updateSleepUntilClearBtn();
+      }
+    });
+    if (fpInput._flatpickr && fpInput._flatpickr.altInput) fpInput._flatpickr.altInput.id = "jobSleepUntilDisplay";
+  }
+  initJobTasksSortable();
 }
 
 function viewJobReadOnly(streamIdx, jobIdx) {
@@ -1961,7 +1638,7 @@ function viewJobReadOnly(streamIdx, jobIdx) {
   jobsStreamIndex = streamIdx;
   jobsEditingIdx = jobIdx;
   isNewJob = false;
-  buildJobEditPage(true);
+  showJobEditModal(true);
 }
 
 function editJob(index) {
@@ -1973,11 +1650,11 @@ function editJob(index) {
     if (jobsBuffer.sleepUntil < today) jobsBuffer.sleepUntil = "";
   }
   jobsEditingIdx = index; isNewJob = false;
-  buildJobEditPage(false);
+  showJobEditModal();
 }
 
 function cancelJobEdit() {
-  hideJobEditPage();
+  safeHideModal("jobEditModal");
   var searchOpen = document.getElementById("jobSearchEditor") && !document.getElementById("jobSearchEditor").classList.contains("d-none");
   var fromMain = document.getElementById("streamsEditor").classList.contains("d-none");
   if (isNewJob && jobsEditingIdx >= 0) {
@@ -2014,7 +1691,7 @@ function doneJobEdit() {
     }
     saveStreams(streams);
   }
-  hideJobEditPage();
+  safeHideModal("jobEditModal");
   jobsEditingIdx = -1; jobsBuffer = null; isNewJob = false; jobsTargetStreamIndex = -1;
   if (searchOpen) { renderSearchJobs(); } else if (fromMain) {
     var streams = loadStreams();
@@ -2048,8 +1725,11 @@ function doneJobEdit() {
 
 function deleteJobFromEdit() {
   var idx = jobsEditingIdx;
-  hideJobEditPage();
-  confirmDeleteJob(idx);
+  var el = document.getElementById("jobEditModal");
+  el.addEventListener("hidden.bs.modal", function() {
+    confirmDeleteJob(idx);
+  }, { once: true });
+  safeHideModal("jobEditModal");
 }
 
 function confirmDeleteJob(index) {
@@ -2058,41 +1738,36 @@ function confirmDeleteJob(index) {
   var stream = streams[jobsStreamIndex] || {};
   var jobs = stream.jobs || [];
   var job = jobs[index] || {};
-  showSmdModal({
-    title: "Delete Job?",
-    content: 'Delete "' + escapeHtml(job.title || "") + '" from "' + escapeHtml(stream.title || "") + '"?',
-    buttons: [
-      { text: "Cancel", variant: "secondary", action: "cancel" },
-      { text: "Delete", variant: "danger", action: "delete" }
-    ],
-    onAction: function(detail) {
-      if (detail.action !== "delete") return;
-      var s = loadStreams();
-      var jbs = s[jobsStreamIndex].jobs || [];
-      var deletedId = (jbs[index] || {}).id;
-      jbs.splice(index, 1);
-      jbs.forEach(function(j, i) { j.sequence = i + 1; });
-      s[jobsStreamIndex].jobs = jbs;
-      saveStreams(s);
-      if (deletedId) {
-        var order = loadTodayOrder();
-        if (order) {
-          order = order.filter(function(id) { return id !== deletedId; });
-          saveTodayOrder(order);
-        }
-        var completed = loadCompletedJobs();
-        if (completed.indexOf(deletedId) !== -1) {
-          saveCompletedJobs(completed.filter(function(id) { return id !== deletedId; }));
-        }
+  var modalEl = document.getElementById("deleteConfirmModal");
+  document.getElementById("deleteConfirmMessage").textContent = 'Delete "' + (job.title || "") + '" from "' + (stream.title || "") + '"?';
+  document.getElementById("deleteConfirmBtn").onclick = function() {
+    var s = loadStreams();
+    var jbs = s[jobsStreamIndex].jobs || [];
+    var deletedId = (jbs[index] || {}).id;
+    jbs.splice(index, 1);
+    jbs.forEach(function(j, i) { j.sequence = i + 1; });
+    s[jobsStreamIndex].jobs = jbs;
+    saveStreams(s);
+    if (deletedId) {
+      var order = loadTodayOrder();
+      if (order) {
+        order = order.filter(function(id) { return id !== deletedId; });
+        saveTodayOrder(order);
       }
-      jobsEditingIdx = -1; jobsBuffer = null; isNewJob = false;
-      if (document.getElementById("streamsEditor").classList.contains("d-none")) {
-        renderMain();
-      } else {
-        renderStreamsEditor();
+      var completed = loadCompletedJobs();
+      if (completed.indexOf(deletedId) !== -1) {
+        saveCompletedJobs(completed.filter(function(id) { return id !== deletedId; }));
       }
     }
-  });
+    safeHideModal("deleteConfirmModal");
+    jobsEditingIdx = -1; jobsBuffer = null; isNewJob = false;
+    if (document.getElementById("streamsEditor").classList.contains("d-none")) {
+      renderMain();
+    } else {
+      renderStreamsEditor();
+    }
+  };
+  new bootstrap.Modal(modalEl).show();
 }
 
 function addNewJob() {
@@ -2105,7 +1780,7 @@ function addNewJob() {
   saveStreams(streams);
   jobsBuffer = JSON.parse(JSON.stringify(newJob));
   jobsEditingIdx = jobs.length - 1; isNewJob = true;
-  buildJobEditPage(false);
+  showJobEditModal();
 }
 
 function getJobSuffix(job) {
@@ -2167,254 +1842,7 @@ function getSettingsSections() {
   return { sections: _settingsSections, footerHtml: _settingsFooterHtml };
 }
 
-var JOBS_EDITOR_STYLES = `
-  .smd-page-body *, .smd-page-body *::before, .smd-page-body *::after,
-  .smd-tab-panel *, .smd-tab-panel *::before, .smd-tab-panel *::after {
-    box-sizing: border-box;
-  }
-  .smd-page-body .row, .smd-tab-panel .row {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    width: 100%;
-    max-width: 1040px;
-    margin-bottom: 1rem;
-  }
-  .smd-page-body .col, .smd-page-body .col-auto, .smd-page-body .col-6,
-  .smd-tab-panel .col, .smd-tab-panel .col-auto, .smd-tab-panel .col-6 {
-    position: relative;
-    padding-right: 0.75rem;
-    padding-left: 0.75rem;
-  }
-  .smd-page-body .col, .smd-tab-panel .col { flex: 1 0 0%; }
-  .smd-page-body .col-auto, .smd-tab-panel .col-auto { flex: 0 0 auto; width: auto; }
-  .smd-page-body .col-6, .smd-tab-panel .col-6 { flex: 0 0 50%; max-width: 50%; }
-  .smd-page-body .form-label, .smd-tab-panel .form-label {
-    margin-bottom: 0.25rem;
-    font-weight: 500;
-    color: var(--bs-body-color, #f8f9fa);
-  }
-  .smd-page-body .form-control, .smd-tab-panel .form-control {
-    display: block;
-    width: 100%;
-    padding: 0.375rem 0.75rem;
-    font-size: 0.95rem;
-    font-weight: 400;
-    line-height: 1.5;
-    color: var(--bs-body-color, #f8f9fa);
-    background-color: var(--bs-body-bg, #222222);
-    background-clip: padding-box;
-    border: 1px solid var(--bs-border-color, #495057);
-    border-radius: 0.375rem;
-  }
-  .smd-page-body .form-select, .smd-tab-panel .form-select {
-    display: block;
-    width: 100%;
-    padding: 0.375rem 0.75rem;
-    font-size: 0.95rem;
-    color: var(--bs-body-color, #f8f9fa);
-    background-color: var(--bs-body-bg, #222222);
-    border: 1px solid var(--bs-border-color, #495057);
-    border-radius: 0.375rem;
-  }
-  .smd-page-body .form-check, .smd-tab-panel .form-check {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    min-height: 1.5rem;
-  }
-  .smd-page-body .form-check-label, .smd-tab-panel .form-check-label {
-    color: var(--bs-body-color, #f8f9fa);
-  }
-  .smd-page-body .form-check-input, .smd-tab-panel .form-check-input {
-    width: 1.1em;
-    height: 1.1em;
-    margin: 0;
-    flex-shrink: 0;
-    appearance: none;
-    -webkit-appearance: none;
-    vertical-align: middle;
-    background-color: var(--bs-secondary-bg, #495057);
-    border: 1px solid var(--bs-border-color, #495057);
-    border-radius: 0.25em;
-    cursor: pointer;
-  }
-  .smd-page-body .form-check-input:checked, .smd-tab-panel .form-check-input:checked {
-    background-color: var(--bs-primary, #0d6efd);
-    border-color: var(--bs-primary, #0d6efd);
-  }
-  .smd-page-body .form-check-input:disabled, .smd-tab-panel .form-check-input:disabled { opacity: 0.55; }
-  .smd-tab-panel .form-switch { padding-left: 0; }
-  .smd-tab-panel .form-switch .form-check-input {
-    width: 2.5em;
-    height: 1.5em;
-    border-radius: 2em;
-    position: relative;
-  }
-  .smd-tab-panel .form-switch .form-check-input::before {
-    content: "";
-    position: absolute;
-    top: 0.15em;
-    left: 0.15em;
-    width: 1.2em;
-    height: 1.2em;
-    border-radius: 50%;
-    background-color: #fff;
-    transition: transform 0.15s ease-in-out;
-  }
-  .smd-tab-panel .form-switch .form-check-input:checked::before { transform: translateX(1em); }
-  .smd-tab-panel .input-group {
-    display: flex;
-    align-items: stretch;
-    width: 100%;
-  }
-  .smd-tab-panel .input-group > .form-control {
-    flex: 1 1 auto;
-    width: 1%;
-    border-top-right-radius: 0;
-    border-bottom-right-radius: 0;
-  }
-  .smd-tab-panel .input-group > .btn-outline-secondary {
-    flex: 0 0 auto;
-    border: 1px solid var(--bs-border-color, #6c757d);
-    border-left: 0;
-    background: var(--bs-tertiary-bg, #303030);
-    color: var(--bs-secondary-color, #adb5bd);
-    padding: 0.375rem 0.75rem;
-    border-radius: 0 0.375rem 0.375rem 0;
-    cursor: pointer;
-  }
-  .smd-page-body .btn, .smd-tab-panel .btn {
-    display: inline-block;
-    padding: 0.375rem 0.75rem;
-    font-size: 0.95rem;
-    font-weight: 400;
-    line-height: 1.5;
-    text-align: center;
-    border: 1px solid transparent;
-    border-radius: 0.375rem;
-    cursor: pointer;
-    text-decoration: none;
-  }
-  .smd-page-body .btn:disabled, .smd-tab-panel .btn:disabled { opacity: 0.55; pointer-events: none; }
-  .smd-tab-panel .btn-primary { background: var(--bs-primary, #0d6efd); color: #fff; }
-  .smd-tab-panel .btn-danger { background: var(--bs-danger, #e74c3c); color: #fff; }
-  .smd-tab-panel .btn-info { background: var(--bs-info, #0dcaf0); color: #000; }
-  .smd-tab-panel .btn-outline-info { background: transparent; color: var(--bs-info, #31d2f2); border-color: var(--bs-info, #31d2f2); }
-  .smd-tab-panel .btn-outline-secondary { background: transparent; color: var(--bs-secondary-color, #adb5bd); border-color: var(--bs-secondary-color, #6c757d); }
-  .smd-tab-panel .btn-sm { padding: 0.25rem 0.5rem; font-size: 0.85rem; border-radius: 0.25rem; }
-  .smd-tab-panel .btn-wide, .smd-tab-panel .w-100 { width: 100%; }
-  .smd-tab-panel .dropdown { position: relative; }
-  .smd-tab-panel .dropdown-toggle {
-    border: 1px solid var(--bs-border-color, #6c757d);
-    background: var(--bs-tertiary-bg, #303030);
-    color: var(--bs-body-color, #eee);
-    text-align: left;
-  }
-  .smd-tab-panel .dropdown-toggle::after {
-    content: "";
-    display: inline-block;
-    margin-left: 0.5rem;
-    vertical-align: middle;
-    border-top: 0.3em solid;
-    border-right: 0.3em solid transparent;
-    border-bottom: 0;
-    border-left: 0.3em solid transparent;
-    opacity: 0.7;
-  }
-  .smd-tab-panel .dropdown-menu {
-    display: none;
-    position: absolute;
-    top: 100%;
-    left: 0;
-    z-index: 1000;
-    min-width: 100%;
-    padding: 0.25rem 0;
-    margin: 0.125rem 0 0;
-    list-style: none;
-    background: var(--bs-body-bg, #222);
-    border: 1px solid var(--bs-border-color, #444);
-    border-radius: 0.375rem;
-  }
-  .smd-tab-panel .dropdown-menu.show { display: block; }
-  .smd-tab-panel .dropdown-menu-end { right: 0; left: auto; }
-  .smd-tab-panel .dropdown-item {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    width: 100%;
-    padding: 0.35rem 1rem;
-    color: var(--bs-body-color, #eee);
-    text-decoration: none;
-    cursor: pointer;
-    background: transparent;
-    border: none;
-    text-align: left;
-  }
-  .smd-tab-panel .dropdown-item:hover, .smd-tab-panel .dropdown-item.active {
-    background: var(--bs-primary, #0d6efd);
-    color: #fff;
-  }
-  .smd-page-body .d-flex, .smd-tab-panel .d-flex { display: flex; }
-  .smd-page-body .flex-column, .smd-tab-panel .flex-column { flex-direction: column; }
-  .smd-page-body .flex-grow-1, .smd-tab-panel .flex-grow-1 { flex-grow: 1; }
-  .smd-page-body .flex-shrink-0, .smd-tab-panel .flex-shrink-0 { flex-shrink: 0; }
-  .smd-page-body .align-items-center, .smd-tab-panel .align-items-center { align-items: center; }
-  .smd-page-body .align-self-center, .smd-tab-panel .align-self-center { align-self: center; }
-  .smd-page-body .text-truncate, .smd-tab-panel .text-truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .smd-page-body .gap-1, .smd-tab-panel .gap-1 { gap: 0.25rem; }
-  .smd-page-body .gap-2, .smd-tab-panel .gap-2 { gap: 0.5rem; }
-  .smd-page-body .gap-3, .smd-tab-panel .gap-3 { gap: 1rem; }
-  .smd-page-body .mb-0, .smd-tab-panel .mb-0 { margin-bottom: 0; }
-  .smd-page-body .mb-1, .smd-tab-panel .mb-1 { margin-bottom: 0.25rem; }
-  .smd-page-body .mb-2, .smd-tab-panel .mb-2 { margin-bottom: 0.5rem; }
-  .smd-tab-panel .mb-3 { margin-bottom: 1rem; }
-  .smd-tab-panel .mb-4 { margin-bottom: 1.5rem; }
-  .smd-tab-panel .mt-1 { margin-top: 0.25rem; }
-  .smd-tab-panel .mt-2 { margin-top: 0.5rem; }
-  .smd-tab-panel .mt-3 { margin-top: 1rem; }
-  .smd-tab-panel .ms-4 { margin-left: 1.5rem; }
-  .smd-tab-panel .text-secondary { color: var(--bs-secondary-color, #adb5bd); }
-  .smd-tab-panel .h-100 { height: 100%; }
-  .smd-tab-panel .position-relative { position: relative; }
-  .smd-tab-panel .task-drag-card {
-    background: var(--bs-tertiary-bg, #2a2a2a);
-    border-radius: 6px;
-    padding: 0.25rem 0.5rem;
-  }
-  .smd-tab-panel .drag-handle {
-    cursor: grab;
-    color: var(--bs-secondary-color, #aaa);
-    padding: 0 0.25rem;
-    user-select: none;
-  }
-  .smd-tab-panel .task-desc-input { flex: 1 1 auto; min-width: 0; }
-  .d-none { display: none !important; }
-`;
-
-// Accordion styling for the streams editor, scoped to the smd-page shadow root.
-var STREAMS_EDITOR_STYLES = `
-  #streamEditorList { padding-bottom: 40px; }
-  .accordion-collapse:not(.show) { display: none !important; }
-  .stream-accordion-item {
-    border: 1px solid var(--bs-border-color);
-    border-radius: 0.375rem;
-    overflow: hidden;
-  }
-  .stream-accordion-item.stream-drag-card { cursor: default; user-select: none; }
-  .stream-accordion-body { padding: 0 !important; }
-  #streamsEditorHeader { flex-shrink: 0; }
-  .sortable-ghost { opacity: 0.4; }
-  .sortable-chosen, .sortable-drag { cursor: grabbing; }
-  .stream-accordion-body .job-drag-card {
-    margin-bottom: 0;
-  }
-`;
-
 var SETTINGS_STYLES = `
-  .smd-tab-btn {
-    padding: 0.5rem 0.25rem;
-  }
   .smd-tab-panel *, .smd-tab-panel *::before, .smd-tab-panel *::after,
   #settingsFooter *, #settingsFooter *::before, #settingsFooter *::after {
     box-sizing: border-box;
@@ -2556,30 +1984,12 @@ function injectSettingsStyles() {
   }
 }
 
-function injectJobEditStyles() {
-  var page = document.getElementById("jobEditPage");
-  if (page && page.shadowRoot) {
-    injectStyleInto(page.shadowRoot, JOBS_EDITOR_STYLES);
-  }
-  var tabs = $id("jobEditTabs");
-  if (tabs && tabs.shadowRoot) {
-    injectStyleInto(tabs.shadowRoot, JOBS_EDITOR_STYLES);
-  }
-}
-
-function injectStyleInto(root, css) {
-  if (!root) return;
-  css = css || SETTINGS_STYLES;
-  var style = root.querySelector(".smd-shared-style");
-  if (!style) {
-    style = document.createElement("style");
-    style.className = "smd-shared-style";
-    style.textContent = "";
-    root.appendChild(style);
-  }
-  if (style.textContent.indexOf(css) === -1) {
-    style.textContent += css;
-  }
+function injectStyleInto(root) {
+  if (!root || root.querySelector(".smd-settings-style")) return;
+  var style = document.createElement("style");
+  style.className = "smd-settings-style";
+  style.textContent = SETTINGS_STYLES;
+  root.appendChild(style);
 }
 
 function buildSettingsContent() {
@@ -2592,10 +2002,7 @@ function buildSettingsContent() {
   settingsPage.buttons = [{ text: "Done", variant: "success", action: "done" }];
 
   const tabsEl = $id("settingsTabs");
-  if (tabsEl) {
-    tabsEl.tabs = sections;
-    tabsEl.bottomline = true;
-  }
+  if (tabsEl) tabsEl.tabs = sections;
   injectSettingsStyles();
 }
 
@@ -2613,7 +2020,6 @@ function openSettings() {
   settingsPage.classList.remove("d-none");
   buildSettingsContent();
   settingsPage.show();
-  if (typeof bindMinioSettingsTabBehavior === "function") bindMinioSettingsTabBehavior();
 
   const savedTheme = localStorage.getItem("planmydays_theme") || "darkly";
   const themeSel = $id("themeSelector");
@@ -2697,9 +2103,6 @@ function openSettings() {
   const savedDragSize = localStorage.getItem("planmydays_dragSize") || "large";
   const dragSizeSel = $id("dragSizeSelector");
   if (dragSizeSel) dragSizeSel.value = savedDragSize;
-  const savedSlideDuration = localStorage.getItem("planmydays_slideDuration") || "0";
-  const slideSel = $id("slideDurationSelector");
-  if (slideSel) slideSel.value = savedSlideDuration;
 
   if (typeof updateScreenResolution === "function") updateScreenResolution();
 }
@@ -2711,7 +2114,7 @@ function closeSettings() {
     if (_settingsCloseTimer) clearTimeout(_settingsCloseTimer);
     _settingsCloseTimer = setTimeout(function() {
       settingsPage.classList.add("d-none");
-    }, Math.max(0, (settingsPage.slideDuration || 0) + 50));
+    }, 320);
   }
   document.getElementById("countdownContainer").classList.remove("d-none");
   delete document.getElementById("countdownContainer").dataset.showAll;
@@ -2752,20 +2155,15 @@ function sortJobsInStreams() {
 }
 
 function confirmClearAllData() {
-  showSmdModal({
-    title: "Clear All Data?",
-    content: "Clear ALL data? This cannot be undone.",
-    buttons: [
-      { text: "Cancel", variant: "secondary", action: "cancel" },
-      { text: "Clear", variant: "danger", action: "clear" }
-    ],
-    onAction: function(detail) {
-      if (detail.action !== "clear") return;
-      const keys = Object.keys(localStorage);
-      keys.forEach(k => localStorage.removeItem(k));
-      closeSettings();
-    }
-  });
+  const modalEl = document.getElementById("deleteConfirmModal");
+  document.getElementById("deleteConfirmMessage").textContent = "Clear ALL data? This cannot be undone.";
+  document.getElementById("deleteConfirmBtn").onclick = function() {
+    const keys = Object.keys(localStorage);
+    keys.forEach(k => localStorage.removeItem(k));
+    safeHideModal("deleteConfirmModal");
+    closeSettings();
+  };
+  new bootstrap.Modal(modalEl).show();
 }
 
 function exportData() {
@@ -2819,99 +2217,6 @@ document.addEventListener("DOMContentLoaded", () => {
     settingsPage.addEventListener("smd-page-action", () => closeSettings());
   }
 
-  const jobEditPage = document.getElementById("jobEditPage");
-  if (jobEditPage) {
-    jobEditPage.addEventListener("smd-page-action", (e) => {
-      const action = e.detail && (typeof e.detail === "string" ? e.detail : e.detail.action);
-      if (!action) return;
-      if (action === "edit") {
-        editJobFromView();
-      } else if (action === "cancel") {
-        cancelJobEdit();
-      } else if (action === "done") {
-        doneJobEdit();
-      } else if (action === "delete") {
-        deleteJobFromEdit();
-      }
-    });
-  }
-
-  const streamEditPage = document.getElementById("streamEditPage");
-  if (streamEditPage) {
-    streamEditPage.addEventListener("smd-page-action", (e) => {
-      const action = e.detail && (typeof e.detail === "string" ? e.detail : e.detail.action);
-      if (action === "cancel") {
-        cancelEdit();
-      } else if (action === "done") {
-        doneEdit();
-      }
-    });
-  }
-
-  const streamsEditorPage = document.getElementById("streamsEditor");
-  if (streamsEditorPage) {
-    streamsEditorPage.addEventListener("smd-page-action", (e) => {
-      const action = e.detail && (typeof e.detail === "string" ? e.detail : e.detail.action);
-      if (action === "add") {
-        addNewStream();
-      } else if (action === "done") {
-        closeStreamsEditor();
-      }
-    });
-
-    streamsEditorPage.addEventListener("pmd-header-toggle", (e) => {
-      setStreamExpanded(e.detail.streamIdx, e.detail.expanded);
-    });
-    streamsEditorPage.addEventListener("pmd-edit", (e) => {
-      editStream(e.detail.streamIdx);
-    });
-    streamsEditorPage.addEventListener("pmd-add-job", (e) => {
-      addNewJobForStream(e.detail.streamIdx);
-    });
-    streamsEditorPage.addEventListener("pmd-delete", (e) => {
-      confirmDeleteStream(e.detail.streamIdx);
-    });
-    streamsEditorPage.addEventListener("pmd-job-edit", (e) => {
-      editJobInAccordion(e.detail.streamIdx, e.detail.jobIdx);
-    });
-    streamsEditorPage.addEventListener("pmd-job-toggle-active", (e) => {
-      handleAccordionJobActiveToggle(e.detail.streamIdx, e.detail.jobIdx, e.detail.checked);
-    });
-  }
-
-  const jobSearchEditorPage = document.getElementById("jobSearchEditor");
-  if (jobSearchEditorPage) {
-    jobSearchEditorPage.addEventListener("smd-page-action", (e) => {
-      const action = e.detail && (typeof e.detail === "string" ? e.detail : e.detail.action);
-      if (action === "add") {
-        addNewJobFromSearch();
-      } else if (action === "done") {
-        closeSearchJobs();
-      }
-    });
-  }
-
-  const imagesEditor = document.getElementById("imagesEditor");
-  if (imagesEditor) {
-    imagesEditor.addEventListener("smd-page-action", (e) => {
-      const action = e.detail && (typeof e.detail === "string" ? e.detail : e.detail.action);
-      if (action === "add") {
-        addNewImage();
-      } else if (action === "done") {
-        closeImagesEditor();
-      }
-    });
-    imagesEditor.addEventListener("pmd-image-delete", (e) => {
-      confirmDeleteImage(e.detail.imageIdx);
-    });
-    imagesEditor.addEventListener("pmd-image-duplicate", (e) => {
-      duplicateImage(e.detail.imageIdx);
-    });
-    imagesEditor.addEventListener("pmd-image-edit", (e) => {
-      startEditImage(e.detail.imageIdx);
-    });
-  }
-
   const savedTheme = localStorage.getItem("planmydays_theme") || "darkly";
   applyTheme(savedTheme);
   if (typeof seedSampleImages === "function") seedSampleImages();
@@ -2919,6 +2224,18 @@ document.addEventListener("DOMContentLoaded", () => {
   renderMain();
 
   if (typeof updateMinioMenu === "function") updateMinioMenu();
+
+  const streamEditorList = document.getElementById("streamEditorList");
+  if (streamEditorList) {
+    streamEditorList.addEventListener("shown.bs.collapse", function(e) {
+      const item = e.target.closest(".stream-accordion-item");
+      if (item) item.classList.add("expanded");
+    });
+    streamEditorList.addEventListener("hidden.bs.collapse", function(e) {
+      const item = e.target.closest(".stream-accordion-item");
+      if (item) item.classList.remove("expanded");
+    });
+  }
 });
 
 // PWA PULL-TO-REFRESH

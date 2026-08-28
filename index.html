@@ -11,8 +11,8 @@
   <link rel="apple-touch-icon" href="icon.svg">
   <title>Plan My Day</title>
 
-  <link id="bootstrap-theme-css" href="css/themes/darkly/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="vendor/flatpickr.min.css">
+  <link id="bootstrap-theme-css" href="https://cdn.jsdelivr.net/npm/bootswatch@5.3.3/dist/darkly/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css">
   <link rel="stylesheet" href="css/styles.css">
   <script src="js/build-number.js"></script>
 </head>
@@ -22,19 +22,24 @@
   <!-- FIXED TOOLBAR -->
   <nav id="mainNav" class="navbar navbar-expand px-3 py-2 gap-1 flex-wrap">
 
+    <button id="btnSettings" class="btn p-1 me-1" onclick="openSettings()" title="Settings">
+      <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="currentColor" viewBox="0 0 16 16">
+        <path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z"/>
+        <path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52l-.094-.319zm-2.633.283c.246-.835 1.428-.835 1.674 0l.094.319a1.873 1.873 0 0 0 2.693 1.115l.291-.16c.764-.415 1.6.42 1.184 1.185l-.159.292a1.873 1.873 0 0 0 1.116 2.692l.318.094c.835.246.835 1.428 0 1.674l-.319.094a1.873 1.873 0 0 0-1.115 2.693l.16.291c.415.764-.42 1.6-1.185 1.184l-.291-.159a1.873 1.873 0 0 0-2.693 1.116l-.094.318c-.246.835-1.428.835-1.674 0l-.094-.319a1.873 1.873 0 0 0-2.692-1.115l-.292.16c-.764.415-1.6-.42-1.184-1.185l.159-.291A1.873 1.873 0 0 0 1.945 8.93l-.319-.094c-.835-.246-.835-1.428 0-1.674l.319-.094A1.873 1.873 0 0 0 3.06 4.377l-.16-.292c-.415-.764.42-1.6 1.185-1.184l.292.159a1.873 1.873 0 0 0 2.692-1.115l.094-.319z"/>
+      </svg>
+    </button>
+
     <div class="dropdown">
-      <button id="btnMainMenu" class="btn p-1" data-bs-toggle="dropdown" title="Menu" aria-label="Menu">
-        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="currentColor" viewBox="0 0 16 16">
-          <path fill-rule="evenodd" d="M2.5 12a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5z"/>
-        </svg>
-      </button>
+      <button id="btnEditMenu" class="btn btn-sm dropdown-toggle" data-bs-toggle="dropdown">Edit</button>
       <ul class="dropdown-menu">
-        <li><a class="dropdown-item" onclick="openSettings()">Settings</a></li>
-        <li><hr class="dropdown-divider"></li>
-        <li><a class="dropdown-item" onclick="openStreamsEditor()">Edit Streams</a></li>
+        <li><a class="dropdown-item" onclick="openStreamsEditor()">Jobs</a></li>
         <li><button type="button" class="dropdown-item" onclick="openSearchJobs()">Search Jobs</button></li>
         <li><a class="dropdown-item" onclick="openImagesEditor()">Images</a></li>
-        <li><hr class="dropdown-divider"></li>
+      </ul>
+    </div>
+    <div class="dropdown">
+      <button id="btnImportExport" class="btn btn-sm dropdown-toggle" data-bs-toggle="dropdown">Import/Export</button>
+      <ul class="dropdown-menu">
         <li><a class="dropdown-item" onclick="exportData()">Export</a></li>
         <li><a class="dropdown-item" onclick="importData()">Import</a></li>
         <li><hr class="dropdown-divider minio-menu-item" style="display:none"></li>
@@ -51,13 +56,49 @@
     <div id="countdownContainer"></div>
 
     <!-- JOBS EDITOR -->
-    <smd-page id="streamsEditor" class="d-none"></smd-page>
+    <div id="streamsEditor" class="d-none">
+      <div id="streamsEditorHeader">
+        <h2 class="mb-3">Edit Jobs <span id="editJobsTotalBadge" class="badge bg-secondary" style="font-size:0.6em;vertical-align:middle"></span></h2>
+        <div id="addStreamTileTop" class="mb-3"></div>
+        <div id="streamEditorFilters" class="mb-3"></div>
+      </div>
+      <div id="streamEditorList"></div>
+      <div id="addStreamTile" class="mt-3"></div>
+      <div id="singleStreamEditor" class="d-none"></div>
+    </div>
 
     <!-- JOB SEARCH -->
-    <smd-page id="jobSearchEditor" class="d-none"></smd-page>
+    <div id="jobSearchEditor" class="d-none">
+      <div id="jobSearchHeader">
+        <h2 class="mb-3">Search Jobs <span id="jobSearchTotalBadge" class="badge bg-secondary" style="font-size:0.6em;vertical-align:middle"></span></h2>
+        <div id="jobSearchTileTop" class="mb-3">
+          <div class="d-flex gap-2">
+            <button class="btn btn-secondary editor-btn btn-wide" id="btnJobSearchAdd" onclick="addNewJobFromSearch()">Add Job</button>
+            <button class="btn btn-success editor-btn btn-wide ms-auto" id="btnJobSearchDone" onclick="closeSearchJobs()">Done</button>
+          </div>
+        </div>
+        <div id="jobSearchFilters" class="mb-3">
+          <div class="d-flex gap-2 align-items-center">
+            <input type="search" class="form-control" id="jobSearchInput" placeholder="Search job titles..." onkeydown="if(event.key==='Enter') searchJobsFilter()">
+            <button id="btnJobSearch" class="btn btn-primary btn-sm text-nowrap" onclick="searchJobsFilter()">Search</button>
+            <button id="btnJobSearchClear" class="btn btn-outline-secondary btn-sm" onclick="jobSearchQuery='';var el=document.getElementById('jobSearchInput');if(el)el.value='';renderSearchJobs()">Clear</button>
+          </div>
+        </div>
+      </div>
+      <div id="jobSearchList"></div>
+    </div>
 
     <!-- IMAGES EDITOR -->
-    <smd-page id="imagesEditor" class="d-none"></smd-page>
+    <div id="imagesEditor" class="d-none">
+      <div id="imagesEditorHeader">
+        <h2 class="mb-3">Edit Images</h2>
+        <div id="addImageTileTop" class="mb-3"></div>
+        <div id="imageFilters" class="mb-3"></div>
+      </div>
+      <div id="imagesList"></div>
+      <div id="addImageTile" class="mt-3"></div>
+      <div id="singleImageEditor" class="d-none"></div>
+    </div>
 
     <!-- IMAGE PICKER MODAL (Bootstrap modal) -->
     <div id="imagePickerModal" class="modal fade" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
@@ -82,18 +123,9 @@
       </div>
     </div>
 
-<!-- SETTINGS PAGE -->
-  <smd-page id="settingsPage" class="d-none"></smd-page>
-
-  <!-- JOB VIEW/EDIT/ADD PAGE -->
-  <smd-page id="jobEditPage" class="d-none"></smd-page>
-
-  <!-- STREAM ADD/EDIT PAGE -->
-  <smd-page id="streamEditPage" class="d-none"></smd-page>
-
-  <!-- MINIO IMPORT PAGE -->
-  <smd-page id="minioImportPage" class="d-none"></smd-page>
-  <template id="settingsTemplate">
+    <!-- SETTINGS PAGE -->
+    <smd-page id="settingsPage" class="d-none"></smd-page>
+    <template id="settingsTemplate">
       <div class="smd-settings">
 
         <!-- General -->
@@ -136,7 +168,7 @@
         </section>
 
         <!-- Appearance -->
-        <section class="smd-settings-tab" data-tab="Display" data-tab-id="appearance-tab">
+        <section class="smd-settings-tab" data-tab="Appearance" data-tab-id="appearance-tab">
           <div class="row mb-3 align-items-center col-md-8 mt-3">
             <div class="col-4 text-end"><label class="form-label mb-0">Theme</label></div>
             <div class="col-8">
@@ -210,17 +242,6 @@
               <select id="dragSizeSelector" class="form-select" onchange="changeDragSize(this.value)">
                 <option value="normal">Normal</option>
                 <option value="large">Large</option>
-              </select>
-            </div>
-          </div>
-          <div class="row mb-4 align-items-center col-md-8">
-            <div class="col-4 text-end"><label class="form-label mb-0">Slide speed</label></div>
-            <div class="col-8">
-              <select id="slideDurationSelector" class="form-select" onchange="changeSlideDuration(this.value)">
-                <option value="0">Off (instant)</option>
-                <option value="150">Fast (150 ms)</option>
-                <option value="300">Normal (300 ms)</option>
-                <option value="500">Slow (500 ms)</option>
               </select>
             </div>
           </div>
@@ -388,7 +409,7 @@
             <div class="col-4 text-end"></div>
             <div class="col-8">
               <a href="https://buymeacoffee.com/ownimage" target="_blank" rel="noopener">
-                <img src="vendor/bmc-default-yellow.png" alt="Buy Me A Coffee" style="height:50px">
+                <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height:50px">
               </a>
             </div>
           </div>
@@ -409,11 +430,138 @@
 
   </div>
 
+  <div id="deleteConfirmModal" class="modal fade" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-body text-center pb-0">
+          <p class="mb-3 fs-5" id="deleteConfirmMessage">Delete this item?</p>
+        </div>
+        <div class="modal-footer justify-content-center border-0 pt-2">
+          <button id="btnDeleteCancel" class="btn btn-secondary editor-btn flex-fill" data-bs-dismiss="modal">Cancel</button>
+          <button class="btn btn-danger editor-btn flex-fill" id="deleteConfirmBtn">Delete</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="infoConfirmModal" class="modal fade" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-body text-center pb-0">
+          <p class="mb-3 fs-5" id="infoConfirmMessage"></p>
+        </div>
+        <div class="modal-footer justify-content-center border-0 pt-2">
+          <button class="btn btn-primary editor-btn btn-wide" data-bs-dismiss="modal">OK</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCHEDULE MODAL -->
+  <div id="scheduleModal" class="modal fade" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 class="modal-title">Schedule</h3>
+          <button id="btnScheduleClose" type="button" class="btn-close" onclick="closeScheduleModal()"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <div class="form-check mb-2">
+              <input class="form-check-input" type="radio" name="scheduleType" id="schedDaily" value="daily" onchange="onScheduleTypeChange()">
+              <label class="form-check-label" for="schedDaily">Every day</label>
+            </div>
+            <div class="form-check mb-2">
+              <input class="form-check-input" type="radio" name="scheduleType" id="schedNDays" value="ndays" onchange="onScheduleTypeChange()">
+              <label class="form-check-label" for="schedNDays">Every n days</label>
+            </div>
+            <div id="schedNDaysOptions" class="d-none ms-4 mb-2">
+              <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
+                <label class="form-label mb-0">Every</label>
+                <select class="form-select" id="schedNInterval" onchange="onScheduleNDaysChange()" style="width:auto;min-width:60px"></select>
+                <label class="form-label mb-0">day(s)</label>
+                <label class="form-label mb-0 ms-2">Offset</label>
+                <select class="form-select" id="schedNOffset" onchange="onScheduleNDaysChange()" style="width:auto;min-width:60px"></select>
+              </div>
+              <div id="schedNextDue" class="text-muted small"></div>
+            </div>
+            <div class="form-check mb-2">
+              <input class="form-check-input" type="radio" name="scheduleType" id="schedWeekdays" value="weekdays" onchange="onScheduleTypeChange()">
+              <label class="form-check-label" for="schedWeekdays">Weekdays (Mon&ndash;Fri)</label>
+            </div>
+            <div class="form-check mb-2">
+              <input class="form-check-input" type="radio" name="scheduleType" id="schedWeekends" value="weekends" onchange="onScheduleTypeChange()">
+              <label class="form-check-label" for="schedWeekends">Weekends (Sat&ndash;Sun)</label>
+            </div>
+            <div class="form-check mb-2">
+              <input class="form-check-input" type="radio" name="scheduleType" id="schedDays" value="days" onchange="onScheduleTypeChange()">
+              <label class="form-check-label" for="schedDays">Specific days</label>
+            </div>
+            <div id="schedDaysOptions" class="d-none ms-4 mb-2 d-flex gap-2 flex-wrap">
+              <div class="form-check"><input class="form-check-input" type="checkbox" id="schedDay0" value="0"><label class="form-check-label" for="schedDay0">Sun</label></div>
+              <div class="form-check"><input class="form-check-input" type="checkbox" id="schedDay1" value="1"><label class="form-check-label" for="schedDay1">Mon</label></div>
+              <div class="form-check"><input class="form-check-input" type="checkbox" id="schedDay2" value="2"><label class="form-check-label" for="schedDay2">Tue</label></div>
+              <div class="form-check"><input class="form-check-input" type="checkbox" id="schedDay3" value="3"><label class="form-check-label" for="schedDay3">Wed</label></div>
+              <div class="form-check"><input class="form-check-input" type="checkbox" id="schedDay4" value="4"><label class="form-check-label" for="schedDay4">Thu</label></div>
+              <div class="form-check"><input class="form-check-input" type="checkbox" id="schedDay5" value="5"><label class="form-check-label" for="schedDay5">Fri</label></div>
+              <div class="form-check"><input class="form-check-input" type="checkbox" id="schedDay6" value="6"><label class="form-check-label" for="schedDay6">Sat</label></div>
+            </div>
+            <div class="form-check mb-2">
+              <input class="form-check-input" type="radio" name="scheduleType" id="schedMonthly" value="monthly" onchange="onScheduleTypeChange()">
+              <label class="form-check-label" for="schedMonthly">Day of month</label>
+            </div>
+            <div id="schedMonthlyOptions" class="d-none ms-4 mb-2">
+              <select class="form-select" id="schedMonthlyDay" style="width:auto"></select>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button id="btnScheduleCancel" class="btn btn-secondary editor-btn flex-fill" onclick="closeScheduleModal()">Cancel</button>
+          <button id="btnScheduleOk" class="btn btn-primary editor-btn flex-fill" onclick="saveScheduleModal()">OK</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- BOOTSTRAP JS -->
-  <script src="vendor/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
   <!-- FLATPICKR -->
-  <script src="vendor/flatpickr.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js"></script>
+
+  <!-- STREAM EDIT MODAL -->
+  <div id="streamEditModal" class="modal fade" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 class="modal-title" id="streamEditModalTitle">Edit Stream</h3>
+          <button id="btnStreamEditClose" type="button" class="btn btn-sm ms-auto" onclick="cancelEdit()" style="font-size:1.5rem;line-height:1;padding:0 0.25rem;color:inherit;border:none;background:none">&times;</button>
+        </div>
+        <div class="modal-body" id="streamEditModalBody"></div>
+        <div class="modal-footer">
+          <button id="btnStreamEditCancel" class="btn btn-secondary editor-btn flex-fill" onclick="cancelEdit()">Cancel</button>
+          <button id="btnStreamEditOk" class="btn btn-success editor-btn flex-fill" onclick="doneEdit()">OK</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- JOB EDIT MODAL -->
+  <div id="jobEditModal" class="modal fade" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 class="modal-title" id="jobEditModalTitle">Edit Job</h3>
+          <button id="btnJobEditClose" type="button" class="btn btn-sm ms-auto" onclick="cancelJobEdit()" style="font-size:1.5rem;line-height:1;padding:0 0.25rem;color:inherit;border:none;background:none">&times;</button>
+        </div>
+        <div class="modal-body" id="jobEditModalBody"></div>
+        <div class="modal-footer" id="jobEditModalFooter">
+          <button id="btnJobEditCancel" class="btn btn-secondary editor-btn flex-fill" onclick="cancelJobEdit()">Cancel</button>
+          <button class="btn btn-success editor-btn flex-fill" onclick="doneJobEdit()">OK</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- IMAGE EDIT MODAL -->
   <div id="imageEditModal" class="modal fade" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
@@ -429,20 +577,14 @@
   </div>
 
   <!-- QR CODE -->
-  <script src="vendor/qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 
   <!-- SORTABLEJS -->
-  <script src="vendor/sortable.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
 
   <script>
-  document.write('<script src="js/components/smd-button.js?v=' + BUILD_NUMBER + '"><\/script>');
-  document.write('<script src="js/components/smd-modal.js?v=' + BUILD_NUMBER + '"><\/script>');
   document.write('<script src="js/components/smd-page.js?v=' + BUILD_NUMBER + '"><\/script>');
   document.write('<script src="js/components/smd-tabs.js?v=' + BUILD_NUMBER + '"><\/script>');
-  document.write('<script src="js/components/pmd-stream-header.js?v=' + BUILD_NUMBER + '"><\/script>');
-  document.write('<script src="js/components/pmd-stream-job-card.js?v=' + BUILD_NUMBER + '"><\/script>');
-  document.write('<script src="js/components/pmd-job-search-card.js?v=' + BUILD_NUMBER + '"><\/script>');
-  document.write('<script src="js/components/pmd-image-card.js?v=' + BUILD_NUMBER + '"><\/script>');
   document.write('<script src="js/minio.js?v=' + BUILD_NUMBER + '"><\/script>');
   document.write('<script src="js/settings.js?v=' + BUILD_NUMBER + '"><\/script>');
   document.write('<script src="js/app.js?v=' + BUILD_NUMBER + '"><\/script>');

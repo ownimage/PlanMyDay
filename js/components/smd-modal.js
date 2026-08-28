@@ -28,7 +28,6 @@ const modalStyles = `
     display: flex;
     flex-direction: column;
     box-shadow: 0 4px 24px rgba(0,0,0,0.4);
-    overflow: hidden;
   }
   .smd-header {
     display: flex;
@@ -36,14 +35,11 @@ const modalStyles = `
     justify-content: space-between;
     padding: 1rem 1.25rem 0.5rem;
     border-bottom: 1px solid var(--bs-border-color, #444);
-    background: color-mix(in srgb, var(--bs-body-bg, #222) 85%, white);
-    flex-shrink: 0;
   }
   .smd-header h3 {
     margin: 0;
     font-size: 1.25rem;
     font-weight: 500;
-    color: color-mix(in srgb, var(--bs-body-color, #eee) 60%, white);
   }
   .smd-body {
     padding: 1rem 1.25rem;
@@ -125,7 +121,6 @@ class SmdModal extends HTMLElement {
       btn.addEventListener('click', () => {
         const index = parseInt(btn.dataset.index);
         const config = this._buttons[index];
-        if (config.close !== false) this.hide();
         this.dispatchEvent(new CustomEvent('smd-modal-action', {
           bubbles: true,
           composed: true,
