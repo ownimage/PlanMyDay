@@ -1843,6 +1843,9 @@ function getSettingsSections() {
 }
 
 var SETTINGS_STYLES = `
+  .smd-tab-btn {
+    padding: 0.5rem 0.25rem;
+  }
   .smd-tab-panel *, .smd-tab-panel *::before, .smd-tab-panel *::after,
   #settingsFooter *, #settingsFooter *::before, #settingsFooter *::after {
     box-sizing: border-box;

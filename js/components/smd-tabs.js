@@ -7,7 +7,7 @@ const tabsStyles = `
     position: relative;
     z-index: 1;
   }
-  .smd-tab-btn {
+.smd-tab-btn {
     padding: 0.5rem 1.25rem;
     border: 1px solid var(--bs-border-color, #444);
     border-bottom: 1px solid var(--bs-primary, #0d6efd);
