@@ -97,7 +97,8 @@ class SmdPage extends HTMLElement {
     const buttonsHtml = this._buttons.map((btn, i) => {
       const variant = btn.variant || 'primary';
       const text = btn.text || 'OK';
-      return `<button data-index="${i}" variant="${variant}">${text}</button>`;
+      const idAttr = btn.id ? ` id="${this._escapeAttr(btn.id)}"` : '';
+      return `<button data-index="${i}" variant="${variant}"${idAttr}>${text}</button>`;
     }).join('');
 
     this.shadowRoot.innerHTML = `
@@ -127,6 +128,10 @@ class SmdPage extends HTMLElement {
   _escapeHtml(str) {
     if (!str && str !== 0) return '';
     return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  _escapeAttr(str) {
+    return String(str).replace(/"/g, '&quot;');
   }
 }
 

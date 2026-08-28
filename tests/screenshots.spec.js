@@ -128,7 +128,7 @@ function futureDateStr(daysFromNow) {
 
 const SCREENSHOT_DIR = path.resolve(__dirname, "..", "screenshots");
 
-const bw = "css/themes";
+const bw = "https://cdn.jsdelivr.net/npm/bootswatch@5.3.3/dist";
 const THEME_CONFIG = {
   cerulean:  { css: `${bw}/cerulean/bootstrap.min.css`,   bsTheme: "light" },
   cosmo:     { css: `${bw}/cosmo/bootstrap.min.css`,      bsTheme: "light" },
@@ -186,11 +186,11 @@ async function setTheme(page, themeName) {
       if (imagesEditor && !imagesEditor.classList.contains("d-none")) renderImagesEditor();
     }
     // The streams editor list also shows themed images but is not re-rendered
-    // by changeTheme(); rebuild it unless the stream add/edit page is open on top
-    // (editingIndex >= 0 makes renderStreamsEditor early-return via the page).
+    // by changeTheme(); rebuild it unless the stream edit modal is open on top
+    // (editingIndex >= 0 makes renderStreamsEditor early-return via the modal).
     const streamsEditor = document.getElementById("streamsEditor");
-    const streamEditPageOpen = !!document.getElementById("streamEditPage") && document.getElementById("streamEditPage").hasAttribute("open");
-    if (streamsEditor && !streamsEditor.classList.contains("d-none") && !streamEditPageOpen && typeof renderStreamsEditor === "function") {
+    const streamModalOpen = !!document.getElementById("streamEditModal") && document.getElementById("streamEditModal").classList.contains("show");
+    if (streamsEditor && !streamsEditor.classList.contains("d-none") && !streamModalOpen && typeof renderStreamsEditor === "function") {
       renderStreamsEditor();
     }
     // Refresh themed preview images in open modals, preserving form/tab state.
@@ -202,7 +202,7 @@ async function setTheme(page, themeName) {
         updateJobImagePreview(jobsBuffer.image);
       }
     }
-    if (streamEditPageOpen) {
+    if (streamModalOpen) {
       if (typeof updateStreamImagePreview === "function" && typeof editBuffer !== "undefined" && editBuffer) {
         updateStreamImagePreview(editBuffer.image);
       }
@@ -288,7 +288,7 @@ test.describe("PlanMyDay - Screenshots", () => {
     await page.evaluate(() => localStorage.setItem("planmydays_splitList", "true"));
     await page.reload();
     await page.waitForSelector(".today-drag-card");
-    await page.locator("#todayTabs .smd-tab-btn").filter({ hasText: "Maintenance" }).click();
+    await page.locator("button.nav-link").filter({ hasText: "Maintenance" }).click();
     await page.waitForTimeout(300);
     await screenshotAllThemes(page, "main-view-split-maintenance.png");
   });
@@ -304,13 +304,6 @@ test.describe("PlanMyDay - Screenshots", () => {
     await screenshotAllThemes(page, "main-view-hide-done.png");
   });
 
-  test("main menu dropdown", async ({ page }) => {
-    await page.locator("#btnMainMenu").click();
-    await page.waitForSelector(".dropdown-menu.show");
-    await page.waitForTimeout(200);
-    await screenshotAllThemes(page, "main-menu-dropdown.png");
-  });
-
   test("add card modal", async ({ page }) => {
     await seedMainView(page);
     await page.reload();
@@ -322,16 +315,14 @@ test.describe("PlanMyDay - Screenshots", () => {
 
   test("settings", async ({ page }) => {
     await page.reload();
-    await page.locator("#btnMainMenu").click();
-    await page.locator("a.dropdown-item").filter({ hasText: "Settings" }).click();
+    await page.getByTitle("Settings").click();
     await page.waitForSelector("#settingsPage:not(.d-none)");
     await screenshotAllThemes(page, "settings.png");
   });
 
   test("settings - appearance", async ({ page }) => {
     await page.reload();
-    await page.locator("#btnMainMenu").click();
-    await page.locator("a.dropdown-item").filter({ hasText: "Settings" }).click();
+    await page.getByTitle("Settings").click();
     await page.waitForSelector("#settingsPage:not(.d-none)");
     await page.locator("#appearance-tab").click();
     await page.waitForTimeout(300);
@@ -340,8 +331,7 @@ test.describe("PlanMyDay - Screenshots", () => {
 
   test("settings - schedule", async ({ page }) => {
     await page.reload();
-    await page.locator("#btnMainMenu").click();
-    await page.locator("a.dropdown-item").filter({ hasText: "Settings" }).click();
+    await page.getByTitle("Settings").click();
     await page.waitForSelector("#settingsPage:not(.d-none)");
     await page.locator("#schedule-tab").click();
     await page.waitForTimeout(300);
@@ -350,8 +340,7 @@ test.describe("PlanMyDay - Screenshots", () => {
 
   test("settings - danger zone", async ({ page }) => {
     await page.reload();
-    await page.locator("#btnMainMenu").click();
-    await page.locator("a.dropdown-item").filter({ hasText: "Settings" }).click();
+    await page.getByTitle("Settings").click();
     await page.waitForSelector("#settingsPage:not(.d-none)");
     await page.locator("#danger-tab").click();
     await page.locator("#showDanger").check();
@@ -377,8 +366,8 @@ test.describe("PlanMyDay - Screenshots", () => {
       localStorage.setItem("planmydays_streams", JSON.stringify(data));
     }, streamsWithSleepWait);
     await page.reload();
-    await page.locator("#btnMainMenu").click();
-    await page.locator("a.dropdown-item").filter({ hasText: "Streams" }).click();
+    await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
+    await page.locator("a.dropdown-item").filter({ hasText: "Jobs" }).click();
     await page.waitForSelector("#streamEditorList .accordion-item");
     await page.locator("#streamEditorList .stream-header-main").first().click();
     await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible", timeout: 5000 });
@@ -395,11 +384,11 @@ test.describe("PlanMyDay - Screenshots", () => {
       localStorage.setItem("planmydays_streams", JSON.stringify(data));
     }, TEST_STREAMS);
     await page.reload();
-    await page.locator("#btnMainMenu").click();
-    await page.locator("a.dropdown-item").filter({ hasText: "Streams" }).click();
+    await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
+    await page.locator("a.dropdown-item").filter({ hasText: "Jobs" }).click();
     await page.waitForSelector("#streamEditorList .accordion-item");
     await page.getByRole("button", { name: "Add Stream" }).click();
-    await page.locator("#streamEditPage").waitFor({ state: "visible" });
+    await page.locator("#streamEditModal").waitFor({ state: "visible" });
     await page.waitForTimeout(400);
     await screenshotAllThemes(page, "add-stream.png");
   });
@@ -409,12 +398,12 @@ test.describe("PlanMyDay - Screenshots", () => {
       localStorage.setItem("planmydays_streams", JSON.stringify(data));
     }, TEST_STREAMS);
     await page.reload();
-    await page.locator("#btnMainMenu").click();
-    await page.locator("a.dropdown-item").filter({ hasText: "Streams" }).click();
+    await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
+    await page.locator("a.dropdown-item").filter({ hasText: "Jobs" }).click();
     await page.waitForSelector("#streamEditorList .accordion-item");
     await page.locator("#streamEditorList .stream-header-main").first().click();
     await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible", timeout: 5000 });
-    await page.waitForSelector("#streamEditorList .accordion-body .job-drag-card");
+    await page.waitForSelector("#streamEditorList .accordion-body .card");
     await screenshotAllThemes(page, "stream-job-list.png");
   });
 
@@ -423,8 +412,8 @@ test.describe("PlanMyDay - Screenshots", () => {
       localStorage.setItem("planmydays_streams", JSON.stringify(data));
     }, TEST_STREAMS);
     await page.reload();
-    await page.locator("#btnMainMenu").click();
-    await page.locator("a.dropdown-item").filter({ hasText: "Streams" }).click();
+    await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
+    await page.locator("a.dropdown-item").filter({ hasText: "Jobs" }).click();
     await page.waitForSelector("#streamEditorList .accordion-item");
     await page.locator("#streamEditorList .stream-header-main").first().click();
     await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible", timeout: 5000 });
@@ -443,10 +432,10 @@ test.describe("PlanMyDay - Screenshots", () => {
       localStorage.setItem("planmydays_streams", JSON.stringify(data));
     }, streamsWithSleepWait);
     await page.reload();
-    await page.locator("#btnMainMenu").click();
+    await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
     await page.locator("button.dropdown-item").filter({ hasText: "Search Jobs" }).click();
     await page.waitForSelector("#jobSearchEditor:not(.d-none)");
-    await page.waitForSelector("#jobSearchList pmd-job-search-card");
+    await page.waitForSelector("#jobSearchList .card");
     await screenshotAllThemes(page, "search-jobs.png");
   });
 
@@ -455,11 +444,12 @@ test.describe("PlanMyDay - Screenshots", () => {
       localStorage.setItem("planmydays_streams", JSON.stringify(data));
     }, TEST_STREAMS);
     await page.reload();
-    await page.locator("#btnMainMenu").click();
+    await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
     await page.locator("button.dropdown-item").filter({ hasText: "Search Jobs" }).click();
     await page.waitForSelector("#jobSearchEditor:not(.d-none)");
-    await page.waitForSelector("#jobSearchList pmd-job-search-card");
+    await page.waitForSelector("#jobSearchList .card");
     await page.locator("#jobSearchInput").fill("meet");
+    await page.locator("#btnJobSearch").click();
     await page.waitForTimeout(200);
     await screenshotAllThemes(page, "search-jobs-filtered.png");
   });
@@ -514,12 +504,12 @@ test.describe("PlanMyDay - Screenshots", () => {
       localStorage.setItem("planmydays_streams", JSON.stringify(data));
     }, TEST_STREAMS);
     await page.reload();
-    await page.locator("#btnMainMenu").click();
-    await page.locator("a.dropdown-item").filter({ hasText: "Streams" }).click();
+    await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
+    await page.locator("a.dropdown-item").filter({ hasText: "Jobs" }).click();
     await page.waitForSelector("#streamEditorList .accordion-item");
     await page.locator("#streamEditorList .stream-header-main").first().click();
     await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible", timeout: 5000 });
-    await page.locator("#streamEditorList .accordion-body .job-drag-card").first().getByRole("button", { name: "Edit" }).click();
+    await page.locator("#streamEditorList .accordion-body .card").first().getByRole("button", { name: "Edit" }).click();
     await page.locator("#jobEditPage").waitFor({ state: "visible" });
     await page.waitForTimeout(400);
     await screenshotAllThemes(page, "edit-job.png");
@@ -530,16 +520,16 @@ test.describe("PlanMyDay - Screenshots", () => {
       localStorage.setItem("planmydays_streams", JSON.stringify(data));
     }, TEST_STREAMS);
     await page.reload();
-    await page.locator("#btnMainMenu").click();
-    await page.locator("a.dropdown-item").filter({ hasText: "Streams" }).click();
+    await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
+    await page.locator("a.dropdown-item").filter({ hasText: "Jobs" }).click();
     await page.waitForSelector("#streamEditorList .accordion-item");
     await page.locator("#streamEditorList .stream-header-main").first().click();
     await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible", timeout: 5000 });
-    await page.locator("#streamEditorList .accordion-body .job-drag-card").first().getByRole("button", { name: "Edit" }).click();
+    await page.locator("#streamEditorList .accordion-body .card").first().getByRole("button", { name: "Edit" }).click();
     await page.locator("#jobEditPage").waitFor({ state: "visible" });
     await page.locator("#jobSchedule-tab").click();
     await page.locator("#btnScheduleChange").click();
-    await page.locator("#smdConfirmModal").waitFor({ state: "visible" });
+    await page.locator("#scheduleModal").waitFor({ state: "visible" });
     await page.waitForTimeout(300);
   }
 
@@ -590,9 +580,9 @@ test.describe("PlanMyDay - Screenshots", () => {
     await page.evaluate(() => {
       if (typeof uploadStandardImages === "function") uploadStandardImages();
     });
-    await page.locator("#smdConfirmModal").waitFor({ state: "visible", timeout: 15000 });
+    await page.locator("#infoConfirmModal").waitFor({ state: "visible", timeout: 15000 });
     await page.getByRole("button", { name: "OK" }).click();
-    await page.locator("#btnMainMenu").click();
+    await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
     await page.locator("a.dropdown-item").filter({ hasText: "Images" }).click();
     await page.locator("#imagesList").waitFor({ state: "visible", timeout: 10000 });
     await page.waitForTimeout(400);
@@ -601,13 +591,12 @@ test.describe("PlanMyDay - Screenshots", () => {
 
   test("sample images upload confirmation", async ({ page }) => {
     await page.reload();
-    await page.locator("#btnMainMenu").click();
-    await page.locator("a.dropdown-item").filter({ hasText: "Settings" }).click();
+    await page.getByTitle("Settings").click();
     await page.locator("#danger-tab").click();
     await page.locator("#showDanger").check();
     await page.locator("#uploadStandardImagesRow").waitFor({ state: "visible" });
     await page.locator("#btnUploadImages").click();
-    await page.locator("#smdConfirmModal").waitFor({ state: "visible", timeout: 15000 });
+    await page.locator("#infoConfirmModal").waitFor({ state: "visible", timeout: 15000 });
     await page.waitForTimeout(400);
     await screenshotAllThemes(page, "upload-images-confirm.png");
   });
@@ -626,8 +615,8 @@ test.describe("PlanMyDay - Screenshots", () => {
       localStorage.setItem("planmydays_streams", JSON.stringify(streams));
     }, { data: TEST_STREAMS, sleep: futureDateStr(30) });
     await page.reload();
-    await page.locator("#btnMainMenu").click();
-    await page.locator("a.dropdown-item").filter({ hasText: "Streams" }).click();
+    await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
+    await page.locator("a.dropdown-item").filter({ hasText: "Jobs" }).click();
     await page.waitForSelector("#streamEditorList .accordion-item");
     await page.locator("#streamEditorList .stream-header-main").first().click();
     await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible", timeout: 5000 });
@@ -667,8 +656,7 @@ test.describe("PlanMyDay - Screenshots", () => {
       localStorage.setItem("planmydays_minio_bucket", "pmd");
     });
     await page.reload();
-    await page.locator("#btnMainMenu").click();
-    await page.locator("a.dropdown-item").filter({ hasText: "Settings" }).click();
+    await page.getByTitle("Settings").click();
     await page.waitForSelector("#settingsPage:not(.d-none)");
     await page.locator("#minio-tab").click();
     await page.waitForTimeout(300);
@@ -695,8 +683,7 @@ test.describe("PlanMyDay - Screenshots", () => {
     });
     await page.reload();
     await page.evaluate(() => importFromMinio());
-    await page.waitForSelector("#minioImportPage");
-    await page.waitForSelector("#minioImportBody .list-group-item");
+    await page.waitForSelector("#minioImportModal");
     await page.waitForTimeout(400);
     await screenshotAllThemes(page, "import-minio.png");
   });

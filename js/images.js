@@ -162,12 +162,24 @@ function buildThemeSection(themeIdx, label) {
 }
 
 function renderImagesEditor() {
-  const page = document.getElementById("imagesEditor");
-  if (!page) return;
+  const list = document.getElementById("imagesList");
+  const topTile = document.getElementById("addImageTileTop");
+  const filterEl = document.getElementById("imageFilters");
+  const singleEditor = document.getElementById("singleImageEditor");
+
+  list.innerHTML = "";
+  topTile.innerHTML = "";
+  filterEl.innerHTML = "";
+  singleEditor.innerHTML = "";
 
   const images = loadImages();
 
   if (editingImageIndex >= 0) {
+    list.classList.remove("d-none");
+    topTile.classList.remove("d-none");
+    filterEl.classList.remove("d-none");
+    singleEditor.classList.add("d-none");
+
     const img = images[editingImageIndex];
     const hasData = img.data && img.data.length > 0;
     const colorEditorHtml = hasData
@@ -208,6 +220,11 @@ function renderImagesEditor() {
     return;
   }
 
+  list.classList.remove("d-none");
+  topTile.classList.remove("d-none");
+  filterEl.classList.remove("d-none");
+  singleEditor.classList.add("d-none");
+
   const filtered = images.filter((img, index) => {
     if (imageNameSearch && !img.name.toLowerCase().includes(imageNameSearch.toLowerCase())) return false;
     return true;
@@ -218,48 +235,31 @@ function renderImagesEditor() {
   const start = imagesPage * IMAGES_PAGE_SIZE;
   const pageItems = filtered.slice(start, start + IMAGES_PAGE_SIZE);
 
-  if (!$id("imageSearchHeader")) {
-    page.title = "Edit Images";
-    page.headerHtml = "";
-    page.content =
-      '<div id="imageSearchHeader">' +
-        '<div id="imageSearchFilters" class="mt-3">' +
-          '<div class="row align-items-center">' +
-            '<div class="col" style="padding-left:0">' +
-              '<input type="search" class="form-control" id="imageNameSearchInput" placeholder="Search image names..." value="' + escapeHtml(imageNameSearch) + '" oninput="setImageNameSearch(this.value)">' +
-            '</div>' +
-            '<div class="col-auto" style="padding-left:0;padding-right:0">' +
-              '<smd-button variant="danger" id="btnImageFilterClear" onclick="clearImageNameSearch()">Clear</smd-button>' +
-            '</div>' +
-          '</div>' +
-        '</div>' +
-      '</div>' +
-      '<div id="imagesList"></div>';
-    page.buttons = [
-      { text: "Add Image", variant: "primary", action: "add", close: false },
-      { text: "Done", variant: "success", action: "done" },
-    ];
-  } else {
-    const input = $id("imageNameSearchInput");
-    if (input && input.value !== imageNameSearch) {
-      const pos = input.selectionStart;
-      input.value = imageNameSearch;
-      try { input.setSelectionRange(pos, pos); } catch (err) {}
-    }
-  }
-
-  const listEl = $id("imagesList");
-  listEl.innerHTML = "";
-
   pageItems.forEach((img) => {
-    const card = document.createElement("pmd-image-card");
+    const card = document.createElement("div");
+    card.className = "card p-3 mb-3";
     const inUse = isImageInUse(img.name);
     const themedData = getThemedImageDataUrl(img);
-    card.setAttribute("image-idx", images.indexOf(img));
-    card.setAttribute("name", img.name);
-    if (themedData) card.setAttribute("image", themedData);
-    if (inUse) card.setAttribute("in-use", "");
-    listEl.appendChild(card);
+    card.innerHTML = `
+      <div class="d-flex align-items-center gap-2">
+        <div style="width:40px;height:40px;flex-shrink:0">
+          ${themedData ? `<img src="${themedData}" class="date-img" style="max-width:40px;max-height:40px">` : ""}
+        </div>
+        <span class="fw-bold editor-title flex-grow-1 text-truncate">${escapeHtml(img.name)}</span>
+        <div class="image-actions d-flex gap-3 flex-shrink-0">
+          <button class="btn btn-danger btn-sm d-flex align-items-center justify-content-center" style="width:36px;height:36px" title="Delete" ${inUse ? "disabled" : ""} onclick="confirmDeleteImage(${images.indexOf(img)})">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/><path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z"/></svg>
+          </button>
+          <button class="btn btn-info btn-sm d-flex align-items-center justify-content-center" style="width:36px;height:36px" title="Duplicate" onclick="duplicateImage(${images.indexOf(img)})">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><rect x="1" y="1" width="9" height="9" rx="1"/><rect x="6" y="6" width="9" height="9" rx="1" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
+          </button>
+          <button class="btn btn-primary btn-sm d-flex align-items-center justify-content-center" style="width:36px;height:36px" title="Edit" onclick="startEditImage(${images.indexOf(img)})">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106a.5.5 0 0 1-.707-.708l-1.28 1.28-1.414-1.414 1.28-1.28a.5.5 0 0 1-.708-.708z"/></svg>
+          </button>
+        </div>
+      </div>
+    `;
+    list.appendChild(card);
   });
 
   if (imagesTotalPages > 1) {
@@ -270,26 +270,34 @@ function renderImagesEditor() {
       <span class="text-nowrap">Page ${imagesPage + 1} of ${imagesTotalPages}</span>
       <button class="btn btn-primary btn-sm" onclick="imagesPage=Math.min(imagesTotalPages-1,imagesPage+1);renderImagesEditor()" ${imagesPage >= imagesTotalPages - 1 ? 'disabled' : ''}>Next</button>
     `;
-    listEl.appendChild(nav);
+    list.appendChild(nav);
   }
-  updateNavState();
-}
 
-function clearImageNameSearch() {
-  imageNameSearch = "";
-  imagesPage = 0;
-  renderImagesEditor();
+  topTile.innerHTML = `
+    <div class="d-flex gap-2">
+      <button id="btnAddImage" class="btn btn-primary editor-btn btn-wide" onclick="addNewImage()">Add Image</button>
+      <button id="btnImagesDone" class="btn btn-success editor-btn btn-wide ms-auto" onclick="closeImagesEditor()">Done</button>
+    </div>
+  `;
+
+  filterEl.classList.remove("d-none");
+  filterEl.innerHTML = `
+    <div class="d-flex gap-2 align-items-center">
+      <input class="form-control" type="search" placeholder="Search image names..." value="${escapeHtml(imageNameSearch)}" oninput="setImageNameSearch(this.value)">
+      <button id="btnImageFilterClear" class="btn btn-outline-secondary btn-sm" onclick="imageNameSearch='';imagesPage=0;renderImagesEditor()">Clear</button>
+    </div>
+  `;
+  updateNavState();
 }
 
 function setImageNameSearch(val) {
   imageNameSearch = val;
   imagesPage = 0;
-  const input = $id("imageNameSearchInput");
-  const pos = input ? input.selectionStart : null;
   renderImagesEditor();
-  if (input && pos !== null) {
+  const input = document.querySelector('#imageFilters input[type="search"]');
+  if (input) {
     input.focus();
-    try { input.setSelectionRange(pos, pos); } catch (err) {}
+    input.setSelectionRange(input.value.length, input.value.length);
   }
 }
 
@@ -510,6 +518,8 @@ function addNewImage() {
   isNewImage = true;
   isDuplicateImage = false;
   renderImagesEditor();
+  const editorEl = document.getElementById("imagesEditor");
+  if (editorEl) editorEl.scrollIntoView({ behavior: "smooth", block: "start" });
   checkDuplicateName();
 }
 
@@ -562,18 +572,14 @@ function confirmDeleteImage(index) {
   const images = loadImages();
   const name = images[index].name;
 
-  showSmdModal({
-    title: "Delete Image?",
-    content: `Delete image "<strong>${escapeHtml(name)}</strong>"?`,
-    buttons: [
-      { text: "Cancel", variant: "secondary", action: "cancel" },
-      { text: "Delete", variant: "danger", action: "delete" }
-    ],
-    onAction: function(detail) {
-      if (detail.action !== "delete") return;
-      deleteImage(index);
-    }
-  });
+  const modalEl = document.getElementById("deleteConfirmModal");
+  document.getElementById("deleteConfirmMessage").innerHTML =
+    `Delete image "<strong>${escapeHtml(name)}</strong>"?`;
+  document.getElementById("deleteConfirmBtn").onclick = function() {
+    safeHideModal("deleteConfirmModal");
+    deleteImage(index);
+  };
+  new bootstrap.Modal(modalEl).show();
 }
 
 function deleteImage(index) {
@@ -587,25 +593,14 @@ function openImagesEditor() {
   document.getElementById("countdownContainer").classList.add("d-none");
   document.getElementById("streamsEditor").classList.add("d-none");
   document.getElementById("settingsPage").classList.add("d-none");
+  document.getElementById("imagesEditor").classList.remove("d-none");
   document.getElementById("jobSearchEditor").classList.add("d-none");
   imagesPage = 0;
-  const page = document.getElementById("imagesEditor");
-  page.classList.remove("d-none");
   renderImagesEditor();
-  if (page.shadowRoot && typeof injectStyleInto === "function") {
-    injectStyleInto(page.shadowRoot, JOBS_EDITOR_STYLES);
-  }
-  page.show();
 }
 
 function closeImagesEditor() {
-  const page = document.getElementById("imagesEditor");
-  if (page) {
-    page.hide();
-    setTimeout(function() {
-      page.classList.add("d-none");
-    }, Math.max(0, (page.slideDuration || 0) + 50));
-  }
+  document.getElementById("imagesEditor").classList.add("d-none");
   document.getElementById("countdownContainer").classList.remove("d-none");
   editingImageIndex = -1;
   isNewImage = false;
@@ -635,6 +630,25 @@ let imagePickerSearch = "";
 function openImagePicker(callback) {
   imagePickerCallback = callback;
   imagePickerSearch = "";
+  const modalIds = ["streamEditModal"];
+  const openModals = [];
+  modalIds.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el || !el.classList.contains("show")) return;
+    const inst = bootstrap.Modal.getInstance(el);
+    if (inst) {
+      openModals.push(inst);
+      // Prevent hidden modals from intercepting clicks while they fade out
+      el.querySelector(".modal-dialog").style.pointerEvents = "none";
+      inst.hide();
+    } else {
+      // Force-hide modal that has no Bootstrap instance
+      el.classList.remove("show");
+      el.setAttribute("aria-hidden", "true");
+      el.removeAttribute("aria-modal");
+      el.style.display = "none";
+    }
+  });
   const modalEl = document.getElementById("imagePickerModal");
   modalEl.style.zIndex = "1060";
   modalEl.addEventListener("hidden.bs.modal", function onHide() {
@@ -642,6 +656,10 @@ function openImagePicker(callback) {
     modalEl.style.zIndex = "";
     imagePickerCallback = null;
     imagePickerSearch = "";
+    openModals.forEach(inst => {
+      inst.show();
+      inst._element.querySelector(".modal-dialog").style.pointerEvents = "";
+    });
   });
   new bootstrap.Modal(modalEl).show();
   renderImagePicker();
@@ -757,7 +775,7 @@ function uploadStandardImages() {
       }
       const total = data.images.length;
       const ignored = total - added;
-      showInfoConfirm(`${total} image${total === 1 ? "" : "s"} uploaded.\n${added} added\n${ignored} duplicate${ignored === 1 ? "" : "s"} ignored.`);
+      showInfoConfirm(`Sample images loaded.\n${total} image${total === 1 ? "" : "s"} uploaded.\n${added} added\n${ignored} duplicate${ignored === 1 ? "" : "s"} ignored.`);
     })
     .catch(() => {})
     .finally(() => hideUploadDialog());
