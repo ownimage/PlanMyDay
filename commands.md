@@ -18,7 +18,7 @@ npx playwright test tests/sampleImages.spec.js --workers 1
 ```
 ### Screenshots
 ```bash
-npx playwright test tests/screenshots.spec.js --workers 16
+npx playwright test tests/screenshots.spec.js --workers 4
 ```
 ### Screenshot viewer
 ```bash

@@ -29,7 +29,7 @@ module.exports = defineConfig({
     },
   ],
   webServer: {
-    command: 'python -m http.server 8080',
+    command: 'python tests/http-server.py',
     url: "http://localhost:8080",
     reuseExistingServer: !process.env.CI,
   },

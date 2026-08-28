@@ -47,7 +47,16 @@ async function touchDrag(page, fromLocator, toBox) {
         pressure: type === "pointerup" ? 0 : 0.7,
         buttons,
       });
-      (document.elementFromPoint(x, y) || document.body).dispatchEvent(evt);
+      const flatFromPoint = (root) => {
+        const el = root.elementFromPoint(x, y);
+        if (!el) return null;
+        if (el.shadowRoot) {
+          const inner = flatFromPoint(el.shadowRoot);
+          if (inner) return inner;
+        }
+        return el;
+      };
+      (flatFromPoint(document) || document.body).dispatchEvent(evt);
     }, { type, x, y, buttons });
   await fireOne("pointerdown", startX, startY, 1);
   await page.waitForTimeout(150);
