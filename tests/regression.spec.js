@@ -625,7 +625,7 @@ test.describe("PlanMyDay - Regression", () => {
       await page.reload();
       await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
       await page.locator("a.dropdown-item").filter({ hasText: "Jobs" }).click();
-      await page.locator("#streamEditorList .accordion-header .btn-danger").filter({ hasText: "Delete" }).click();
+      await page.locator("#streamEditorList .stream-accordion-header .btn-danger").filter({ hasText: "Delete", visible: true }).click();
       await expect(page.locator("#deleteConfirmModal")).toBeVisible();
       await page.waitForTimeout(200);
       await page.locator("#deleteConfirmBtn").click();
@@ -638,7 +638,7 @@ test.describe("PlanMyDay - Regression", () => {
     });
 
     test("delete button hidden when stream has jobs", async ({ page }) => {
-      var delBtns = page.locator("#streamEditorList .accordion-header .btn-danger").filter({ hasText: "Delete" });
+      var delBtns = page.locator("#streamEditorList .stream-accordion-header .btn-danger").filter({ hasText: "Delete", visible: true });
       await expect(delBtns).toHaveCount(0);
     });
 
@@ -651,8 +651,8 @@ test.describe("PlanMyDay - Regression", () => {
       await page.reload();
       await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
       await page.locator("a.dropdown-item").filter({ hasText: "Jobs" }).click();
-      var delBtn = page.locator("#streamEditorList .accordion-header .btn-danger").filter({ hasText: "Delete" });
-      await expect(delBtn).toBeVisible();
+      var delBtn = page.locator("#streamEditorList .stream-accordion-header .btn-danger").filter({ hasText: "Delete", visible: true });
+      await expect(delBtn).toHaveCount(1);
     });
 
     test("shows tab badge on stream cards", async ({ page }) => {
@@ -679,7 +679,7 @@ test.describe("PlanMyDay - Regression", () => {
         localStorage.setItem("planmydays_streams", JSON.stringify([s]));
         renderStreamsEditor();
       }, badgeStream);
-      await expect(page.locator("#streamEditorList .stream-accordion-item").first().locator(".badge.bg-secondary")).toHaveText("2/3/4 jobs");
+      await expect(page.locator("#streamEditorList .stream-accordion-item").first().locator(".count-badge")).toHaveText("2/3/4 jobs");
     });
 
     test("job count badge recalculates when schedule rules change", async ({ page }) => {
@@ -693,7 +693,7 @@ test.describe("PlanMyDay - Regression", () => {
           { id: "job_other", title: "Other", active: true, schedule: { type: "days", days: [otherWeekday] }, tasks: [] }
         ]
       };
-      const badge = page.locator("#streamEditorList .stream-accordion-item").first().locator(".badge.bg-secondary");
+      const badge = page.locator("#streamEditorList .stream-accordion-item").first().locator(".count-badge");
       await page.evaluate((s) => {
         localStorage.setItem("planmydays_streams", JSON.stringify([s]));
         renderStreamsEditor();
@@ -998,7 +998,7 @@ test.describe("PlanMyDay - Regression", () => {
     });
 
     test("shows job list", async ({ page }) => {
-      await expect(page.locator("#streamEditorList .accordion-body .fw-bold").first()).toContainText("Report");
+      await expect(page.locator("#streamEditorList .accordion-body .job-title").first()).toContainText("Report");
       await expect(page.getByText("Meeting")).toBeVisible();
     });
 
@@ -1133,7 +1133,7 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("a.dropdown-item").filter({ hasText: "Jobs" }).click();
       await page.locator("#streamEditorList .stream-header-main").first().click();
       await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible", timeout: 5000 });
-      var jobTitles = page.locator("#streamEditorList .stream-accordion-item").first().locator(".accordion-body .job-drag-card .editor-title");
+      var jobTitles = page.locator("#streamEditorList .stream-accordion-item").first().locator(".accordion-body .job-drag-card .job-title");
       await expect(jobTitles).toHaveCount(4);
       await expect(jobTitles.first()).toContainText("Report");
       await expect(jobTitles.last()).toContainText("EarlyJob");
@@ -1159,14 +1159,14 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("a.dropdown-item").filter({ hasText: "Jobs" }).click();
       await page.locator("#streamEditorList .stream-header-main").first().click();
       await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible", timeout: 5000 });
-      var jobTitles2 = page.locator("#streamEditorList .stream-accordion-item").first().locator(".accordion-body .job-drag-card .editor-title");
+      var jobTitles2 = page.locator("#streamEditorList .stream-accordion-item").first().locator(".accordion-body .job-drag-card .job-title");
       await expect(jobTitles2.first()).toContainText("Meeting");
       await expect(jobTitles2.last()).toContainText("Report");
     });
 
     test("active label is bold on job tiles", async ({ page }) => {
-      var activeLabel = page.locator("#streamEditorList .accordion-body .form-check-label").first();
-      await expect(activeLabel).toHaveClass(/fw-bold/);
+      var activeLabel = page.locator("#streamEditorList .accordion-body .active-toggle").first();
+      await expect(activeLabel.locator("span")).toHaveCSS("font-weight", "700");
     });
 
     test("job tiles have a drag handle for touch reorder", async ({ page }) => {
@@ -1193,7 +1193,7 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#streamEditorList .stream-header-main").first().click();
       await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible", timeout: 5000 });
       // toggle job_2 (Meeting) active
-      var meetingToggle = page.locator("#streamEditorList .accordion-body .active-toggle").nth(1);
+      var meetingToggle = page.locator("#streamEditorList .accordion-body input.active-toggle").nth(1);
       await expect(meetingToggle).not.toBeChecked();
       await meetingToggle.check();
       await page.waitForTimeout(300);
@@ -1227,7 +1227,7 @@ test.describe("PlanMyDay - Regression", () => {
       var orderBefore = await page.evaluate(() => JSON.parse(localStorage.getItem("planmydays_today_order")));
       expect(orderBefore).toContain("job_2");
       // uncheck job_2 (Meeting) - second checkbox
-      var meetingToggle = page.locator("#streamEditorList .accordion-body .active-toggle").nth(1);
+      var meetingToggle = page.locator("#streamEditorList .accordion-body input.active-toggle").nth(1);
       await expect(meetingToggle).toBeChecked();
       await meetingToggle.uncheck();
       // wait for the order to reflect the removal before leaving the editor
@@ -1695,7 +1695,7 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
       await page.locator("a.dropdown-item").filter({ hasText: "Jobs" }).click();
       await page.locator("#streamEditorList").waitFor({ state: "visible" });
-      await page.locator("#streamEditorList .accordion-header .btn-danger").filter({ hasText: "Delete" }).click();
+      await page.locator("#streamEditorList .stream-accordion-header .btn-danger").filter({ hasText: "Delete", visible: true }).click();
       await page.locator("#deleteConfirmModal").waitFor({ state: "visible" });
       await page.locator("#btnDeleteCancel").click();
       await page.waitForTimeout(400);
