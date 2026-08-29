@@ -384,17 +384,33 @@ let editingIndex = -1;
 let editBuffer = null;
 let isNew = false;
 
+var _streamsCloseTimer = null;
+
 function openStreamsEditor() {
   document.getElementById("countdownContainer").classList.add("d-none");
-  document.getElementById("streamsEditor").classList.remove("d-none");
   document.getElementById("settingsPage").classList.add("d-none");
   document.getElementById("imagesEditor").classList.add("d-none");
   document.getElementById("jobSearchEditor").classList.add("d-none");
+
+  const page = document.getElementById("streamsEditor");
+  if (_streamsCloseTimer) {
+    clearTimeout(_streamsCloseTimer);
+    _streamsCloseTimer = null;
+  }
+  page.classList.remove("d-none");
   renderStreamsEditor();
+  page.show();
 }
 
 function closeStreamsEditor() {
-  document.getElementById("streamsEditor").classList.add("d-none");
+  const page = document.getElementById("streamsEditor");
+  if (page) {
+    page.hide();
+    clearTimeout(_streamsCloseTimer);
+    _streamsCloseTimer = setTimeout(function() {
+      page.classList.add("d-none");
+    }, 320);
+  }
   document.getElementById("countdownContainer").classList.remove("d-none");
   editingIndex = -1; editBuffer = null; isNew = false;
   renderMain();
@@ -446,7 +462,7 @@ function getJobCountBadgeText(streams) {
 function updateEditorJobCountBadges() {
   var text = getJobCountBadgeText(loadStreams());
   ["editJobsTotalBadge", "jobSearchTotalBadge"].forEach(function(id) {
-    var el = document.getElementById(id);
+    var el = $id(id);
     if (el) el.textContent = text;
   });
   return text;
@@ -586,14 +602,11 @@ function getStreamEditFormHTML(data) {
 }
 
 function renderStreamsEditor() {
-  const list = document.getElementById("streamEditorList");
-  const addTile = document.getElementById("addStreamTile");
-  const topTile = document.getElementById("addStreamTileTop");
-  const filterEl = document.getElementById("streamEditorFilters");
-  const singleEditor = document.getElementById("singleStreamEditor");
+  const page = document.getElementById("streamsEditor");
+  if (!page || !page.shadowRoot) return;
 
   // remember which accordion items are expanded (by index; after a drag the
-// captured indices are translated through the reorder so the same stream stays open)
+  // captured indices are translated through the reorder so the same stream stays open)
   const streams = loadStreams();
   var expandedStreams = [];
   if (streamsEditorExpandedIdxs !== null) {
@@ -602,51 +615,29 @@ function renderStreamsEditor() {
     expandedStreams = streamsEditorExpandedIdxs;
     streamsEditorExpandedIdxs = null;
   } else {
-    var openCollapses = list.querySelectorAll(".accordion-collapse.show");
+    var openCollapses = page.shadowRoot.querySelectorAll(".accordion-collapse.show");
     for (var ec = 0; ec < openCollapses.length; ec++) {
       var m = openCollapses[ec].id.match(/streamCollapse_(\d+)/);
       if (m) expandedStreams.push(parseInt(m[1]));
     }
   }
 
-  list.innerHTML = ""; addTile.innerHTML = ""; topTile.innerHTML = ""; filterEl.innerHTML = ""; singleEditor.innerHTML = "";
-
-  if (editingIndex >= 0) {
-    list.classList.add("d-none"); addTile.classList.add("d-none");
-    topTile.classList.add("d-none"); filterEl.classList.add("d-none");
-    singleEditor.classList.add("d-none");
-    showStreamEditModal();
-    updateNavState();
-    return;
-  }
-
-  list.classList.remove("d-none"); addTile.classList.remove("d-none");
-  topTile.classList.remove("d-none"); filterEl.classList.remove("d-none");
-  singleEditor.classList.add("d-none");
-
-  list.className = "accordion";
-  list.setAttribute("id", "streamEditorList");
-
   var sorted = [].concat(streams).sort(function(a, b) { return (a.sequence || 0) - (b.sequence || 0); });
 
-  updateEditorJobCountBadges();
-
+  var accordionHtml = "";
   sorted.forEach(function(t, displayIdx) {
     var realIdx = streams.indexOf(t);
     var streamImgUrl = getImageDataUrl(t.image);
     var jobs = t.jobs || [];
     var collapseId = "streamCollapse_" + realIdx;
-
-    var item = document.createElement("div");
-    item.className = "accordion-item stream-accordion-item stream-drag-card mb-2";
-    item.dataset.streamIdx = realIdx;
+    var isExpanded = expandedStreams.indexOf(realIdx) !== -1;
 
     var headerHtml = '<div class="accordion-header stream-accordion-header" id="streamHeading_' + realIdx + '">' +
       '<div class="drag-handle flex-shrink-0" style="cursor:grab;line-height:1">&#9776;</div>' +
-      '<div style="width:40px;height:40px;flex-shrink-0" class="mx-2">' + (streamImgUrl ? '<img src="' + streamImgUrl + '" class="date-img" style="max-width:40px;max-height:40px">' : '') + '</div>' +
+      '<div style="width:40px;height:40px;flex-shrink:0" class="mx-2">' + (streamImgUrl ? '<img src="' + streamImgUrl + '" class="date-img" style="max-width:40px;max-height:40px">' : '') + '</div>' +
       '<div style="display:flex;flex-direction:column;min-width:0;flex:1;gap:0.25rem;overflow:hidden" class="me-2">' +
         '<div style="display:flex;align-items:center;gap:0.35rem">' +
-          '<button type="button" class="stream-header-main collapsed flex-grow-1" style="min-width:0;padding:0;border:0;background:transparent;color:inherit;text-align:left" data-bs-toggle="collapse" data-bs-target="#' + collapseId + '" aria-expanded="false">' +
+          '<button type="button" class="stream-header-main ' + (isExpanded ? "" : "collapsed") + ' flex-grow-1" style="min-width:0;padding:0;border:0;background:transparent;color:inherit;text-align:left" onclick="toggleStreamCollapse(' + realIdx + ', this)" aria-expanded="' + isExpanded + '">' +
             '<span class="fw-bold editor-title text-truncate">' + escapeHtml(t.title) + '</span>' +
           '</button>' +
           '<div class="stream-header-actions">' +
@@ -663,44 +654,68 @@ function renderStreamsEditor() {
             jobs.length + ' job' + (jobs.length !== 1 ? 's' : '') + '</span>' : '') +
         '</div>' +
       '</div>' +
-      '<button type="button" class="stream-header-chevron collapsed" data-bs-toggle="collapse" data-bs-target="#' + collapseId + '" aria-expanded="false" aria-label="Expand"></button>' +
+      '<button type="button" class="stream-header-chevron ' + (isExpanded ? "" : "collapsed") + '" onclick="toggleStreamCollapse(' + realIdx + ', this)" aria-expanded="' + isExpanded + '" aria-label="Expand"></button>' +
     '</div>';
 
-    var bodyHtml = '<div id="' + collapseId + '" class="accordion-collapse collapse" data-bs-parent="#streamEditorList">' +
+    var bodyHtml = '<div id="' + collapseId + '" class="accordion-collapse collapse' + (isExpanded ? " show" : "") + '">' +
       '<div class="accordion-body stream-accordion-body">' +
         (jobs.length > 0 ? renderJobsInAccordion(t, jobs, realIdx) : '<div class="text-secondary small p-2">No jobs</div>') +
       '</div>' +
     '</div>';
 
-    item.innerHTML = headerHtml + bodyHtml;
-    list.appendChild(item);
+    accordionHtml += '<div class="accordion-item stream-accordion-item stream-drag-card mb-2' + (isExpanded ? " expanded" : "") + '" data-stream-idx="' + realIdx + '">' + headerHtml + bodyHtml + '</div>';
   });
 
-  // delegated active toggle handler for jobs
-  list.addEventListener("change", handleJobActiveToggleChange);
+  page.content =
+    '<div id="streamsEditorHeader">' +
+      '<span id="editJobsTotalBadge" class="badge bg-secondary" style="font-size:0.8em;vertical-align:middle"></span>' +
+      '<div id="addStreamTileTop" class="mb-3"></div>' +
+      '<div id="streamEditorFilters" class="mb-3"></div>' +
+    '</div>' +
+    '<div id="streamEditorList" class="accordion">' + accordionHtml + '</div>' +
+    '<div id="addStreamTile" class="mt-3"></div>' +
+    '<div id="singleStreamEditor" class="d-none"></div>';
 
-  topTile.innerHTML = '<div class="d-flex gap-2">' +
-    '<button class="btn btn-primary editor-btn btn-wide" id="btnAddStream" onclick="addNewStream()">Add Stream</button>' +
-    '<button class="btn btn-success editor-btn btn-wide ms-auto" id="btnStreamsDone" onclick="closeStreamsEditor()">Done</button>' +
-  '</div>';
+  page.buttons = [
+    { text: "Add Stream", variant: "primary", action: "add", id: "btnAddStream" },
+    { text: "Done", variant: "success", action: "done", id: "btnStreamsDone" }
+  ];
+  page.title = "Edit Jobs";
 
-  // restore previously expanded accordion items
-  expandedStreams.forEach(function(idx) {
-    var collapseEl = document.getElementById("streamCollapse_" + idx);
-    if (collapseEl) {
-      collapseEl.classList.add("show");
-      var itemEl = collapseEl.closest(".stream-accordion-item");
-      if (itemEl) itemEl.classList.add("expanded");
-    }
-    document.querySelectorAll('#streamEditorList [data-bs-target="#streamCollapse_' + idx + '"]').forEach(function(btn) {
-      btn.classList.remove("collapsed");
-      btn.setAttribute("aria-expanded", "true");
-    });
-  });
+  const list = $id("streamEditorList");
+  if (list) list.addEventListener("change", handleJobActiveToggleChange);
 
+  if (editingIndex >= 0) {
+    showStreamEditModal();
+  }
+
+  updateEditorJobCountBadges();
   updateNavState();
+  injectStreamsEditorStyles();
   initStreamsEditorSortable();
   initStreamJobsSortables();
+}
+
+function toggleStreamCollapse(index, btn) {
+  const page = document.getElementById("streamsEditor");
+  if (!page || !page.shadowRoot) return;
+  const root = page.shadowRoot;
+  const collapseEl = root.getElementById("streamCollapse_" + index);
+  const itemEl = collapseEl ? collapseEl.closest(".stream-accordion-item") : null;
+  const willOpen = collapseEl ? !collapseEl.classList.contains("show") : false;
+  if (collapseEl) collapseEl.classList.toggle("show", willOpen);
+  if (itemEl) itemEl.classList.toggle("expanded", willOpen);
+  root.querySelectorAll('button[onclick="toggleStreamCollapse(' + index + ', this)"]').forEach(function(b) {
+    b.classList.toggle("collapsed", !willOpen);
+    b.setAttribute("aria-expanded", willOpen ? "true" : "false");
+  });
+}
+
+function injectStreamsEditorStyles() {
+  var page = document.getElementById("streamsEditor");
+  if (page && page.shadowRoot) {
+    injectStyleInto(page.shadowRoot, JOBS_EDITOR_STYLES + STREAMS_EDITOR_STYLES);
+  }
 }
 
 var streamsEditorSortable = null;
@@ -712,7 +727,7 @@ function initStreamsEditorSortable() {
     streamsEditorSortable = null;
   }
   if (typeof Sortable === "undefined") return;
-  var el = document.getElementById("streamEditorList");
+  var el = $id("streamEditorList");
   if (!el || !el.querySelector(".stream-accordion-item")) return;
   streamsEditorSortable = new Sortable(el, {
     handle: ".stream-accordion-header .drag-handle",
@@ -755,7 +770,7 @@ function initStreamJobsSortables() {
   streamJobsSortables.forEach(function(s) { if (s) s.destroy(); });
   streamJobsSortables = [];
   if (typeof Sortable === "undefined") return;
-  var list = document.getElementById("streamEditorList");
+  var list = $id("streamEditorList");
   if (!list) return;
   list.querySelectorAll(".accordion-body").forEach(function(body) {
     if (!body.querySelector(".job-drag-card")) return;
@@ -2143,6 +2158,88 @@ var JOBS_EDITOR_STYLES = `
   .d-none { display: none !important; }
 `;
 
+// Accordion styling for the streams editor, scoped to the smd-page shadow root.
+var STREAMS_EDITOR_STYLES = `
+  #streamEditorList { padding-bottom: 40px; }
+  .stream-accordion-item {
+    border: 1px solid var(--bs-border-color);
+    border-radius: 0.375rem;
+    overflow: hidden;
+  }
+  .stream-accordion-header {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    padding: 0.25rem 0;
+    background-color: var(--bs-accordion-btn-bg, var(--bs-body-bg));
+  }
+  .stream-accordion-item:has(.accordion-collapse.show) .stream-accordion-header {
+    background-color: var(--bs-info);
+    color: var(--bs-dark);
+  }
+  .stream-header-main {
+    display: flex;
+    align-items: center;
+    flex: 1 1 auto;
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    text-align: left;
+  }
+  .stream-header-actions {
+    display: flex;
+    align-items: center;
+    flex: 0 0 auto;
+    gap: 0.35rem;
+    padding: 0 0.35rem;
+  }
+  .stream-header-chevron {
+    flex: 0 0 auto;
+    width: 2.5rem;
+    height: 100%;
+    min-height: 3rem;
+    border: 0;
+    background: transparent;
+    background-image: var(--bs-accordion-btn-icon);
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 1.25rem;
+  }
+  .stream-header-chevron:not(.collapsed) {
+    background-image: var(--bs-accordion-btn-active-icon);
+  }
+  .stream-accordion-body { padding: 0 !important; }
+  .stream-accordion-body .card {
+    border-width: 1px;
+    border-left: 0;
+    border-right: 0;
+    border-radius: 0;
+  }
+  .stream-drag-card { cursor: default; user-select: none; }
+  .drag-handle { color: var(--bs-body-color); opacity: 0.55; }
+  .stream-drag-card .drag-handle { cursor: grab; touch-action: none; }
+  .stream-drag-card .drag-handle:active { cursor: grabbing; }
+  .stream-accordion-header .drag-handle { font-size: 1.3rem; line-height: 1; }
+  .job-drag-card {
+    cursor: default;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .job-drag-card .drag-handle {
+    cursor: grab;
+    touch-action: none;
+    -webkit-touch-callout: none;
+    font-size: 1.2rem;
+    line-height: 1;
+    padding: 0.15rem 0.25rem;
+  }
+  .job-drag-card .drag-handle:active { cursor: grabbing; }
+  #streamsEditorHeader { flex-shrink: 0; }
+  .editor-title { font-weight: 800; }
+`;
+
 var SETTINGS_STYLES = `
   .smd-tab-btn {
     padding: 0.5rem 0.25rem;
@@ -2550,6 +2647,18 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  const streamsEditorPage = document.getElementById("streamsEditor");
+  if (streamsEditorPage) {
+    streamsEditorPage.addEventListener("smd-page-action", (e) => {
+      const action = e.detail && (typeof e.detail === "string" ? e.detail : e.detail.action);
+      if (action === "add") {
+        addNewStream();
+      } else if (action === "done") {
+        closeStreamsEditor();
+      }
+    });
+  }
+
   const savedTheme = localStorage.getItem("planmydays_theme") || "darkly";
   applyTheme(savedTheme);
   if (typeof seedSampleImages === "function") seedSampleImages();
@@ -2557,18 +2666,6 @@ document.addEventListener("DOMContentLoaded", () => {
   renderMain();
 
   if (typeof updateMinioMenu === "function") updateMinioMenu();
-
-  const streamEditorList = document.getElementById("streamEditorList");
-  if (streamEditorList) {
-    streamEditorList.addEventListener("shown.bs.collapse", function(e) {
-      const item = e.target.closest(".stream-accordion-item");
-      if (item) item.classList.add("expanded");
-    });
-    streamEditorList.addEventListener("hidden.bs.collapse", function(e) {
-      const item = e.target.closest(".stream-accordion-item");
-      if (item) item.classList.remove("expanded");
-    });
-  }
 });
 
 // PWA PULL-TO-REFRESH
