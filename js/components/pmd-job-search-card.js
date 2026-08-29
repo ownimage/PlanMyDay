@@ -7,11 +7,6 @@ pmdJobSearchCardTemplate.innerHTML = `
       position: relative;
       min-width: 0;
       word-wrap: break-word;
-      background-color: var(--bs-card-bg, var(--bs-secondary-bg, #303030));
-      border: 1px solid var(--bs-border-color, #495057);
-      border-radius: 0.375rem;
-      padding: 0.5rem;
-      margin-bottom: 0.5rem;
     }
     [hidden] { display: none !important; }
     .row1 {
@@ -145,6 +140,7 @@ class PmdJobSearchCard extends HTMLElement {
         }
       }));
     });
+    this.classList.add('card', 'p-2', 'mb-2');
     this._render();
   }
 
