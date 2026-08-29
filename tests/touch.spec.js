@@ -47,11 +47,12 @@ async function touchDrag(page, fromLocator, toBox) {
         pressure: type === "pointerup" ? 0 : 0.7,
         buttons,
       });
-      const flatFromPoint = (root) => {
-        const el = root.elementFromPoint(x, y);
+      const flatFromPoint = (root, depth = 0) => {
+        if (depth > 8) return null;
+        let el = root.elementFromPoint(x, y);
         if (!el) return null;
-        if (el.shadowRoot) {
-          const inner = flatFromPoint(el.shadowRoot);
+        if (el.shadowRoot && el.shadowRoot !== root) {
+          const inner = flatFromPoint(el.shadowRoot, depth + 1);
           if (inner) return inner;
         }
         return el;
