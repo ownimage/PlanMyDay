@@ -10,7 +10,7 @@ npx playwright test tests/regression.spec.js --repeat-each=100
 
 ### Node server
 ```bash
-npx http-server
+npx test/http-server
 ```
 ### SampleImages
 ```bash
