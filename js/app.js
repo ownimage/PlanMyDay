@@ -43,6 +43,10 @@ function escapeHtml(str) {
   return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
+function escAttr(str) {
+  return escapeHtml(str).replace(/"/g, "&quot;");
+}
+
 // MODAL HELPERS
 // Bootstrap ignores hide() while a modal's show transition is running, so track the
 // fully-shown state and defer hide() until the "shown" event fires when necessary.
@@ -460,11 +464,28 @@ function getJobCountBadgeText(streams) {
 }
 
 function updateEditorJobCountBadges() {
-  var text = getJobCountBadgeText(loadStreams());
+  var streams = loadStreams();
+  var text = getJobCountBadgeText(streams);
   ["editJobsTotalBadge", "jobSearchTotalBadge"].forEach(function(id) {
     var el = $id(id);
     if (el) el.textContent = text;
   });
+  var page = document.getElementById("streamsEditor");
+  if (page && page.shadowRoot) {
+    page.shadowRoot.querySelectorAll("pmd-stream-header").forEach(function(header) {
+      var idx = parseInt(header.getAttribute("stream-idx"), 10);
+      if (isNaN(idx) || !streams[idx]) return;
+      var jobs = streams[idx].jobs || [];
+      var activeJobs = jobs.filter(function(j) { return j.active !== false; });
+      var counts = "";
+      if (jobs.length > 0) {
+        counts = activeJobs.filter(function(j) { return shouldShowJobToday(j); }).length + '/' +
+                 activeJobs.length + '/' + jobs.length + ' job' + (jobs.length !== 1 ? 's' : '');
+      }
+      if (counts) header.setAttribute("jobcounts", counts);
+      else header.removeAttribute("jobcounts");
+    });
+  }
   return text;
 }
 
@@ -541,6 +562,24 @@ function handleJobActiveToggleChange(e) {
     }
     saveTodayOrder(order);
   }
+}
+
+function handleAccordionJobActiveToggle(streamIdx, jobIdx, checked) {
+  var streams = loadStreams();
+  var jobs = streams[streamIdx].jobs || [];
+  if (jobs[jobIdx]) jobs[jobIdx].active = checked;
+  saveStreams(streams);
+  var jobId = jobs[jobIdx] ? jobs[jobIdx].id : null;
+  if (jobId) {
+    var order = loadTodayOrder() || [];
+    if (checked && shouldShowJobToday(jobs[jobIdx])) {
+      if (!order.includes(jobId)) order.push(jobId);
+    } else {
+      order = order.filter(function(id) { return id !== jobId; });
+    }
+    saveTodayOrder(order);
+  }
+  updateEditorJobCountBadges();
 }
 
 function focusTitleOnShow(inputId, modalId) {
@@ -632,30 +671,20 @@ function renderStreamsEditor() {
     var collapseId = "streamCollapse_" + realIdx;
     var isExpanded = expandedStreams.indexOf(realIdx) !== -1;
 
-    var headerHtml = '<div class="accordion-header stream-accordion-header" id="streamHeading_' + realIdx + '">' +
-      '<div class="drag-handle flex-shrink-0" style="cursor:grab;line-height:1">&#9776;</div>' +
-      '<div style="width:40px;height:40px;flex-shrink:0" class="mx-2">' + (streamImgUrl ? '<img src="' + streamImgUrl + '" class="date-img" style="max-width:40px;max-height:40px">' : '') + '</div>' +
-      '<div style="display:flex;flex-direction:column;min-width:0;flex:1;gap:0.25rem;overflow:hidden" class="me-2">' +
-        '<div style="display:flex;align-items:center;gap:0.35rem">' +
-          '<button type="button" class="stream-header-main ' + (isExpanded ? "" : "collapsed") + ' flex-grow-1" style="min-width:0;padding:0;border:0;background:transparent;color:inherit;text-align:left" onclick="toggleStreamCollapse(' + realIdx + ', this)" aria-expanded="' + isExpanded + '">' +
-            '<span class="fw-bold editor-title text-truncate">' + escapeHtml(t.title) + '</span>' +
-          '</button>' +
-          '<div class="stream-header-actions">' +
-            '<button type="button" class="btn btn-secondary btn-sm" onclick="addNewJobForStream(' + realIdx + ')">Add Job</button>' +
-            '<button type="button" class="btn btn-primary editor-btn" style="min-width:50px" onclick="editStream(' + realIdx + ')">Edit</button>' +
-            (jobs.length === 0 ? '<button type="button" class="btn btn-danger editor-btn" style="min-width:50px" onclick="confirmDeleteStream(' + realIdx + ')">Delete</button>' : '') +
-          '</div>' +
-        '</div>' +
-        '<div style="display:flex;gap:0.25rem;flex-wrap:nowrap">' +
-          '<span class="badge bg-' + ((t.tab || "progress") === "progress" ? "success" : "info") + ' text-nowrap">' + escapeHtml(t.tab || "progress") + '</span>' +
-          (jobs.length > 0 ? '<span class="badge bg-secondary text-nowrap">' +
-            jobs.filter(function(j) { return j.active !== false && shouldShowJobToday(j); }).length + '/' +
-            jobs.filter(function(j) { return j.active !== false; }).length + '/' +
-            jobs.length + ' job' + (jobs.length !== 1 ? 's' : '') + '</span>' : '') +
-        '</div>' +
-      '</div>' +
-      '<button type="button" class="stream-header-chevron ' + (isExpanded ? "" : "collapsed") + '" onclick="toggleStreamCollapse(' + realIdx + ', this)" aria-expanded="' + isExpanded + '" aria-label="Expand"></button>' +
-    '</div>';
+    var activeJobs = jobs.filter(function(j) { return j.active !== false; });
+    var headerJobCounts = jobs.length > 0
+      ? activeJobs.filter(function(j) { return shouldShowJobToday(j); }).length + '/' + activeJobs.length + '/' + jobs.length + ' job' + (jobs.length !== 1 ? 's' : '')
+      : "";
+    var headerAttrs = [
+      'stream-idx="' + realIdx + '"',
+      'title="' + escAttr(t.title || "") + '"',
+      'tab="' + escAttr(t.tab || "progress") + '"',
+      (isExpanded ? 'expanded' : ''),
+      (jobs.length === 0 ? 'can-delete' : '')
+    ];
+    if (streamImgUrl) headerAttrs.push('image="' + escAttr(streamImgUrl) + '"');
+    if (headerJobCounts) headerAttrs.push('jobcounts="' + escAttr(headerJobCounts) + '"');
+    var headerHtml = '<pmd-stream-header ' + headerAttrs.filter(Boolean).join(" ") + '></pmd-stream-header>';
 
     var bodyHtml = '<div id="' + collapseId + '" class="accordion-collapse collapse' + (isExpanded ? " show" : "") + '">' +
       '<div class="accordion-body stream-accordion-body">' +
@@ -682,9 +711,6 @@ function renderStreamsEditor() {
   ];
   page.title = "Edit Jobs";
 
-  const list = $id("streamEditorList");
-  if (list) list.addEventListener("change", handleJobActiveToggleChange);
-
   if (editingIndex >= 0) {
     showStreamEditModal();
   }
@@ -696,19 +722,34 @@ function renderStreamsEditor() {
   initStreamJobsSortables();
 }
 
-function toggleStreamCollapse(index, btn) {
+function setStreamExpanded(index, expanded) {
   const page = document.getElementById("streamsEditor");
   if (!page || !page.shadowRoot) return;
   const root = page.shadowRoot;
   const collapseEl = root.getElementById("streamCollapse_" + index);
   const itemEl = collapseEl ? collapseEl.closest(".stream-accordion-item") : null;
-  const willOpen = collapseEl ? !collapseEl.classList.contains("show") : false;
-  if (collapseEl) collapseEl.classList.toggle("show", willOpen);
-  if (itemEl) itemEl.classList.toggle("expanded", willOpen);
-  root.querySelectorAll('button[onclick="toggleStreamCollapse(' + index + ', this)"]').forEach(function(b) {
-    b.classList.toggle("collapsed", !willOpen);
-    b.setAttribute("aria-expanded", willOpen ? "true" : "false");
-  });
+  if (expanded) {
+    // only one accordion section open at a time
+    root.querySelectorAll(".accordion-collapse.show").forEach(function(coll) {
+      if (coll === collapseEl) return;
+      coll.classList.remove("show");
+      const it = coll.closest(".stream-accordion-item");
+      if (it) {
+        it.classList.remove("expanded");
+        const h = it.querySelector("pmd-stream-header");
+        if (h) h.removeAttribute("expanded");
+      }
+    });
+  }
+  if (collapseEl) collapseEl.classList.toggle("show", expanded);
+  if (itemEl) itemEl.classList.toggle("expanded", expanded);
+  if (itemEl) {
+    const header = itemEl.querySelector("pmd-stream-header");
+    if (header) {
+      if (expanded) header.setAttribute("expanded", "");
+      else header.removeAttribute("expanded");
+    }
+  }
 }
 
 function injectStreamsEditorStyles() {
@@ -733,6 +774,13 @@ function initStreamsEditorSortable() {
     handle: ".stream-accordion-header .drag-handle",
     draggable: ".stream-accordion-item",
     animation: 150,
+    forceFallback: true,
+    fallbackOnBody: true,
+    fallbackTolerance: 0,
+    fallbackClass: "sortable-fallback",
+    ghostClass: "sortable-ghost",
+    chosenClass: "sortable-chosen",
+    dragClass: "sortable-drag",
     onStart: function() {
       var idxs = [];
       el.querySelectorAll(".accordion-collapse.show").forEach(function(coll) {
@@ -780,6 +828,13 @@ function initStreamJobsSortables() {
       handle: ".job-drag-card .drag-handle",
       draggable: ".job-drag-card",
       animation: 150,
+      forceFallback: true,
+      fallbackOnBody: true,
+      fallbackTolerance: 0,
+      fallbackClass: "sortable-fallback",
+      ghostClass: "sortable-ghost",
+      chosenClass: "sortable-chosen",
+      dragClass: "sortable-drag",
       onEnd: function() {
         var streamIdx = parseInt(item.getAttribute("data-stream-idx"), 10);
         if (isNaN(streamIdx)) return;
@@ -861,24 +916,26 @@ function renderJobsInAccordion(stream, jobs, streamIdx) {
   return jobs.map(function(j, realIdx) {
     var scheduleText = getScheduleText(j.schedule);
     var jobImgUrl = getImageDataUrl(j.image);
-    var hasTime = j.time && j.time.trim();
     var hasSleep = j.sleepUntil && j.sleepUntil.trim();
+    var hasWait = j.waitFor && j.waitFor.trim();
+    var suffix = (getJobSuffix(j) || "").trim();
+    var extra = "";
+    if (hasSleep) extra = "Sleep: " + formatDate(j.sleepUntil);
+    else if (hasWait) extra = "Wait: " + j.waitFor.trim();
+    var attrs = [
+      'stream-idx="' + streamIdx + '"',
+      'job-idx="' + realIdx + '"',
+      'title="' + escAttr(j.title || "") + '"',
+      'schedule="' + escAttr(scheduleText) + '"',
+      'active="' + (j.active !== false ? "true" : "false") + '"'
+    ];
+    if (jobImgUrl) attrs.push('image="' + escAttr(jobImgUrl) + '"');
+    if (j.time && j.time.trim()) attrs.push('time="' + escAttr(j.time.trim()) + '"');
+    if (suffix) attrs.push('suffix="' + escAttr(suffix) + '"');
+    if (extra) attrs.push('extra="' + escAttr(extra) + '"');
     return '<div class="card p-2 mb-0 job-drag-card" data-job-idx="' + realIdx + '">' +
-      '<div class="d-flex align-items-center gap-2">' +
-        '<div class="drag-handle flex-shrink-0" style="line-height:1">&#9776;</div>' +
-        (jobImgUrl ? '<div style="width:32px;height:32px;flex-shrink:0"><img src="' + jobImgUrl + '" class="date-img" style="max-width:32px;max-height:32px"></div>' : '') +
-        '<div class="fw-bold editor-title" style="min-width:0;flex:1">' + escapeHtml(j.title) + (getJobSuffix(j) ? ' <span class="badge bg-secondary">' + escapeHtml(getJobSuffix(j).trim()) + '</span>' : '') + '</div>' +
-        '<button class="btn btn-primary btn-sm editor-btn flex-shrink-0 align-self-center ms-3" style="min-width:50px" onclick="editJobInAccordion(' + streamIdx + ', ' + realIdx + ')">Edit</button>' +
-      '</div>' +
-      '<div class="d-flex align-items-center gap-2 mt-1 small">' +
-        '<label class="form-check-label mb-0 fw-bold flex-shrink-0" style="cursor:pointer;display:flex;align-items:center;gap:2px">' +
-          '<input class="form-check-input active-toggle m-0 position-static" type="checkbox" data-job-idx="' + realIdx + '" data-stream-idx="' + streamIdx + '" ' + (j.active !== false ? "checked" : "") + ' style="cursor:pointer">' +
-          'Active' +
-        '</label>' +
-        '<span class="badge bg-primary flex-shrink-0">' + escapeHtml(scheduleText) + '</span>' +
-        (hasSleep ? '<span class="badge bg-info flex-shrink-0">Sleep: ' + escapeHtml(formatDate(j.sleepUntil)) + '</span>' : (j.waitFor && j.waitFor.trim() ? '<span class="badge bg-info flex-shrink-0">Wait: ' + escapeHtml(j.waitFor.trim()) + '</span>' : '')) +
-        (hasTime ? '<span class="badge bg-secondary flex-shrink-0">' + escapeHtml(j.time) + '</span>' : '') +
-      '</div>' +
+      '<div class="drag-handle flex-shrink-0" title="drag">&#9776;</div>' +
+      '<pmd-stream-job-card ' + attrs.join(" ") + '></pmd-stream-job-card>' +
     '</div>';
   }).join("");
 }
@@ -2161,83 +2218,34 @@ var JOBS_EDITOR_STYLES = `
 // Accordion styling for the streams editor, scoped to the smd-page shadow root.
 var STREAMS_EDITOR_STYLES = `
   #streamEditorList { padding-bottom: 40px; }
+  .accordion-collapse:not(.show) { display: none !important; }
   .stream-accordion-item {
     border: 1px solid var(--bs-border-color);
     border-radius: 0.375rem;
     overflow: hidden;
   }
-  .stream-accordion-header {
-    display: flex;
-    align-items: center;
-    width: 100%;
-    padding: 0.25rem 0;
-    background-color: var(--bs-accordion-btn-bg, var(--bs-body-bg));
-  }
-  .stream-accordion-item:has(.accordion-collapse.show) .stream-accordion-header {
-    background-color: var(--bs-info);
-    color: var(--bs-dark);
-  }
-  .stream-header-main {
-    display: flex;
-    align-items: center;
-    flex: 1 1 auto;
-    min-width: 0;
-    padding: 0;
-    border: 0;
-    background: transparent;
-    color: inherit;
-    text-align: left;
-  }
-  .stream-header-actions {
-    display: flex;
-    align-items: center;
-    flex: 0 0 auto;
-    gap: 0.35rem;
-    padding: 0 0.35rem;
-  }
-  .stream-header-chevron {
-    flex: 0 0 auto;
-    width: 2.5rem;
-    height: 100%;
-    min-height: 3rem;
-    border: 0;
-    background: transparent;
-    background-image: var(--bs-accordion-btn-icon);
-    background-repeat: no-repeat;
-    background-position: center;
-    background-size: 1.25rem;
-  }
-  .stream-header-chevron:not(.collapsed) {
-    background-image: var(--bs-accordion-btn-active-icon);
-  }
+  .stream-accordion-item.stream-drag-card { cursor: default; user-select: none; }
   .stream-accordion-body { padding: 0 !important; }
-  .stream-accordion-body .card {
-    border-width: 1px;
-    border-left: 0;
-    border-right: 0;
-    border-radius: 0;
-  }
-  .stream-drag-card { cursor: default; user-select: none; }
-  .drag-handle { color: var(--bs-body-color); opacity: 0.55; }
-  .stream-drag-card .drag-handle { cursor: grab; touch-action: none; }
-  .stream-drag-card .drag-handle:active { cursor: grabbing; }
-  .stream-accordion-header .drag-handle { font-size: 1.3rem; line-height: 1; }
-  .job-drag-card {
-    cursor: default;
-    user-select: none;
-    -webkit-user-select: none;
-  }
-  .job-drag-card .drag-handle {
-    cursor: grab;
-    touch-action: none;
-    -webkit-touch-callout: none;
-    font-size: 1.2rem;
-    line-height: 1;
-    padding: 0.15rem 0.25rem;
-  }
-  .job-drag-card .drag-handle:active { cursor: grabbing; }
   #streamsEditorHeader { flex-shrink: 0; }
-  .editor-title { font-weight: 800; }
+  .sortable-ghost { opacity: 0.4; }
+  .sortable-chosen, .sortable-drag { cursor: grabbing; }
+  .stream-accordion-body .job-drag-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    padding: 0.5rem 0.6rem;
+    background-color: var(--bs-secondary-bg, #343a40);
+    color: var(--bs-body-color, #f8f9fa);
+    border-bottom: 1px solid var(--bs-border-color, #495057);
+  }
+  .job-drag-card > .drag-handle {
+    flex-shrink: 0;
+    line-height: 1;
+    padding-top: 0.4rem;
+    cursor: grab;
+    color: var(--bs-secondary-color, #6c757d);
+  }
+  .job-drag-card > .drag-handle { user-select: none; }
 `;
 
 var SETTINGS_STYLES = `
@@ -2656,6 +2664,25 @@ document.addEventListener("DOMContentLoaded", () => {
       } else if (action === "done") {
         closeStreamsEditor();
       }
+    });
+
+    streamsEditorPage.addEventListener("pmd-header-toggle", (e) => {
+      setStreamExpanded(e.detail.streamIdx, e.detail.expanded);
+    });
+    streamsEditorPage.addEventListener("pmd-edit", (e) => {
+      editStream(e.detail.streamIdx);
+    });
+    streamsEditorPage.addEventListener("pmd-add-job", (e) => {
+      addNewJobForStream(e.detail.streamIdx);
+    });
+    streamsEditorPage.addEventListener("pmd-delete", (e) => {
+      confirmDeleteStream(e.detail.streamIdx);
+    });
+    streamsEditorPage.addEventListener("pmd-job-edit", (e) => {
+      editJobInAccordion(e.detail.streamIdx, e.detail.jobIdx);
+    });
+    streamsEditorPage.addEventListener("pmd-job-toggle-active", (e) => {
+      handleAccordionJobActiveToggle(e.detail.streamIdx, e.detail.jobIdx, e.detail.checked);
     });
   }
 

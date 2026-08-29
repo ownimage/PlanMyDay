@@ -649,6 +649,20 @@ body.compact .editor-btn {
   line-height: 1;
 }
 
+/* Sortable drag feedback (fallback clone lives on document.body) */
+.sortable-fallback {
+  opacity: 0.6 !important;
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.35);
+  cursor: grabbing !important;
+}
+.sortable-ghost {
+  opacity: 0.4;
+}
+.sortable-drag,
+.sortable-chosen {
+  cursor: grabbing !important;
+}
+
 .task-drag-card {
   user-select: none;
   -webkit-user-select: none;
