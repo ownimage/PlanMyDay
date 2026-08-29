@@ -511,57 +511,39 @@ function renderSearchJobs() {
   matches.forEach(function(m) {
     list.appendChild(buildJobSearchCard(m.stream, m.streamIdx, m.job, m.jobIdx));
   });
-  list.addEventListener("change", handleJobActiveToggleChange);
+  list.addEventListener("pmd-job-edit", handleJobSearchCardEdit);
+  list.addEventListener("pmd-job-toggle-active", handleJobSearchCardToggle);
   updateNavState();
 }
 
 function buildJobSearchCard(stream, streamIdx, job, jobIdx) {
-  const streamImageUrl = getImageDataUrl(stream.image);
-  const jobImageUrl = getImageDataUrl(job.image);
-  const suffixLabel = getJobSuffix(job);
-  const scheduleText = getScheduleText(job.schedule);
-  const hasSleep = job.sleepUntil && job.sleepUntil.trim();
-  const hasWait = job.waitFor && job.waitFor.trim();
-  const hasTime = job.time && job.time.trim();
-  const card = document.createElement("div");
-  card.className = "card p-2 mb-2";
+  const card = document.createElement("pmd-job-search-card");
   card.dataset.jobId = job.id;
-  card.innerHTML =
-    '<div class="d-flex align-items-center gap-2">' +
-      '<div style="width:32px;height:32px;flex-shrink:0">' + (streamImageUrl ? '<img src="' + streamImageUrl + '" class="date-img" style="max-width:32px;max-height:32px">' : '') + '</div>' +
-      (jobImageUrl ? '<div style="width:32px;height:32px;flex-shrink:0"><img src="' + jobImageUrl + '" class="date-img" style="max-width:32px;max-height:32px"></div>' : '') +
-      '<div class="fw-bold editor-title" style="min-width:0;flex:1">' + escapeHtml(job.title) + (suffixLabel ? ' <span class="badge bg-secondary">' + escapeHtml(suffixLabel.trim()) + '</span>' : '') + '</div>' +
-      '<button class="btn btn-primary btn-sm editor-btn flex-shrink-0 align-self-center ms-3" style="min-width:50px" onclick="editJobInAccordion(' + streamIdx + ', ' + jobIdx + ')">Edit</button>' +
-    '</div>' +
-    '<div class="d-flex align-items-center gap-2 mt-1 small">' +
-      '<input class="form-check-input active-toggle m-0 position-static flex-shrink-0" type="checkbox" data-job-idx="' + jobIdx + '" data-stream-idx="' + streamIdx + '" ' + (job.active !== false ? "checked" : "") + ' style="cursor:pointer">' +
-      '<span class="fw-bold flex-shrink-0">' + escapeHtml(stream.title) + '</span>' +
-      '<span class="badge bg-' + ((stream.tab || "progress") === "progress" ? "success" : "info") + ' flex-shrink-0">' + escapeHtml(stream.tab || "progress") + '</span>' +
-      (hasSleep ? '<span class="badge bg-info flex-shrink-0">Sleep: ' + escapeHtml(formatDate(job.sleepUntil)) + '</span>' : (hasWait ? '<span class="badge bg-info flex-shrink-0">Wait: ' + escapeHtml(job.waitFor.trim()) + '</span>' : '')) +
-      '<span class="badge bg-primary flex-shrink-0">' + escapeHtml(scheduleText) + '</span>' +
-      (hasTime ? '<span class="badge bg-secondary flex-shrink-0">' + escapeHtml(job.time) + '</span>' : '') +
-    '</div>';
+  const set = (name, value) => {
+    if (value !== undefined && value !== null && value !== "") card.setAttribute(name, value);
+  };
+  set("stream-idx", streamIdx);
+  set("job-idx", jobIdx);
+  set("title", job.title || "");
+  set("stream-title", stream.title || "");
+  set("tab", stream.tab || "progress");
+  set("schedule", getScheduleText(job.schedule));
+  set("active", job.active !== false ? "true" : "false");
+  set("stream-image", getImageDataUrl(stream.image));
+  set("image", getImageDataUrl(job.image));
+  set("suffix", (getJobSuffix(job) || "").trim());
+  if (job.sleepUntil && job.sleepUntil.trim()) set("extra", "Sleep: " + formatDate(job.sleepUntil));
+  else if (job.waitFor && job.waitFor.trim()) set("extra", "Wait: " + job.waitFor.trim());
+  if (job.time && job.time.trim()) set("time", job.time.trim());
   return card;
 }
 
-function handleJobActiveToggleChange(e) {
-  if (!e.target.classList.contains("active-toggle")) return;
-  var jobIdx = parseInt(e.target.dataset.jobIdx);
-  var streamIdx = parseInt(e.target.dataset.streamIdx);
-  var streams = loadStreams();
-  var jobs = streams[streamIdx].jobs || [];
-  if (jobs[jobIdx]) jobs[jobIdx].active = e.target.checked;
-  saveStreams(streams);
-  var jobId = jobs[jobIdx] ? jobs[jobIdx].id : null;
-  if (jobId) {
-    var order = loadTodayOrder() || [];
-    if (e.target.checked && shouldShowJobToday(jobs[jobIdx])) {
-      if (!order.includes(jobId)) order.push(jobId);
-    } else {
-      order = order.filter(function(id) { return id !== jobId; });
-    }
-    saveTodayOrder(order);
-  }
+function handleJobSearchCardEdit(e) {
+  editJobInAccordion(e.detail.streamIdx, e.detail.jobIdx);
+}
+
+function handleJobSearchCardToggle(e) {
+  handleAccordionJobActiveToggle(e.detail.streamIdx, e.detail.jobIdx, e.detail.checked);
 }
 
 function handleAccordionJobActiveToggle(streamIdx, jobIdx, checked) {

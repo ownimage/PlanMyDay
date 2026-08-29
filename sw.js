@@ -14,6 +14,7 @@ const PRECACHE_URLS = [
   "js/components/smd-tabs.js",
   "js/components/pmd-stream-header.js",
   "js/components/pmd-stream-job-card.js",
+  "js/components/pmd-job-search-card.js",
   "js/minio.js",
   "js/settings.js",
   "js/app.js",
