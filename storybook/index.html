@@ -4,17 +4,14 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>PlanMyDay - Component Storybook</title>
-  <link id="bootstrap-theme-css" href="../css/themes/darkly/bootstrap.min.css" rel="stylesheet">
+  <link id="bootstrap-theme-css" href="https://cdn.jsdelivr.net/npm/bootswatch@5.3.3/dist/darkly/bootstrap.min.css" rel="stylesheet">
   <style>
     :root {
       --sb-bg: var(--bs-body-bg, #222);
       --sb-fg: var(--bs-body-color, #eee);
       --sb-border: var(--bs-border-color, #444);
-      --sb-color-scheme: dark;
     }
     * { box-sizing: border-box; }
-    html { overflow-x: clip; }
-    body { overflow-x: clip; max-width: 100%; }
     body {
       margin: 0;
       font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -37,9 +34,6 @@
       margin: 0;
       font-size: 1.15rem;
       font-weight: 600;
-      flex: 0 1 auto;
-      min-width: 0;
-      overflow-wrap: break-word;
     }
     .sb-theme-control {
       display: flex;
@@ -51,13 +45,8 @@
       padding: 0.3rem 0.6rem;
       border: 1px solid var(--sb-border);
       border-radius: 6px;
-      background: var(--sb-select-bg, var(--bs-tertiary-bg, #252525));
-      color: var(--sb-select-color, var(--sb-fg));
-      color-scheme: var(--sb-color-scheme, dark);
-    }
-    .sb-theme-control select option {
-      color: var(--sb-select-color, var(--sb-fg));
-      background: var(--sb-select-bg, var(--bs-tertiary-bg, #252525));
+      background: var(--bs-tertiary-bg, #252525);
+      color: var(--sb-fg);
     }
     nav.sb-nav {
       position: sticky;
@@ -79,15 +68,13 @@
       border-radius: 999px;
     }
     nav.sb-nav a:hover { color: var(--sb-fg); border-color: var(--bs-primary, #0d6efd); }
-    main.sb-main { padding: 1rem 1.25rem 4rem; max-width: 100%; }
+    main.sb-main { padding: 1rem 1.25rem 4rem; }
     section.sb-section {
       margin-bottom: 2.5rem;
       border: 1px solid var(--sb-border);
       border-radius: 10px;
       padding: 1rem 1.25rem;
       background: var(--bs-tertiary-bg, #1e1e1e);
-      max-width: 100%;
-      overflow-wrap: break-word;
     }
     section.sb-section > h2 {
       margin: 0 0 0.15rem;
@@ -119,9 +106,8 @@
       border: 1px dashed var(--sb-border);
       border-radius: 8px;
       background: var(--sb-bg);
-      max-width: 100%;
     }
-    .sb-canvas > div, .sb-canvas > * { min-width: 0; max-width: 100%; }
+    .sb-canvas > div { min-width: 0; }
     .sb-controls {
       margin-top: 1rem;
       display: flex;
@@ -163,7 +149,7 @@
       font-size: 0.9rem;
     }
     .sb-row { display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: flex-start; }
-    .sb-stack { display: flex; flex-direction: column; gap: 0.75rem; min-width: 0; flex: 1 1 260px; max-width: 100%; }
+    .sb-stack { display: flex; flex-direction: column; gap: 0.75rem; min-width: 220px; flex: 1 1 260px; }
     code { background: var(--sb-bg); padding: 0.05rem 0.3rem; border-radius: 4px; font-size: 0.82em; }
     .sb-frame-wrapper { width: 100%; }
     .sb-frame-wrapper .sb-label {
@@ -181,13 +167,12 @@
       overflow: hidden;
       background: var(--sb-bg);
     }
-    .sb-stream-card .sb-stream-head { padding: 0; }
-    .sb-stream-card .sb-stream-body { padding: 0; }
-    /* adjacent job cards touch: overlap borders to keep a single 1px line */
-    .sb-stream-card .sb-stream-body pmd-stream-job-card + pmd-stream-job-card { margin-top: -1px; }
+    .sb-stream-card .sb-stream-head { padding: 0.25rem 0.75rem; }
+    .sb-stream-card .sb-stream-body {
+      padding: 0.75rem;
+      border-top: 1px solid var(--sb-border);
+    }
     .sb-hint { color: var(--bs-secondary-color, #aaa); font-size: 0.8rem; }
-    .sb-stream-card { transition: border-color 0.2s ease; }
-    .sb-stream-card.is-expanded { border-color: var(--bs-info, #0dcaf0); }
   </style>
 </head>
 <body>
@@ -214,13 +199,12 @@
   <script src="../js/components/pmd-stream-header.js"></script>
   <script src="../js/components/pmd-stream-job-card.js"></script>
   <script src="../js/components/pmd-job-search-card.js"></script>
-  <script src="../js/components/pmd-image-card.js"></script>
-  <script src="../vendor/qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 
   <script>
     // ---- Theme configuration (mirrors js/settings.js themeConfig) ----
     const THEME_CONFIG = (() => {
-      const bw = "../css/themes";
+      const bw = "https://cdn.jsdelivr.net/npm/bootswatch@5.3.3/dist";
       return {
         cerulean:  { css: `${bw}/cerulean/bootstrap.min.css`,   bsTheme: "light" },
         cosmo:     { css: `${bw}/cosmo/bootstrap.min.css`,      bsTheme: "light" },
@@ -235,7 +219,7 @@
         minty:     { css: `${bw}/minty/bootstrap.min.css`,      bsTheme: "light" },
         morph:     { css: `${bw}/morph/bootstrap.min.css`,      bsTheme: "light" },
         pulse:     { css: `${bw}/pulse/bootstrap.min.css`,      bsTheme: "light" },
-        quartz:    { css: `${bw}/quartz/bootstrap.min.css`,     bsTheme: "dark" },
+        quartz:    { css: `${bw}/quartz/bootstrap.min.css`,     bsTheme: "light" },
         sandstone: { css: `${bw}/sandstone/bootstrap.min.css`,  bsTheme: "light" },
         simplex:   { css: `${bw}/simplex/bootstrap.min.css`,    bsTheme: "light" },
         sketchy:   { css: `${bw}/sketchy/bootstrap.min.css`,    bsTheme: "light" },
@@ -255,19 +239,6 @@
       document.getElementById("bootstrap-theme-css").href = config.css;
       document.documentElement.setAttribute("data-bs-theme", config.bsTheme);
       document.documentElement.setAttribute("data-theme", name);
-      // set color-scheme so native form controls (e.g. select dropdowns) match
-      // the applied theme instead of rendering white-on-white
-      document.documentElement.style.setProperty("--sb-color-scheme", config.bsTheme);
-      // give the theme selector readable colors regardless of the theme's own
-      // --bs-* variable combinations (e.g. quartz has light backgrounds + white text)
-      document.documentElement.style.setProperty(
-        "--sb-select-bg",
-        config.bsTheme === "dark" ? "#252525" : "#f8f9fa"
-      );
-      document.documentElement.style.setProperty(
-        "--sb-select-color",
-        config.bsTheme === "dark" ? "#eee" : "#111"
-      );
       // --smd-* vars consumed by smd-button/smd-modal/smd-page
       const root = document.documentElement;
       root.style.setProperty("--smd-primary", "var(--bs-primary, #0d6efd)");
@@ -275,8 +246,6 @@
       root.style.setProperty("--smd-success", "var(--bs-success, #198754)");
       root.style.setProperty("--smd-danger", "var(--bs-danger, #dc3545)");
       root.style.setProperty("--smd-warning", "var(--bs-warning, #ffc107)");
-      root.style.setProperty("--smd-info", "var(--bs-info, #0dcaf0)");
-      root.style.setProperty("--smd-info-text", "#fff");
       root.style.setProperty("--smd-primary-text", "#fff");
     }
 
@@ -285,8 +254,7 @@
     Object.keys(THEME_CONFIG).forEach(name => {
       const opt = document.createElement("option");
       opt.value = name;
-      const label = name.charAt(0).toUpperCase() + name.slice(1);
-      opt.textContent = label + " (" + THEME_CONFIG[name].bsTheme + ")";
+      opt.textContent = name;
       themeSelect.appendChild(opt);
     });
     const saved = localStorage.getItem("storybook_theme") || "darkly";
@@ -391,37 +359,16 @@
       id: "smd-page",
       name: "smd-page",
       tag: "<smd-page>",
-      desc: "A full-screen animated page with <code>title</code>, optional <code>headerHtml</code>, <code>content</code>, and footer <code>buttons</code>. Call <code>show()</code>/<code>hide()</code>. Clicking a footer button closes the page (unless the button sets <code>close: false</code>) and dispatches <code>smd-page-action</code>. Slide in/out duration in ms is configurable via the <code>slide-duration</code> attribute or <code>slideDuration</code> property (0 = instant).",
+      desc: "A full-screen animated page with <code>title</code>, <code>content</code>, and footer <code>buttons</code>. Call <code>show()</code>/<code>hide()</code>. Clicking a footer button closes the page (unless the button sets <code>close: false</code>) and dispatches <code>smd-page-action</code>. Slide in/out duration in ms is configurable via the <code>slide-duration</code> attribute or <code>slideDuration</code> property (0 = instant).",
       html: () => `
         <div class="sb-canvas">
           <smd-button variant="success">Open page</smd-button>
-        </div>
-        <div class="sb-controls">
-          <label>Title: <input type="text" id="ctrl-page-title" value="SmdPage title"></label>
-          <label><input type="checkbox" id="ctrl-page-badge"> Show badge in header</label>
-          <label>Badge: <input type="text" id="ctrl-page-badge-text" value="8/48/86 jobs" disabled></label>
         </div>
         <div class="sb-log" id="log-smd-page">events: none yet</div>
       `,
       init: () => {
         const page = document.getElementById("sb-page");
         document.querySelector("#smd-page smd-button").addEventListener("click", () => page.show());
-        const badgeCtl = document.getElementById("ctrl-page-badge");
-        const badgeTextCtl = document.getElementById("ctrl-page-badge-text");
-        const titleCtl = document.getElementById("ctrl-page-title");
-        const applyBadge = () => {
-          page.headerHtml = badgeCtl.checked
-            ? '<span class="badge bg-info" style="font-size:0.8em;vertical-align:middle">' + (badgeTextCtl.value || "") + '</span>'
-            : "";
-        };
-        const apply = () => {
-          page.title = titleCtl.value || "";
-          badgeTextCtl.disabled = !badgeCtl.checked;
-          applyBadge();
-        };
-        badgeCtl.addEventListener("change", apply);
-        badgeTextCtl.addEventListener("input", applyBadge);
-        titleCtl.addEventListener("input", () => { page.title = titleCtl.value || ""; });
         page.addEventListener("smd-page-action", (e) => log("smd-page", "action=\"" + e.detail.action + "\" (" + e.detail.text + ")"));
       }
     });
@@ -556,21 +503,10 @@
       desc: "Job row card (image/thumb, title + suffix, Active toggle, schedule/time/extra badges). Attributes: <code>stream-idx</code>, <code>job-idx</code>, <code>title</code>, <code>image</code>, <code>suffix</code>, <code>schedule</code>, <code>time</code>, <code>active</code>, <code>extra</code>. Dispatches <code>pmd-job-edit</code>, <code>pmd-job-toggle-active</code>.",
       html: () => `
         <div class="sb-canvas">
-          <div class="sb-stack" id="sb-job-cards"></div>
-        </div>
-        <div class="sb-controls">
-          <label><input type="checkbox" id="ctrl-job-thumb"> Show thumb tick</label>
-        </div>
-        <div class="sb-log" id="log-pmd-stream-job-card">events: none yet</div>
-      `,
-      init: () => {
-        const host = document.getElementById("sb-job-cards");
-        const renderCards = () => {
-          const showThumb = document.getElementById("ctrl-job-thumb").checked;
-          host.innerHTML = `
+          <div class="sb-stack">
             <div class="sb-frame-wrapper">
               <div class="sb-label">No image / no suffix</div>
-              <pmd-stream-job-card stream-idx="0" job-idx="0" title="Standup" schedule="Weekdays" active="true"${showThumb ? ` image="${SVG("#375a7f")}"` : ""}></pmd-stream-job-card>
+              <pmd-stream-job-card stream-idx="0" job-idx="0" title="Standup" schedule="Weekdays" active="true"></pmd-stream-job-card>
             </div>
             <div class="sb-frame-wrapper">
               <div class="sb-label">Image + suffix + time + sleep extra</div>
@@ -578,15 +514,17 @@
             </div>
             <div class="sb-frame-wrapper">
               <div class="sb-label">Inactive + wait extra</div>
-              <pmd-stream-job-card stream-idx="1" job-idx="0" title="Laundry" schedule="Weekends" extra="Wait: the load to finish" active="false"${showThumb ? ` image="${SVG("#00bc8c")}"` : ""}></pmd-stream-job-card>
-            </div>`;
-          host.querySelectorAll("pmd-stream-job-card").forEach((card) => {
-            card.addEventListener("pmd-job-edit", (e) => log("pmd-stream-job-card", "pmd-job-edit stream=" + e.detail.streamIdx + " job=" + e.detail.jobIdx));
-            card.addEventListener("pmd-job-toggle-active", (e) => log("pmd-stream-job-card", "pmd-job-toggle-active job=" + e.detail.jobIdx + " checked=" + e.detail.checked));
-          });
-        };
-        renderCards();
-        document.getElementById("ctrl-job-thumb").addEventListener("change", renderCards);
+              <pmd-stream-job-card stream-idx="1" job-idx="0" title="Laundry" schedule="Weekends" extra="Wait: the load to finish" active="false"></pmd-stream-job-card>
+            </div>
+          </div>
+        </div>
+        <div class="sb-log" id="log-pmd-stream-job-card">events: none yet</div>
+      `,
+      init: () => {
+        document.querySelectorAll("#pmd-stream-job-card pmd-stream-job-card").forEach((card) => {
+          card.addEventListener("pmd-job-edit", (e) => log("pmd-stream-job-card", "pmd-job-edit stream=" + e.detail.streamIdx + " job=" + e.detail.jobIdx));
+          card.addEventListener("pmd-job-toggle-active", (e) => log("pmd-stream-job-card", "pmd-job-toggle-active job=" + e.detail.jobIdx + " checked=" + e.detail.checked));
+        });
       }
     });
 
@@ -610,147 +548,6 @@
         document.querySelectorAll("#pmd-job-search-card pmd-job-search-card").forEach((card) => {
           card.addEventListener("pmd-job-edit", (e) => log("pmd-job-search-card", "pmd-job-edit stream=" + e.detail.streamIdx + " job=" + e.detail.jobIdx));
           card.addEventListener("pmd-job-toggle-active", (e) => log("pmd-job-search-card", "pmd-job-toggle-active job=" + e.detail.jobIdx + " checked=" + e.detail.checked));
-        });
-      }
-    });
-
-    // ---- pmd-image-card ----
-    sections.push({
-      id: "pmd-image-card",
-      name: "pmd-image-card",
-      tag: "<pmd-image-card>",
-      desc: "Image list card used by the Images editor. Attributes: <code>image-idx</code>, <code>name</code>, <code>image</code> (data URL), <code>in-use</code>. Set <code>in-use</code> to disable the Delete button. Dispatches <code>pmd-image-delete</code>, <code>pmd-image-duplicate</code>, <code>pmd-image-edit</code>.",
-      html: () => `
-        <div class="sb-canvas">
-          <div class="sb-stack" id="sb-image-cards"></div>
-        </div>
-        <div class="sb-controls">
-          <label><input type="checkbox" id="ctrl-image-inuse"> Mark Delete disabled (in-use)</label>
-        </div>
-        <div class="sb-log" id="log-pmd-image-card">events: none yet</div>
-      `,
-      init: () => {
-        const host = document.getElementById("sb-image-cards");
-        const renderCards = () => {
-          const inUse = document.getElementById("ctrl-image-inuse").checked;
-          host.innerHTML = `
-            <div class="sb-frame-wrapper">
-              <div class="sb-label">No image</div>
-              <pmd-image-card image-idx="0" name="Calendar"></pmd-image-card>
-            </div>
-            <div class="sb-frame-wrapper">
-              <div class="sb-label">SVG image</div>
-              <pmd-image-card image-idx="1" name="Pie chart" image="${SVG("#00bc8c")}"></pmd-image-card>
-            </div>
-            <div class="sb-frame-wrapper">
-              <div class="sb-label">In use (delete disabled)</div>
-              <pmd-image-card image-idx="2" name="Clock" image="${SVG("#375a7f")}" ${inUse ? "in-use" : ""}></pmd-image-card>
-            </div>`;
-          host.querySelectorAll("pmd-image-card").forEach((card) => {
-            ["pmd-image-delete", "pmd-image-duplicate", "pmd-image-edit"].forEach(type => {
-              card.addEventListener(type, (e) => log("pmd-image-card", type + " idx=" + e.detail.imageIdx));
-            });
-          });
-        };
-        renderCards();
-        document.getElementById("ctrl-image-inuse").addEventListener("change", renderCards);
-      }
-    });
-
-    // ---- pmd-stream-header + pmd-stream-job-card (combined) ----
-    sections.push({
-      id: "pmd-stream",
-      name: "pmd-stream (header + job cards)",
-      tag: "<pmd-stream-header> + <pmd-stream-job-card>",
-      desc: "A combined stream row: a <code>pmd-stream-header</code> with its <code>pmd-stream-job-card</code> children, as rendered in the Jobs editor. The header stripes the expanded state and the column background; cards stack beneath. Dispatches header (<code>pmd-header-toggle</code>, <code>pmd-edit</code>, <code>pmd-add-job</code>, <code>pmd-delete</code>) and card (<code>pmd-job-edit</code>, <code>pmd-job-toggle-active</code>) events.",
-      html: () => `
-        <div class="sb-canvas">
-          <div class="sb-stack">
-            <div class="sb-frame-wrapper">
-              <div class="sb-label">Collapsed stream</div>
-              <div class="sb-stream-card">
-                <div class="sb-stream-head"><pmd-stream-header stream-idx="0" title="Work" tab="progress" image="${SVG("#375a7f")}" jobcounts="1/2/3"></pmd-stream-header></div>
-                <div class="sb-stream-body">
-                  <pmd-stream-job-card stream-idx="0" job-idx="0" title="Standup" schedule="Weekdays" active="true"></pmd-stream-job-card>
-                  <pmd-stream-job-card stream-idx="0" job-idx="1" title="Report" image="${SVG("#00bc8c")}" suffix="(12)" schedule="Every day" time="09:00" extra="Sleep: 28 Sep 2026" active="true"></pmd-stream-job-card>
-                </div>
-              </div>
-            </div>
-            <div class="sb-frame-wrapper">
-              <div class="sb-label">Expanded stream (with can-delete)</div>
-              <div class="sb-stream-card">
-                <div class="sb-stream-head"><pmd-stream-header stream-idx="1" title="Home" tab="maintenance" image="${SVG("#00bc8c")}" jobcounts="0/1/4" expanded can-delete></pmd-stream-header></div>
-                <div class="sb-stream-body">
-                  <pmd-stream-job-card stream-idx="1" job-idx="0" title="Mow the lawn" schedule="Weekends" active="true"></pmd-stream-job-card>
-                  <pmd-stream-job-card stream-idx="1" job-idx="1" title="Pay bills" schedule="Monthly" extra="Wait: the direct debit" active="false"></pmd-stream-job-card>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="sb-controls">
-          <label><input type="checkbox" id="ctrl-stream-thumb"> Show thumb ticks</label>
-          <label><input type="checkbox" id="ctrl-stream-2nd" checked> Show 2nd stream</label>
-        </div>
-        <div class="sb-log" id="log-pmd-stream">events: none yet</div>
-      `,
-      init: () => {
-        const render = () => {
-          const thumb = document.getElementById("ctrl-stream-thumb").checked;
-          const second = document.getElementById("ctrl-stream-2nd").checked;
-          const host = document.getElementById("pmd-stream");
-          host.querySelectorAll(".sb-stream-card").forEach((card, i) => {
-            card.hidden = (i === 1 && !second);
-            const head = card.querySelector("pmd-stream-header");
-            const ready = head && head.getAttribute("pmd-init") !== null;
-            const jobCards = card.querySelectorAll("pmd-stream-job-card");
-            if (!ready || thumb !== head.getAttribute("data-thumb")) {
-              if (thumb && !head.getAttribute("data-thumb")) {
-                head.setAttribute("image", SVG("#375a7f"));
-                head.setAttribute("data-thumb", "1");
-              } else if (!thumb && head.getAttribute("data-thumb")) {
-                head.removeAttribute("image");
-                head.removeAttribute("data-thumb");
-              }
-              jobCards.forEach((jc, j) => {
-                if (thumb) {
-                  jc.setAttribute("image", SVG(i === 0 ? "#00bc8c" : "#375a7f"));
-                  jc.setAttribute("data-thumb", "1");
-                } else if (jc.getAttribute("data-thumb") !== null) {
-                  jc.removeAttribute("image");
-                  jc.removeAttribute("data-thumb");
-                }
-              });
-              head.setAttribute("pmd-init", "");
-            }
-          });
-        };
-        const bind = () => {
-          const cards = document.getElementById("pmd-stream").querySelectorAll("pmd-stream-header, pmd-stream-job-card");
-          cards.forEach(el => {
-            if (el.getAttribute("data-bound")) return;
-            el.setAttribute("data-bound", "");
-            if (el.tagName === "PMD-STREAM-HEADER") {
-              ["pmd-header-toggle", "pmd-edit", "pmd-add-job", "pmd-delete"].forEach(type => {
-                el.addEventListener(type, (e) => log("pmd-stream", type + " stream=" + e.detail.streamIdx + (e.detail.expanded !== undefined ? " expanded=" + e.detail.expanded : "")));
-              });
-              el.addEventListener("pmd-header-toggle", (e) => {
-                const card = el.closest(".sb-stream-card");
-                el.toggleAttribute("expanded", e.detail.expanded);
-                card.classList.toggle("is-expanded", e.detail.expanded);
-              });
-            } else {
-              el.addEventListener("pmd-job-edit", (e) => log("pmd-stream", "pmd-job-edit stream=" + e.detail.streamIdx + " job=" + e.detail.jobIdx));
-              el.addEventListener("pmd-job-toggle-active", (e) => log("pmd-stream", "pmd-job-toggle-active job=" + e.detail.jobIdx + " checked=" + e.detail.checked));
-            }
-          });
-        };
-        render();
-        bind();
-        document.getElementById("ctrl-stream-thumb").addEventListener("change", render);
-        document.getElementById("ctrl-stream-2nd").addEventListener("change", () => {
-          const cards = document.getElementById("pmd-stream").querySelectorAll(".sb-stream-card");
-          cards.forEach((card, i) => { card.hidden = (i === 1 && !document.getElementById("ctrl-stream-2nd").checked); });
         });
       }
     });
