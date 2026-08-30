@@ -12,7 +12,8 @@
       --sb-border: var(--bs-border-color, #444);
     }
     * { box-sizing: border-box; }
-    html, body { max-width: 100%; overflow-x: hidden; }
+    html { overflow-x: clip; }
+    body { overflow-x: clip; max-width: 100%; }
     body {
       margin: 0;
       font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -261,7 +262,8 @@
     Object.keys(THEME_CONFIG).forEach(name => {
       const opt = document.createElement("option");
       opt.value = name;
-      opt.textContent = name;
+      const label = name.charAt(0).toUpperCase() + name.slice(1);
+      opt.textContent = label + " (" + THEME_CONFIG[name].bsTheme + ")";
       themeSelect.appendChild(opt);
     });
     const saved = localStorage.getItem("storybook_theme") || "darkly";
