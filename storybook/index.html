@@ -359,16 +359,37 @@
       id: "smd-page",
       name: "smd-page",
       tag: "<smd-page>",
-      desc: "A full-screen animated page with <code>title</code>, <code>content</code>, and footer <code>buttons</code>. Call <code>show()</code>/<code>hide()</code>. Clicking a footer button closes the page (unless the button sets <code>close: false</code>) and dispatches <code>smd-page-action</code>. Slide in/out duration in ms is configurable via the <code>slide-duration</code> attribute or <code>slideDuration</code> property (0 = instant).",
+      desc: "A full-screen animated page with <code>title</code>, optional <code>headerHtml</code>, <code>content</code>, and footer <code>buttons</code>. Call <code>show()</code>/<code>hide()</code>. Clicking a footer button closes the page (unless the button sets <code>close: false</code>) and dispatches <code>smd-page-action</code>. Slide in/out duration in ms is configurable via the <code>slide-duration</code> attribute or <code>slideDuration</code> property (0 = instant).",
       html: () => `
         <div class="sb-canvas">
           <smd-button variant="success">Open page</smd-button>
+        </div>
+        <div class="sb-controls">
+          <label>Title: <input type="text" id="ctrl-page-title" value="SmdPage title"></label>
+          <label><input type="checkbox" id="ctrl-page-badge"> Show badge in header</label>
+          <label>Badge: <input type="text" id="ctrl-page-badge-text" value="8/48/86 jobs" disabled></label>
         </div>
         <div class="sb-log" id="log-smd-page">events: none yet</div>
       `,
       init: () => {
         const page = document.getElementById("sb-page");
         document.querySelector("#smd-page smd-button").addEventListener("click", () => page.show());
+        const badgeCtl = document.getElementById("ctrl-page-badge");
+        const badgeTextCtl = document.getElementById("ctrl-page-badge-text");
+        const titleCtl = document.getElementById("ctrl-page-title");
+        const applyBadge = () => {
+          page.headerHtml = badgeCtl.checked
+            ? '<span class="badge bg-info" style="font-size:0.8em;vertical-align:middle">' + (badgeTextCtl.value || "") + '</span>'
+            : "";
+        };
+        const apply = () => {
+          page.title = titleCtl.value || "";
+          badgeTextCtl.disabled = !badgeCtl.checked;
+          applyBadge();
+        };
+        badgeCtl.addEventListener("change", apply);
+        badgeTextCtl.addEventListener("input", applyBadge);
+        titleCtl.addEventListener("input", () => { page.title = titleCtl.value || ""; });
         page.addEventListener("smd-page-action", (e) => log("smd-page", "action=\"" + e.detail.action + "\" (" + e.detail.text + ")"));
       }
     });
