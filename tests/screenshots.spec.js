@@ -367,7 +367,7 @@ test.describe("PlanMyDay - Screenshots", () => {
     }, streamsWithSleepWait);
     await page.reload();
     await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
-    await page.locator("a.dropdown-item").filter({ hasText: "Jobs" }).click();
+    await page.locator("a.dropdown-item").filter({ hasText: "Streams" }).click();
     await page.waitForSelector("#streamEditorList .accordion-item");
     await page.locator("#streamEditorList .stream-header-main").first().click();
     await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible", timeout: 5000 });
@@ -385,7 +385,7 @@ test.describe("PlanMyDay - Screenshots", () => {
     }, TEST_STREAMS);
     await page.reload();
     await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
-    await page.locator("a.dropdown-item").filter({ hasText: "Jobs" }).click();
+    await page.locator("a.dropdown-item").filter({ hasText: "Streams" }).click();
     await page.waitForSelector("#streamEditorList .accordion-item");
     await page.getByRole("button", { name: "Add Stream" }).click();
     await page.locator("#streamEditModal").waitFor({ state: "visible" });
@@ -399,7 +399,7 @@ test.describe("PlanMyDay - Screenshots", () => {
     }, TEST_STREAMS);
     await page.reload();
     await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
-    await page.locator("a.dropdown-item").filter({ hasText: "Jobs" }).click();
+    await page.locator("a.dropdown-item").filter({ hasText: "Streams" }).click();
     await page.waitForSelector("#streamEditorList .accordion-item");
     await page.locator("#streamEditorList .stream-header-main").first().click();
     await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible", timeout: 5000 });
@@ -413,7 +413,7 @@ test.describe("PlanMyDay - Screenshots", () => {
     }, TEST_STREAMS);
     await page.reload();
     await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
-    await page.locator("a.dropdown-item").filter({ hasText: "Jobs" }).click();
+    await page.locator("a.dropdown-item").filter({ hasText: "Streams" }).click();
     await page.waitForSelector("#streamEditorList .accordion-item");
     await page.locator("#streamEditorList .stream-header-main").first().click();
     await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible", timeout: 5000 });
@@ -505,7 +505,7 @@ test.describe("PlanMyDay - Screenshots", () => {
     }, TEST_STREAMS);
     await page.reload();
     await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
-    await page.locator("a.dropdown-item").filter({ hasText: "Jobs" }).click();
+    await page.locator("a.dropdown-item").filter({ hasText: "Streams" }).click();
     await page.waitForSelector("#streamEditorList .accordion-item");
     await page.locator("#streamEditorList .stream-header-main").first().click();
     await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible", timeout: 5000 });
@@ -521,7 +521,7 @@ test.describe("PlanMyDay - Screenshots", () => {
     }, TEST_STREAMS);
     await page.reload();
     await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
-    await page.locator("a.dropdown-item").filter({ hasText: "Jobs" }).click();
+    await page.locator("a.dropdown-item").filter({ hasText: "Streams" }).click();
     await page.waitForSelector("#streamEditorList .accordion-item");
     await page.locator("#streamEditorList .stream-header-main").first().click();
     await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible", timeout: 5000 });
@@ -616,7 +616,7 @@ test.describe("PlanMyDay - Screenshots", () => {
     }, { data: TEST_STREAMS, sleep: futureDateStr(30) });
     await page.reload();
     await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
-    await page.locator("a.dropdown-item").filter({ hasText: "Jobs" }).click();
+    await page.locator("a.dropdown-item").filter({ hasText: "Streams" }).click();
     await page.waitForSelector("#streamEditorList .accordion-item");
     await page.locator("#streamEditorList .stream-header-main").first().click();
     await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible", timeout: 5000 });
