@@ -59,25 +59,7 @@
     <smd-page id="streamsEditor" class="d-none"></smd-page>
 
     <!-- JOB SEARCH -->
-    <div id="jobSearchEditor" class="d-none">
-      <div id="jobSearchHeader">
-        <h2 class="mb-3">Search Jobs <span id="jobSearchTotalBadge" class="badge bg-secondary" style="font-size:0.6em;vertical-align:middle"></span></h2>
-        <div id="jobSearchTileTop" class="mb-3">
-          <div class="d-flex gap-2">
-            <button class="btn btn-secondary editor-btn btn-wide" id="btnJobSearchAdd" onclick="addNewJobFromSearch()">Add Job</button>
-            <button class="btn btn-success editor-btn btn-wide ms-auto" id="btnJobSearchDone" onclick="closeSearchJobs()">Done</button>
-          </div>
-        </div>
-        <div id="jobSearchFilters" class="mb-3">
-          <div class="d-flex gap-2 align-items-center">
-            <input type="search" class="form-control" id="jobSearchInput" placeholder="Search job titles..." onkeydown="if(event.key==='Enter') searchJobsFilter()">
-            <button id="btnJobSearch" class="btn btn-primary btn-sm text-nowrap" onclick="searchJobsFilter()">Search</button>
-            <button id="btnJobSearchClear" class="btn btn-outline-secondary btn-sm" onclick="jobSearchQuery='';var el=document.getElementById('jobSearchInput');if(el)el.value='';renderSearchJobs()">Clear</button>
-          </div>
-        </div>
-      </div>
-      <div id="jobSearchList"></div>
-    </div>
+    <smd-page id="jobSearchEditor" class="d-none"></smd-page>
 
     <!-- IMAGES EDITOR -->
     <div id="imagesEditor" class="d-none">
@@ -236,6 +218,17 @@
               <select id="dragSizeSelector" class="form-select" onchange="changeDragSize(this.value)">
                 <option value="normal">Normal</option>
                 <option value="large">Large</option>
+              </select>
+            </div>
+          </div>
+          <div class="row mb-4 align-items-center col-md-8">
+            <div class="col-4 text-end"><label class="form-label mb-0">Slide speed</label></div>
+            <div class="col-8">
+              <select id="slideDurationSelector" class="form-select" onchange="changeSlideDuration(this.value)">
+                <option value="0">Off (instant)</option>
+                <option value="150">Fast (150 ms)</option>
+                <option value="300">Normal (300 ms)</option>
+                <option value="500">Slow (500 ms)</option>
               </select>
             </div>
           </div>

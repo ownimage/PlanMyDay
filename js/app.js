@@ -413,7 +413,7 @@ function closeStreamsEditor() {
     clearTimeout(_streamsCloseTimer);
     _streamsCloseTimer = setTimeout(function() {
       page.classList.add("d-none");
-    }, 320);
+    }, Math.max(0, (page.slideDuration || 0) + 50));
   }
   document.getElementById("countdownContainer").classList.remove("d-none");
   editingIndex = -1; editBuffer = null; isNew = false;
@@ -422,28 +422,68 @@ function closeStreamsEditor() {
 
 // JOB SEARCH
 var jobSearchQuery = "";
+var _jobSearchCloseTimer = null;
 
 function openSearchJobs() {
   document.getElementById("countdownContainer").classList.add("d-none");
   document.getElementById("streamsEditor").classList.add("d-none");
   document.getElementById("settingsPage").classList.add("d-none");
   document.getElementById("imagesEditor").classList.add("d-none");
-  document.getElementById("jobSearchEditor").classList.remove("d-none");
-  var input = document.getElementById("jobSearchInput");
-  if (input) input.value = "";
+  const page = document.getElementById("jobSearchEditor");
+  page.classList.remove("d-none");
   jobSearchQuery = "";
+  buildSearchJobsContent();
+  page.show();
+  const input = $id("jobSearchInput");
+  if (input) input.value = "";
   renderSearchJobs();
   updateNavState();
 }
 
 function closeSearchJobs() {
-  document.getElementById("jobSearchEditor").classList.add("d-none");
+  const page = document.getElementById("jobSearchEditor");
+  if (page) {
+    page.hide();
+    clearTimeout(_jobSearchCloseTimer);
+    _jobSearchCloseTimer = setTimeout(function() {
+      page.classList.add("d-none");
+    }, Math.max(0, (page.slideDuration || 0) + 50));
+  }
   document.getElementById("countdownContainer").classList.remove("d-none");
   renderMain();
 }
 
+function buildSearchJobsContent() {
+  const page = document.getElementById("jobSearchEditor");
+  if (!page) return;
+  page.title = "Search Jobs";
+  page.content =
+    '<div id="jobSearchHeader">' +
+      '<span id="jobSearchTotalBadge" class="badge bg-secondary" style="font-size:0.8em;vertical-align:middle"></span>' +
+      '<div id="jobSearchFilters" class="mt-3">' +
+        '<div class="d-flex gap-2 align-items-center">' +
+          '<input type="search" class="form-control" id="jobSearchInput" placeholder="Search job titles..." onkeydown="if(event.key===\'Enter\') searchJobsFilter()">' +
+          '<button id="btnJobSearch" class="btn btn-primary btn-sm text-nowrap" onclick="searchJobsFilter()">Search</button>' +
+          '<button id="btnJobSearchClear" class="btn btn-outline-secondary btn-sm" onclick="clearJobSearchFilter()">Clear</button>' +
+        '</div>' +
+      '</div>' +
+    '</div>' +
+    '<div id="jobSearchList"></div>';
+  page.buttons = [
+    { text: "Add Job", variant: "secondary", action: "add", id: "btnJobSearchAdd", close: false },
+    { text: "Done", variant: "success", action: "done", id: "btnJobSearchDone" }
+  ];
+}
+
+function clearJobSearchFilter() {
+  jobSearchQuery = "";
+  const input = $id("jobSearchInput");
+  if (input) input.value = "";
+  renderSearchJobs();
+}
+
 function searchJobsFilter() {
-  var input = document.getElementById("jobSearchInput");
+  var input = $id("jobSearchInput");
   jobSearchQuery = input ? input.value.trim() : "";
   renderSearchJobs();
 }
@@ -490,7 +530,7 @@ function updateEditorJobCountBadges() {
 }
 
 function renderSearchJobs() {
-  const list = document.getElementById("jobSearchList");
+  const list = $id("jobSearchList");
   if (!list) return;
   const streams = loadStreams();
   updateEditorJobCountBadges();
@@ -688,7 +728,7 @@ function renderStreamsEditor() {
     '<div id="singleStreamEditor" class="d-none"></div>';
 
   page.buttons = [
-    { text: "Add Stream", variant: "primary", action: "add", id: "btnAddStream" },
+    { text: "Add Stream", variant: "primary", action: "add", id: "btnAddStream", close: false },
     { text: "Done", variant: "success", action: "done", id: "btnStreamsDone" }
   ];
   page.title = "Edit Jobs";
@@ -1653,7 +1693,7 @@ function buildJobEditPage(readOnly, activeTabIndex) {
 
   _jobEditButtons = readOnly
     ? [
-        { text: "Edit", variant: "primary", action: "edit", id: "btnViewJobEdit" },
+        { text: "Edit", variant: "primary", action: "edit", id: "btnViewJobEdit", close: false },
         { text: "OK", variant: "success", action: "cancel", id: "jobEditOkBtn" }
       ]
     : [
@@ -1704,7 +1744,7 @@ function hideJobEditPage() {
     clearTimeout(_jobEditCloseTimer);
     _jobEditCloseTimer = setTimeout(function() {
       page.classList.add("d-none");
-    }, 320);
+    }, Math.max(0, (page.slideDuration || 0) + 50));
   }
 }
 
@@ -2216,9 +2256,7 @@ var STREAMS_EDITOR_STYLES = `
     align-items: flex-start;
     gap: 0.5rem;
     padding: 0.5rem 0.6rem;
-    background-color: var(--bs-secondary-bg, #343a40);
     color: var(--bs-body-color, #f8f9fa);
-    border-bottom: 1px solid var(--bs-border-color, #495057);
   }
   .job-drag-card > .drag-handle {
     flex-shrink: 0;
@@ -2404,7 +2442,10 @@ function buildSettingsContent() {
   settingsPage.buttons = [{ text: "Done", variant: "success", action: "done" }];
 
   const tabsEl = $id("settingsTabs");
-  if (tabsEl) tabsEl.tabs = sections;
+  if (tabsEl) {
+    tabsEl.tabs = sections;
+    tabsEl.bottomline = true;
+  }
   injectSettingsStyles();
 }
 
@@ -2506,6 +2547,9 @@ function openSettings() {
   const savedDragSize = localStorage.getItem("planmydays_dragSize") || "large";
   const dragSizeSel = $id("dragSizeSelector");
   if (dragSizeSel) dragSizeSel.value = savedDragSize;
+  const savedSlideDuration = localStorage.getItem("planmydays_slideDuration") || "0";
+  const slideSel = $id("slideDurationSelector");
+  if (slideSel) slideSel.value = savedSlideDuration;
 
   if (typeof updateScreenResolution === "function") updateScreenResolution();
 }
@@ -2517,7 +2561,7 @@ function closeSettings() {
     if (_settingsCloseTimer) clearTimeout(_settingsCloseTimer);
     _settingsCloseTimer = setTimeout(function() {
       settingsPage.classList.add("d-none");
-    }, 320);
+    }, Math.max(0, (settingsPage.slideDuration || 0) + 50));
   }
   document.getElementById("countdownContainer").classList.remove("d-none");
   delete document.getElementById("countdownContainer").dataset.showAll;
@@ -2665,6 +2709,18 @@ document.addEventListener("DOMContentLoaded", () => {
     });
     streamsEditorPage.addEventListener("pmd-job-toggle-active", (e) => {
       handleAccordionJobActiveToggle(e.detail.streamIdx, e.detail.jobIdx, e.detail.checked);
+    });
+  }
+
+  const jobSearchEditorPage = document.getElementById("jobSearchEditor");
+  if (jobSearchEditorPage) {
+    jobSearchEditorPage.addEventListener("smd-page-action", (e) => {
+      const action = e.detail && (typeof e.detail === "string" ? e.detail : e.detail.action);
+      if (action === "add") {
+        addNewJobFromSearch();
+      } else if (action === "done") {
+        closeSearchJobs();
+      }
     });
   }
 
