@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark" data-theme="darkly">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PlanMyDay - Component Storybook</title>
+  <link id="bootstrap-theme-css" href="https://cdn.jsdelivr.net/npm/bootswatch@5.3.3/dist/darkly/bootstrap.min.css" rel="stylesheet">
+  <style>
+    :root {
+      --sb-bg: var(--bs-body-bg, #222);
+      --sb-fg: var(--bs-body-color, #eee);
+      --sb-border: var(--bs-border-color, #444);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      background: var(--sb-bg);
+      color: var(--sb-fg);
+    }
+    header.sb-header {
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+      padding: 0.75rem 1.25rem;
+      background: color-mix(in srgb, var(--sb-bg) 85%, white);
+      border-bottom: 1px solid var(--sb-border);
+    }
+    header.sb-header h1 {
+      margin: 0;
+      font-size: 1.15rem;
+      font-weight: 600;
+    }
+    .sb-theme-control {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-left: auto;
+    }
+    .sb-theme-control select {
+      padding: 0.3rem 0.6rem;
+      border: 1px solid var(--sb-border);
+      border-radius: 6px;
+      background: var(--bs-tertiary-bg, #252525);
+      color: var(--sb-fg);
+    }
+    nav.sb-nav {
+      position: sticky;
+      top: 57px;
+      z-index: 999;
+      display: flex;
+      gap: 0.4rem;
+      flex-wrap: wrap;
+      padding: 0.5rem 1.25rem;
+      background: var(--sb-bg);
+      border-bottom: 1px solid var(--sb-border);
+    }
+    nav.sb-nav a {
+      color: var(--bs-secondary-color, #aaa);
+      text-decoration: none;
+      font-size: 0.85rem;
+      padding: 0.2rem 0.6rem;
+      border: 1px solid var(--sb-border);
+      border-radius: 999px;
+    }
+    nav.sb-nav a:hover { color: var(--sb-fg); border-color: var(--bs-primary, #0d6efd); }
+    main.sb-main { padding: 1rem 1.25rem 4rem; }
+    section.sb-section {
+      margin-bottom: 2.5rem;
+      border: 1px solid var(--sb-border);
+      border-radius: 10px;
+      padding: 1rem 1.25rem;
+      background: var(--bs-tertiary-bg, #1e1e1e);
+    }
+    section.sb-section > h2 {
+      margin: 0 0 0.15rem;
+      font-size: 1.1rem;
+      font-weight: 700;
+    }
+    section.sb-section > .sb-tag {
+      display: inline-block;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.78rem;
+      color: var(--bs-secondary-color, #aaa);
+      background: var(--sb-bg);
+      border: 1px solid var(--sb-border);
+      border-radius: 6px;
+      padding: 0.1rem 0.45rem;
+      margin-bottom: 0.75rem;
+    }
+    section.sb-section > p.sb-desc {
+      color: var(--bs-secondary-color, #aaa);
+      font-size: 0.9rem;
+      margin: 0 0 1rem;
+    }
+    .sb-canvas {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      align-items: flex-start;
+      padding: 1rem;
+      border: 1px dashed var(--sb-border);
+      border-radius: 8px;
+      background: var(--sb-bg);
+    }
+    .sb-canvas > div { min-width: 0; }
+    .sb-controls {
+      margin-top: 1rem;
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .sb-controls label { font-size: 0.85rem; }
+    .sb-controls input[type="text"], .sb-controls select {
+      padding: 0.25rem 0.5rem;
+      border: 1px solid var(--sb-border);
+      border-radius: 6px;
+      background: var(--sb-bg);
+      color: var(--sb-fg);
+    }
+    .sb-controls button.btn.sb-run {
+      border: 1px solid var(--bs-primary, #0d6efd);
+      background: var(--bs-primary, #0d6efd);
+      color: #fff;
+      padding: 0.25rem 0.75rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.85rem;
+    }
+    .sb-log {
+      margin-top: 0.75rem;
+      font-family: ui-monospace, monospace;
+      font-size: 0.75rem;
+      color: var(--bs-success, #198754);
+      background: var(--sb-bg);
+      border: 1px solid var(--sb-border);
+      border-radius: 6px;
+      padding: 0.4rem 0.6rem;
+      min-height: 1.6rem;
+    }
+    .sb-placeholder {
+      color: var(--bs-secondary-color, #aaa);
+      font-style: italic;
+      font-size: 0.9rem;
+    }
+    .sb-row { display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: flex-start; }
+    .sb-stack { display: flex; flex-direction: column; gap: 0.75rem; min-width: 220px; flex: 1 1 260px; }
+    code { background: var(--sb-bg); padding: 0.05rem 0.3rem; border-radius: 4px; font-size: 0.82em; }
+    .sb-frame-wrapper { width: 100%; }
+    .sb-frame-wrapper .sb-label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--bs-secondary-color, #aaa);
+      margin-bottom: 0.4rem;
+    }
+    /* the pmd-stream-header drag handle is a sibling in the card wrapper */
+    .sb-stream-card {
+      border: 1px solid var(--sb-border);
+      border-radius: 8px;
+      overflow: hidden;
+      background: var(--sb-bg);
+    }
+    .sb-stream-card .sb-stream-head { padding: 0.25rem 0.75rem; }
+    .sb-stream-card .sb-stream-body {
+      padding: 0.75rem;
+      border-top: 1px solid var(--sb-border);
+    }
+    .sb-hint { color: var(--bs-secondary-color, #aaa); font-size: 0.8rem; }
+  </style>
+</head>
+<body>
+
+  <header class="sb-header">
+    <h1>PlanMyDay &middot; Web Component Storybook</h1>
+    <div class="sb-theme-control">
+      <label for="themeSelect">Theme</label>
+      <select id="themeSelect"></select>
+    </div>
+  </header>
+
+  <nav class="sb-nav" aria-label="Sections"></nav>
+
+  <main class="sb-main" id="main"></main>
+
+  <!-- ============================ COMPONENT SCRIPTS ============================ -->
+  <script src="../js/components/smd-button.js"></script>
+  <script src="../js/components/smd-modal.js"></script>
+  <script src="../js/components/smd-page.js"></script>
+  <script src="../js/components/smd-tabs.js"></script>
+  <script src="../js/components/smd-qrcode.js"></script>
+  <script src="../js/components/smd-buymeacoffee.js"></script>
+  <script src="../js/components/pmd-stream-header.js"></script>
+  <script src="../js/components/pmd-stream-job-card.js"></script>
+  <script src="../js/components/pmd-job-search-card.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+
+  <script>
+    // ---- Theme configuration (mirrors js/settings.js themeConfig) ----
+    const THEME_CONFIG = (() => {
+      const bw = "https://cdn.jsdelivr.net/npm/bootswatch@5.3.3/dist";
+      return {
+        cerulean:  { css: `${bw}/cerulean/bootstrap.min.css`,   bsTheme: "light" },
+        cosmo:     { css: `${bw}/cosmo/bootstrap.min.css`,      bsTheme: "light" },
+        cyborg:    { css: `${bw}/cyborg/bootstrap.min.css`,     bsTheme: "dark" },
+        darkly:    { css: `${bw}/darkly/bootstrap.min.css`,     bsTheme: "dark" },
+        flatly:    { css: `${bw}/flatly/bootstrap.min.css`,     bsTheme: "light" },
+        journal:   { css: `${bw}/journal/bootstrap.min.css`,    bsTheme: "light" },
+        litera:    { css: `${bw}/litera/bootstrap.min.css`,     bsTheme: "light" },
+        lumen:     { css: `${bw}/lumen/bootstrap.min.css`,      bsTheme: "light" },
+        lux:       { css: `${bw}/lux/bootstrap.min.css`,        bsTheme: "light" },
+        materia:   { css: `${bw}/materia/bootstrap.min.css`,    bsTheme: "light" },
+        minty:     { css: `${bw}/minty/bootstrap.min.css`,      bsTheme: "light" },
+        morph:     { css: `${bw}/morph/bootstrap.min.css`,      bsTheme: "light" },
+        pulse:     { css: `${bw}/pulse/bootstrap.min.css`,      bsTheme: "light" },
+        quartz:    { css: `${bw}/quartz/bootstrap.min.css`,     bsTheme: "light" },
+        sandstone: { css: `${bw}/sandstone/bootstrap.min.css`,  bsTheme: "light" },
+        simplex:   { css: `${bw}/simplex/bootstrap.min.css`,    bsTheme: "light" },
+        sketchy:   { css: `${bw}/sketchy/bootstrap.min.css`,    bsTheme: "light" },
+        slate:     { css: `${bw}/slate/bootstrap.min.css`,      bsTheme: "dark" },
+        solar:     { css: `${bw}/solar/bootstrap.min.css`,      bsTheme: "dark" },
+        spacelab:  { css: `${bw}/spacelab/bootstrap.min.css`,   bsTheme: "light" },
+        superhero: { css: `${bw}/superhero/bootstrap.min.css`,  bsTheme: "dark" },
+        united:    { css: `${bw}/united/bootstrap.min.css`,     bsTheme: "light" },
+        vapor:     { css: `${bw}/vapor/bootstrap.min.css`,      bsTheme: "dark" },
+        yeti:      { css: `${bw}/yeti/bootstrap.min.css`,       bsTheme: "light" },
+        zephyr:    { css: `${bw}/zephyr/bootstrap.min.css`,     bsTheme: "light" }
+      };
+    })();
+
+    function applyTheme(name) {
+      const config = THEME_CONFIG[name] || THEME_CONFIG.darkly;
+      document.getElementById("bootstrap-theme-css").href = config.css;
+      document.documentElement.setAttribute("data-bs-theme", config.bsTheme);
+      document.documentElement.setAttribute("data-theme", name);
+      // --smd-* vars consumed by smd-button/smd-modal/smd-page
+      const root = document.documentElement;
+      root.style.setProperty("--smd-primary", "var(--bs-primary, #0d6efd)");
+      root.style.setProperty("--smd-secondary", "var(--bs-secondary, #6c757d)");
+      root.style.setProperty("--smd-success", "var(--bs-success, #198754)");
+      root.style.setProperty("--smd-danger", "var(--bs-danger, #dc3545)");
+      root.style.setProperty("--smd-warning", "var(--bs-warning, #ffc107)");
+      root.style.setProperty("--smd-primary-text", "#fff");
+    }
+
+    // ---- Build theme selector ----
+    const themeSelect = document.getElementById("themeSelect");
+    Object.keys(THEME_CONFIG).forEach(name => {
+      const opt = document.createElement("option");
+      opt.value = name;
+      opt.textContent = name;
+      themeSelect.appendChild(opt);
+    });
+    const saved = localStorage.getItem("storybook_theme") || "darkly";
+    themeSelect.value = saved;
+    applyTheme(saved);
+    themeSelect.addEventListener("change", () => {
+      applyTheme(themeSelect.value);
+      localStorage.setItem("storybook_theme", themeSelect.value);
+      // re-render sections that need to reflect theme-changed state
+      renderAll();
+    });
+
+    // ---- Small SVG image so pmd thumbnails render without the app ----
+    const SVG = (fill) => "data:image/svg+xml;utf8," + encodeURIComponent(
+      `<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><rect width="40" height="40" rx="8" fill="${fill}"/><circle cx="20" cy="16" r="7" fill="#fff"/><path d="M8 36c0-7 5-11 12-11s12 4 12 11z" fill="#fff"/></svg>`
+    );
+
+    function log(section, msg) {
+      const el = document.getElementById("log-" + section);
+      if (el) el.textContent = "event: " + msg;
+    }
+
+    function escHtml(str) {
+      return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+
+    // ============================ SECTION DEFINITIONS ============================
+    const sections = [];
+
+    // ---- smd-button ----
+    sections.push({
+      id: "smd-button",
+      name: "smd-button",
+      tag: "<smd-button>",
+      desc: "A themed button. Set <code>variant</code> (primary | secondary | success | danger) and optionally <code>disabled</code>. Content is slotted.",
+      html: () => {
+        const variants = ["primary", "secondary", "success", "danger"];
+        return `
+          <div class="sb-canvas">
+            <div class="sb-stack">
+              ${variants.map(v =>
+                `<div class="sb-row">
+                  <smd-button variant="${v}">${v}</smd-button>
+                  <smd-button variant="${v}" disabled>${v} (disabled)</smd-button>
+                </div>`).join("")}
+            </div>
+          </div>
+          <div class="sb-log" id="log-smd-button">events: none yet</div>
+        `;
+      },
+      init: () => {
+        document.querySelectorAll("#smd-button smd-button").forEach((btn, i) => {
+          btn.addEventListener("click", () => log("smd-button", "clicked: " + (btn.textContent || btn.variant)));
+        });
+      }
+    });
+
+    // ---- smd-modal ----
+    sections.push({
+      id: "smd-modal",
+      name: "smd-modal",
+      tag: "<smd-modal>",
+      desc: "A modal with <code>title</code>, <code>content</code> and <code>buttons</code> (JS properties). Call <code>show()</code>/<code>hide()</code>. Clicking a footer button closes the modal (unless the button sets <code>close: false</code>) and dispatches <code>smd-modal-action</code>.",
+      html: () => `
+        <div class="sb-canvas">
+          <smd-button variant="primary">Open modal</smd-button>
+        </div>
+        <div class="sb-controls">
+          <label>Buttons: <select id="ctrl-modal-buttons">
+            <option value="ok">OK</option>
+            <option value="okcancel" selected>OK / Cancel</option>
+            <option value="3">OK / Cancel / Danger</option>
+          </select></label>
+        </div>
+        <div class="sb-log" id="log-smd-modal">events: none yet</div>
+      `,
+      init: () => {
+        const modal = document.getElementById("sb-modal");
+        document.querySelector("#smd-modal smd-button").addEventListener("click", () => modal.show());
+        const btnSet = document.getElementById("ctrl-modal-buttons");
+        const applyButtons = () => {
+          const v = btnSet.value;
+          if (v === "ok") modal.buttons = [{ text: "OK", variant: "primary", action: "ok" }];
+          else if (v === "okcancel") modal.buttons = [
+            { text: "Cancel", variant: "secondary", action: "cancel" },
+            { text: "OK", variant: "primary", action: "ok" }
+          ];
+          else modal.buttons = [
+            { text: "Cancel", variant: "secondary", action: "cancel" },
+            { text: "Delete", variant: "danger", action: "delete" },
+            { text: "OK", variant: "success", action: "ok" }
+          ];
+        };
+        btnSet.addEventListener("change", applyButtons);
+        modal.addEventListener("smd-modal-action", (e) => log("smd-modal", "action=\"" + e.detail.action + "\" (" + e.detail.text + ")"));
+        applyButtons();
+      }
+    });
+
+    // ---- smd-page ----
+    sections.push({
+      id: "smd-page",
+      name: "smd-page",
+      tag: "<smd-page>",
+      desc: "A full-screen animated page with <code>title</code>, <code>content</code>, and footer <code>buttons</code>. Call <code>show()</code>/<code>hide()</code>. Clicking a footer button closes the page (unless the button sets <code>close: false</code>) and dispatches <code>smd-page-action</code>. Slide in/out duration in ms is configurable via the <code>slide-duration</code> attribute or <code>slideDuration</code> property (0 = instant).",
+      html: () => `
+        <div class="sb-canvas">
+          <smd-button variant="success">Open page</smd-button>
+        </div>
+        <div class="sb-log" id="log-smd-page">events: none yet</div>
+      `,
+      init: () => {
+        const page = document.getElementById("sb-page");
+        document.querySelector("#smd-page smd-button").addEventListener("click", () => page.show());
+        page.addEventListener("smd-page-action", (e) => log("smd-page", "action=\"" + e.detail.action + "\" (" + e.detail.text + ")"));
+      }
+    });
+
+    // ---- smd-tabs ----
+    sections.push({
+      id: "smd-tabs",
+      name: "smd-tabs",
+      tag: "<smd-tabs>",
+      desc: "Tab bar + panels. Set the <code>tabs</code> array {title, content, id?}. Dispatches <code>smd-tabs-change</code>. Set <code>bottomline = false</code> to hide the horizontal rule at the bottom of the tab section.",
+      html: () => `
+        <div class="sb-canvas" style="flex-direction:column;width:100%">
+          <smd-tabs id="sb-tabs"></smd-tabs>
+        </div>
+        <div class="sb-controls">
+          <label><input type="checkbox" id="ctrl-tabs-bottomline"> Show bottom line</label>
+          <button type="button" class="btn sb-run" id="btn-tabs-apply">Apply</button>
+        </div>
+        <div class="sb-log" id="log-smd-tabs">events: none yet</div>
+      `,
+      init: () => {
+        const tabs = document.getElementById("sb-tabs");
+        tabs.tabs = [
+          { id: "progress", title: "Progress", content: "<p class='sb-placeholder'>Panel: Progress</p>" },
+          { id: "maintenance", title: "Maintenance", content: "<p class='sb-placeholder'>Panel: Maintenance</p>" },
+          { id: "archived", title: "Archived", content: "<p class='sb-placeholder'>Panel: Archived</p>" }
+        ];
+        tabs.addEventListener("smd-tabs-change", (e) => log("smd-tabs", "index=" + e.detail.index + " tab=\"" + (e.detail.tab && e.detail.tab.title) + "\""));
+        document.getElementById("btn-tabs-apply").addEventListener("click", () => {
+          const val = document.getElementById("ctrl-tabs-bottomline").checked;
+          tabs.setAttribute("bottomline", val ? "true" : "false");
+          log("smd-tabs", "bottomline=" + (val ? "true" : "false"));
+        });
+      }
+    });
+
+    // ---- smd-qrcode ----
+    sections.push({
+      id: "smd-qrcode",
+      name: "smd-qrcode",
+      tag: "<smd-qrcode>",
+      desc: "Renders a QR code from <code>value</code> at a given <code>size</code> (px). Uses qrcodejs (loaded from CDN).",
+      html: () => `
+        <div class="sb-canvas">
+          <smd-qrcode id="sb-qr" value="https://example.com" size="140"></smd-qrcode>
+        </div>
+        <div class="sb-controls">
+          <label>Size: <input type="text" id="ctrl-qr-size" value="140" style="width:70px"></label>
+          <button type="button" class="btn sb-run" id="btn-qr-apply">Apply</button>
+        </div>
+        <div class="sb-log" id="log-smd-qrcode">events: none</div>
+      `,
+      init: () => {
+        const qr = document.getElementById("sb-qr");
+        document.getElementById("btn-qr-apply").addEventListener("click", () => {
+          const size = parseInt(document.getElementById("ctrl-qr-size").value, 10) || 140;
+          qr.setAttribute("size", size);
+          log("smd-qrcode", "size=" + size);
+        });
+      }
+    });
+
+    // ---- smd-buymeacoffee ----
+    sections.push({
+      id: "smd-buymeacoffee",
+      name: "smd-buymeacoffee",
+      tag: "<smd-buymeacoffee>",
+      desc: "A Buy Me a Coffee button image (external). Attributes: <code>username</code>, <code>height</code>.",
+      html: () => `
+        <div class="sb-canvas">
+          <smd-buymeacoffee username="ownimage" height="50"></smd-buymeacoffee>
+        </div>
+        <div class="sb-controls">
+          <label>Height: <input type="text" id="ctrl-bmc-height" value="50" style="width:60px"></label>
+          <button type="button" class="btn sb-run" id="btn-bmc-apply">Apply</button>
+        </div>
+        <div class="sb-log" id="log-smd-buymeacoffee">events: none</div>
+      `,
+      init: () => {
+        const bmc = document.querySelector("#smd-buymeacoffee smd-buymeacoffee");
+        document.getElementById("btn-bmc-apply").addEventListener("click", () => {
+          const h = document.getElementById("ctrl-bmc-height").value;
+          bmc.setAttribute("height", h);
+          log("smd-buymeacoffee", "height=" + h);
+        });
+      }
+    });
+
+    // ---- pmd-stream-header ----
+    sections.push({
+      id: "pmd-stream-header",
+      name: "pmd-stream-header",
+      tag: "<pmd-stream-header>",
+      desc: "Header for a stream row in the Jobs editor. Attributes: <code>stream-idx</code>, <code>title</code>, <code>tab</code>, <code>image</code>, <code>expanded</code>, <code>can-delete</code>, <code>jobcounts</code>. Dispatches <code>pmd-header-toggle</code>, <code>pmd-edit</code>, <code>pmd-add-job</code>, <code>pmd-delete</code>.",
+      html: () => `
+        <div class="sb-canvas" style="flex-direction:column;width:100%">
+          <div id="sb-stream-header"></div>
+          <div class="sb-controls">
+            <label><input type="checkbox" id="ctrl-stream-expanded"> expanded</label>
+            <label><input type="checkbox" id="ctrl-stream-candelete"> can-delete</label>
+          </div>
+          <div class="sb-log" id="log-pmd-stream-header">events: none yet</div>
+        </div>
+      `,
+      init: () => {
+        const host = document.getElementById("sb-stream-header");
+        const renderHeader = () => {
+          const expanded = document.getElementById("ctrl-stream-expanded").checked;
+          const canDelete = document.getElementById("ctrl-stream-candelete").checked;
+          host.innerHTML = `<pmd-stream-header stream-idx="0" title="Work" tab="progress"
+            image="${SVG("#375a7f")}" jobcounts="1/2/3" ${expanded ? "expanded" : ""} ${canDelete ? "can-delete" : ""}></pmd-stream-header>`;
+          const header = host.querySelector("pmd-stream-header");
+          ["pmd-header-toggle", "pmd-edit", "pmd-add-job", "pmd-delete"].forEach(type => {
+            header.addEventListener(type, (e) => log("pmd-stream-header", type + " idx=" + e.detail.streamIdx + (e.detail.expanded !== undefined ? " expanded=" + e.detail.expanded : "")));
+          });
+          // toggle view to the storybook's expanded state when header emits pmd-header-toggle
+          header.addEventListener("pmd-header-toggle", (e) => {
+            document.getElementById("ctrl-stream-expanded").checked = e.detail.expanded;
+          });
+        };
+        document.getElementById("ctrl-stream-expanded").addEventListener("change", renderHeader);
+        document.getElementById("ctrl-stream-candelete").addEventListener("change", renderHeader);
+        renderHeader();
+      }
+    });
+
+    // ---- pmd-stream-job-card ----
+    sections.push({
+      id: "pmd-stream-job-card",
+      name: "pmd-stream-job-card",
+      tag: "<pmd-stream-job-card>",
+      desc: "Job row card (image/thumb, title + suffix, Active toggle, schedule/time/extra badges). Attributes: <code>stream-idx</code>, <code>job-idx</code>, <code>title</code>, <code>image</code>, <code>suffix</code>, <code>schedule</code>, <code>time</code>, <code>active</code>, <code>extra</code>. Dispatches <code>pmd-job-edit</code>, <code>pmd-job-toggle-active</code>.",
+      html: () => `
+        <div class="sb-canvas">
+          <div class="sb-stack">
+            <div class="sb-frame-wrapper">
+              <div class="sb-label">No image / no suffix</div>
+              <pmd-stream-job-card stream-idx="0" job-idx="0" title="Standup" schedule="Weekdays" active="true"></pmd-stream-job-card>
+            </div>
+            <div class="sb-frame-wrapper">
+              <div class="sb-label">Image + suffix + time + sleep extra</div>
+              <pmd-stream-job-card stream-idx="0" job-idx="1" title="Report" image="${SVG("#00bc8c")}" suffix="(12)" schedule="Every day" time="09:00" extra="Sleep: 28 Sep 2026" active="true"></pmd-stream-job-card>
+            </div>
+            <div class="sb-frame-wrapper">
+              <div class="sb-label">Inactive + wait extra</div>
+              <pmd-stream-job-card stream-idx="1" job-idx="0" title="Laundry" schedule="Weekends" extra="Wait: the load to finish" active="false"></pmd-stream-job-card>
+            </div>
+          </div>
+        </div>
+        <div class="sb-log" id="log-pmd-stream-job-card">events: none yet</div>
+      `,
+      init: () => {
+        document.querySelectorAll("#pmd-stream-job-card pmd-stream-job-card").forEach((card) => {
+          card.addEventListener("pmd-job-edit", (e) => log("pmd-stream-job-card", "pmd-job-edit stream=" + e.detail.streamIdx + " job=" + e.detail.jobIdx));
+          card.addEventListener("pmd-job-toggle-active", (e) => log("pmd-stream-job-card", "pmd-job-toggle-active job=" + e.detail.jobIdx + " checked=" + e.detail.checked));
+        });
+      }
+    });
+
+    // ---- pmd-job-search-card ----
+    sections.push({
+      id: "pmd-job-search-card",
+      name: "pmd-job-search-card",
+      tag: "<pmd-job-search-card>",
+      desc: "Job card used by the Search Jobs list. Host carries bootstrap <code>card p-2 mb-2</code>. Attributes: <code>stream-idx</code>, <code>job-idx</code>, <code>title</code>, <code>image</code>, <code>stream-image</code>, <code>stream-title</code>, <code>tab</code>, <code>suffix</code>, <code>schedule</code>, <code>time</code>, <code>extra</code>, <code>active</code>. Dispatches <code>pmd-job-edit</code>, <code>pmd-job-toggle-active</code>.",
+      html: () => `
+        <div class="sb-canvas">
+          <div class="sb-stack">
+            <pmd-job-search-card stream-idx="0" job-idx="0" title="Report" stream-title="Work" tab="progress" suffix="(12)" schedule="Every day" time="09:00" extra="Wait: the meeting" active="true" stream-image="${SVG("#375a7f")}" image="${SVG("#00bc8c")}"></pmd-job-search-card>
+            <pmd-job-search-card stream-idx="1" job-idx="0" title="Mow the lawn" stream-title="Home" tab="maintenance" schedule="Weekends" active="true"></pmd-job-search-card>
+            <pmd-job-search-card stream-idx="1" job-idx="1" title="Pay bills" stream-title="Home" tab="maintenance" schedule="Monthly" extra="Sleep: 01 Sep 2026" active="false"></pmd-job-search-card>
+          </div>
+        </div>
+        <div class="sb-log" id="log-pmd-job-search-card">events: none yet</div>
+      `,
+      init: () => {
+        document.querySelectorAll("#pmd-job-search-card pmd-job-search-card").forEach((card) => {
+          card.addEventListener("pmd-job-edit", (e) => log("pmd-job-search-card", "pmd-job-edit stream=" + e.detail.streamIdx + " job=" + e.detail.jobIdx));
+          card.addEventListener("pmd-job-toggle-active", (e) => log("pmd-job-search-card", "pmd-job-toggle-active job=" + e.detail.jobIdx + " checked=" + e.detail.checked));
+        });
+      }
+    });
+
+    // ============================ RENDER ============================
+    function renderAll() {
+      const main = document.getElementById("main");
+      const nav = document.querySelector("nav.sb-nav");
+      nav.innerHTML = "";
+      main.innerHTML = "";
+
+      sections.forEach(s => {
+        // nav link
+        const a = document.createElement("a");
+        a.href = "#" + s.id;
+        a.textContent = s.name;
+        nav.appendChild(a);
+
+        // section
+        const section = document.createElement("section");
+        section.className = "sb-section";
+        section.id = s.id;
+        section.innerHTML =
+          `<a name="${s.id}"></a>` +
+          `<h2>${s.name}</h2>` +
+          `<span class="sb-tag">${escHtml(s.tag)}</span>` +
+          `<p class="sb-desc">${s.desc}</p>` +
+          s.html();
+        main.appendChild(section);
+      });
+
+      // append the always-present smd-modal + smd-page hosts (reused across renders)
+      ensureSharedHosts();
+
+      sections.forEach(s => { if (typeof s.init === "function") s.init(); });
+    }
+
+    function ensureSharedHosts() {
+      // smd-modal is fixed overlay; render once and remove before re-adding
+      let existing = document.getElementById("sb-modal");
+      if (existing) existing.remove();
+      const modal = document.createElement("smd-modal");
+      modal.id = "sb-modal";
+      modal.title = "SmdModal title";
+      modal.content = "<p>This is modal <code>content</code>. Buttons below are driven by the selector in the smd-modal section.</p>";
+      document.body.appendChild(modal);
+
+      let page = document.getElementById("sb-page");
+      if (page) page.remove();
+      page = document.createElement("smd-page");
+      page.id = "sb-page";
+      page.title = "SmdPage title";
+      page.content = "<p>This is full-screen <code>smd-page</code> content. Click a footer button to see the event log.</p>";
+      page.buttons = [
+        { text: "Cancel", variant: "secondary", action: "cancel" },
+        { text: "Done", variant: "success", action: "done" }
+      ];
+      document.body.appendChild(page);
+    }
+
+    renderAll();
+  </script>
+</body>
+</html>
