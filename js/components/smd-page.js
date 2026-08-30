@@ -25,6 +25,10 @@ const pageStyles = `
     transform: translateX(0);
   }
   .smd-page-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
     padding: 0.75rem 1.25rem;
     background: color-mix(in srgb, var(--bs-body-bg, #222) 85%, white);
     border-bottom: 1px solid var(--bs-border-color, #444);
@@ -35,6 +39,21 @@ const pageStyles = `
     font-size: 1.2rem;
     font-weight: 500;
   }
+  .smd-page-header .badge {
+    vertical-align: middle;
+  }
+  .badge {
+    display: inline-block;
+    padding: 0.35em 0.65em;
+    font-size: 0.75em;
+    font-weight: 700;
+    line-height: 1;
+    text-align: center;
+    white-space: nowrap;
+    border-radius: 0.375rem;
+  }
+  .bg-info { background: var(--bs-info, #0dcaf0); color: #000; }
+  .bg-secondary { background: var(--bs-secondary, #6c757d); color: #fff; }
   .smd-page-body {
     flex: 1;
     overflow-y: auto;
@@ -69,10 +88,14 @@ class SmdPage extends HTMLElement {
     this._buttons = [];
     this._title = '';
     this._content = '';
+    this._headerHtml = '';
   }
 
   get title() { return this._title; }
   set title(val) { this._title = val; this._render(); }
+
+  get headerHtml() { return this._headerHtml; }
+  set headerHtml(val) { this._headerHtml = val || ''; this._render(); }
 
   get content() { return this._content; }
   set content(val) { this._content = val; this._render(); }
@@ -113,7 +136,7 @@ class SmdPage extends HTMLElement {
       <style>${pageStyles}</style>
       <div class="smd-page">
         <div class="smd-page-header">
-          <h2>${this._escapeHtml(this._title)}</h2>
+          <h2>${this._escapeHtml(this._title)}</h2>${this._headerHtml}
         </div>
         <div class="smd-page-body">${this._content}</div>
         <div class="smd-page-footer">${buttonsHtml}</div>
