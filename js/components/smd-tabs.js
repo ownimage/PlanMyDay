@@ -58,12 +58,20 @@ class SmdTabs extends HTMLElement {
   get tabs() { return this._tabs; }
   set tabs(val) { this._tabs = val || []; this._activeIndex = 0; this._render(); }
 
-  get activeIndex() { return this._activeIndex; }
+get activeIndex() { return this._activeIndex; }
   set activeIndex(val) {
     if (val >= 0 && val < this._tabs.length) {
       this._activeIndex = val;
       this._updateActive();
     }
+  }
+
+  get bottomline() {
+    const attr = this.getAttribute('bottomline');
+    return attr === null ? true : attr !== 'false';
+  }
+  set bottomline(val) {
+    this.toggleAttribute('bottomline', !!val);
   }
 
   _render() {
@@ -79,11 +87,14 @@ class SmdTabs extends HTMLElement {
       return `<div class="smd-tab-panel"${idAttr}${active} data-panel="${i}">${tab.content || ''}</div>`;
     }).join('');
 
+    const lineHtml = this.bottomline ? '<div class="smd-tab-line"></div>' : '';
+
     this.shadowRoot.innerHTML = `
       <style>${tabsStyles}</style>
       <div class="smd-tab-list">${headersHtml}</div>
-      <div class="smd-tab-line"></div>
+      ${lineHtml}
       ${panelsHtml}
+      ${lineHtml}
     `;
 
     this.shadowRoot.querySelectorAll('.smd-tab-btn').forEach((btn) => {

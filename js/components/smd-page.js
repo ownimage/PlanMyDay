@@ -18,7 +18,7 @@ const pageStyles = `
     background: var(--bs-body-bg, #222);
     color: var(--bs-body-color, #eee);
     transform: translateX(-100%);
-    transition: transform 0.3s ease;
+    transition: transform var(--smd-slide-duration, 0s) ease;
     pointer-events: auto;
   }
   :host([open]) .smd-page {
@@ -66,6 +66,10 @@ const pageStyles = `
 `;
 
 class SmdPage extends HTMLElement {
+  static get observedAttributes() {
+    return ['slide-duration'];
+  }
+
   constructor() {
     super();
     this.attachShadow({ mode: 'open' });
@@ -83,6 +87,9 @@ class SmdPage extends HTMLElement {
   get buttons() { return this._buttons; }
   set buttons(val) { this._buttons = val || []; this._render(); }
 
+  get slideDuration() { return parseFloat(this.getAttribute('slide-duration')) || 0; }
+  set slideDuration(ms) { this.setAttribute('slide-duration', ms); }
+
   show() {
     requestAnimationFrame(() => {
       this.setAttribute('open', '');
@@ -91,6 +98,12 @@ class SmdPage extends HTMLElement {
 
   hide() {
     this.removeAttribute('open');
+  }
+
+  attributeChangedCallback(name, oldValue, newValue) {
+    if (name !== 'slide-duration') return;
+    const ms = parseFloat(newValue);
+    this.style.setProperty('--smd-slide-duration', (isNaN(ms) ? 0 : ms / 1000) + 's');
   }
 
   _render() {
@@ -116,6 +129,7 @@ class SmdPage extends HTMLElement {
       btn.addEventListener('click', () => {
         const index = parseInt(btn.dataset.index);
         const config = this._buttons[index];
+        if (config.close !== false) this.hide();
         this.dispatchEvent(new CustomEvent('smd-page-action', {
           bubbles: true,
           composed: true,

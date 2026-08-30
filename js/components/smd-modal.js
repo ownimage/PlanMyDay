@@ -121,6 +121,7 @@ class SmdModal extends HTMLElement {
       btn.addEventListener('click', () => {
         const index = parseInt(btn.dataset.index);
         const config = this._buttons[index];
+        if (config.close !== false) this.hide();
         this.dispatchEvent(new CustomEvent('smd-modal-action', {
           bubbles: true,
           composed: true,
