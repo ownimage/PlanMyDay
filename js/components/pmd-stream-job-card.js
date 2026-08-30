@@ -142,6 +142,7 @@ class PmdStreamJobCard extends HTMLElement {
         }
       }));
     });
+this.classList.add('card', 'p-2', 'mb-0');
     this._render();
   }
 

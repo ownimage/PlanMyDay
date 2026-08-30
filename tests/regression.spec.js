@@ -1,4 +1,4 @@
-﻿const { test, expect } = require("@playwright/test");
+const { test, expect } = require("@playwright/test");
 const { startCoverage, stopCoverage } = require("./coverage");
 
 const TEST_STREAMS = [
@@ -533,7 +533,7 @@ test.describe("PlanMyDay - Regression", () => {
       await page.reload();
       await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
       await page.locator("a.dropdown-item").filter({ hasText: "Jobs" }).click();
-      await page.waitForTimeout(400);
+      await page.waitForTimeout(150);
     });
 
     test("shows stream list", async ({ page }) => {
@@ -595,9 +595,9 @@ test.describe("PlanMyDay - Regression", () => {
       const titleInput = page.locator("#streamEditModalBody input[value=\"Work\"]");
       await expect(titleInput).toBeVisible();
       await titleInput.fill("Work Updated");
-      await page.waitForTimeout(200);
+      await page.waitForTimeout(100);
       await page.locator("#btnStreamEditOk").first().click();
-      await page.waitForTimeout(800);
+      await page.waitForTimeout(300);
       await page.locator("#streamEditModal").waitFor({ state: "hidden", timeout: 15000 });
       await expect(page.getByText("Work Updated")).toBeVisible();
     });
@@ -608,9 +608,9 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#streamEditorList .btn-primary").filter({ hasText: "Edit" }).first().click();
       await page.locator("#streamEditModal").waitFor({ state: "visible" });
       await page.locator("#streamEditModalBody input").first().fill("Cancelled");
-      await page.waitForTimeout(200);
+      await page.waitForTimeout(100);
       await page.locator("#btnStreamEditCancel").click();
-      await page.waitForTimeout(800);
+      await page.waitForTimeout(300);
       await page.locator("#streamEditModal").waitFor({ state: "hidden", timeout: 15000 });
       await page.locator("#streamEditorList .editor-title").filter({ hasText: "Work" }).waitFor({ state: "visible" });
       await expect(page.getByText("Cancelled")).not.toBeVisible();
@@ -627,9 +627,9 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("a.dropdown-item").filter({ hasText: "Jobs" }).click();
       await page.locator("#streamEditorList .stream-accordion-header .btn-danger").filter({ hasText: "Delete", visible: true }).click();
       await expect(page.locator("#deleteConfirmModal")).toBeVisible();
-      await page.waitForTimeout(200);
+      await page.waitForTimeout(100);
       await page.locator("#deleteConfirmBtn").click();
-      await page.waitForTimeout(400);
+      await page.waitForTimeout(200);
       await page.evaluate(() => {
         const modal = bootstrap.Modal.getInstance(document.getElementById("deleteConfirmModal"));
         if (modal) modal.hide();
@@ -813,7 +813,7 @@ test.describe("PlanMyDay - Regression", () => {
       await page.reload();
       await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
       await page.locator("a.dropdown-item").filter({ hasText: "Jobs" }).click();
-      await page.waitForTimeout(300);
+      await page.waitForTimeout(150);
       // expand the first stream (Work) and drag it below the second
       await page.locator("#streamEditorList .stream-header-main").first().click();
       await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible", timeout: 5000 });
@@ -879,7 +879,7 @@ test.describe("PlanMyDay - Regression", () => {
       await page.fill("#jobSearchInput", "meet");
       await page.locator("#btnJobSearch").click();
       await expect(page.locator("#jobSearchList pmd-job-search-card")).toHaveCount(1);
-      await expect(page.locator("#jobSearchList pmd-job-search-card .editor-title").filter({ hasText: "Meeting" })).toBeVisible();
+      await expect(page.locator("#jobSearchList pmd-job-search-card .job-title").filter({ hasText: "Meeting" })).toBeVisible();
       await expect(page.getByText("Report")).not.toBeVisible();
       await expect(page.getByText("Laundry")).not.toBeVisible();
     });
@@ -888,14 +888,14 @@ test.describe("PlanMyDay - Regression", () => {
       await page.fill("#jobSearchInput", "MEETING");
       await page.locator("#btnJobSearch").click();
       await expect(page.locator("#jobSearchList pmd-job-search-card")).toHaveCount(1);
-      await expect(page.locator("#jobSearchList pmd-job-search-card .editor-title").filter({ hasText: "Meeting" })).toBeVisible();
+      await expect(page.locator("#jobSearchList pmd-job-search-card .job-title").filter({ hasText: "Meeting" })).toBeVisible();
     });
 
     test("enter key triggers search", async ({ page }) => {
       await page.fill("#jobSearchInput", "laundry");
       await page.keyboard.press("Enter");
       await expect(page.locator("#jobSearchList pmd-job-search-card")).toHaveCount(1);
-      await expect(page.locator("#jobSearchList pmd-job-search-card .editor-title").filter({ hasText: "Laundry" })).toBeVisible();
+      await expect(page.locator("#jobSearchList pmd-job-search-card .job-title").filter({ hasText: "Laundry" })).toBeVisible();
     });
 
     test("shows message when no jobs match", async ({ page }) => {
@@ -1196,7 +1196,7 @@ test.describe("PlanMyDay - Regression", () => {
       var meetingToggle = page.locator("#streamEditorList .accordion-body input.active-toggle").nth(1);
       await expect(meetingToggle).not.toBeChecked();
       await meetingToggle.check();
-      await page.waitForTimeout(300);
+      await page.waitForTimeout(150);
       // click Done to return to main view
       await page.getByRole("button", { name: "Done" }).click();
       await expect(page.locator("#countdownContainer")).toBeVisible();
@@ -1261,11 +1261,11 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible", timeout: 5000 });
       await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().click();
       await page.locator("#jobEditPage").waitFor({ state: "visible" });
-      await page.waitForTimeout(400);
+      await page.waitForTimeout(150);
       await page.locator("#jobSchedule-tab").click();
       await page.locator("#btnScheduleChange").click();
       await page.locator("#scheduleModal").waitFor({ state: "visible" });
-      await page.waitForTimeout(400);
+      await page.waitForTimeout(200);
     });
 
     test("every day radio option works", async ({ page }) => {
@@ -1332,7 +1332,7 @@ test.describe("PlanMyDay - Regression", () => {
     test("can cancel adding a new image", async ({ page }) => {
       await page.getByRole("button", { name: "Add Image" }).click();
       await page.locator("#imageEditModal").waitFor({ state: "visible" });
-      await page.waitForTimeout(300);
+      await page.waitForTimeout(150);
       await page.evaluate(() => cancelImageEdit());
       await page.locator("#imageEditModal").waitFor({ state: "hidden", timeout: 15000 });
     });
@@ -1555,7 +1555,7 @@ test.describe("PlanMyDay - Regression", () => {
           }
         });
       });
-      await page.waitForTimeout(400);
+      await page.waitForTimeout(250);
     });
 
     test("opens from stream editor image choose", async ({ page }) => {
@@ -1698,7 +1698,7 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#streamEditorList .stream-accordion-header .btn-danger").filter({ hasText: "Delete", visible: true }).click();
       await page.locator("#deleteConfirmModal").waitFor({ state: "visible" });
       await page.locator("#btnDeleteCancel").click();
-      await page.waitForTimeout(400);
+      await page.waitForTimeout(250);
       await page.evaluate(() => {
         const modal = bootstrap.Modal.getInstance(document.getElementById("deleteConfirmModal"));
         if (modal) modal.hide();
@@ -1741,7 +1741,7 @@ test.describe("PlanMyDay - Regression", () => {
         const cb = document.querySelector('.job-checkbox');
         if (cb) { cb.checked = true; cb.dispatchEvent(new Event('change', { bubbles: true })); }
       });
-      await page.waitForTimeout(500);
+      await page.waitForTimeout(250);
       await expect(page.locator("#deleteConfirmModal")).not.toBeVisible();
     });
   });
@@ -2813,7 +2813,7 @@ test.describe("PlanMyDay - Regression", () => {
           }
         });
       });
-      await page.waitForTimeout(400);
+      await page.waitForTimeout(250);
     });
 
     test("selecting image sets name in stream editor", async ({ page }) => {
@@ -2851,7 +2851,7 @@ test.describe("PlanMyDay - Regression", () => {
     test("closing picker with cancel button", async ({ page }) => {
       test.setTimeout(30000);
       await page.locator("#imagePickerModal .btn-outline-secondary").filter({ hasText: "Cancel" }).click();
-      await page.waitForTimeout(400);
+      await page.waitForTimeout(250);
       await page.evaluate(() => {
         const modal = bootstrap.Modal.getInstance(document.getElementById("imagePickerModal"));
         if (modal) modal.hide();
@@ -2862,7 +2862,7 @@ test.describe("PlanMyDay - Regression", () => {
 
     test("no image button clears image in editor", async ({ page }) => {
       await page.getByText("No Image").click();
-      await page.waitForTimeout(400);
+      await page.waitForTimeout(250);
       await page.evaluate(() => {
         const modal = bootstrap.Modal.getInstance(document.getElementById("imagePickerModal"));
         if (modal) modal.hide();
@@ -2964,7 +2964,7 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#jobSchedule-tab").click();
       await page.locator("#btnScheduleChange").click();
       await page.locator("#scheduleModal").waitFor({ state: "visible" });
-      await page.waitForTimeout(400);
+      await page.waitForTimeout(200);
       await page.locator("#schedNDays").check();
       await expect(page.locator("#schedNextDue")).toContainText("next due");
     });
@@ -2984,9 +2984,9 @@ test.describe("PlanMyDay - Regression", () => {
       const futureDate = futureDateStr(30);
       await todayInput.fill(futureDate);
       await todayInput.press("Enter");
-      await page.waitForTimeout(500);
+      await page.waitForTimeout(250);
       await page.getByRole("button", { name: "Done" }).click();
-      await page.waitForTimeout(500);
+      await page.waitForTimeout(250);
       await expect(page.locator("h2").first()).toContainText(dayMonthStr(futureDate));
     });
   });
@@ -3012,7 +3012,7 @@ test.describe("PlanMyDay - Regression", () => {
         if (input) { input.value = "ChangedName"; input.dispatchEvent(new Event('input', { bubbles: true })); }
       });
       await page.locator("#btnImageEditCancel").click();
-      await page.waitForTimeout(300);
+      await page.waitForTimeout(150);
       const restored = await page.evaluate(() => {
         const images = JSON.parse(localStorage.getItem("planmydays_images") || "[]");
         return { name: images[0]?.name, data: images[0]?.data };
@@ -3035,7 +3035,7 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#imageEditModal").waitFor({ state: "visible" });
       const lineCheckbox = page.locator('#imageEditModal input[type="checkbox"]').first();
       await lineCheckbox.check();
-      await page.waitForTimeout(200);
+      await page.waitForTimeout(100);
       await lineCheckbox.uncheck();
       await expect.poll(async () => {
         const images = await page.evaluate(() => JSON.parse(localStorage.getItem("planmydays_images")));
@@ -3057,7 +3057,7 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#imageEditModal").waitFor({ state: "visible" });
       const fillCheckbox = page.locator('#imageEditModal input[type="checkbox"]').nth(1);
       await fillCheckbox.check();
-      await page.waitForTimeout(200);
+      await page.waitForTimeout(100);
       await fillCheckbox.uncheck();
       await expect.poll(async () => {
         const images = await page.evaluate(() => JSON.parse(localStorage.getItem("planmydays_images")));
@@ -3116,12 +3116,12 @@ test.describe("PlanMyDay - Regression", () => {
       
       await page.locator("#jobEditPage").waitFor({ state: "hidden", timeout: 10000 });
       await page.locator("#todayCardList").waitFor({ state: "visible", timeout: 10000 });
-      await page.waitForTimeout(300);
+      await page.waitForTimeout(150);
       await page.locator('.job-checkbox').first().check();
       await page.locator("#deleteConfirmModal").waitFor({ state: "visible", timeout: 10000 });
-      await page.waitForTimeout(200);
+      await page.waitForTimeout(100);
       await page.locator("#deleteConfirmBtn").click();
-      await page.waitForTimeout(400);
+      await page.waitForTimeout(200);
       await page.evaluate(() => {
         const modal = bootstrap.Modal.getInstance(document.getElementById("deleteConfirmModal"));
         if (modal) modal.hide();
@@ -3140,9 +3140,9 @@ test.describe("PlanMyDay - Regression", () => {
       await page.reload();
       const cb = page.locator('.job-checkbox[data-job-id="job_1"]');
       await cb.check();
-      await page.waitForTimeout(200);
+      await page.waitForTimeout(100);
       await cb.uncheck();
-      await page.waitForTimeout(300);
+      await page.waitForTimeout(150);
       await expect(cb).not.toBeChecked();
     });
   });
@@ -3357,7 +3357,7 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#showDanger").check();
       await page.locator("#regenerateTilesRow").waitFor({ state: "visible" });
       await page.getByRole("button", { name: "Regenerate Today's Tiles" }).click();
-      await page.waitForTimeout(800);
+      await page.waitForTimeout(400);
       await expect(page.getByText("Report").first()).toBeVisible();
     });
 
@@ -3388,7 +3388,7 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#showDanger").check();
       await page.locator("#regenerateTilesRow").waitFor({ state: "visible" });
       await page.getByRole("button", { name: "Regenerate Today's Tiles" }).click();
-      await page.waitForTimeout(500);
+      await page.waitForTimeout(250);
       const streams = await page.evaluate(() => JSON.parse(localStorage.getItem("planmydays_streams")));
       expect(streams[0].jobs.find(j => j.id === "job_past").sleepUntil).toBe("");
       expect(streams[0].jobs.find(j => j.id === "job_today").sleepUntil).toBe("");
@@ -3419,7 +3419,7 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#showDanger").check();
       await page.locator("#regenerateTilesRow").waitFor({ state: "visible" });
       await page.getByRole("button", { name: "Regenerate Today's Tiles" }).click();
-      await page.waitForTimeout(500);
+      await page.waitForTimeout(250);
       const matches = await page.evaluate(() => localStorage.getItem("planmydays_scheduleTestMatches") === "true");
       if (matches) {
         await expect(page.getByText("NDaysRegen")).toBeVisible();
@@ -3452,7 +3452,7 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#showDanger").check();
       await page.locator("#regenerateTilesRow").waitFor({ state: "visible" });
       await page.getByRole("button", { name: "Regenerate Today's Tiles" }).click();
-      await page.waitForTimeout(500);
+      await page.waitForTimeout(250);
       const matches = await page.evaluate(() => localStorage.getItem("planmydays_scheduleTestMatches") === "true");
       if (matches) {
         await expect(page.getByText("WeekdayRegen")).toBeVisible();
@@ -3485,7 +3485,7 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#showDanger").check();
       await page.locator("#regenerateTilesRow").waitFor({ state: "visible" });
       await page.getByRole("button", { name: "Regenerate Today's Tiles" }).click();
-      await page.waitForTimeout(500);
+      await page.waitForTimeout(250);
       const matches = await page.evaluate(() => localStorage.getItem("planmydays_scheduleTestMatches") === "true");
       if (matches) {
         await expect(page.getByText("WeekendRegen")).toBeVisible();
@@ -3571,7 +3571,7 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#showDanger").check();
       await page.locator("#regenerateTilesRow").waitFor({ state: "visible" });
       await page.getByRole("button", { name: "Regenerate Today's Tiles" }).click();
-      await page.waitForTimeout(500);
+      await page.waitForTimeout(250);
       await expect(page.getByText("MonthlyRegen")).toBeVisible();
     });
 
@@ -3598,7 +3598,7 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#showDanger").check();
       await page.locator("#regenerateTilesRow").waitFor({ state: "visible" });
       await page.getByRole("button", { name: "Regenerate Today's Tiles" }).click();
-      await page.waitForTimeout(500);
+      await page.waitForTimeout(250);
       await expect(page.getByText("MonthlyMismatch")).not.toBeVisible();
     });
 
@@ -3618,14 +3618,14 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#clearAllDataRow").waitFor({ state: "visible" });
       await page.getByRole("button", { name: "Clear All Data" }).click();
       await expect(page.locator("#deleteConfirmModal")).toBeVisible();
-      await page.waitForTimeout(200);
+      await page.waitForTimeout(100);
       await page.locator("#deleteConfirmBtn").click();
-      await page.waitForTimeout(400);
+      await page.waitForTimeout(200);
       await page.evaluate(() => {
         const modal = bootstrap.Modal.getInstance(document.getElementById("deleteConfirmModal"));
         if (modal) modal.hide();
       });
-      await page.waitForTimeout(500);
+      await page.waitForTimeout(250);
       await expect(page.locator("#deleteConfirmModal")).not.toBeVisible({ timeout: 10000 });
       const allKeys = await page.evaluate(() => {
         const k = Object.keys(localStorage);
@@ -3930,7 +3930,7 @@ test.describe("PlanMyDay - Regression", () => {
       await expect(page.locator("#streamEditorList .editor-title").filter({ hasText: "MyStream" })).toBeVisible();
       await page.getByRole("button", { name: "Add Stream" }).click();
       await expect(page.locator("#streamEditModal")).toBeVisible();
-      await page.waitForTimeout(300);
+      await page.waitForTimeout(150);
       await page.evaluate(() => cancelEdit());
       await page.locator("#streamEditModal").waitFor({ state: "hidden", timeout: 15000 });
       await expect(page.locator("#streamEditorList")).toBeVisible();
@@ -4202,7 +4202,7 @@ test.describe("PlanMyDay - Regression", () => {
           importData();
         });
       }, payload);
-      await page.waitForTimeout(500);
+      await page.waitForTimeout(300);
       await expect(page.locator("h4").filter({ hasText: "Imported Job" })).toBeVisible();
       const lastGen = await page.evaluate(() => localStorage.getItem("planmydays_last_gen"));
       expect(lastGen).toBe(todayStr);
@@ -4257,7 +4257,7 @@ test.describe("PlanMyDay - Regression", () => {
           importData();
         });
       }, payload);
-      await page.waitForTimeout(500);
+      await page.waitForTimeout(300);
       const lastGen = await page.evaluate(() => localStorage.getItem("planmydays_last_gen"));
       expect(lastGen).toBe(todayStr);
       const completed = await page.evaluate(() => JSON.parse(localStorage.getItem("planmydays_completed") || "[]"));
@@ -4363,7 +4363,7 @@ test.describe("PlanMyDay - Regression", () => {
       await page.reload();
       await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
       await page.locator("a.dropdown-item").filter({ hasText: "Images" }).click();
-      await page.waitForTimeout(300);
+      await page.waitForTimeout(150);
     });
 
     test("image list pagination next and previous", async ({ page }) => {
@@ -4376,7 +4376,7 @@ test.describe("PlanMyDay - Regression", () => {
 
     test("duplicate image with trailing number increments", async ({ page }) => {
       await page.locator("#imageFilters input[type=search]").fill("Photo 5");
-      await page.waitForTimeout(200);
+      await page.waitForTimeout(100);
       await page.locator("#imagesList").getByTitle("Duplicate").first().click();
       await page.locator("#imageEditModal").waitFor({ state: "visible" });
       const name = await page.locator("#imageEditModalBody input.form-control").first().inputValue();
@@ -4406,7 +4406,7 @@ test.describe("PlanMyDay - Regression", () => {
           openImageUpload(editingImageIndex);
         });
       }, svgNoAttrs);
-      await page.waitForTimeout(200);
+      await page.waitForTimeout(100);
       const data = await page.evaluate(() => {
         const images = JSON.parse(localStorage.getItem("planmydays_images") || "[]");
         return images[editingImageIndex]?.data || "";
@@ -4442,7 +4442,7 @@ test.describe("PlanMyDay - Regression", () => {
           openImageUpload(editingImageIndex);
         });
       }, pngB64);
-      await page.waitForTimeout(200);
+      await page.waitForTimeout(100);
       const data = await page.evaluate(() => {
         const images = JSON.parse(localStorage.getItem("planmydays_images") || "[]");
         return images[editingImageIndex]?.data || "";
@@ -4482,9 +4482,9 @@ test.describe("PlanMyDay - Regression", () => {
       const before = await page.evaluate(() => loadImages().length);
       await page.locator("#imagesList").getByTitle("Delete").first().click();
       await page.locator("#deleteConfirmModal").waitFor({ state: "visible" });
-      await page.waitForTimeout(200);
+      await page.waitForTimeout(100);
       await page.locator("#deleteConfirmBtn").click();
-      await page.waitForTimeout(400);
+      await page.waitForTimeout(200);
       await page.evaluate(() => {
         const modal = bootstrap.Modal.getInstance(document.getElementById("deleteConfirmModal"));
         if (modal) modal.hide();
@@ -5069,7 +5069,7 @@ test.describe("PlanMyDay - Regression", () => {
     test("minio fields become enabled when toggle is on", async ({ page }) => {
       await page.getByTitle("Settings").click();
       await page.locator("#minio-tab").click();
-      await page.waitForTimeout(200);
+      await page.waitForTimeout(100);
       await page.locator("#minioEnabled").check();
       await expect(page.locator("#minioServer")).toBeEnabled();
       await expect(page.locator("#minioUsername")).toBeEnabled();
@@ -5088,7 +5088,7 @@ test.describe("PlanMyDay - Regression", () => {
       await page.reload();
       await page.getByTitle("Settings").click();
       await page.locator("#minio-tab").click();
-      await page.waitForTimeout(300);
+      await page.waitForTimeout(150);
       await expect(page.locator("#minioEnabled")).toBeChecked();
       await expect(page.locator("#minioServer")).toHaveValue("http://minio:9000");
       await expect(page.locator("#minioUsername")).toHaveValue("testuser");
@@ -5099,7 +5099,7 @@ test.describe("PlanMyDay - Regression", () => {
     test("password toggle shows and hides password", async ({ page }) => {
       await page.getByTitle("Settings").click();
       await page.locator("#minio-tab").click();
-      await page.waitForTimeout(200);
+      await page.waitForTimeout(100);
       await page.locator("#minioEnabled").check();
       await page.locator("#minioPassword").fill("secret");
       await expect(page.locator("#minioPassword")).toHaveAttribute("type", "password");
@@ -5112,7 +5112,7 @@ test.describe("PlanMyDay - Regression", () => {
     test("password is hidden when leaving minio tab", async ({ page }) => {
       await page.getByTitle("Settings").click();
       await page.locator("#minio-tab").click();
-      await page.waitForTimeout(200);
+      await page.waitForTimeout(100);
       await page.locator("#minioEnabled").check();
       await page.locator("#minioPassword").fill("secret");
       await page.locator("#minioFields button[title='Show/hide password']").click();
@@ -5151,11 +5151,11 @@ test.describe("PlanMyDay - Regression", () => {
       });
       await page.reload();
       await page.evaluate(() => exportToMinio());
-      await page.waitForTimeout(300);
+      await page.waitForTimeout(150);
       await expect(page.locator("#minioAlertModal")).toBeVisible();
       await expect(page.locator("#minioAlertModal").locator("p")).toContainText("configure all Minio settings");
       await page.locator("#minioAlertModal .btn").click();
-      await page.waitForTimeout(300);
+      await page.waitForTimeout(150);
       await expect(page.locator("#minioAlertModal")).not.toBeAttached();
     });
 
@@ -5165,9 +5165,9 @@ test.describe("PlanMyDay - Regression", () => {
       });
       await page.reload();
       await page.evaluate(() => exportToMinio());
-      await page.waitForTimeout(300);
+      await page.waitForTimeout(150);
       await page.locator("#minioAlertModal .btn").click();
-      await page.waitForTimeout(500);
+      await page.waitForTimeout(250);
       await expect(page.locator("#minioAlertModal")).not.toBeAttached();
     });
 
@@ -5179,14 +5179,14 @@ test.describe("PlanMyDay - Regression", () => {
       });
       await page.reload();
       await page.evaluate(() => importFromMinio());
-      await page.waitForTimeout(300);
+      await page.waitForTimeout(150);
       await expect(page.locator("#minioAlertModal")).toBeVisible();
       await expect(page.locator("#minioAlertModal").locator("p")).toContainText("server, username and password");
     });
 
     test("import from minio does nothing when disabled", async ({ page }) => {
       await page.evaluate(() => importFromMinio());
-      await page.waitForTimeout(300);
+      await page.waitForTimeout(150);
       await expect(page.locator("#minioImportModal")).not.toBeAttached();
     });
 
@@ -5222,31 +5222,34 @@ test.describe("PlanMyDay - Regression", () => {
 
     test("showMinioAlert creates and shows modal", async ({ page }) => {
       await page.evaluate(() => showMinioAlert("Test message"));
-      await page.waitForTimeout(300);
+      await page.waitForTimeout(150);
       await expect(page.locator("#minioAlertModal")).toBeVisible();
       await expect(page.locator("#minioAlertModal").locator("p")).toContainText("Test message");
     });
 
     test("showMinioAlert error type uses red button", async ({ page }) => {
       await page.evaluate(() => showMinioAlert("Error!", "error"));
-      await page.waitForTimeout(300);
+      await page.waitForTimeout(150);
       await expect(page.locator("#minioAlertModal .btn-danger")).toBeVisible();
     });
 
     test("showMinioAlert info type uses primary button", async ({ page }) => {
       await page.evaluate(() => showMinioAlert("Info", "info"));
-      await page.waitForTimeout(300);
+      await page.waitForTimeout(150);
       await expect(page.locator("#minioAlertModal .btn-primary")).toBeVisible();
     });
 
     test("showMinioAlert cleans up old modal before showing new", async ({ page }) => {
-      await page.evaluate(() => showMinioAlert("First"));
-      await page.waitForTimeout(200);
-      await page.evaluate(() => showMinioAlert("Second"));
-      await page.waitForTimeout(300);
-      const count = await page.locator("#minioAlertModal").count();
-      expect(count).toBe(1);
-      await expect(page.locator("#minioAlertModal").locator("p")).toContainText("Second");
+      const counts = await page.evaluate(() => {
+        showMinioAlert("First");
+        const before = document.querySelectorAll("#minioAlertModal").length;
+        showMinioAlert("Second");
+        const after = document.querySelectorAll("#minioAlertModal").length;
+        return { before, after };
+      });
+      expect(counts.before).toBe(1);
+      expect(counts.after).toBe(1);
+      await expect(page.locator("#minioAlertModal").filter({ hasText: "Second" })).toBeVisible();
     });
 
     // ── Crypto functions ──────────────────────────────────
@@ -5353,7 +5356,7 @@ test.describe("PlanMyDay - Regression", () => {
     test("changeMinioEnabled toggles fields and menu", async ({ page }) => {
       await page.getByTitle("Settings").click();
       await page.locator("#minio-tab").click();
-      await page.waitForTimeout(200);
+      await page.waitForTimeout(100);
       await page.locator("#minioEnabled").check();
       const items = await page.locator(".minio-menu-item").count();
       expect(items).toBeGreaterThan(0);
@@ -5418,7 +5421,7 @@ test.describe("PlanMyDay - Regression", () => {
       });
       await page.reload();
       await page.evaluate(() => showMinioImportModal());
-      await page.waitForTimeout(300);
+      await page.waitForTimeout(150);
       await expect(page.locator("#minioImportModal")).toBeVisible();
       await expect(page.locator("#minioImportBody")).toContainText("Loading buckets");
     });
@@ -5432,9 +5435,9 @@ test.describe("PlanMyDay - Regression", () => {
       });
       await page.reload();
       await page.evaluate(() => showMinioImportModal());
-      await page.waitForTimeout(300);
+      await page.waitForTimeout(150);
       await page.evaluate(() => closeMinioImport());
-      await page.waitForTimeout(500);
+      await page.waitForTimeout(250);
       await expect(page.locator("#minioImportModal")).not.toBeAttached();
     });
 
@@ -5449,7 +5452,7 @@ test.describe("PlanMyDay - Regression", () => {
       });
       await page.reload();
       await page.evaluate(() => showMinioImportModal());
-      await page.waitForTimeout(300);
+      await page.waitForTimeout(150);
       // Should show error (fetch to non-existent server will fail)
       // At minimum the modal should still exist
       await expect(page.locator("#minioImportModal")).toBeVisible();
@@ -5459,7 +5462,7 @@ test.describe("PlanMyDay - Regression", () => {
 
     test("export to minio does nothing when disabled", async ({ page }) => {
       await page.evaluate(() => exportToMinio());
-      await page.waitForTimeout(300);
+      await page.waitForTimeout(150);
       await expect(page.locator("#minioAlertModal")).not.toBeAttached();
     });
 
@@ -6043,8 +6046,159 @@ test.describe("PlanMyDay - Regression", () => {
         expect(result.scrollTop).toBeGreaterThan(0);
         expect(result.focused).toBe(true);
         expect(result.visible).toBe(true);
-      });
+});
     }
   });
+
+  // ── smd-page / smd-modal action contract ─────────────────────
+  // Clicking a footer button must close the overlay (unless the
+  // button config sets close: false) and then dispatch the action
+  // event for the calling page to react to.
+
+  test.describe("smd overlays: auto-close and event contract", () => {
+
+    test("smd-page footer button closes the page then fires smd-page-action", async ({ page }) => {
+      await page.evaluate(() => {
+        window.__contractActions = [];
+        document.getElementById("jobEditPage").addEventListener("smd-page-action", (e) => {
+          window.__contractActions.push({ index: e.detail.index, action: e.detail.action, text: e.detail.text });
+        });
+      });
+      await page.getByText("+ Add Job").click();
+      await expect(page.locator("#jobEditPage")).toBeVisible();
+      await page.locator("#jobEditCancelBtn").click();
+      await expect(page.locator("#jobEditPage")).toBeHidden({ timeout: 10000 });
+      await expect.poll(() => page.evaluate(() => window.__contractActions)).toEqual([
+        { index: 0, action: "cancel", text: "Cancel" }
+      ]);
+    });
+
+    test("smd-page footer button with close:false keeps the page open and fires smd-page-action", async ({ page }) => {
+      await seedTodayList(page);
+      await page.reload();
+      await page.evaluate(() => {
+        window.__contractActions = [];
+        document.getElementById("jobEditPage").addEventListener("smd-page-action", (e) => {
+          window.__contractActions.push({ index: e.detail.index, action: e.detail.action, text: e.detail.text });
+        });
+      });
+      await page.locator(".job-view-btn").first().click();
+      await expect(page.locator("#jobEditPage")).toBeVisible();
+      await expect(page.locator("#jobEditPage .smd-page-header h2")).toHaveText("View Job");
+      await page.locator("#btnViewJobEdit").click();
+      await expect(page.locator("#jobEditPage .smd-page-header h2")).toHaveText("Edit Job");
+      await expect(page.locator("#jobEditPage")).toBeVisible();
+      await expect.poll(() => page.evaluate(() => window.__contractActions)).toEqual([
+        { index: 0, action: "edit", text: "Edit" }
+      ]);
+    });
+
+    test("smd-modal footer button closes the modal then fires smd-modal-action; close:false keeps it open", async ({ page }) => {
+      await page.addScriptTag({ url: "/js/components/smd-modal.js" });
+      await page.evaluate(() => {
+        window.__modalActions = [];
+        const m = document.createElement("smd-modal");
+        m.id = "contractModal";
+        m.title = "Contract";
+        m.content = "<p>body</p>";
+        m.buttons = [
+          { text: "Keep", action: "keep", close: false },
+          { text: "Confirm", action: "confirm" }
+        ];
+        m.addEventListener("smd-modal-action", (e) => {
+          window.__modalActions.push({ index: e.detail.index, action: e.detail.action, text: e.detail.text });
+        });
+        document.body.appendChild(m);
+        window.__contractModal = m;
+      });
+      await page.evaluate(() => window.__contractModal.show());
+      await expect(page.locator("#contractModal")).toBeVisible();
+      await page.locator("#contractModal .smd-footer button").nth(0).click();
+      await expect(page.locator("#contractModal")).toBeVisible();
+      await page.locator("#contractModal .smd-footer button").nth(1).click();
+      await expect(page.locator("#contractModal")).toBeHidden();
+      await expect.poll(() => page.evaluate(() => window.__modalActions)).toEqual([
+        { index: 0, action: "keep", text: "Keep" },
+        { index: 1, action: "confirm", text: "Confirm" }
+      ]);
+    });
+});
+
+  // ── smd-page slide duration ─────────────────────────────────
+  // The slide in/out duration is configurable via the
+  // slide-duration attribute/property and defaults to 0 (instant).
+
+  test.describe("smd-page: slide duration", () => {
+
+    test("slide duration defaults to instant and tracks the slide-duration attribute", async ({ page }) => {
+      await page.goto("/");
+      await page.waitForLoadState("domcontentloaded");
+      await page.evaluate(() => {
+        window.__slidePage = document.createElement("smd-page");
+        window.__slidePage.id = "slideTestPage";
+        window.__slidePage.title = "Slide Test";
+        window.__slidePage.content = "<p>body</p>";
+        document.body.appendChild(window.__slidePage);
+      });
+      const durationOf = () =>
+        page.evaluate(() => {
+          const root = window.__slidePage.shadowRoot.querySelector(".smd-page");
+          return getComputedStyle(root).transitionDuration;
+        });
+      await expect.poll(durationOf).toBe("0s");
+      await page.evaluate(() => { window.__slidePage.slideDuration = 300; });
+      await expect.poll(durationOf).toBe("0.3s");
+      await page.evaluate(() => { window.__slidePage.slideDuration = 0; });
+      await expect.poll(durationOf).toBe("0s");
+    });
+
+    test("settings slide speed control updates all smd-pages and persists", async ({ page }) => {
+      await page.evaluate(() => localStorage.clear());
+      await page.reload();
+      await page.getByTitle("Settings").click();
+      await expect(page.locator("#settingsPage:not(.d-none)")).toBeVisible();
+      await page.locator("#appearance-tab").click();
+      await page.locator("#slideDurationSelector").selectOption("150");
+      await expect.poll(() => page.evaluate(() => localStorage.getItem("planmydays_slideDuration"))).toBe("150");
+      const result = await page.evaluate(() => {
+        return Array.from(document.querySelectorAll("smd-page")).map((p) => ({
+          id: p.id,
+          attr: p.getAttribute("slide-duration"),
+          cssVar: p.style.getPropertyValue("--smd-slide-duration")
+        }));
+      });
+      expect(result.length).toBeGreaterThan(0);
+      result.forEach((r) => {
+        expect(r.attr).toBe("150");
+        expect(r.cssVar).toBe("0.15s");
+      });
+    });
+
+    test("page hides promptly when slide duration is 0", async ({ page }) => {
+      await page.evaluate(() => {
+        localStorage.clear();
+        localStorage.setItem("planmydays_slideDuration", "0");
+      });
+      await page.reload();
+      await page.getByText("+ Add Job").click();
+      await expect(page.locator("#jobEditPage .smd-page-header h2")).toHaveText("Add Job");
+      const elapsed = await page.evaluate(async () => {
+        const p = document.getElementById("jobEditPage");
+        p.classList.remove("d-none");
+        const t0 = performance.now();
+        hideJobEditPage();
+        await new Promise((resolve) => {
+          const iv = setInterval(() => {
+            if (p.classList.contains("d-none")) {
+              clearInterval(iv);
+              resolve();
+            }
+          }, 5);
+        });
+        return Math.round(performance.now() - t0);
+      });
+      expect(elapsed).toBeLessThan(200);
+    });
   });
+});
 });

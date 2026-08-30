@@ -111,6 +111,20 @@ function changeDragSize(value) {
   document.body.classList.add("drag-size-" + value);
 }
 
+// SLIDE SPEED (smd-page slide-in/out duration in ms)
+function applySlideDuration(ms) {
+  var value = parseInt(ms, 10);
+  if (isNaN(value) || value < 0) value = 0;
+  document.querySelectorAll("smd-page").forEach(function(p) {
+    p.slideDuration = value;
+  });
+}
+
+function changeSlideDuration(value) {
+  localStorage.setItem("planmydays_slideDuration", value);
+  applySlideDuration(value);
+}
+
 function changeSplitList(enabled) {
   localStorage.setItem("planmydays_splitList", enabled);
 }
@@ -252,6 +266,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const savedDragSize = localStorage.getItem("planmydays_dragSize") || "large";
   document.body.classList.add("drag-size-" + savedDragSize);
+
+  const savedSlideDuration = localStorage.getItem("planmydays_slideDuration") || "0";
+  applySlideDuration(savedSlideDuration);
 
   updateScreenResolution();
   window.addEventListener("resize", updateScreenResolution);
