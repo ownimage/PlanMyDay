@@ -717,9 +717,9 @@ function renderStreamsEditor() {
     accordionHtml += '<div class="accordion-item stream-accordion-item stream-drag-card mb-2' + (isExpanded ? " expanded" : "") + '" data-stream-idx="' + realIdx + '">' + headerHtml + bodyHtml + '</div>';
   });
 
+  page.headerHtml = '<span id="editJobsTotalBadge" class="badge bg-info" style="font-size:0.8em;vertical-align:middle"></span>';
   page.content =
     '<div id="streamsEditorHeader">' +
-      '<span id="editJobsTotalBadge" class="badge bg-secondary" style="font-size:0.8em;vertical-align:middle"></span>' +
       '<div id="addStreamTileTop" class="mb-3"></div>' +
       '<div id="streamEditorFilters" class="mb-3"></div>' +
     '</div>' +
