@@ -12,6 +12,7 @@
       --sb-border: var(--bs-border-color, #444);
     }
     * { box-sizing: border-box; }
+    html, body { max-width: 100%; overflow-x: hidden; }
     body {
       margin: 0;
       font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -34,6 +35,9 @@
       margin: 0;
       font-size: 1.15rem;
       font-weight: 600;
+      flex: 0 1 auto;
+      min-width: 0;
+      overflow-wrap: break-word;
     }
     .sb-theme-control {
       display: flex;
@@ -68,13 +72,15 @@
       border-radius: 999px;
     }
     nav.sb-nav a:hover { color: var(--sb-fg); border-color: var(--bs-primary, #0d6efd); }
-    main.sb-main { padding: 1rem 1.25rem 4rem; }
+    main.sb-main { padding: 1rem 1.25rem 4rem; max-width: 100%; }
     section.sb-section {
       margin-bottom: 2.5rem;
       border: 1px solid var(--sb-border);
       border-radius: 10px;
       padding: 1rem 1.25rem;
       background: var(--bs-tertiary-bg, #1e1e1e);
+      max-width: 100%;
+      overflow-wrap: break-word;
     }
     section.sb-section > h2 {
       margin: 0 0 0.15rem;
@@ -106,8 +112,9 @@
       border: 1px dashed var(--sb-border);
       border-radius: 8px;
       background: var(--sb-bg);
+      max-width: 100%;
     }
-    .sb-canvas > div { min-width: 0; }
+    .sb-canvas > div, .sb-canvas > * { min-width: 0; max-width: 100%; }
     .sb-controls {
       margin-top: 1rem;
       display: flex;
@@ -149,7 +156,7 @@
       font-size: 0.9rem;
     }
     .sb-row { display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: flex-start; }
-    .sb-stack { display: flex; flex-direction: column; gap: 0.75rem; min-width: 220px; flex: 1 1 260px; }
+    .sb-stack { display: flex; flex-direction: column; gap: 0.75rem; min-width: 0; flex: 1 1 260px; max-width: 100%; }
     code { background: var(--sb-bg); padding: 0.05rem 0.3rem; border-radius: 4px; font-size: 0.82em; }
     .sb-frame-wrapper { width: 100%; }
     .sb-frame-wrapper .sb-label {
@@ -524,10 +531,21 @@
       desc: "Job row card (image/thumb, title + suffix, Active toggle, schedule/time/extra badges). Attributes: <code>stream-idx</code>, <code>job-idx</code>, <code>title</code>, <code>image</code>, <code>suffix</code>, <code>schedule</code>, <code>time</code>, <code>active</code>, <code>extra</code>. Dispatches <code>pmd-job-edit</code>, <code>pmd-job-toggle-active</code>.",
       html: () => `
         <div class="sb-canvas">
-          <div class="sb-stack">
+          <div class="sb-stack" id="sb-job-cards"></div>
+        </div>
+        <div class="sb-controls">
+          <label><input type="checkbox" id="ctrl-job-thumb"> Show thumb tick</label>
+        </div>
+        <div class="sb-log" id="log-pmd-stream-job-card">events: none yet</div>
+      `,
+      init: () => {
+        const host = document.getElementById("sb-job-cards");
+        const renderCards = () => {
+          const showThumb = document.getElementById("ctrl-job-thumb").checked;
+          host.innerHTML = `
             <div class="sb-frame-wrapper">
               <div class="sb-label">No image / no suffix</div>
-              <pmd-stream-job-card stream-idx="0" job-idx="0" title="Standup" schedule="Weekdays" active="true"></pmd-stream-job-card>
+              <pmd-stream-job-card stream-idx="0" job-idx="0" title="Standup" schedule="Weekdays" active="true"${showThumb ? ` image="${SVG("#375a7f")}"` : ""}></pmd-stream-job-card>
             </div>
             <div class="sb-frame-wrapper">
               <div class="sb-label">Image + suffix + time + sleep extra</div>
@@ -535,17 +553,15 @@
             </div>
             <div class="sb-frame-wrapper">
               <div class="sb-label">Inactive + wait extra</div>
-              <pmd-stream-job-card stream-idx="1" job-idx="0" title="Laundry" schedule="Weekends" extra="Wait: the load to finish" active="false"></pmd-stream-job-card>
-            </div>
-          </div>
-        </div>
-        <div class="sb-log" id="log-pmd-stream-job-card">events: none yet</div>
-      `,
-      init: () => {
-        document.querySelectorAll("#pmd-stream-job-card pmd-stream-job-card").forEach((card) => {
-          card.addEventListener("pmd-job-edit", (e) => log("pmd-stream-job-card", "pmd-job-edit stream=" + e.detail.streamIdx + " job=" + e.detail.jobIdx));
-          card.addEventListener("pmd-job-toggle-active", (e) => log("pmd-stream-job-card", "pmd-job-toggle-active job=" + e.detail.jobIdx + " checked=" + e.detail.checked));
-        });
+              <pmd-stream-job-card stream-idx="1" job-idx="0" title="Laundry" schedule="Weekends" extra="Wait: the load to finish" active="false"${showThumb ? ` image="${SVG("#00bc8c")}"` : ""}></pmd-stream-job-card>
+            </div>`;
+          host.querySelectorAll("pmd-stream-job-card").forEach((card) => {
+            card.addEventListener("pmd-job-edit", (e) => log("pmd-stream-job-card", "pmd-job-edit stream=" + e.detail.streamIdx + " job=" + e.detail.jobIdx));
+            card.addEventListener("pmd-job-toggle-active", (e) => log("pmd-stream-job-card", "pmd-job-toggle-active job=" + e.detail.jobIdx + " checked=" + e.detail.checked));
+          });
+        };
+        renderCards();
+        document.getElementById("ctrl-job-thumb").addEventListener("change", renderCards);
       }
     });
 
