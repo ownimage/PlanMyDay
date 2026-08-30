@@ -5,8 +5,23 @@ pmdStreamJobCardTemplate.innerHTML = `
       display: block;
       flex: 1 1 auto;
       min-width: 0;
+      background-color: var(--bs-secondary-bg, #303030);
+      border: 1px solid var(--bs-border-color, #495057);
+      border-radius: 0.375rem;
+      padding: 0.5rem;
     }
     [hidden] { display: none !important; }
+    ::slotted(.drag-handle) {
+      flex-shrink: 0;
+      line-height: 1;
+      font-size: 1.2rem;
+      cursor: grab;
+      touch-action: none;
+      color: var(--bs-secondary-color, #6c757d);
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    ::slotted(.drag-handle:active) { cursor: grabbing; }
     .row1 {
       display: flex;
       align-items: center;
@@ -100,6 +115,7 @@ pmdStreamJobCardTemplate.innerHTML = `
     }
   </style>
   <div class="row1">
+    <slot name="drag-handle"></slot>
     <div class="thumb" hidden><img alt=""></div>
     <div class="title">
       <span class="job-title"></span><span class="suffix badge bg-secondary" hidden></span>
@@ -142,7 +158,6 @@ class PmdStreamJobCard extends HTMLElement {
         }
       }));
     });
-this.classList.add('card', 'p-2', 'mb-0');
     this._render();
   }
 

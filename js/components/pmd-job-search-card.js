@@ -7,7 +7,7 @@ pmdJobSearchCardTemplate.innerHTML = `
       position: relative;
       min-width: 0;
       word-wrap: break-word;
-      background-color: var(--bs-card-bg, var(--bs-body-bg, #222222));
+      background-color: var(--bs-card-bg, var(--bs-secondary-bg, #303030));
       border: 1px solid var(--bs-border-color, #495057);
       border-radius: 0.375rem;
       padding: 0.5rem;
