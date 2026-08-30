@@ -47,22 +47,15 @@ const pageStyles = `
     border-top: 1px solid var(--bs-border-color, #444);
     flex-shrink: 0;
   }
-  .smd-page-footer button {
+  .smd-page-footer smd-button {
     flex: 1;
-    padding: 0.5rem 1rem;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 0.9rem;
-    color: #fff;
-    background: var(--smd-primary, #0d6efd);
-    transition: opacity 0.15s;
+    min-width: 0;
   }
-  .smd-page-footer button:hover { opacity: 0.85; }
-  .smd-page-footer button[variant="secondary"] { background: var(--smd-secondary, #6c757d); }
-  .smd-page-footer button[variant="success"] { background: var(--smd-success, #198754); }
-  .smd-page-footer button[variant="danger"] { background: var(--smd-danger, #dc3545); }
-  .smd-page-footer button[variant="warning"] { background: var(--smd-warning, #ffc107); color: #000; }
+  .smd-page-footer smd-button::part(button) {
+    width: 100%;
+    box-sizing: border-box;
+    font-size: 0.9rem;
+  }
 `;
 
 class SmdPage extends HTMLElement {
@@ -111,7 +104,9 @@ class SmdPage extends HTMLElement {
       const variant = btn.variant || 'primary';
       const text = btn.text || 'OK';
       const idAttr = btn.id ? ` id="${this._escapeAttr(btn.id)}"` : '';
-      return `<button data-index="${i}" variant="${variant}"${idAttr}>${text}</button>`;
+      const disabledAttr = btn.disabled ? ' disabled' : '';
+      const closeAttr = btn.close === false ? ' data-close-on-click="false"' : '';
+      return `<smd-button data-index="${i}" variant="${variant}"${idAttr}${disabledAttr}${closeAttr}>${text}</smd-button>`;
     }).join('');
 
     this.shadowRoot.innerHTML = `
@@ -125,15 +120,15 @@ class SmdPage extends HTMLElement {
       </div>
     `;
 
-    this.shadowRoot.querySelectorAll('.smd-page-footer button').forEach((btn) => {
+    this.shadowRoot.querySelectorAll('.smd-page-footer smd-button').forEach((btn) => {
       btn.addEventListener('click', () => {
         const index = parseInt(btn.dataset.index);
         const config = this._buttons[index];
-        if (config.close !== false) this.hide();
+        if (config && config.close !== false) this.hide();
         this.dispatchEvent(new CustomEvent('smd-page-action', {
           bubbles: true,
           composed: true,
-          detail: { index, action: config.action || null, text: config.text },
+          detail: { index, action: config ? (config.action || null) : null, text: config ? config.text : null },
         }));
       });
     });
