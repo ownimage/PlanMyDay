@@ -10,6 +10,7 @@ const PRECACHE_URLS = [
   "sampleImages.json",
   "css/styles.css",
   "js/build-number.js",
+  "js/components/smd-button.js",
   "js/components/smd-page.js",
   "js/components/smd-tabs.js",
   "js/components/pmd-stream-header.js",
