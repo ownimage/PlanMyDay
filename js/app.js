@@ -2253,7 +2253,7 @@ var STREAMS_EDITOR_STYLES = `
   .sortable-ghost { opacity: 0.4; }
   .sortable-chosen, .sortable-drag { cursor: grabbing; }
   .stream-accordion-body .job-drag-card {
-    margin-bottom: 0.5rem;
+    margin-bottom: 0;
   }
 `;
 
