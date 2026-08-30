@@ -195,20 +195,23 @@ function renderMain() {
 
   if (splitList) {
     const tabWrapper = document.createElement("div");
-    tabWrapper.className = "mb-3 border-bottom flex-shrink-0";
-    const tabBar = document.createElement("ul");
-    tabBar.className = "nav nav-tabs border-bottom-0 nav-tabs-info";
-    ["progress", "maintenance"].forEach(t => {
-      const li = document.createElement("li");
-      li.className = "nav-item";
-      const btn = document.createElement("button");
-      btn.className = `nav-link ${t === tab ? "active" : ""}`;
-      btn.textContent = t.charAt(0).toUpperCase() + t.slice(1);
-      btn.onclick = function() { container.dataset.todayTab = t; renderMain(); };
-      li.appendChild(btn);
-      tabBar.appendChild(li);
+    tabWrapper.className = "mb-3 flex-shrink-0";
+    const tabsEl = document.createElement("smd-tabs");
+    tabsEl.id = "todayTabs";
+    tabsEl.tabs = [
+      { title: "Progress", content: "" },
+      { title: "Maintenance", content: "" }
+    ];
+    tabsEl.activeIndex = tab === "maintenance" ? 1 : 0;
+    const hidePanels = document.createElement("style");
+    hidePanels.textContent = ".smd-tab-panel { display: none !important; }";
+    tabsEl.shadowRoot.appendChild(hidePanels);
+    tabsEl.addEventListener("smd-tabs-change", function(e) {
+      const tabTitle = e.detail && e.detail.tab ? (e.detail.tab.title || "") : "";
+      container.dataset.todayTab = tabTitle.toLowerCase() === "maintenance" ? "maintenance" : "progress";
+      renderMain();
     });
-    tabWrapper.appendChild(tabBar);
+    tabWrapper.appendChild(tabsEl);
     container.appendChild(tabWrapper);
 
     matchingStreams = new Set();
