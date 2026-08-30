@@ -955,9 +955,10 @@ function renderJobsInAccordion(stream, jobs, streamIdx) {
     if (j.time && j.time.trim()) attrs.push('time="' + escAttr(j.time.trim()) + '"');
     if (suffix) attrs.push('suffix="' + escAttr(suffix) + '"');
     if (extra) attrs.push('extra="' + escAttr(extra) + '"');
-    return '<div class="card p-2 mb-0 job-drag-card" data-job-idx="' + realIdx + '">' +
-      '<div class="drag-handle flex-shrink-0" title="drag">&#9776;</div>' +
-      '<pmd-stream-job-card ' + attrs.join(" ") + '></pmd-stream-job-card>' +
+    return '<div class="job-drag-card" data-job-idx="' + realIdx + '">' +
+      '<pmd-stream-job-card ' + attrs.join(" ") + '>' +
+        '<div class="drag-handle" title="drag" slot="drag-handle">&#9776;</div>' +
+      '</pmd-stream-job-card>' +
     '</div>';
   }).join("");
 }
@@ -2252,20 +2253,8 @@ var STREAMS_EDITOR_STYLES = `
   .sortable-ghost { opacity: 0.4; }
   .sortable-chosen, .sortable-drag { cursor: grabbing; }
   .stream-accordion-body .job-drag-card {
-    display: flex;
-    align-items: flex-start;
-    gap: 0.5rem;
-    padding: 0.5rem 0.6rem;
-    color: var(--bs-body-color, #f8f9fa);
+    margin-bottom: 0.5rem;
   }
-  .job-drag-card > .drag-handle {
-    flex-shrink: 0;
-    line-height: 1;
-    padding-top: 0.4rem;
-    cursor: grab;
-    color: var(--bs-secondary-color, #6c757d);
-  }
-  .job-drag-card > .drag-handle { user-select: none; }
 `;
 
 var SETTINGS_STYLES = `
