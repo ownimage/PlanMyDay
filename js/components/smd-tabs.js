@@ -38,6 +38,9 @@ const tabsStyles = `
     width: 100%;
     box-sizing: border-box;
   }
+  :host > .smd-tab-line:last-of-type {
+    margin-bottom: 1rem;
+  }
   .smd-tab-panel {
     display: none;
     padding: 1rem;
@@ -58,6 +61,14 @@ class SmdTabs extends HTMLElement {
   get tabs() { return this._tabs; }
   set tabs(val) { this._tabs = val || []; this._activeIndex = 0; this._render(); }
 
+  static get observedAttributes() { return ['bottomline']; }
+
+  attributeChangedCallback(name, oldValue, newValue) {
+    if (name === 'bottomline' && oldValue !== newValue && this._tabs) {
+      this._render();
+    }
+  }
+
 get activeIndex() { return this._activeIndex; }
   set activeIndex(val) {
     if (val >= 0 && val < this._tabs.length) {
@@ -68,7 +79,7 @@ get activeIndex() { return this._activeIndex; }
 
   get bottomline() {
     const attr = this.getAttribute('bottomline');
-    return attr === null ? true : attr !== 'false';
+    return attr !== null && attr !== 'false';
   }
   set bottomline(val) {
     this.toggleAttribute('bottomline', !!val);
@@ -87,14 +98,14 @@ get activeIndex() { return this._activeIndex; }
       return `<div class="smd-tab-panel"${idAttr}${active} data-panel="${i}">${tab.content || ''}</div>`;
     }).join('');
 
-    const lineHtml = this.bottomline ? '<div class="smd-tab-line"></div>' : '';
+    const bottomLineHtml = this.bottomline ? '<div class="smd-tab-line"></div>' : '';
 
     this.shadowRoot.innerHTML = `
       <style>${tabsStyles}</style>
       <div class="smd-tab-list">${headersHtml}</div>
-      ${lineHtml}
+      <div class="smd-tab-line"></div>
       ${panelsHtml}
-      ${lineHtml}
+      ${bottomLineHtml}
     `;
 
     this.shadowRoot.querySelectorAll('.smd-tab-btn').forEach((btn) => {
