@@ -457,9 +457,9 @@ function buildSearchJobsContent() {
   const page = document.getElementById("jobSearchEditor");
   if (!page) return;
   page.title = "Search Jobs";
+  page.headerHtml = '<span id="jobSearchTotalBadge" class="badge bg-info" style="font-size:0.8em;vertical-align:middle"></span>';
   page.content =
     '<div id="jobSearchHeader">' +
-      '<span id="jobSearchTotalBadge" class="badge bg-secondary" style="font-size:0.8em;vertical-align:middle"></span>' +
       '<div id="jobSearchFilters" class="mt-3">' +
         '<div class="d-flex gap-2 align-items-center">' +
           '<input type="search" class="form-control" id="jobSearchInput" placeholder="Search job titles..." onkeydown="if(event.key===\'Enter\') searchJobsFilter()">' +
@@ -731,7 +731,7 @@ function renderStreamsEditor() {
     { text: "Add Stream", variant: "primary", action: "add", id: "btnAddStream", close: false },
     { text: "Done", variant: "success", action: "done", id: "btnStreamsDone" }
   ];
-  page.title = "Edit Jobs";
+  page.title = "Edit Streams";
 
   if (editingIndex >= 0) {
     showStreamEditModal();
