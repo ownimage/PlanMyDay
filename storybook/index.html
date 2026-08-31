@@ -51,9 +51,13 @@
       padding: 0.3rem 0.6rem;
       border: 1px solid var(--sb-border);
       border-radius: 6px;
-      background: var(--bs-tertiary-bg, #252525);
-      color: var(--sb-fg);
+      background: var(--sb-select-bg, var(--bs-tertiary-bg, #252525));
+      color: var(--sb-select-color, var(--sb-fg));
       color-scheme: var(--sb-color-scheme, dark);
+    }
+    .sb-theme-control select option {
+      color: var(--sb-select-color, var(--sb-fg));
+      background: var(--sb-select-bg, var(--bs-tertiary-bg, #252525));
     }
     nav.sb-nav {
       position: sticky;
@@ -231,7 +235,7 @@
         minty:     { css: `${bw}/minty/bootstrap.min.css`,      bsTheme: "light" },
         morph:     { css: `${bw}/morph/bootstrap.min.css`,      bsTheme: "light" },
         pulse:     { css: `${bw}/pulse/bootstrap.min.css`,      bsTheme: "light" },
-        quartz:    { css: `${bw}/quartz/bootstrap.min.css`,     bsTheme: "light" },
+        quartz:    { css: `${bw}/quartz/bootstrap.min.css`,     bsTheme: "dark" },
         sandstone: { css: `${bw}/sandstone/bootstrap.min.css`,  bsTheme: "light" },
         simplex:   { css: `${bw}/simplex/bootstrap.min.css`,    bsTheme: "light" },
         sketchy:   { css: `${bw}/sketchy/bootstrap.min.css`,    bsTheme: "light" },
@@ -254,6 +258,16 @@
       // set color-scheme so native form controls (e.g. select dropdowns) match
       // the applied theme instead of rendering white-on-white
       document.documentElement.style.setProperty("--sb-color-scheme", config.bsTheme);
+      // give the theme selector readable colors regardless of the theme's own
+      // --bs-* variable combinations (e.g. quartz has light backgrounds + white text)
+      document.documentElement.style.setProperty(
+        "--sb-select-bg",
+        config.bsTheme === "dark" ? "#252525" : "#f8f9fa"
+      );
+      document.documentElement.style.setProperty(
+        "--sb-select-color",
+        config.bsTheme === "dark" ? "#eee" : "#111"
+      );
       // --smd-* vars consumed by smd-button/smd-modal/smd-page
       const root = document.documentElement;
       root.style.setProperty("--smd-primary", "var(--bs-primary, #0d6efd)");
