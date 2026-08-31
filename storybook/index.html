@@ -208,6 +208,7 @@
   <script src="../js/components/pmd-stream-header.js"></script>
   <script src="../js/components/pmd-stream-job-card.js"></script>
   <script src="../js/components/pmd-job-search-card.js"></script>
+  <script src="../js/components/pmd-image-card.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 
   <script>
@@ -589,6 +590,49 @@
           card.addEventListener("pmd-job-edit", (e) => log("pmd-job-search-card", "pmd-job-edit stream=" + e.detail.streamIdx + " job=" + e.detail.jobIdx));
           card.addEventListener("pmd-job-toggle-active", (e) => log("pmd-job-search-card", "pmd-job-toggle-active job=" + e.detail.jobIdx + " checked=" + e.detail.checked));
         });
+      }
+    });
+
+    // ---- pmd-image-card ----
+    sections.push({
+      id: "pmd-image-card",
+      name: "pmd-image-card",
+      tag: "<pmd-image-card>",
+      desc: "Image list card used by the Images editor. Attributes: <code>image-idx</code>, <code>name</code>, <code>image</code> (data URL), <code>in-use</code>. Set <code>in-use</code> to disable the Delete button. Dispatches <code>pmd-image-delete</code>, <code>pmd-image-duplicate</code>, <code>pmd-image-edit</code>.",
+      html: () => `
+        <div class="sb-canvas">
+          <div class="sb-stack" id="sb-image-cards"></div>
+        </div>
+        <div class="sb-controls">
+          <label><input type="checkbox" id="ctrl-image-inuse"> Mark Delete disabled (in-use)</label>
+        </div>
+        <div class="sb-log" id="log-pmd-image-card">events: none yet</div>
+      `,
+      init: () => {
+        const host = document.getElementById("sb-image-cards");
+        const renderCards = () => {
+          const inUse = document.getElementById("ctrl-image-inuse").checked;
+          host.innerHTML = `
+            <div class="sb-frame-wrapper">
+              <div class="sb-label">No image</div>
+              <pmd-image-card image-idx="0" name="Calendar"></pmd-image-card>
+            </div>
+            <div class="sb-frame-wrapper">
+              <div class="sb-label">SVG image</div>
+              <pmd-image-card image-idx="1" name="Pie chart" image="${SVG("#00bc8c")}"></pmd-image-card>
+            </div>
+            <div class="sb-frame-wrapper">
+              <div class="sb-label">In use (delete disabled)</div>
+              <pmd-image-card image-idx="2" name="Clock" image="${SVG("#375a7f")}" ${inUse ? "in-use" : ""}></pmd-image-card>
+            </div>`;
+          host.querySelectorAll("pmd-image-card").forEach((card) => {
+            ["pmd-image-delete", "pmd-image-duplicate", "pmd-image-edit"].forEach(type => {
+              card.addEventListener(type, (e) => log("pmd-image-card", type + " idx=" + e.detail.imageIdx));
+            });
+          });
+        };
+        renderCards();
+        document.getElementById("ctrl-image-inuse").addEventListener("change", renderCards);
       }
     });
 
