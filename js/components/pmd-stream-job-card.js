@@ -7,7 +7,7 @@ pmdStreamJobCardTemplate.innerHTML = `
       min-width: 0;
       background-color: var(--bs-secondary-bg, #303030);
       border: 1px solid var(--bs-border-color, #495057);
-      border-radius: 0.375rem;
+      border-radius: 0;
       padding: 0.5rem;
     }
     [hidden] { display: none !important; }
