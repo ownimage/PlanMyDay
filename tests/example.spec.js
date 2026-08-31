@@ -12,7 +12,9 @@ test.describe("Plan My Day", () => {
   test("settings page opens and shows theme selector", async ({ page }) => {
     await page.goto("/");
 
-    await page.getByTitle("Settings").click();
+    await page.locator("#btnMainMenu").click();
+
+    await page.locator("a.dropdown-item").filter({ hasText: "Settings" }).click();
     await expect(page.locator("#settingsPage")).toBeVisible();
     await page.locator("smd-tabs#settingsTabs .smd-tab-btn", { hasText: "Display" }).click();
     await expect(page.locator("#themeSelector")).toBeVisible();
@@ -21,7 +23,9 @@ test.describe("Plan My Day", () => {
   test("can toggle split list setting", async ({ page }) => {
     await page.goto("/");
 
-    await page.getByTitle("Settings").click();
+    await page.locator("#btnMainMenu").click();
+
+    await page.locator("a.dropdown-item").filter({ hasText: "Settings" }).click();
     const toggle = page.locator("#splitList");
     await toggle.check();
     await expect(toggle).toBeChecked();
