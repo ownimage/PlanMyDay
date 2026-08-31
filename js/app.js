@@ -436,6 +436,10 @@ function openSearchJobs() {
   page.classList.remove("d-none");
   jobSearchQuery = "";
   buildSearchJobsContent();
+  const sjPage = document.getElementById("jobSearchEditor");
+  if (sjPage && sjPage.shadowRoot) {
+    injectStyleInto(sjPage.shadowRoot, JOBS_EDITOR_STYLES);
+  }
   page.show();
   const input = $id("jobSearchInput");
   if (input) input.value = "";
@@ -464,10 +468,13 @@ function buildSearchJobsContent() {
   page.content =
     '<div id="jobSearchHeader">' +
       '<div id="jobSearchFilters" class="mt-3">' +
-        '<div class="d-flex gap-2 align-items-center">' +
-          '<input type="search" class="form-control" id="jobSearchInput" placeholder="Search job titles..." onkeydown="if(event.key===\'Enter\') searchJobsFilter()">' +
-          '<button id="btnJobSearch" class="btn btn-primary btn-sm text-nowrap" onclick="searchJobsFilter()">Search</button>' +
-          '<button id="btnJobSearchClear" class="btn btn-outline-secondary btn-sm" onclick="clearJobSearchFilter()">Clear</button>' +
+        '<div class="row align-items-center">' +
+          '<div class="col" style="padding-left:0">' +
+            '<input type="search" class="form-control" id="jobSearchInput" placeholder="Search job titles..." oninput="searchJobsFilter()">' +
+          '</div>' +
+          '<div class="col-auto" style="padding-left:0;padding-right:0">' +
+            '<smd-button variant="danger" id="btnJobSearchClear" onclick="clearJobSearchFilter()">Clear</smd-button>' +
+          '</div>' +
         '</div>' +
       '</div>' +
     '</div>' +
