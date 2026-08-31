@@ -30,6 +30,10 @@ template.innerHTML = `
     button[variant="success"] {
       background: var(--smd-success, #198754);
     }
+    button[variant="info"] {
+      background: var(--smd-info, #0dcaf0);
+      color: var(--smd-info-text, #fff);
+    }
   </style>
   <button part="button">
     <slot>Button</slot>
