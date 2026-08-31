@@ -166,8 +166,8 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator(".job-view-btn").first().click();
       await expect(page.locator("#jobEditPage")).toBeVisible();
       await expect(page.locator("#jobEditPage .smd-page-header h2")).toHaveText("View Job");
-      await expect(page.locator("#jobEditOkBtn")).toHaveText("OK");
-      await expect(page.locator("#btnViewJobEdit")).toHaveText("Edit");
+      await expect(page.locator("#jobEditOkBtn")).toContainText("OK");
+      await expect(page.locator("#btnViewJobEdit")).toContainText("Edit");
       const titleInput = page.locator("#jobEditPage .form-control").first();
       await expect(titleInput).toHaveValue("Report");
       await expect(page.locator("#jobEditPage input:read-only, #jobEditPage select:disabled, #jobEditPage textarea:read-only, #jobEditPage input[type=checkbox]:disabled").first()).toBeVisible();
@@ -191,7 +191,7 @@ test.describe("PlanMyDay - Regression", () => {
       await expect(page.locator("#jobEditPage .smd-page-header h2")).toHaveText("View Job");
       await page.locator("#btnViewJobEdit").filter({ hasText: "Edit" }).click();
       await expect(page.locator("#jobEditPage .smd-page-header h2")).toHaveText("Edit Job");
-      await expect(page.locator("#jobEditOkBtn")).toHaveText("OK");
+      await expect(page.locator("#jobEditOkBtn")).toContainText("OK");
       const titleInput = page.locator("#jobEditPage .form-control").first();
       await expect(titleInput).toHaveValue("Report");
       await expect(titleInput).toBeEditable();
@@ -341,7 +341,7 @@ test.describe("PlanMyDay - Regression", () => {
     test("ok button is disabled when title is empty", async ({ page }) => {
       await page.getByText("+ Add Job").click();
       await page.locator("#jobEditPage").waitFor({ state: "visible" });
-      const okBtn = page.locator("#jobEditOkBtn");
+      const okBtn = page.locator("#jobEditOkBtn button");
       await expect(okBtn).toBeDisabled();
       await page.locator("#jobTitleInput").fill("My Job");
       await expect(okBtn).toBeEnabled();
@@ -360,47 +360,48 @@ test.describe("PlanMyDay - Regression", () => {
   test.describe("Navigation", () => {
 
     test("opens settings page", async ({ page }) => {
-      await page.getByTitle("Settings").click();
+      await page.locator("#btnMainMenu").click();
+      await page.locator("a.dropdown-item").filter({ hasText: "Settings" }).click();
       await expect(page.locator("#settingsPage")).toBeVisible();
     });
 
     test("opens streams editor", async ({ page }) => {
-      await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
+      await page.locator("#btnMainMenu").click();
       await page.locator("a.dropdown-item").filter({ hasText: "Streams" }).click();
       await expect(page.locator("#streamsEditor")).toBeVisible();
     });
 
     test("opens images editor", async ({ page }) => {
-      await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
+      await page.locator("#btnMainMenu").click();
       await page.locator("a.dropdown-item").filter({ hasText: "Images" }).click();
       await expect(page.locator("#imagesEditor")).toBeVisible();
     });
 
     test("opening jobs editor hides images editor", async ({ page }) => {
-      await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
+      await page.locator("#btnMainMenu").click();
       await page.locator("a.dropdown-item").filter({ hasText: "Images" }).click();
       await expect(page.locator("#imagesEditor")).toBeVisible();
-      await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
+      await page.locator("#btnMainMenu").click();
       await page.locator("a.dropdown-item").filter({ hasText: "Streams" }).click();
       await expect(page.locator("#imagesEditor")).not.toBeVisible();
       await expect(page.locator("#streamsEditor")).toBeVisible();
     });
 
     test("closes images editor back to main view", async ({ page }) => {
-      await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
+      await page.locator("#btnMainMenu").click();
       await page.locator("a.dropdown-item").filter({ hasText: "Images" }).click();
       await page.locator("#addImageTileTop .btn-success").click();
       await expect(page.locator("#countdownContainer")).toBeVisible();
     });
 
     test("edit dropdown has Streams and Images items", async ({ page }) => {
-      await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
+      await page.locator("#btnMainMenu").click();
       await expect(page.locator("a.dropdown-item").filter({ hasText: "Streams" })).toBeVisible();
       await expect(page.locator("a.dropdown-item").filter({ hasText: "Images" })).toBeVisible();
     });
 
     test("import/export dropdown has items", async ({ page }) => {
-      await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Import/Export" }).click();
+      await page.locator("#btnMainMenu").click();
       await expect(page.locator("a.dropdown-item").filter({ hasText: /^Export$/ })).toBeVisible();
       await expect(page.locator("a.dropdown-item").filter({ hasText: /^Import$/ })).toBeVisible();
     });
@@ -414,7 +415,7 @@ test.describe("PlanMyDay - Regression", () => {
       });
 
       const downloadPromise = page.waitForEvent("download");
-      await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Import/Export" }).click();
+      await page.locator("#btnMainMenu").click();
       await page.locator("a.dropdown-item").filter({ hasText: /^Export$/ }).click();
       const download = await downloadPromise;
 
@@ -427,7 +428,8 @@ test.describe("PlanMyDay - Regression", () => {
   test.describe("Settings", () => {
 
     test("shows all main settings controls", async ({ page }) => {
-      await page.getByTitle("Settings").click();
+      await page.locator("#btnMainMenu").click();
+      await page.locator("a.dropdown-item").filter({ hasText: "Settings" }).click();
       await expect(page.locator("#splitList")).toBeVisible();
       await expect(page.locator("#autoHideMenu")).toBeVisible();
       await expect(page.locator("#hideDone")).toBeVisible();
@@ -445,13 +447,15 @@ test.describe("PlanMyDay - Regression", () => {
     });
 
     test("danger zone hidden by default", async ({ page }) => {
-      await page.getByTitle("Settings").click();
+      await page.locator("#btnMainMenu").click();
+      await page.locator("a.dropdown-item").filter({ hasText: "Settings" }).click();
       await expect(page.locator("#regenerateTilesRow")).not.toBeVisible();
       await expect(page.locator("#clearAllDataRow")).not.toBeVisible();
     });
 
     test("danger zone appears when toggled", async ({ page }) => {
-      await page.getByTitle("Settings").click();
+      await page.locator("#btnMainMenu").click();
+      await page.locator("a.dropdown-item").filter({ hasText: "Settings" }).click();
       await page.locator("#danger-tab").click();
       await page.locator("#showDanger").check();
       await expect(page.locator("#regenerateTilesRow")).toBeVisible();
@@ -459,7 +463,8 @@ test.describe("PlanMyDay - Regression", () => {
     });
 
     test("font size selector changes body class", async ({ page }) => {
-      await page.getByTitle("Settings").click();
+      await page.locator("#btnMainMenu").click();
+      await page.locator("a.dropdown-item").filter({ hasText: "Settings" }).click();
       await page.locator("#appearance-tab").click();
       await page.locator("#fontSizeSelector").selectOption("small");
       const hasClass = await page.evaluate(() => document.body.classList.contains("font-size-small"));
@@ -467,7 +472,8 @@ test.describe("PlanMyDay - Regression", () => {
     });
 
     test("icon size selector changes body class", async ({ page }) => {
-      await page.getByTitle("Settings").click();
+      await page.locator("#btnMainMenu").click();
+      await page.locator("a.dropdown-item").filter({ hasText: "Settings" }).click();
       await page.locator("#appearance-tab").click();
       await page.locator("#iconSizeSelector").selectOption("small");
       const hasClass = await page.evaluate(() => document.body.classList.contains("icon-size-small"));
@@ -475,7 +481,8 @@ test.describe("PlanMyDay - Regression", () => {
     });
 
     test("density selector changes body class", async ({ page }) => {
-      await page.getByTitle("Settings").click();
+      await page.locator("#btnMainMenu").click();
+      await page.locator("a.dropdown-item").filter({ hasText: "Settings" }).click();
       await page.locator("#appearance-tab").click();
       await page.locator("#densitySelector").selectOption("compact");
       const hasClass = await page.evaluate(() => document.body.classList.contains("compact"));
@@ -483,7 +490,8 @@ test.describe("PlanMyDay - Regression", () => {
     });
 
     test("drag size selector changes body class", async ({ page }) => {
-      await page.getByTitle("Settings").click();
+      await page.locator("#btnMainMenu").click();
+      await page.locator("a.dropdown-item").filter({ hasText: "Settings" }).click();
       await page.locator("#appearance-tab").click();
       await page.locator("#dragSizeSelector").selectOption("normal");
       const hasNormal = await page.evaluate(() => document.body.classList.contains("drag-size-normal"));
@@ -496,25 +504,29 @@ test.describe("PlanMyDay - Regression", () => {
     });
 
     test("split list toggle persists", async ({ page }) => {
-      await page.getByTitle("Settings").click();
+      await page.locator("#btnMainMenu").click();
+      await page.locator("a.dropdown-item").filter({ hasText: "Settings" }).click();
       await page.locator("#splitList").check();
       await expect(page.locator("#splitList")).toBeChecked();
     });
 
     test("auto hide menu toggle persists", async ({ page }) => {
-      await page.getByTitle("Settings").click();
+      await page.locator("#btnMainMenu").click();
+      await page.locator("a.dropdown-item").filter({ hasText: "Settings" }).click();
       await page.locator("#autoHideMenu").check();
       await expect(page.locator("#autoHideMenu")).toBeChecked();
     });
 
     test("hide done toggle persists", async ({ page }) => {
-      await page.getByTitle("Settings").click();
+      await page.locator("#btnMainMenu").click();
+      await page.locator("a.dropdown-item").filter({ hasText: "Settings" }).click();
       await page.locator("#hideDone").check();
       await expect(page.locator("#hideDone")).toBeChecked();
     });
 
     test("settings close returns to main view", async ({ page }) => {
-      await page.getByTitle("Settings").click();
+      await page.locator("#btnMainMenu").click();
+      await page.locator("a.dropdown-item").filter({ hasText: "Settings" }).click();
       await page.getByRole("button", { name: "Done" }).click();
       await expect(page.locator("#countdownContainer")).toBeVisible();
     });
@@ -531,7 +543,7 @@ test.describe("PlanMyDay - Regression", () => {
         localStorage.setItem("planmydays_streams", JSON.stringify(data));
       }, TEST_STREAMS);
       await page.reload();
-      await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
+      await page.locator("#btnMainMenu").click();
       await page.locator("a.dropdown-item").filter({ hasText: "Streams" }).click();
       await page.waitForTimeout(150);
     });
@@ -623,7 +635,7 @@ test.describe("PlanMyDay - Regression", () => {
         localStorage.setItem("planmydays_streams", JSON.stringify(streams));
       });
       await page.reload();
-      await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
+      await page.locator("#btnMainMenu").click();
       await page.locator("a.dropdown-item").filter({ hasText: "Streams" }).click();
       await page.locator("#streamEditorList .stream-accordion-header .btn-danger").filter({ hasText: "Delete", visible: true }).click();
       await expect(page.locator("#deleteConfirmModal")).toBeVisible();
@@ -649,7 +661,7 @@ test.describe("PlanMyDay - Regression", () => {
         localStorage.setItem("planmydays_streams", JSON.stringify(streams));
       });
       await page.reload();
-      await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
+      await page.locator("#btnMainMenu").click();
       await page.locator("a.dropdown-item").filter({ hasText: "Streams" }).click();
       var delBtn = page.locator("#streamEditorList .stream-accordion-header .btn-danger").filter({ hasText: "Delete", visible: true });
       await expect(delBtn).toHaveCount(1);
@@ -734,7 +746,7 @@ test.describe("PlanMyDay - Regression", () => {
         localStorage.setItem("planmydays_images", JSON.stringify([{ name: "testimg", data: "" }]));
       });
       await page.reload();
-      await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
+      await page.locator("#btnMainMenu").click();
       await page.locator("a.dropdown-item").filter({ hasText: "Streams" }).click();
       await page.locator("#streamEditorList .stream-header-main").first().click();
       await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible", timeout: 5000 });
@@ -811,7 +823,7 @@ test.describe("PlanMyDay - Regression", () => {
         localStorage.setItem("planmydays_streams", JSON.stringify(streams));
       });
       await page.reload();
-      await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
+      await page.locator("#btnMainMenu").click();
       await page.locator("a.dropdown-item").filter({ hasText: "Streams" }).click();
       await page.waitForTimeout(150);
       // expand the first stream (Work) and drag it below the second
@@ -837,7 +849,7 @@ test.describe("PlanMyDay - Regression", () => {
   test.describe("Search Jobs", () => {
 
     async function openSearchJobs(page) {
-      await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
+      await page.locator("#btnMainMenu").click();
       await page.locator("button.dropdown-item").filter({ hasText: "Search Jobs" }).click();
       await page.locator("#jobSearchEditor:not(.d-none)").waitFor({ state: "visible" });
     }
@@ -991,7 +1003,7 @@ test.describe("PlanMyDay - Regression", () => {
         localStorage.setItem("planmydays_streams", JSON.stringify(data));
       }, TEST_STREAMS);
       await page.reload();
-      await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
+      await page.locator("#btnMainMenu").click();
       await page.locator("a.dropdown-item").filter({ hasText: "Streams" }).click();
       await page.locator("#streamEditorList .stream-header-main").first().click();
       await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible", timeout: 5000 });
@@ -1129,7 +1141,7 @@ test.describe("PlanMyDay - Regression", () => {
         localStorage.setItem("planmydays_streams", JSON.stringify(streams));
       });
       await page.reload();
-      await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
+      await page.locator("#btnMainMenu").click();
       await page.locator("a.dropdown-item").filter({ hasText: "Streams" }).click();
       await page.locator("#streamEditorList .stream-header-main").first().click();
       await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible", timeout: 5000 });
@@ -1155,7 +1167,7 @@ test.describe("PlanMyDay - Regression", () => {
         page.evaluate(() => JSON.parse(localStorage.getItem("planmydays_streams"))[0].jobs.map(j => j.sequence))
       ).toEqual([1, 2]);
       await page.reload();
-      await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
+      await page.locator("#btnMainMenu").click();
       await page.locator("a.dropdown-item").filter({ hasText: "Streams" }).click();
       await page.locator("#streamEditorList .stream-header-main").first().click();
       await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible", timeout: 5000 });
@@ -1188,7 +1200,7 @@ test.describe("PlanMyDay - Regression", () => {
       }, todayStr);
       await page.reload();
       // go back to Jobs Editor
-      await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
+      await page.locator("#btnMainMenu").click();
       await page.locator("a.dropdown-item").filter({ hasText: "Streams" }).click();
       await page.locator("#streamEditorList .stream-header-main").first().click();
       await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible", timeout: 5000 });
@@ -1219,7 +1231,7 @@ test.describe("PlanMyDay - Regression", () => {
       }, todayStr);
       await page.reload();
       // go to Jobs Editor
-      await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
+      await page.locator("#btnMainMenu").click();
       await page.locator("a.dropdown-item").filter({ hasText: "Streams" }).click();
       await page.locator("#streamEditorList .stream-header-main").first().click();
       await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible", timeout: 5000 });
@@ -1255,7 +1267,7 @@ test.describe("PlanMyDay - Regression", () => {
         localStorage.setItem("planmydays_streams", JSON.stringify(data));
       }, TEST_STREAMS);
       await page.reload();
-      await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
+      await page.locator("#btnMainMenu").click();
       await page.locator("a.dropdown-item").filter({ hasText: "Streams" }).click();
       await page.locator("#streamEditorList .stream-header-main").first().click();
       await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible", timeout: 5000 });
@@ -1287,7 +1299,7 @@ test.describe("PlanMyDay - Regression", () => {
     test.beforeEach(async ({ page }) => {
       await startCoverage(page);
       await page.goto("/");
-      await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
+      await page.locator("#btnMainMenu").click();
       await page.locator("a.dropdown-item").filter({ hasText: "Images" }).click();
     });
 
@@ -1504,7 +1516,7 @@ test.describe("PlanMyDay - Regression", () => {
         localStorage.setItem("planmydays_images", JSON.stringify([{ name: "EditTest", data: svgData }]));
       }, svg);
       await page.reload();
-      await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
+      await page.locator("#btnMainMenu").click();
       await page.locator("a.dropdown-item").filter({ hasText: "Images" }).click();
       await page.locator("#imagesEditor").waitFor({ state: "visible" });
       await page.locator(".card:has-text('EditTest') .btn-primary").first().click();
@@ -1539,7 +1551,7 @@ test.describe("PlanMyDay - Regression", () => {
       }, TEST_STREAMS);
       await page.reload();
       await page.waitForLoadState("domcontentloaded");
-      await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
+      await page.locator("#btnMainMenu").click();
       await page.locator("a.dropdown-item").filter({ hasText: "Streams" }).click();
       await page.locator("#streamEditorList").waitFor({ state: "visible" });
       await page.locator("#streamEditorList .stream-header-main").first().click();
@@ -1592,7 +1604,8 @@ test.describe("PlanMyDay - Regression", () => {
 
     test("dev mode setting appears with ?dev=true", async ({ page }) => {
       await page.goto("/?dev=true");
-      await page.getByTitle("Settings").click();
+      await page.locator("#btnMainMenu").click();
+      await page.locator("a.dropdown-item").filter({ hasText: "Settings" }).click();
       await page.locator("#danger-tab").click();
       await page.locator("#showDanger").check();
       await expect(page.locator(".flatpickr-input")).toHaveCount(2);
@@ -1600,7 +1613,8 @@ test.describe("PlanMyDay - Regression", () => {
 
     test("dev mode not visible without ?dev=true", async ({ page }) => {
       await page.goto("/");
-      await page.getByTitle("Settings").click();
+      await page.locator("#btnMainMenu").click();
+      await page.locator("a.dropdown-item").filter({ hasText: "Settings" }).click();
       await page.locator("#danger-tab").click();
       await page.locator("#showDanger").check();
       await expect(page.locator(".flatpickr-input")).toHaveCount(0);
@@ -1615,7 +1629,7 @@ test.describe("PlanMyDay - Regression", () => {
       await seedTodayList(page);
       await page.evaluate(() => localStorage.setItem("planmydays_splitList", "true"));
       await page.reload();
-      const tabs = page.locator("button.nav-link").filter({ hasText: /Progress|Maintenance/ });
+      const tabs = page.locator("#todayTabs .smd-tab-btn").filter({ hasText: /Progress|Maintenance/ });
       await expect(tabs).toHaveCount(2);
     });
 
@@ -1623,7 +1637,7 @@ test.describe("PlanMyDay - Regression", () => {
       await seedTodayList(page);
       await page.evaluate(() => localStorage.setItem("planmydays_splitList", "true"));
       await page.reload();
-      await page.locator("button.nav-link").filter({ hasText: "Maintenance" }).click();
+      await page.locator("#todayTabs .smd-tab-btn").filter({ hasText: "Maintenance" }).click();
       await expect(page.getByText("Laundry")).toBeVisible();
       const reportCard = page.locator("#todayCardList .today-drag-card").filter({ hasText: "Report" });
       await expect(reportCard).toHaveCount(1);
@@ -1664,7 +1678,7 @@ test.describe("PlanMyDay - Regression", () => {
       }, { stream, ds });
       await page.reload();
 
-      const tabBar = page.locator("button.nav-link").filter({ hasText: "Progress" });
+      const tabBar = page.locator("#todayTabs .smd-tab-btn").filter({ hasText: "Progress" });
       await expect(tabBar).toBeVisible();
 
       // Verify the tab bar is within the viewport (not pushed below the fold)
@@ -1692,7 +1706,7 @@ test.describe("PlanMyDay - Regression", () => {
       }, TEST_STREAMS);
       await page.reload();
       await page.waitForLoadState("domcontentloaded");
-      await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
+      await page.locator("#btnMainMenu").click();
       await page.locator("a.dropdown-item").filter({ hasText: "Streams" }).click();
       await page.locator("#streamEditorList").waitFor({ state: "visible" });
       await page.locator("#streamEditorList .stream-accordion-header .btn-danger").filter({ hasText: "Delete", visible: true }).click();
@@ -1821,7 +1835,7 @@ test.describe("PlanMyDay - Regression", () => {
     test("adding an eligible job in the streams editor joins today's list", async ({ page }) => {
       await seedTodayList(page);
       await page.reload();
-      await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
+      await page.locator("#btnMainMenu").click();
       await page.locator("a.dropdown-item").filter({ hasText: "Streams" }).click();
       await page.locator("#streamEditorList .stream-header-main").first().click();
       await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible", timeout: 5000 });
@@ -1846,7 +1860,7 @@ test.describe("PlanMyDay - Regression", () => {
     test("a job that does not match today's schedule is not added to today's list", async ({ page }) => {
       await seedTodayList(page);
       await page.reload();
-      await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
+      await page.locator("#btnMainMenu").click();
       await page.locator("a.dropdown-item").filter({ hasText: "Streams" }).click();
       await page.locator("#streamEditorList .stream-header-main").first().click();
       await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible", timeout: 5000 });
@@ -1876,7 +1890,8 @@ test.describe("PlanMyDay - Regression", () => {
   test.describe("Suffix Start Setting", () => {
 
     test("suffix start dropdown exists in settings after hide done", async ({ page }) => {
-      await page.getByTitle("Settings").click();
+      await page.locator("#btnMainMenu").click();
+      await page.locator("a.dropdown-item").filter({ hasText: "Settings" }).click();
       await page.locator("#schedule-tab").click();
       const suffixStartSel = page.locator("#suffixStartSelector");
       await expect(suffixStartSel).toBeVisible();
@@ -1928,7 +1943,8 @@ test.describe("PlanMyDay - Regression", () => {
     });
 
     test("suffix start setting persists via settings page", async ({ page }) => {
-      await page.getByTitle("Settings").click();
+      await page.locator("#btnMainMenu").click();
+      await page.locator("a.dropdown-item").filter({ hasText: "Settings" }).click();
       await page.locator("#schedule-tab").click();
       await page.locator("#suffixStartSelector").selectOption("1");
       const val = await page.evaluate(() => localStorage.getItem("planmydays_suffixStart"));
@@ -1984,7 +2000,8 @@ test.describe("PlanMyDay - Regression", () => {
 
     test.beforeEach(async ({ page }) => {
       await startCoverage(page);
-      await page.getByTitle("Settings").click();
+      await page.locator("#btnMainMenu").click();
+      await page.locator("a.dropdown-item").filter({ hasText: "Settings" }).click();
     });
 
     test("theme selector changes theme", async ({ page }) => {
@@ -1997,7 +2014,8 @@ test.describe("PlanMyDay - Regression", () => {
     test("theme fallback on unknown value", async ({ page }) => {
       await page.evaluate(() => localStorage.setItem("planmydays_theme", "nonexistent"));
       await page.reload();
-      await page.getByTitle("Settings").click();
+      await page.locator("#btnMainMenu").click();
+      await page.locator("a.dropdown-item").filter({ hasText: "Settings" }).click();
       await page.locator("#settingsPage:not(.d-none)").waitFor({ state: "visible" });
       const linkHref = await page.evaluate(() => {
         const link = document.getElementById("bootstrap-theme-css");
@@ -2117,7 +2135,8 @@ test.describe("PlanMyDay - Regression", () => {
 
     test("danger zone toggle shows dev rows in dev mode", async ({ page }) => {
       await page.goto("/?dev=true");
-      await page.getByTitle("Settings").click();
+      await page.locator("#btnMainMenu").click();
+      await page.locator("a.dropdown-item").filter({ hasText: "Settings" }).click();
       await page.locator("#danger-tab").click();
       await page.locator("#showDanger").check();
       await expect(page.locator("#devTodayRow")).toBeVisible();
@@ -2136,7 +2155,7 @@ test.describe("PlanMyDay - Regression", () => {
         localStorage.setItem("planmydays_streams", JSON.stringify(data));
       }, TEST_STREAMS);
       await page.reload();
-      await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
+      await page.locator("#btnMainMenu").click();
       await page.locator("a.dropdown-item").filter({ hasText: "Streams" }).click();
       await page.locator("#streamEditorList .stream-header-main").first().click();
       await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible", timeout: 5000 });
@@ -2355,7 +2374,7 @@ test.describe("PlanMyDay - Regression", () => {
         ]));
       });
       await page.reload();
-      await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
+      await page.locator("#btnMainMenu").click();
       await page.locator("a.dropdown-item").filter({ hasText: "Streams" }).click();
       await page.locator("#streamEditorList .stream-header-main").first().click();
       await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible", timeout: 5000 });
@@ -2416,7 +2435,7 @@ test.describe("PlanMyDay - Regression", () => {
         jobs: [{ id: "job_1", title: "Report", active: true, frequency: "daily", sequence: 1, suffix: false, dayType: "dayOfYear", mod: "", tasks: [] }]
       }]);
       await page.reload();
-      await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
+      await page.locator("#btnMainMenu").click();
       await page.locator("a.dropdown-item").filter({ hasText: "Streams" }).click();
       await page.locator("#streamEditorList .stream-header-main").first().click();
       await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible", timeout: 5000 });
@@ -2443,7 +2462,7 @@ test.describe("PlanMyDay - Regression", () => {
         localStorage.setItem("planmydays_images", JSON.stringify([{ name: "EditTest", data: svgData }]));
       }, svg);
       await page.reload();
-      await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
+      await page.locator("#btnMainMenu").click();
       await page.locator("a.dropdown-item").filter({ hasText: "Images" }).click();
       await page.locator("#imagesEditor").waitFor({ state: "visible" });
     });
@@ -2797,7 +2816,7 @@ test.describe("PlanMyDay - Regression", () => {
       }, TEST_STREAMS);
       await page.goto("/");
       await page.waitForLoadState("domcontentloaded");
-      await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
+      await page.locator("#btnMainMenu").click();
       await page.locator("a.dropdown-item").filter({ hasText: "Streams" }).click();
       await page.locator("#streamEditorList").waitFor({ state: "visible" });
       await page.locator("#streamEditorList .stream-header-main").first().click();
@@ -2884,7 +2903,7 @@ test.describe("PlanMyDay - Regression", () => {
         localStorage.setItem("planmydays_streams", JSON.stringify(data));
       }, TEST_STREAMS);
       await page.reload();
-      await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
+      await page.locator("#btnMainMenu").click();
       await page.locator("a.dropdown-item").filter({ hasText: "Streams" }).click();
       await page.locator("#streamEditorList .stream-header-main").first().click();
       await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible", timeout: 5000 });
@@ -2976,7 +2995,8 @@ test.describe("PlanMyDay - Regression", () => {
 
     test("dev mode today changes date displayed", async ({ page }) => {
       await page.goto("/?dev=true");
-      await page.getByTitle("Settings").click();
+      await page.locator("#btnMainMenu").click();
+      await page.locator("a.dropdown-item").filter({ hasText: "Settings" }).click();
       await page.locator("#danger-tab").click();
       await page.locator("#showDanger").check();
       const todayInput = page.locator(".flatpickr-input").first();
@@ -3002,7 +3022,7 @@ test.describe("PlanMyDay - Regression", () => {
         localStorage.setItem("planmydays_images", JSON.stringify([{ name: "OriginalName", data: svgData }]));
       }, svg);
       await page.reload();
-      await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
+      await page.locator("#btnMainMenu").click();
       await page.locator("a.dropdown-item").filter({ hasText: "Images" }).click();
       await page.locator("#imagesEditor").waitFor({ state: "visible" });
       await page.locator(".card:has-text('OriginalName') .btn-primary").first().click();
@@ -3028,7 +3048,7 @@ test.describe("PlanMyDay - Regression", () => {
         localStorage.setItem("planmydays_images", JSON.stringify([{ name: "StrokeTest", data: svgData }]));
       }, svg);
       await page.reload();
-      await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
+      await page.locator("#btnMainMenu").click();
       await page.locator("a.dropdown-item").filter({ hasText: "Images" }).click();
       await page.locator("#imagesEditor").waitFor({ state: "visible" });
       await page.locator(".card:has-text('StrokeTest') .btn-primary").first().click();
@@ -3050,7 +3070,7 @@ test.describe("PlanMyDay - Regression", () => {
         localStorage.setItem("planmydays_images", JSON.stringify([{ name: "FillTest", data: svgData }]));
       }, svg);
       await page.reload();
-      await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
+      await page.locator("#btnMainMenu").click();
       await page.locator("a.dropdown-item").filter({ hasText: "Images" }).click();
       await page.locator("#imagesEditor").waitFor({ state: "visible" });
       await page.locator(".card:has-text('FillTest') .btn-primary").first().click();
@@ -3078,7 +3098,7 @@ test.describe("PlanMyDay - Regression", () => {
         localStorage.setItem("planmydays_images", JSON.stringify([]));
       });
       await page.reload();
-      await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
+      await page.locator("#btnMainMenu").click();
       await page.locator("a.dropdown-item").filter({ hasText: "Streams" }).click();
       await page.locator("#streamEditorList .btn-primary").filter({ hasText: "Edit" }).first().click();
       await page.locator("#btnStreamImageChoose").click();
@@ -3094,7 +3114,7 @@ test.describe("PlanMyDay - Regression", () => {
         localStorage.setItem("planmydays_images", JSON.stringify([{ name: "Apple", data: "" }]));
       });
       await page.reload();
-      await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
+      await page.locator("#btnMainMenu").click();
       await page.locator("a.dropdown-item").filter({ hasText: "Streams" }).click();
       await page.locator("#streamEditorList .btn-primary").filter({ hasText: "Edit" }).first().click();
       await page.locator("#btnStreamImageChoose").click();
@@ -3352,7 +3372,8 @@ test.describe("PlanMyDay - Regression", () => {
     test("regenerate tiles rebuilds the today list", async ({ page }) => {
       await seedTodayList(page);
       await page.reload();
-      await page.getByTitle("Settings").click();
+      await page.locator("#btnMainMenu").click();
+      await page.locator("a.dropdown-item").filter({ hasText: "Settings" }).click();
       await page.locator("#danger-tab").click();
       await page.locator("#showDanger").check();
       await page.locator("#regenerateTilesRow").waitFor({ state: "visible" });
@@ -3383,7 +3404,8 @@ test.describe("PlanMyDay - Regression", () => {
         return tms;
       });
       await page.reload();
-      await page.getByTitle("Settings").click();
+      await page.locator("#btnMainMenu").click();
+      await page.locator("a.dropdown-item").filter({ hasText: "Settings" }).click();
       await page.locator("#danger-tab").click();
       await page.locator("#showDanger").check();
       await page.locator("#regenerateTilesRow").waitFor({ state: "visible" });
@@ -3414,7 +3436,8 @@ test.describe("PlanMyDay - Regression", () => {
         localStorage.setItem("planmydays_scheduleTestMatches", matchesToday ? "true" : "false");
       });
       await page.reload();
-      await page.getByTitle("Settings").click();
+      await page.locator("#btnMainMenu").click();
+      await page.locator("a.dropdown-item").filter({ hasText: "Settings" }).click();
       await page.locator("#danger-tab").click();
       await page.locator("#showDanger").check();
       await page.locator("#regenerateTilesRow").waitFor({ state: "visible" });
@@ -3447,7 +3470,8 @@ test.describe("PlanMyDay - Regression", () => {
         localStorage.setItem("planmydays_scheduleTestMatches", isWeekday ? "true" : "false");
       });
       await page.reload();
-      await page.getByTitle("Settings").click();
+      await page.locator("#btnMainMenu").click();
+      await page.locator("a.dropdown-item").filter({ hasText: "Settings" }).click();
       await page.locator("#danger-tab").click();
       await page.locator("#showDanger").check();
       await page.locator("#regenerateTilesRow").waitFor({ state: "visible" });
@@ -3480,7 +3504,8 @@ test.describe("PlanMyDay - Regression", () => {
         localStorage.setItem("planmydays_scheduleTestMatches", isWeekend ? "true" : "false");
       });
       await page.reload();
-      await page.getByTitle("Settings").click();
+      await page.locator("#btnMainMenu").click();
+      await page.locator("a.dropdown-item").filter({ hasText: "Settings" }).click();
       await page.locator("#danger-tab").click();
       await page.locator("#showDanger").check();
       await page.locator("#regenerateTilesRow").waitFor({ state: "visible" });
@@ -3511,7 +3536,8 @@ test.describe("PlanMyDay - Regression", () => {
         localStorage.setItem("planmydays_completed", JSON.stringify([]));
       });
       await page.reload();
-      await page.getByTitle("Settings").click();
+      await page.locator("#btnMainMenu").click();
+      await page.locator("a.dropdown-item").filter({ hasText: "Settings" }).click();
       await page.locator("#danger-tab").click();
       await page.locator("#showDanger").check();
       await page.locator("#regenerateTilesRow").waitFor({ state: "visible" });
@@ -3537,7 +3563,8 @@ test.describe("PlanMyDay - Regression", () => {
         localStorage.setItem("planmydays_completed", JSON.stringify([]));
       });
       await page.reload();
-      await page.getByTitle("Settings").click();
+      await page.locator("#btnMainMenu").click();
+      await page.locator("a.dropdown-item").filter({ hasText: "Settings" }).click();
       await page.locator("#danger-tab").click();
       await page.locator("#showDanger").check();
       await page.locator("#regenerateTilesRow").waitFor({ state: "visible" });
@@ -3566,7 +3593,8 @@ test.describe("PlanMyDay - Regression", () => {
         localStorage.setItem("planmydays_completed", JSON.stringify([]));
       });
       await page.reload();
-      await page.getByTitle("Settings").click();
+      await page.locator("#btnMainMenu").click();
+      await page.locator("a.dropdown-item").filter({ hasText: "Settings" }).click();
       await page.locator("#danger-tab").click();
       await page.locator("#showDanger").check();
       await page.locator("#regenerateTilesRow").waitFor({ state: "visible" });
@@ -3593,7 +3621,8 @@ test.describe("PlanMyDay - Regression", () => {
         localStorage.setItem("planmydays_completed", JSON.stringify([]));
       });
       await page.reload();
-      await page.getByTitle("Settings").click();
+      await page.locator("#btnMainMenu").click();
+      await page.locator("a.dropdown-item").filter({ hasText: "Settings" }).click();
       await page.locator("#danger-tab").click();
       await page.locator("#showDanger").check();
       await page.locator("#regenerateTilesRow").waitFor({ state: "visible" });
@@ -3612,7 +3641,8 @@ test.describe("PlanMyDay - Regression", () => {
         localStorage.setItem("showDanger", "true");
       });
       await page.reload();
-      await page.getByTitle("Settings").click();
+      await page.locator("#btnMainMenu").click();
+      await page.locator("a.dropdown-item").filter({ hasText: "Settings" }).click();
       await page.locator("#danger-tab").click();
       await page.locator("#showDanger").check();
       await page.locator("#clearAllDataRow").waitFor({ state: "visible" });
@@ -3641,7 +3671,8 @@ test.describe("PlanMyDay - Regression", () => {
 
     test("sort jobs in streams button shows in danger zone", async ({ page }) => {
       await page.goto("/");
-      await page.getByTitle("Settings").click();
+      await page.locator("#btnMainMenu").click();
+      await page.locator("a.dropdown-item").filter({ hasText: "Settings" }).click();
       await page.locator("#danger-tab").click();
       await expect(page.locator("#btnSortJobsInStreams")).toBeHidden();
       await page.locator("#showDanger").check();
@@ -3667,7 +3698,8 @@ test.describe("PlanMyDay - Regression", () => {
         localStorage.setItem("planmydays_today_order", JSON.stringify([]));
       });
       await page.reload();
-      await page.getByTitle("Settings").click();
+      await page.locator("#btnMainMenu").click();
+      await page.locator("a.dropdown-item").filter({ hasText: "Settings" }).click();
       await page.locator("#danger-tab").click();
       await page.locator("#showDanger").check();
       await page.getByRole("button", { name: "Sort Jobs in Streams" }).click();
@@ -3903,7 +3935,8 @@ test.describe("PlanMyDay - Regression", () => {
     test("dev mode flatpickr inputs appear with danger zone", async ({ page }) => {
       await page.goto("/?dev=true");
       await page.reload();
-      await page.getByTitle("Settings").click();
+      await page.locator("#btnMainMenu").click();
+      await page.locator("a.dropdown-item").filter({ hasText: "Settings" }).click();
       await page.locator("#danger-tab").click();
       await page.locator("#showDanger").check();
       await page.locator("#devTodayRow").waitFor({ state: "visible" });
@@ -3924,7 +3957,7 @@ test.describe("PlanMyDay - Regression", () => {
       });
       await page.reload();
       await page.waitForLoadState("networkidle");
-      await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
+      await page.locator("#btnMainMenu").click();
       await page.locator("a.dropdown-item").filter({ hasText: "Streams" }).click();
       await expect(page.locator("#streamsEditor")).toBeVisible();
       await expect(page.locator("#streamEditorList .editor-title").filter({ hasText: "MyStream" })).toBeVisible();
@@ -3943,7 +3976,7 @@ test.describe("PlanMyDay - Regression", () => {
         }]));
       });
       await page.reload();
-      await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
+      await page.locator("#btnMainMenu").click();
       await page.locator("a.dropdown-item").filter({ hasText: "Streams" }).click();
       await page.locator("#streamEditorList .stream-header-main").first().click();
       await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible", timeout: 5000 });
@@ -3964,7 +3997,7 @@ test.describe("PlanMyDay - Regression", () => {
         }]));
       });
       await page.reload();
-      await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
+      await page.locator("#btnMainMenu").click();
       await page.locator("a.dropdown-item").filter({ hasText: "Streams" }).click();
       await page.locator("#streamEditorList .stream-header-main").first().click();
       await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible", timeout: 5000 });
@@ -3980,7 +4013,7 @@ test.describe("PlanMyDay - Regression", () => {
         }]));
       });
       await page.reload();
-      await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
+      await page.locator("#btnMainMenu").click();
       await page.locator("a.dropdown-item").filter({ hasText: "Streams" }).click();
       await page.locator("#streamEditorList .stream-header-main").first().click();
       await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible", timeout: 5000 });
@@ -4008,7 +4041,8 @@ test.describe("PlanMyDay - Regression", () => {
         localStorage.setItem("planmydays_completed", JSON.stringify([]));
       });
       await page.reload();
-      await page.getByTitle("Settings").click();
+      await page.locator("#btnMainMenu").click();
+      await page.locator("a.dropdown-item").filter({ hasText: "Settings" }).click();
       await page.locator("#danger-tab").click();
       await page.locator("#showDanger").check();
       await page.locator("#regenerateTilesRow").waitFor({ state: "visible" });
@@ -4033,7 +4067,7 @@ test.describe("PlanMyDay - Regression", () => {
         ]));
       });
       await page.reload();
-      await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
+      await page.locator("#btnMainMenu").click();
       await page.locator("a.dropdown-item").filter({ hasText: "Streams" }).click();
       await page.locator("#streamEditorList .stream-header-main").first().click();
       await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible", timeout: 5000 });
@@ -4070,7 +4104,7 @@ test.describe("PlanMyDay - Regression", () => {
         ]));
       });
       await page.reload();
-      await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
+      await page.locator("#btnMainMenu").click();
       await page.locator("a.dropdown-item").filter({ hasText: "Streams" }).click();
       await page.locator("#streamEditorList .stream-header-main").first().click();
       await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible", timeout: 5000 });
@@ -4101,7 +4135,7 @@ test.describe("PlanMyDay - Regression", () => {
         ]));
       });
       await page.reload();
-      await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
+      await page.locator("#btnMainMenu").click();
       await page.locator("a.dropdown-item").filter({ hasText: "Streams" }).click();
       await page.locator("#streamEditorList .stream-header-main").first().click();
       await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible", timeout: 5000 });
@@ -4319,7 +4353,8 @@ test.describe("PlanMyDay - Regression", () => {
 
     test("uploadStandardImages adds sample images", async ({ page }) => {
       test.setTimeout(60000);
-      await page.getByTitle("Settings").click();
+      await page.locator("#btnMainMenu").click();
+      await page.locator("a.dropdown-item").filter({ hasText: "Settings" }).click();
       await page.locator("#danger-tab").click();
       await page.locator("#showDanger").check();
       await page.locator("#uploadStandardImagesRow").waitFor({ state: "visible" });
@@ -4361,7 +4396,7 @@ test.describe("PlanMyDay - Regression", () => {
         localStorage.setItem("planmydays_images", JSON.stringify(imgs));
       }, images);
       await page.reload();
-      await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
+      await page.locator("#btnMainMenu").click();
       await page.locator("a.dropdown-item").filter({ hasText: "Images" }).click();
       await page.waitForTimeout(150);
     });
@@ -4545,7 +4580,7 @@ test.describe("PlanMyDay - Regression", () => {
         localStorage.setItem("planmydays_completed", "[]");
       }, TEST_STREAMS);
       await page.reload();
-      await page.locator(".nav-tabs-info .nav-link").filter({ hasText: "Maintenance" }).click();
+      await page.locator("#todayTabs .smd-tab-btn").filter({ hasText: "Maintenance" }).click();
       await expect(page.getByText("No jobs in this tab.")).toBeVisible();
     });
 
@@ -5042,12 +5077,14 @@ test.describe("PlanMyDay - Regression", () => {
     // ── Settings UI ────────────────────────────────────────
 
     test("minio tab exists in settings", async ({ page }) => {
-      await page.getByTitle("Settings").click();
+      await page.locator("#btnMainMenu").click();
+      await page.locator("a.dropdown-item").filter({ hasText: "Settings" }).click();
       await expect(page.locator("#minio-tab")).toBeVisible();
     });
 
     test("minio tab shows fields when enabled", async ({ page }) => {
-      await page.getByTitle("Settings").click();
+      await page.locator("#btnMainMenu").click();
+      await page.locator("a.dropdown-item").filter({ hasText: "Settings" }).click();
       await page.locator("#minio-tab").click();
       await expect(page.locator("#minioEnabled")).toBeVisible();
       await expect(page.locator("#minioServer")).toBeVisible();
@@ -5057,7 +5094,8 @@ test.describe("PlanMyDay - Regression", () => {
     });
 
     test("minio fields are disabled when enable toggle is off", async ({ page }) => {
-      await page.getByTitle("Settings").click();
+      await page.locator("#btnMainMenu").click();
+      await page.locator("a.dropdown-item").filter({ hasText: "Settings" }).click();
       await page.locator("#minio-tab").click();
       await expect(page.locator("#minioEnabled")).not.toBeChecked();
       await expect(page.locator("#minioServer")).toBeDisabled();
@@ -5067,7 +5105,8 @@ test.describe("PlanMyDay - Regression", () => {
     });
 
     test("minio fields become enabled when toggle is on", async ({ page }) => {
-      await page.getByTitle("Settings").click();
+      await page.locator("#btnMainMenu").click();
+      await page.locator("a.dropdown-item").filter({ hasText: "Settings" }).click();
       await page.locator("#minio-tab").click();
       await page.waitForTimeout(100);
       await page.locator("#minioEnabled").check();
@@ -5086,7 +5125,8 @@ test.describe("PlanMyDay - Regression", () => {
         localStorage.setItem("planmydays_minio_bucket", "testbucket");
       });
       await page.reload();
-      await page.getByTitle("Settings").click();
+      await page.locator("#btnMainMenu").click();
+      await page.locator("a.dropdown-item").filter({ hasText: "Settings" }).click();
       await page.locator("#minio-tab").click();
       await page.waitForTimeout(150);
       await expect(page.locator("#minioEnabled")).toBeChecked();
@@ -5097,7 +5137,8 @@ test.describe("PlanMyDay - Regression", () => {
     });
 
     test("password toggle shows and hides password", async ({ page }) => {
-      await page.getByTitle("Settings").click();
+      await page.locator("#btnMainMenu").click();
+      await page.locator("a.dropdown-item").filter({ hasText: "Settings" }).click();
       await page.locator("#minio-tab").click();
       await page.waitForTimeout(100);
       await page.locator("#minioEnabled").check();
@@ -5110,7 +5151,8 @@ test.describe("PlanMyDay - Regression", () => {
     });
 
     test("password is hidden when leaving minio tab", async ({ page }) => {
-      await page.getByTitle("Settings").click();
+      await page.locator("#btnMainMenu").click();
+      await page.locator("a.dropdown-item").filter({ hasText: "Settings" }).click();
       await page.locator("#minio-tab").click();
       await page.waitForTimeout(100);
       await page.locator("#minioEnabled").check();
@@ -5124,7 +5166,7 @@ test.describe("PlanMyDay - Regression", () => {
     // ── Menu visibility ────────────────────────────────────
 
     test("minio menu items hidden when disabled", async ({ page }) => {
-      await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Import/Export" }).click();
+      await page.locator("#btnMainMenu").click();
       await expect(page.locator("a.dropdown-item").filter({ hasText: "Export to Minio" })).not.toBeVisible();
       await expect(page.locator("a.dropdown-item").filter({ hasText: "Import from Minio" })).not.toBeVisible();
     });
@@ -5138,7 +5180,7 @@ test.describe("PlanMyDay - Regression", () => {
         localStorage.setItem("planmydays_minio_bucket", "b");
       });
       await page.reload();
-      await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Import/Export" }).click();
+      await page.locator("#btnMainMenu").click();
       await expect(page.locator("a.dropdown-item").filter({ hasText: "Export to Minio" })).toBeVisible();
       await expect(page.locator("a.dropdown-item").filter({ hasText: "Import from Minio" })).toBeVisible();
     });
@@ -5354,7 +5396,8 @@ test.describe("PlanMyDay - Regression", () => {
     });
 
     test("changeMinioEnabled toggles fields and menu", async ({ page }) => {
-      await page.getByTitle("Settings").click();
+      await page.locator("#btnMainMenu").click();
+      await page.locator("a.dropdown-item").filter({ hasText: "Settings" }).click();
       await page.locator("#minio-tab").click();
       await page.waitForTimeout(100);
       await page.locator("#minioEnabled").check();
@@ -5383,7 +5426,8 @@ test.describe("PlanMyDay - Regression", () => {
     // ── loadMinioSettings populates form ───────────────────
 
     test("loadMinioSettings populates fields from localStorage", async ({ page }) => {
-      await page.getByTitle("Settings").click();
+      await page.locator("#btnMainMenu").click();
+      await page.locator("a.dropdown-item").filter({ hasText: "Settings" }).click();
       await page.locator("#minio-tab").click();
       await page.evaluate(() => {
         localStorage.setItem("planmydays_minio_enabled", "true");
@@ -5401,7 +5445,8 @@ test.describe("PlanMyDay - Regression", () => {
     });
 
     test("loadMinioSettings disables fields when not enabled", async ({ page }) => {
-      await page.getByTitle("Settings").click();
+      await page.locator("#btnMainMenu").click();
+      await page.locator("a.dropdown-item").filter({ hasText: "Settings" }).click();
       await page.locator("#minio-tab").click();
       await page.evaluate(() => loadMinioSettings());
       await expect(page.locator("#minioServer")).toBeDisabled();
@@ -5619,7 +5664,7 @@ test.describe("PlanMyDay - Regression", () => {
         localStorage.setItem("planmydays_streams", JSON.stringify(data));
       }, TEST_STREAMS);
       await page.reload();
-      await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
+      await page.locator("#btnMainMenu").click();
       await page.locator("a.dropdown-item").filter({ hasText: "Streams" }).click();
       await page.locator("#streamEditorList .stream-header-main").first().click();
       await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible", timeout: 5000 });
@@ -5826,7 +5871,7 @@ test.describe("PlanMyDay - Regression", () => {
         localStorage.setItem("planmydays_streams", JSON.stringify(data));
       }, TEST_STREAMS);
       await mp.reload();
-      await mp.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).click();
+      await mp.locator("#btnMainMenu").click();
       await mp.locator("a.dropdown-item").filter({ hasText: "Streams" }).click();
       await mp.locator("#streamEditorList .stream-header-main").first().click();
       await mp.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible", timeout: 5000 });
@@ -6155,7 +6200,8 @@ test.describe("PlanMyDay - Regression", () => {
     test("settings slide speed control updates all smd-pages and persists", async ({ page }) => {
       await page.evaluate(() => localStorage.clear());
       await page.reload();
-      await page.getByTitle("Settings").click();
+      await page.locator("#btnMainMenu").click();
+      await page.locator("a.dropdown-item").filter({ hasText: "Settings" }).click();
       await expect(page.locator("#settingsPage:not(.d-none)")).toBeVisible();
       await page.locator("#appearance-tab").click();
       await page.locator("#slideDurationSelector").selectOption("150");

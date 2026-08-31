@@ -71,7 +71,7 @@ async function touchDrag(page, fromLocator, toBox) {
 }
 
 async function openStreamsEditor(page) {
-  await page.locator("#mainNav .dropdown-toggle").filter({ hasText: "Edit" }).tap();
+  await page.locator("#btnMainMenu").tap();
   await page.locator("a.dropdown-item").filter({ hasText: "Streams" }).tap();
   await page.waitForTimeout(300);
 }

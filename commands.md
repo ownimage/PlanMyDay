@@ -1,6 +1,6 @@
 ### Run only the regression tests
 ```bash
-npx playwright test tests/regression.spec.js  tests/touch.spec.js 
+npx playwright test tests/regression.spec.js  tests/touch.spec.js --retries=0
 ```
 ```bash
 npx playwright test --last-failed
@@ -9,7 +9,7 @@ npx playwright test -g "your test name" --repeat-each=10
 npx playwright test tests/regression.spec.js --repeat-each=100
 
 ```bash
-npx tests/http-server
+python tests/http-server.py
 ```
 ### SampleImages
 ```bash
