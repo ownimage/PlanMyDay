@@ -57,16 +57,7 @@
     <smd-page id="jobSearchEditor" class="d-none"></smd-page>
 
     <!-- IMAGES EDITOR -->
-    <div id="imagesEditor" class="d-none">
-      <div id="imagesEditorHeader">
-        <h2 class="mb-3">Edit Images</h2>
-        <div id="addImageTileTop" class="mb-3"></div>
-        <div id="imageFilters" class="mb-3"></div>
-      </div>
-      <div id="imagesList"></div>
-      <div id="addImageTile" class="mt-3"></div>
-      <div id="singleImageEditor" class="d-none"></div>
-    </div>
+    <smd-page id="imagesEditor" class="d-none"></smd-page>
 
     <!-- IMAGE PICKER MODAL (Bootstrap modal) -->
     <div id="imagePickerModal" class="modal fade" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
@@ -554,6 +545,7 @@
   document.write('<script src="js/components/pmd-stream-header.js?v=' + BUILD_NUMBER + '"><\/script>');
   document.write('<script src="js/components/pmd-stream-job-card.js?v=' + BUILD_NUMBER + '"><\/script>');
   document.write('<script src="js/components/pmd-job-search-card.js?v=' + BUILD_NUMBER + '"><\/script>');
+  document.write('<script src="js/components/pmd-image-card.js?v=' + BUILD_NUMBER + '"><\/script>');
   document.write('<script src="js/minio.js?v=' + BUILD_NUMBER + '"><\/script>');
   document.write('<script src="js/settings.js?v=' + BUILD_NUMBER + '"><\/script>');
   document.write('<script src="js/app.js?v=' + BUILD_NUMBER + '"><\/script>');
