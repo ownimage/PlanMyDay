@@ -97,6 +97,7 @@ test.describe("PlanMyDay - Regression", () => {
     await page.evaluate(() => {
       localStorage.clear();
       localStorage.setItem("planmydays_images", "[]");
+      document.querySelectorAll("smd-page").forEach((p) => { p.slideDuration = 0; });
     });
     await startCoverage(page);
     await page.reload();
@@ -381,6 +382,8 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#btnMainMenu").click();
       await page.locator("a.dropdown-item").filter({ hasText: "Images" }).click();
       await expect(page.locator("#imagesEditor")).toBeVisible();
+      await page.locator("#imagesEditor").getByRole("button", { name: "Done" }).click();
+      await page.locator("#imagesEditor").waitFor({ state: "hidden" });
       await page.locator("#btnMainMenu").click();
       await page.locator("a.dropdown-item").filter({ hasText: "Streams" }).click();
       await expect(page.locator("#imagesEditor")).not.toBeVisible();
@@ -390,7 +393,7 @@ test.describe("PlanMyDay - Regression", () => {
     test("closes images editor back to main view", async ({ page }) => {
       await page.locator("#btnMainMenu").click();
       await page.locator("a.dropdown-item").filter({ hasText: "Images" }).click();
-      await page.locator("#addImageTileTop .btn-success").click();
+      await page.locator("#imagesEditor").getByRole("button", { name: "Done" }).click();
       await expect(page.locator("#countdownContainer")).toBeVisible();
     });
 
@@ -889,7 +892,6 @@ test.describe("PlanMyDay - Regression", () => {
 
     test("search filters jobs by partial title", async ({ page }) => {
       await page.fill("#jobSearchInput", "meet");
-      await page.locator("#btnJobSearch").click();
       await expect(page.locator("#jobSearchList pmd-job-search-card")).toHaveCount(1);
       await expect(page.locator("#jobSearchList pmd-job-search-card .job-title").filter({ hasText: "Meeting" })).toBeVisible();
       await expect(page.getByText("Report")).not.toBeVisible();
@@ -898,7 +900,6 @@ test.describe("PlanMyDay - Regression", () => {
 
     test("search is case insensitive", async ({ page }) => {
       await page.fill("#jobSearchInput", "MEETING");
-      await page.locator("#btnJobSearch").click();
       await expect(page.locator("#jobSearchList pmd-job-search-card")).toHaveCount(1);
       await expect(page.locator("#jobSearchList pmd-job-search-card .job-title").filter({ hasText: "Meeting" })).toBeVisible();
     });
@@ -912,14 +913,12 @@ test.describe("PlanMyDay - Regression", () => {
 
     test("shows message when no jobs match", async ({ page }) => {
       await page.fill("#jobSearchInput", "zzz");
-      await page.locator("#btnJobSearch").click();
       await expect(page.locator("#jobSearchList pmd-job-search-card")).toHaveCount(0);
       await expect(page.locator("#jobSearchList")).toContainText("No jobs match");
     });
 
     test("clear resets the search", async ({ page }) => {
       await page.fill("#jobSearchInput", "meet");
-      await page.locator("#btnJobSearch").click();
       await expect(page.locator("#jobSearchList pmd-job-search-card")).toHaveCount(1);
       await page.locator("#btnJobSearchClear").click();
       await expect(page.locator("#jobSearchList pmd-job-search-card")).toHaveCount(3);
@@ -1496,10 +1495,10 @@ test.describe("PlanMyDay - Regression", () => {
 
     test("clear search resets filter", async ({ page }) => {
       test.setTimeout(30000);
-      await page.locator('#imageFilters input[type="search"]').fill("xyz");
-      await expect(page.locator('#imageFilters input[type="search"]')).toHaveValue("xyz");
-      await page.locator('#imageFilters .btn-outline-secondary').filter({ hasText: "Clear" }).click();
-      await expect(page.locator('#imageFilters input[type="search"]')).toHaveValue("");
+      await page.locator('#imageNameSearchInput').fill("xyz");
+      await expect(page.locator('#imageNameSearchInput')).toHaveValue("xyz");
+      await page.locator('#btnImageFilterClear').click();
+      await expect(page.locator('#imageNameSearchInput')).toHaveValue("");
     });
   });
 
@@ -4410,7 +4409,7 @@ test.describe("PlanMyDay - Regression", () => {
     });
 
     test("duplicate image with trailing number increments", async ({ page }) => {
-      await page.locator("#imageFilters input[type=search]").fill("Photo 5");
+      await page.locator("#imageNameSearchInput").fill("Photo 5");
       await page.waitForTimeout(100);
       await page.locator("#imagesList").getByTitle("Duplicate").first().click();
       await page.locator("#imageEditModal").waitFor({ state: "visible" });

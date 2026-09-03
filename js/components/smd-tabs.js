@@ -51,56 +51,69 @@ const tabsStyles = `
 `;
 
 class SmdTabs extends HTMLElement {
-  constructor() {
-    super();
-    this.attachShadow({ mode: 'open' });
-    this._tabs = [];
-    this._activeIndex = 0;
-  }
-
-  get tabs() { return this._tabs; }
-  set tabs(val) { this._tabs = val || []; this._activeIndex = 0; this._render(); }
-
-  static get observedAttributes() { return ['bottomline']; }
-
-  attributeChangedCallback(name, oldValue, newValue) {
-    if (name === 'bottomline' && oldValue !== newValue && this._tabs) {
-      this._render();
+    constructor() {
+        super();
+        this.attachShadow({mode: 'open'});
+        this._tabs = [];
+        this._activeIndex = 0;
     }
-  }
 
-get activeIndex() { return this._activeIndex; }
-  set activeIndex(val) {
-    if (val >= 0 && val < this._tabs.length) {
-      this._activeIndex = val;
-      this._updateActive();
+    get tabs() {
+        return this._tabs;
     }
-  }
 
-  get bottomline() {
-    const attr = this.getAttribute('bottomline');
-    return attr !== null && attr !== 'false';
-  }
-  set bottomline(val) {
-    this.toggleAttribute('bottomline', !!val);
-  }
+    set tabs(val) {
+        this._tabs = val || [];
+        this._activeIndex = 0;
+        this._render();
+    }
 
-  _render() {
-    const headersHtml = this._tabs.map((tab, i) => {
-      const active = i === this._activeIndex ? ' active' : '';
-      const idAttr = tab.id ? ` id="${this._escapeAttr(tab.id)}"` : '';
-      return `<button class="smd-tab-btn" data-index="${i}"${idAttr}${active}>${this._escapeHtml(tab.title)}</button>`;
-    }).join('');
+    static get observedAttributes() {
+        return ['bottomline'];
+    }
 
-    const panelsHtml = this._tabs.map((tab, i) => {
-      const active = i === this._activeIndex ? ' active' : '';
-      const idAttr = tab.id ? ` id="${this._escapeAttr(tab.id)}-panel"` : '';
-      return `<div class="smd-tab-panel"${idAttr}${active} data-panel="${i}">${tab.content || ''}</div>`;
-    }).join('');
+    attributeChangedCallback(name, oldValue, newValue) {
+        if (name === 'bottomline' && oldValue !== newValue && this._tabs) {
+            this._render();
+        }
+    }
 
-    const bottomLineHtml = this.bottomline ? '<div class="smd-tab-line"></div>' : '';
+    get activeIndex() {
+        return this._activeIndex;
+    }
 
-    this.shadowRoot.innerHTML = `
+    set activeIndex(val) {
+        if (val >= 0 && val < this._tabs.length) {
+            this._activeIndex = val;
+            this._updateActive();
+        }
+    }
+
+    get bottomline() {
+        const attr = this.getAttribute('bottomline');
+        return attr !== null && attr !== 'false';
+    }
+
+    set bottomline(val) {
+        this.toggleAttribute('bottomline', !!val);
+    }
+
+    _render() {
+        const headersHtml = this._tabs.map((tab, i) => {
+            const active = i === this._activeIndex ? ' active' : '';
+            const idAttr = tab.id ? ` id="${this._escapeAttr(tab.id)}"` : '';
+            return `<button class="smd-tab-btn" data-index="${i}"${idAttr}${active}>${this._escapeHtml(tab.title)}</button>`;
+        }).join('');
+
+        const panelsHtml = this._tabs.map((tab, i) => {
+            const active = i === this._activeIndex ? ' active' : '';
+            const idAttr = tab.id ? ` id="${this._escapeAttr(tab.id)}-panel"` : '';
+            return `<div class="smd-tab-panel"${idAttr}${active} data-panel="${i}">${tab.content || ''}</div>`;
+        }).join('');
+
+        const bottomLineHtml = this.bottomline ? '<div class="smd-tab-line"></div>' : '';
+
+        this.shadowRoot.innerHTML = `
       <style>${tabsStyles}</style>
       <div class="smd-tab-list">${headersHtml}</div>
       <div class="smd-tab-line"></div>
@@ -108,37 +121,37 @@ get activeIndex() { return this._activeIndex; }
       ${bottomLineHtml}
     `;
 
-    this.shadowRoot.querySelectorAll('.smd-tab-btn').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        this._activeIndex = parseInt(btn.dataset.index);
-        this._updateActive();
-        this.dispatchEvent(new CustomEvent('smd-tabs-change', {
-          bubbles: true,
-          composed: true,
-          detail: { index: this._activeIndex, tab: this._tabs[this._activeIndex] },
-        }));
-      });
-    });
-  }
+        this.shadowRoot.querySelectorAll('.smd-tab-btn').forEach((btn) => {
+            btn.addEventListener('click', () => {
+                this._activeIndex = parseInt(btn.dataset.index);
+                this._updateActive();
+                this.dispatchEvent(new CustomEvent('smd-tabs-change', {
+                    bubbles: true,
+                    composed: true,
+                    detail: {index: this._activeIndex, tab: this._tabs[this._activeIndex]},
+                }));
+            });
+        });
+    }
 
-  _updateActive() {
-    this.shadowRoot.querySelectorAll('.smd-tab-btn').forEach((btn, i) => {
-      btn.toggleAttribute('active', i === this._activeIndex);
-    });
-    this.shadowRoot.querySelectorAll('.smd-tab-panel').forEach((panel, i) => {
-      panel.toggleAttribute('active', i === this._activeIndex);
-    });
-  }
+    _updateActive() {
+        this.shadowRoot.querySelectorAll('.smd-tab-btn').forEach((btn, i) => {
+            btn.toggleAttribute('active', i === this._activeIndex);
+        });
+        this.shadowRoot.querySelectorAll('.smd-tab-panel').forEach((panel, i) => {
+            panel.toggleAttribute('active', i === this._activeIndex);
+        });
+    }
 
-  _escapeHtml(str) {
-    if (!str && str !== 0) return '';
-    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-  }
+    _escapeHtml(str) {
+        if (!str && str !== 0) return '';
+        return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
 
-  _escapeAttr(str) {
-    if (!str) return '';
-    return this._escapeHtml(str).replace(/'/g, '&#39;');
-  }
+    _escapeAttr(str) {
+        if (!str) return '';
+        return this._escapeHtml(str).replace(/'/g, '&#39;');
+    }
 }
 
 customElements.define('smd-tabs', SmdTabs);

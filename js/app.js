@@ -2214,13 +2214,15 @@ var JOBS_EDITOR_STYLES = `
     color: #fff;
   }
   .smd-page-body .d-flex, .smd-tab-panel .d-flex { display: flex; }
-  .smd-tab-panel .flex-column { flex-direction: column; }
-  .smd-tab-panel .flex-grow-1 { flex-grow: 1; }
-  .smd-tab-panel .flex-shrink-0 { flex-shrink: 0; }
-  .smd-tab-panel .align-items-center { align-items: center; }
-  .smd-tab-panel .align-self-center { align-self: center; }
-  .smd-tab-panel .gap-1 { gap: 0.25rem; }
-  .smd-tab-panel .gap-2 { gap: 0.5rem; }
+  .smd-page-body .flex-column, .smd-tab-panel .flex-column { flex-direction: column; }
+  .smd-page-body .flex-grow-1, .smd-tab-panel .flex-grow-1 { flex-grow: 1; }
+  .smd-page-body .flex-shrink-0, .smd-tab-panel .flex-shrink-0 { flex-shrink: 0; }
+  .smd-page-body .align-items-center, .smd-tab-panel .align-items-center { align-items: center; }
+  .smd-page-body .align-self-center, .smd-tab-panel .align-self-center { align-self: center; }
+  .smd-page-body .text-truncate, .smd-tab-panel .text-truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .smd-page-body .gap-1, .smd-tab-panel .gap-1 { gap: 0.25rem; }
+  .smd-page-body .gap-2, .smd-tab-panel .gap-2 { gap: 0.5rem; }
+  .smd-page-body .gap-3, .smd-tab-panel .gap-3 { gap: 1rem; }
   .smd-page-body .mb-0, .smd-tab-panel .mb-0 { margin-bottom: 0; }
   .smd-page-body .mb-1, .smd-tab-panel .mb-1 { margin-bottom: 0.25rem; }
   .smd-page-body .mb-2, .smd-tab-panel .mb-2 { margin-bottom: 0.5rem; }
@@ -2720,6 +2722,27 @@ document.addEventListener("DOMContentLoaded", () => {
       } else if (action === "done") {
         closeSearchJobs();
       }
+    });
+  }
+
+  const imagesEditor = document.getElementById("imagesEditor");
+  if (imagesEditor) {
+    imagesEditor.addEventListener("smd-page-action", (e) => {
+      const action = e.detail && (typeof e.detail === "string" ? e.detail : e.detail.action);
+      if (action === "add") {
+        addNewImage();
+      } else if (action === "done") {
+        closeImagesEditor();
+      }
+    });
+    imagesEditor.addEventListener("pmd-image-delete", (e) => {
+      confirmDeleteImage(e.detail.imageIdx);
+    });
+    imagesEditor.addEventListener("pmd-image-duplicate", (e) => {
+      duplicateImage(e.detail.imageIdx);
+    });
+    imagesEditor.addEventListener("pmd-image-edit", (e) => {
+      startEditImage(e.detail.imageIdx);
     });
   }
 
