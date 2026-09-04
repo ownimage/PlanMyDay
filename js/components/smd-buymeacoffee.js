@@ -1,4 +1,4 @@
-const BMC_IMAGE = 'https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png';
+const BMC_IMAGE = '/vendor/bmc-default-yellow.png';
 
 class SmdBuyMeACoffee extends HTMLElement {
   static get observedAttributes() {

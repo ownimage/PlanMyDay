@@ -1,4 +1,4 @@
-const QR_CODE_CDN = 'https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js';
+const QR_CODE_CDN = '/vendor/qrcode.min.js';
 
 let qrLibLoaded = false;
 
