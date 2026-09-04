@@ -407,7 +407,7 @@ test.describe("PlanMyDay - Screenshots", () => {
     await page.waitForSelector("#streamEditorList .accordion-item");
     await page.locator("#streamEditorList .stream-header-main").first().click();
     await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible", timeout: 5000 });
-    await page.waitForSelector("#streamEditorList .accordion-body .card");
+    await page.waitForSelector("#streamEditorList .accordion-body .job-drag-card");
     await screenshotAllThemes(page, "stream-job-list.png");
   });
 
@@ -453,7 +453,6 @@ test.describe("PlanMyDay - Screenshots", () => {
     await page.waitForSelector("#jobSearchEditor:not(.d-none)");
     await page.waitForSelector("#jobSearchList pmd-job-search-card");
     await page.locator("#jobSearchInput").fill("meet");
-    await page.locator("#btnJobSearch").click();
     await page.waitForTimeout(200);
     await screenshotAllThemes(page, "search-jobs-filtered.png");
   });
@@ -513,7 +512,7 @@ test.describe("PlanMyDay - Screenshots", () => {
     await page.waitForSelector("#streamEditorList .accordion-item");
     await page.locator("#streamEditorList .stream-header-main").first().click();
     await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible", timeout: 5000 });
-    await page.locator("#streamEditorList .accordion-body .card").first().getByRole("button", { name: "Edit" }).click();
+    await page.locator("#streamEditorList .accordion-body .job-drag-card").first().getByRole("button", { name: "Edit" }).click();
     await page.locator("#jobEditPage").waitFor({ state: "visible" });
     await page.waitForTimeout(400);
     await screenshotAllThemes(page, "edit-job.png");
@@ -529,7 +528,7 @@ test.describe("PlanMyDay - Screenshots", () => {
     await page.waitForSelector("#streamEditorList .accordion-item");
     await page.locator("#streamEditorList .stream-header-main").first().click();
     await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible", timeout: 5000 });
-    await page.locator("#streamEditorList .accordion-body .card").first().getByRole("button", { name: "Edit" }).click();
+    await page.locator("#streamEditorList .accordion-body .job-drag-card").first().getByRole("button", { name: "Edit" }).click();
     await page.locator("#jobEditPage").waitFor({ state: "visible" });
     await page.locator("#jobSchedule-tab").click();
     await page.locator("#btnScheduleChange").click();
