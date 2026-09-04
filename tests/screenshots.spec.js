@@ -128,7 +128,7 @@ function futureDateStr(daysFromNow) {
 
 const SCREENSHOT_DIR = path.resolve(__dirname, "..", "screenshots");
 
-const bw = "https://cdn.jsdelivr.net/npm/bootswatch@5.3.3/dist";
+const bw = "css/themes";
 const THEME_CONFIG = {
   cerulean:  { css: `${bw}/cerulean/bootstrap.min.css`,   bsTheme: "light" },
   cosmo:     { css: `${bw}/cosmo/bootstrap.min.css`,      bsTheme: "light" },
