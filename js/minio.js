@@ -57,32 +57,15 @@ function minioFriendlyError(e) {
 }
 
 function showMinioAlert(message, type) {
-  var existing = document.getElementById("minioAlertModal");
-  if (existing) existing.remove();
-
   type = type || "info";
-  var btnClass = type === "error" ? "btn-danger" : "btn-primary";
-  var icon = type === "error"
-    ? '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="text-danger mb-2" viewBox="0 0 16 16"><path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/><path d="M7.002 11a1 1 0 1 1 2 0 1 1 0 0 1-2 0zM7.1 4.995a.905.905 0 1 1 1.8 0l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 4.995z"/></svg>'
-    : '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="text-primary mb-2" viewBox="0 0 16 16"><path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/><path d="M10.97 4.97a.235.235 0 0 0-.02.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-1.071-1.05z"/></svg>';
-
-  var html = '<div class="modal fade" id="minioAlertModal" tabindex="-1">' +
-    '<div class="modal-dialog modal-dialog-centered">' +
-    '<div class="modal-content">' +
-    '<div class="modal-body text-center py-4">' +
-    icon +
-    '<p class="mb-3 fs-6 text-break">' + message.replace(/</g, "&lt;").replace(/>/g, "&gt;") + '</p>' +
-    '<button class="btn ' + btnClass + ' editor-btn flex-fill" data-bs-dismiss="modal">OK</button>' +
-    '</div>' +
-    '</div></div></div>';
-
-  document.body.insertAdjacentHTML("beforeend", html);
-  var modalEl = document.getElementById("minioAlertModal");
-  modalEl.addEventListener("hidden.bs.modal", function() {
-    var m = document.getElementById("minioAlertModal");
-    if (m) m.remove();
+  var text = String(message).replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  showSmdModal({
+    title: type === "error" ? "Minio Error" : "Minio",
+    content: '<p style="margin:0">' + text + '</p>',
+    buttons: [
+      { text: "OK", variant: type === "error" ? "danger" : "primary", action: "ok" }
+    ]
   });
-  new bootstrap.Modal(modalEl).show();
 }
 
 function getMinioConfig() {
@@ -403,30 +386,86 @@ function importFromMinio() {
   showMinioImportModal();
 }
 
+var MINIO_IMPORT_STYLES = `
+  .smd-body .text-center { text-align: center; }
+  .smd-body .text-start { text-align: left; }
+  .smd-body .text-secondary { color: var(--bs-secondary, #6c757d); }
+  .smd-body .d-flex { display: flex; }
+  .smd-body .align-items-center { align-items: center; }
+  .smd-body .gap-2 { gap: 0.5rem; }
+  .smd-body .mb-0 { margin-bottom: 0; }
+  .smd-body .mb-1 { margin-bottom: 0.25rem; }
+  .smd-body .mb-2 { margin-bottom: 0.5rem; }
+  .smd-body .mb-3 { margin-bottom: 1rem; }
+  .smd-body .mt-2 { margin-top: 0.5rem; }
+  .smd-body .me-2 { margin-right: 0.5rem; }
+  .smd-body .py-3 { padding-top: 1rem; padding-bottom: 1rem; }
+  .smd-body .py-5 { padding-top: 3rem; padding-bottom: 3rem; }
+  .smd-body .w-100 { width: 100%; }
+  .smd-body h5 { margin: 0 0 0.5rem; }
+  .smd-body h6 { margin: 0 0 0.5rem; }
+  .smd-body p { margin: 0.5rem 0 0; }
+  .smd-body .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.375rem 0.75rem;
+    border-radius: 0.375rem;
+    font-size: 1rem;
+    line-height: 1.5;
+    cursor: pointer;
+    background: transparent;
+    border: 1px solid var(--bs-border-color, #444);
+    color: var(--bs-body-color, #eee);
+  }
+  .smd-body .btn:hover { opacity: 0.85; }
+  .smd-body .btn-lg { padding: 0.5rem 1rem; font-size: 1.25rem; }
+  .smd-body .btn-sm { padding: 0.25rem 0.5rem; font-size: 0.875rem; }
+  .smd-body .btn-outline-primary { border-color: var(--smd-primary, #0d6efd); color: var(--smd-primary, #0d6efd); }
+  .smd-body .btn-outline-secondary { border-color: var(--bs-secondary, #6c757d); color: var(--bs-secondary, #6c757d); }
+  .smd-body .spinner-border {
+    display: inline-block;
+    width: 2rem;
+    height: 2rem;
+    border: 0.25em solid currentColor;
+    border-right-color: transparent;
+    border-radius: 50%;
+    animation: smdSpin 0.75s linear infinite;
+  }
+  @keyframes smdSpin { to { transform: rotate(360deg); } }
+  .smd-body .list-group {
+    display: flex;
+    flex-direction: column;
+    padding-left: 0;
+    margin-bottom: 0;
+    border: 1px solid var(--bs-border-color, #444);
+    border-radius: 0.375rem;
+    overflow: hidden;
+  }
+  .smd-body .list-group-item {
+    position: relative;
+    display: block;
+    padding: 0.75rem 1rem;
+    color: var(--bs-body-color, #eee);
+    border-top: 1px solid var(--bs-border-color, #444);
+    cursor: pointer;
+  }
+  .smd-body .list-group-item:first-child { border-top: 0; }
+  .smd-body .list-group-item:hover { background: var(--bs-secondary-bg, rgba(255,255,255,0.05)); }
+`;
+
 function showMinioImportModal() {
-  var existing = document.getElementById("minioImportModal");
-  if (existing) existing.remove();
-
-  var html = '<div class="modal fade" id="minioImportModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">' +
-    '<div class="modal-dialog modal-lg modal-dialog-scrollable">' +
-    '<div class="modal-content">' +
-    '<div class="modal-header">' +
-    '<h3 class="modal-title">Import from Minio</h3>' +
-    '<button type="button" class="btn btn-sm ms-auto" data-bs-dismiss="modal" onclick="closeMinioImport()" style="font-size:1.5rem;line-height:1;padding:0 0.25rem;color:inherit;border:none;background:none">&times;</button>' +
-    '</div>' +
-    '<div class="modal-body" id="minioImportBody">' +
-    '<div class="text-center py-5"><div class="spinner-border"></div><p class="mt-2">Loading buckets...</p></div>' +
-    '</div>' +
-    '</div></div></div>';
-
-  document.body.insertAdjacentHTML("beforeend", html);
-
-  var modalEl = document.getElementById("minioImportModal");
-  modalEl.addEventListener("hidden.bs.modal", function() {
-    var m = document.getElementById("minioImportModal");
-    if (m) m.remove();
+  showSmdModal({
+    title: "Import from Minio",
+    content: '<div id="minioImportBody">' +
+      '<div class="text-center py-5"><div class="spinner-border"></div><p class="mt-2">Loading buckets...</p></div>' +
+      '</div>',
+    buttons: [
+      { text: "Cancel", variant: "secondary", action: "cancel" }
+    ]
   });
-  new bootstrap.Modal(modalEl).show();
+  const host = document.getElementById("smdConfirmModal");
+  if (host && host.shadowRoot) injectStyleInto(host.shadowRoot, MINIO_IMPORT_STYLES);
 
   var config = getMinioConfig();
   if (config.bucket) {
@@ -437,15 +476,12 @@ function showMinioImportModal() {
 }
 
 function closeMinioImport() {
-  var el = document.getElementById("minioImportModal");
-  if (el) {
-    var modal = bootstrap.Modal.getInstance(el);
-    if (modal) safeHideModal("minioImportModal");
-  }
+  const host = document.getElementById("smdConfirmModal");
+  if (host && host.hasAttribute("open")) host.hide();
 }
 
 function loadMinioBuckets() {
-  var body = document.getElementById("minioImportBody");
+  var body = $id("minioImportBody");
   if (!body) return;
   var config = getMinioConfig();
 
@@ -469,7 +505,7 @@ function loadMinioBuckets() {
 }
 
 function loadMinioBucketFiles(bucket) {
-  var body = document.getElementById("minioImportBody");
+  var body = $id("minioImportBody");
   if (!body) return;
   var config = getMinioConfig();
 
@@ -507,7 +543,7 @@ function loadMinioBucketFiles(bucket) {
 
 function importMinioFile(bucket, key) {
   var config = getMinioConfig();
-  var body = document.getElementById("minioImportBody");
+  var body = $id("minioImportBody");
   if (!body) return;
 
   body.innerHTML = '<div class="text-center py-5"><div class="spinner-border"></div><p class="mt-2">Downloading ' + key.replace(/</g, "&lt;").replace(/>/g, "&gt;") + '...</p></div>';
