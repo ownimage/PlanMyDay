@@ -5691,7 +5691,7 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#jobTasks-tab").click();
       await expect(page.locator("#jobTasks-tab")).toHaveAttribute("active", "");
       await expect(page.locator("#jobTasks-tab-panel")).toHaveAttribute("active", "");
-      await page.locator("#jobAddTaskBtn").waitFor({ state: "visible" });
+      await page.locator("#jobAddTaskBottomBtn").waitFor({ state: "visible" });
     });
 
     test("active tab persists when switching from view to edit", async ({ page }) => {
@@ -5711,10 +5711,10 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().click();
       await page.locator("#jobEditPage").waitFor({ state: "visible" });
       await page.locator("#jobTasks-tab").click();
-      await page.locator("#jobAddTaskBtn").click();
+      await page.locator("#jobAddTaskBottomBtn").click();
       await expect(page.locator(".task-row")).toHaveCount(1);
-      await page.locator("#jobAddTaskBtn").click();
-      await page.locator("#jobAddTaskBtn").click();
+      await page.locator("#jobAddTaskBottomBtn").click();
+      await page.locator("#jobAddTaskBottomBtn").click();
       await expect(page.locator(".task-row")).toHaveCount(3);
     });
 
@@ -5722,7 +5722,7 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().click();
       await page.locator("#jobEditPage").waitFor({ state: "visible" });
       await page.locator("#jobTasks-tab").click();
-      await page.locator("#jobAddTaskBtn").click();
+      await page.locator("#jobAddTaskBottomBtn").click();
       await page.locator(".task-desc-input").first().fill("Check logs");
       const tasks = await page.evaluate(() => jobsBuffer?.tasks);
       expect(tasks).toHaveLength(1);
@@ -5733,7 +5733,7 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().click();
       await page.locator("#jobEditPage").waitFor({ state: "visible" });
       await page.locator("#jobTasks-tab").click();
-      await page.locator("#jobAddTaskBtn").click();
+      await page.locator("#jobAddTaskBottomBtn").click();
       await page.locator(".task-done-cb").first().check();
       const tasks = await page.evaluate(() => jobsBuffer?.tasks);
       expect(tasks[0].done).toBe(true);
@@ -5746,8 +5746,8 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().click();
       await page.locator("#jobEditPage").waitFor({ state: "visible" });
       await page.locator("#jobTasks-tab").click();
-      await page.locator("#jobAddTaskBtn").click();
-      await page.locator("#jobAddTaskBtn").click();
+      await page.locator("#jobAddTaskBottomBtn").click();
+      await page.locator("#jobAddTaskBottomBtn").click();
       await expect(page.locator(".task-row")).toHaveCount(2);
       await page.locator("#jobTasksList .btn-danger").first().click();
       await page.locator("#smdConfirmModal").waitFor({ state: "visible" });
@@ -5762,8 +5762,8 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().click();
       await page.locator("#jobEditPage").waitFor({ state: "visible" });
       await page.locator("#jobTasks-tab").click();
-      await page.locator("#jobAddTaskBtn").click();
-      await page.locator("#jobAddTaskBtn").click();
+      await page.locator("#jobAddTaskBottomBtn").click();
+      await page.locator("#jobAddTaskBottomBtn").click();
       await expect(page.locator(".task-row")).toHaveCount(2);
       await page.locator("#jobTasksList .btn-danger").first().click();
       await page.locator("#smdConfirmModal").waitFor({ state: "visible" });
@@ -5778,7 +5778,7 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().click();
       await page.locator("#jobEditPage").waitFor({ state: "visible" });
       await page.locator("#jobTasks-tab").click();
-      await page.locator("#jobAddTaskBtn").click();
+      await page.locator("#jobAddTaskBottomBtn").click();
       await page.locator(".task-desc-input").first().fill("My task name");
       await page.locator("#jobTasksList .btn-danger").first().click();
       await page.locator("#smdConfirmModal").waitFor({ state: "visible" });
@@ -5790,7 +5790,7 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().click();
       await page.locator("#jobEditPage").waitFor({ state: "visible" });
       await page.locator("#jobTasks-tab").click();
-      await page.locator("#jobAddTaskBtn").click();
+      await page.locator("#jobAddTaskBottomBtn").click();
       const noteRow = page.locator("#taskNoteRow0");
       await expect(noteRow).not.toBeVisible();
       await page.locator(".task-note-btn").first().click();
@@ -5803,7 +5803,7 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().click();
       await page.locator("#jobEditPage").waitFor({ state: "visible" });
       await page.locator("#jobTasks-tab").click();
-      await page.locator("#jobAddTaskBtn").click();
+      await page.locator("#jobAddTaskBottomBtn").click();
       await page.locator(".task-note-btn").first().click();
       await page.locator("#taskNoteRow0 textarea").fill("Important note about task");
       const tasks = await page.evaluate(() => jobsBuffer?.tasks);
@@ -5814,10 +5814,10 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().click();
       await page.locator("#jobEditPage").waitFor({ state: "visible" });
       await page.locator("#jobTasks-tab").click();
-      await page.locator("#jobAddTaskBtn").click();
+      await page.locator("#jobAddTaskBottomBtn").click();
       await page.locator(".task-note-btn").first().click();
       await page.locator("#taskNoteRow0 textarea").fill("Persistent note");
-      await page.locator("#jobAddTaskBtn").click();
+      await page.locator("#jobAddTaskBottomBtn").click();
       const noteRow = page.locator("#taskNoteRow0");
       await expect(noteRow).toBeVisible();
       const noteValue = await page.locator("#taskNoteRow0 textarea").inputValue();
@@ -5828,12 +5828,12 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().click();
       await page.locator("#jobEditPage").waitFor({ state: "visible" });
       await page.locator("#jobTasks-tab").click();
-      await page.locator("#jobAddTaskBtn").click();
+      await page.locator("#jobAddTaskBottomBtn").click();
       await page.locator(".task-note-btn").first().click();
       await page.locator("#taskNoteRow0 textarea").fill("Note text");
       await page.locator(".task-note-btn").first().click();
       await expect(page.locator("#taskNoteRow0")).not.toBeVisible();
-      await page.locator("#jobAddTaskBtn").click();
+      await page.locator("#jobAddTaskBottomBtn").click();
       await expect(page.locator("#taskNoteRow0")).not.toBeVisible();
       await page.evaluate(() => renderJobTasks());
       await expect(page.locator("#taskNoteRow0")).not.toBeVisible();
@@ -5843,7 +5843,7 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().click();
       await page.locator("#jobEditPage").waitFor({ state: "visible" });
       await page.locator("#jobTasks-tab").click();
-      await page.locator("#jobAddTaskBtn").click();
+      await page.locator("#jobAddTaskBottomBtn").click();
       await expect(page.locator(".task-note-btn").first()).toHaveClass(/btn-info/);
       await page.locator(".task-note-btn").first().click();
       await expect(page.locator(".task-note-btn").first()).toHaveClass(/btn-info/);
@@ -5877,7 +5877,7 @@ test.describe("PlanMyDay - Regression", () => {
       await mp.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().click();
       await mp.locator("#jobEditPage").waitFor({ state: "visible" });
       await mp.locator("#jobTasks-tab").click();
-      await mp.locator("#jobAddTaskBtn").click();
+      await mp.locator("#jobAddTaskBottomBtn").click();
       const noteBtn = mp.locator(".task-note-btn").first();
       await expect(noteBtn).toHaveClass(/btn-info/);
       const emptyBg = await noteBtn.evaluate((el) => getComputedStyle(el).backgroundColor);
@@ -5900,7 +5900,7 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().click();
       await page.locator("#jobEditPage").waitFor({ state: "visible" });
       await page.locator("#jobTasks-tab").click();
-      await page.locator("#jobAddTaskBtn").click();
+      await page.locator("#jobAddTaskBottomBtn").click();
       await page.locator(".task-desc-input").first().fill("Review PRs");
       await page.locator(".task-done-cb").first().check();
       await page.locator("#jobEditOkBtn").click();
@@ -5937,18 +5937,22 @@ test.describe("PlanMyDay - Regression", () => {
       await expect(page.locator("#streamEditorList .accordion-collapse.show")).toContainText("Enter Job");
     });
 
-    test("add task renders task at top of list", async ({ page }) => {
+    test("task added via top button lands at top and bottom button appends", async ({ page }) => {
       await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().click();
       await page.locator("#jobEditPage").waitFor({ state: "visible" });
       await page.locator("#jobTasks-tab").click();
-      await page.locator("#jobAddTaskBtn").click();
-      await page.locator(".task-desc-input").first().fill("First task");
-      await page.locator("#jobAddTaskBtn").click();
-      await page.locator(".task-desc-input").last().fill("Second task");
+      await page.locator("#jobAddTaskBottomBtn").click();
+      await page.locator(".task-desc-input").first().fill("Original task");
+      const topBtn = page.locator("#jobAddTaskBtn");
+      await expect(topBtn).toBeVisible();
+      await topBtn.click();
+      const inputs = page.locator("#jobTasksList .task-desc-input");
+      await expect(inputs).toHaveCount(2);
+      await inputs.first().fill("Top task");
       const tasks = await page.evaluate(() => jobsBuffer?.tasks);
       expect(tasks).toHaveLength(2);
-      expect(tasks[0].description).toBe("First task");
-      expect(tasks[1].description).toBe("Second task");
+      expect(tasks[0].description).toBe("Top task");
+      expect(tasks[1].description).toBe("Original task");
     });
 
     test("delete button on task row is btn-danger", async ({ page }) => {
@@ -5957,38 +5961,76 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#jobTasks-tab").click();
       // wait for the Tasks pane to be the active tab before adding a task
       await expect(page.locator("#jobTasks-tab")).toHaveAttribute("active", "");
-      await page.locator("#jobAddTaskBtn").click();
+      await page.locator("#jobAddTaskBottomBtn").click();
       await expect(page.locator("#jobTasksList .btn-danger")).toBeVisible();
     });
 
-    test("add task button is btn-primary and at top", async ({ page }) => {
+    test("top add task button is btn-primary and at top", async ({ page }) => {
       await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().click();
       await page.locator("#jobEditPage").waitFor({ state: "visible" });
       await page.locator("#jobTasks-tab").click();
-      await expect(page.locator("#jobAddTaskBtn")).toHaveClass(/btn-primary/);
-      await page.locator("#jobAddTaskBtn").click();
-      await page.locator("#jobAddTaskBtn").click();
-      const addBtnEl = page.locator("#jobAddTaskBtn");
+      await page.locator("#jobAddTaskBottomBtn").click();
+      const topBtn = page.locator("#jobAddTaskBtn");
+      await expect(topBtn).toBeVisible();
+      await expect(topBtn).toHaveClass(/btn-primary/);
       const tasksListEl = page.locator("#jobTasksList");
-      const addBtnBox = await addBtnEl.boundingBox();
+      const addBtnBox = await topBtn.boundingBox();
       const tasksListBox = await tasksListEl.boundingBox();
       expect(addBtnBox.y).toBeLessThan(tasksListBox.y);
+      await topBtn.click();
+      await expect(page.locator("#jobTasksList .task-row")).toHaveCount(2);
     });
 
     test("tasks tab shows no tasks for job without tasks", async ({ page }) => {
       await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().click();
       await page.locator("#jobEditPage").waitFor({ state: "visible" });
       await page.locator("#jobTasks-tab").click();
-      await expect(page.locator("#jobAddTaskBtn")).toBeVisible();
       await expect(page.locator("#jobTasksList .task-row")).toHaveCount(0);
+      await expect(page.locator("#jobAddTaskBtn")).toBeHidden();
+      await expect(page.locator("#jobAddTaskBottomBtn")).toBeVisible();
+    });
+
+    test("top add task button appears once a task exists", async ({ page }) => {
+      await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().click();
+      await page.locator("#jobEditPage").waitFor({ state: "visible" });
+      await page.locator("#jobTasks-tab").click();
+      await expect(page.locator("#jobAddTaskBtn")).toBeHidden();
+      await expect(page.locator("#jobAddTaskBottomBtn")).toBeVisible();
+      await page.locator("#jobAddTaskBottomBtn").click();
+      await expect(page.locator("#jobTasksList .task-row")).toHaveCount(1);
+      await expect(page.locator("#jobAddTaskBtn")).toBeVisible();
+      await expect(page.locator("#jobAddTaskBottomBtn")).toBeVisible();
+    });
+
+    test("top add task button shown when job already has tasks", async ({ page }) => {
+      await page.evaluate(() => {
+        const streams = JSON.parse(localStorage.getItem("planmydays_streams"));
+        streams[0].jobs[0].tasks = [{ description: "Existing", done: false }];
+        localStorage.setItem("planmydays_streams", JSON.stringify(streams));
+      });
+      await page.reload();
+      await page.locator("#btnMainMenu").click();
+      await page.locator("a.dropdown-item").filter({ hasText: "Streams" }).click();
+      await page.locator("#streamEditorList .stream-header-main").first().click();
+      await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible", timeout: 5000 });
+      await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().click();
+      await page.locator("#jobEditPage").waitFor({ state: "visible" });
+      await page.locator("#jobTasks-tab").click();
+      await expect(page.locator("#jobTasksList .task-row")).toHaveCount(1);
+      await expect(page.locator("#jobAddTaskBtn")).toBeVisible();
+      await expect(page.locator("#jobAddTaskBottomBtn")).toBeVisible();
+      await page.locator("#jobAddTaskBtn").click();
+      await expect(page.locator("#jobTasksList .task-row")).toHaveCount(2);
+      const tasks = await page.evaluate(() => jobsBuffer?.tasks);
+      expect(tasks[0].description).toBe("");
     });
 
     test("task rows have drag handle", async ({ page }) => {
       await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().click();
       await page.locator("#jobEditPage").waitFor({ state: "visible" });
       await page.locator("#jobTasks-tab").click();
-      await page.locator("#jobAddTaskBtn").click();
-      await page.locator("#jobAddTaskBtn").click();
+      await page.locator("#jobAddTaskBottomBtn").click();
+      await page.locator("#jobAddTaskBottomBtn").click();
       await expect(page.locator(".task-drag-card .drag-handle")).toHaveCount(2);
     });
 
@@ -6011,9 +6053,9 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().click();
       await page.locator("#jobEditPage").waitFor({ state: "visible" });
       await page.locator("#jobTasks-tab").click();
-      await page.locator("#jobAddTaskBtn").click();
+      await page.locator("#jobAddTaskBottomBtn").click();
       await page.locator(".task-desc-input").first().fill("First task");
-      await page.locator("#jobAddTaskBtn").click();
+      await page.locator("#jobAddTaskBottomBtn").click();
       await page.locator(".task-desc-input").last().fill("Second task");
       const handle = page.locator("#jobTasksList .task-row").first().locator(".drag-handle");
       const handleBox = await handle.boundingBox();
@@ -6046,7 +6088,7 @@ test.describe("PlanMyDay - Regression", () => {
         const bottomBtn = page.locator("#jobAddTaskBottomBtn");
         await expect(bottomBtn).toBeVisible();
         await expect(bottomBtn).toHaveText("Add Task");
-        await expect(page.locator("#jobAddTaskBtn")).toBeVisible();
+        await expect(page.locator("#jobAddTaskBtn")).toBeHidden();
       });
 
       test(`bottom add task adds a task and focuses it on ${title}`, async ({ page }) => {
