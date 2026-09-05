@@ -1239,6 +1239,19 @@ function jobAddTask() {
   }
 }
 
+function jobAddTaskTop() {
+  if (!jobsBuffer) return;
+  if (!jobsBuffer.tasks) jobsBuffer.tasks = [];
+  jobsBuffer.tasks.unshift({ description: "", done: false, note: "" });
+  renderJobTasks();
+  var first = $id("jobTasksList");
+  first = first ? first.querySelector(".task-desc-input") : null;
+  if (first) {
+    first.focus();
+    first.scrollIntoView({ block: "nearest" });
+  }
+}
+
 function jobDeleteTask(index) {
   if (!jobsBuffer || !jobsBuffer.tasks) return;
   var taskText = (jobsBuffer.tasks[index] && jobsBuffer.tasks[index].description) ? jobsBuffer.tasks[index].description : "Unnamed task";
@@ -1300,6 +1313,10 @@ function renderJobTasks() {
       '</div>';
   });
   el.innerHTML = html;
+  var topBtn = $id("jobAddTaskBtn");
+  if (topBtn) {
+    topBtn.style.display = tasks.length >= 1 ? "" : "none";
+  }
   initJobTasksSortable();
 }
 
@@ -1795,7 +1812,7 @@ function getJobTasksTabHTML(data, readOnly) {
   });
   return `
     <div class="mt-2">
-      <button class="btn btn-primary btn-sm mb-2" id="jobAddTaskBtn" ${disabled} onclick="jobAddTask()">Add Task</button>
+      <button class="btn btn-primary btn-sm mb-2" id="jobAddTaskBtn" ${disabled} onclick="jobAddTaskTop()">Add Task</button>
       <div id="jobTasksList">${tasksHTML}</div>
       <div class="mt-2">
         <button class="btn btn-primary btn-sm" id="jobAddTaskBottomBtn" ${disabled} onclick="jobAddTask()">Add Task</button>
@@ -1849,6 +1866,7 @@ function buildJobEditPage(readOnly, activeTabIndex) {
   initJobSleepUntilPicker(readOnly);
   if (!readOnly) {
     initJobTasksSortable();
+    renderJobTasks();
     updateJobEditOkBtn();
   }
   page.show();

@@ -129,7 +129,7 @@ test.describe("PlanMyDay - iPhone 12 Pro touch", () => {
     await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().tap();
     await page.locator("#jobEditPage").waitFor({ state: "visible" });
     await page.locator("#jobTasks-tab").tap();
-    await page.locator("#jobAddTaskBtn").waitFor({ state: "visible" });
+    await page.locator("#jobAddTaskBottomBtn").waitFor({ state: "visible" });
     const rows = page.locator("#jobTasksList .task-row");
     await expect(rows).toHaveCount(2);
     const lastBox = await rows.last().boundingBox();
