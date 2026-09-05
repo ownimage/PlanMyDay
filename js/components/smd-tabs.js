@@ -9,11 +9,11 @@ const tabsStyles = `
   }
 .smd-tab-btn {
     padding: 0.5rem 1.25rem;
-    border: 1px solid var(--bs-border-color, #444);
-    border-bottom: 1px solid var(--bs-primary, #0d6efd);
+    border: 1px solid transparent;
+    border-bottom: none;
     border-radius: 6px 6px 0 0;
-    background: var(--bs-tertiary-bg, #252525);
-    color: var(--bs-secondary-color, #aaa);
+    background: var(--smd-secondary, #6c757d);
+    color: var(--smd-primary-text, #fff);
     cursor: pointer;
     font-size: 0.95rem;
     font-weight: 500;
@@ -21,20 +21,20 @@ const tabsStyles = `
     margin-bottom: -1px;
   }
   .smd-tab-btn:hover:not([active]) {
-    background: color-mix(in srgb, var(--bs-tertiary-bg, #252525) 80%, var(--bs-body-color, #eee));
-    color: var(--bs-body-color, #eee);
+    background: color-mix(in srgb, var(--smd-secondary, #6c757d) 85%, var(--smd-primary-text, #fff));
+    color: var(--smd-primary-text, #fff);
   }
   .smd-tab-btn[active] {
-    background: var(--bs-primary, #0d6efd);
-    color: #fff;
-    border-color: var(--bs-primary, #0d6efd);
+    background: var(--smd-primary, #0d6efd);
+    color: var(--smd-primary-text, #fff);
+    border-color: var(--smd-primary, #0d6efd);
     font-weight: 600;
     position: relative;
     z-index: 2;
   }
   .smd-tab-line {
     height: 1px;
-    background: var(--bs-primary, #0d6efd);
+    background: var(--bs-border-color, #444);
     width: 100%;
     box-sizing: border-box;
   }
