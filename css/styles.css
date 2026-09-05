@@ -211,9 +211,7 @@ body.font-size-xsmall #imagesEditor,
 body.font-size-xsmall #imagesEditor .btn,
 body.font-size-xsmall #imagesEditor .form-label,
 body.font-size-xsmall #imagesEditor .form-control,
-body.font-size-xsmall #imagesEditor .form-select,
-body.font-size-xsmall #deleteConfirmModal,
-body.font-size-xsmall #deleteConfirmModal .btn {
+body.font-size-xsmall #imagesEditor .form-select {
   font-size: 0.8rem;
 }
 body.font-size-small,
@@ -240,9 +238,7 @@ body.font-size-small #imagesEditor,
 body.font-size-small #imagesEditor .btn,
 body.font-size-small #imagesEditor .form-label,
 body.font-size-small #imagesEditor .form-control,
-body.font-size-small #imagesEditor .form-select,
-body.font-size-small #deleteConfirmModal,
-body.font-size-small #deleteConfirmModal .btn {
+body.font-size-small #imagesEditor .form-select {
   font-size: 0.925rem;
 }
 body.font-size-large,
@@ -269,9 +265,7 @@ body.font-size-large #imagesEditor,
 body.font-size-large #imagesEditor .btn,
 body.font-size-large #imagesEditor .form-label,
 body.font-size-large #imagesEditor .form-control,
-body.font-size-large #imagesEditor .form-select,
-body.font-size-large #deleteConfirmModal,
-body.font-size-large #deleteConfirmModal .btn {
+body.font-size-large #imagesEditor .form-select {
   font-size: 1.125rem;
 }
 body.font-size-xlarge,
@@ -298,9 +292,7 @@ body.font-size-xlarge #imagesEditor,
 body.font-size-xlarge #imagesEditor .btn,
 body.font-size-xlarge #imagesEditor .form-label,
 body.font-size-xlarge #imagesEditor .form-control,
-body.font-size-xlarge #imagesEditor .form-select,
-body.font-size-xlarge #deleteConfirmModal,
-body.font-size-xlarge #deleteConfirmModal .btn {
+body.font-size-xlarge #imagesEditor .form-select {
   font-size: 1.3rem;
 }
 body.font-size-jumbo,
@@ -327,9 +319,7 @@ body.font-size-jumbo #imagesEditor,
 body.font-size-jumbo #imagesEditor .btn,
 body.font-size-jumbo #imagesEditor .form-label,
 body.font-size-jumbo #imagesEditor .form-control,
-body.font-size-jumbo #imagesEditor .form-select,
-body.font-size-jumbo #deleteConfirmModal,
-body.font-size-jumbo #deleteConfirmModal .btn {
+body.font-size-jumbo #imagesEditor .form-select {
   font-size: 1.6rem;
 }
 
