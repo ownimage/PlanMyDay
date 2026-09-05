@@ -208,9 +208,9 @@ test.describe("PlanMyDay - Regression", () => {
       await expect(page.locator("#jobEditPage .smd-page-header h2")).toHaveText("Edit Job");
       await expect(page.locator("#jobEditDelBtn")).toBeVisible();
       await page.locator("#jobEditDelBtn").click();
-      await expect(page.locator("#deleteConfirmModal")).toBeVisible();
-      await page.locator("#deleteConfirmBtn").click();
-      await page.locator("#deleteConfirmModal").waitFor({ state: "hidden", timeout: 10000 });
+      await expect(page.locator("#smdConfirmModal")).toBeVisible();
+      await page.locator("#smdConfirmModal").locator("button").filter({ hasText: "Delete" }).click();
+      await page.locator("#smdConfirmModal").waitFor({ state: "hidden", timeout: 10000 });
     });
 
     test("view button renders regardless of badge text", async ({ page }) => {
@@ -641,14 +641,10 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#btnMainMenu").click();
       await page.locator("a.dropdown-item").filter({ hasText: "Streams" }).click();
       await page.locator("#streamEditorList .stream-accordion-header .btn-danger").filter({ hasText: "Delete", visible: true }).click();
-      await expect(page.locator("#deleteConfirmModal")).toBeVisible();
+      await expect(page.locator("#smdConfirmModal")).toBeVisible();
       await page.waitForTimeout(100);
-      await page.locator("#deleteConfirmBtn").click();
+      await page.locator("#smdConfirmModal").locator("button").filter({ hasText: "Delete" }).click();
       await page.waitForTimeout(200);
-      await page.evaluate(() => {
-        const modal = bootstrap.Modal.getInstance(document.getElementById("deleteConfirmModal"));
-        if (modal) modal.hide();
-      });
       await expect(page.getByText("EmptyStream")).not.toBeVisible();
     });
 
@@ -1100,10 +1096,10 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#streamEditorList .accordion-body .btn-primary").filter({ hasText: "Edit" }).first().click();
       await page.locator("#jobEditPage").waitFor({ state: "visible" });
       await page.locator("#jobEditDelBtn").click();
-      await expect(page.locator("#deleteConfirmModal")).toBeVisible();
-      await page.locator("#deleteConfirmBtn").waitFor({ state: "visible" });
-      await page.locator("#deleteConfirmBtn").click();
-      await page.locator("#deleteConfirmModal").waitFor({ state: "hidden", timeout: 10000 });
+      await expect(page.locator("#smdConfirmModal")).toBeVisible();
+      await page.locator("#smdConfirmModal").locator("button").filter({ hasText: "Delete" }).waitFor({ state: "visible" });
+      await page.locator("#smdConfirmModal").locator("button").filter({ hasText: "Delete" }).click();
+      await page.locator("#smdConfirmModal").waitFor({ state: "hidden", timeout: 10000 });
     });
 
     test("schedule modal opens from job edit", async ({ page }) => {
@@ -1370,9 +1366,9 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#imageEditModal").waitFor({ state: "hidden", timeout: 10000 });
       await page.locator(".card:has-text('DelImg')").waitFor({ state: "visible" });
       await page.locator(".card:has-text('DelImg')").getByTitle("Delete").click();
-      await page.locator("#deleteConfirmModal").waitFor({ state: "visible" });
-      await page.locator("#deleteConfirmBtn").click();
-      await page.locator("#deleteConfirmModal").waitFor({ state: "hidden", timeout: 10000 });
+      await page.locator("#smdConfirmModal").waitFor({ state: "visible" });
+      await page.locator("#smdConfirmModal").locator("button").filter({ hasText: "Delete" }).click();
+      await page.locator("#smdConfirmModal").waitFor({ state: "hidden", timeout: 10000 });
       await expect(page.getByText("DelImg")).not.toBeVisible();
     });
 
@@ -1709,15 +1705,10 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("a.dropdown-item").filter({ hasText: "Streams" }).click();
       await page.locator("#streamEditorList").waitFor({ state: "visible" });
       await page.locator("#streamEditorList .stream-accordion-header .btn-danger").filter({ hasText: "Delete", visible: true }).click();
-      await page.locator("#deleteConfirmModal").waitFor({ state: "visible" });
-      await page.locator("#btnDeleteCancel").click();
-      await page.waitForTimeout(250);
-      await page.evaluate(() => {
-        const modal = bootstrap.Modal.getInstance(document.getElementById("deleteConfirmModal"));
-        if (modal) modal.hide();
-      });
-      await page.locator("#deleteConfirmModal").waitFor({ state: "hidden", timeout: 10000 });
-      await expect(page.locator("#deleteConfirmModal")).not.toBeVisible();
+      await page.locator("#smdConfirmModal").waitFor({ state: "visible" });
+      await page.locator("#smdConfirmModal").locator("button").filter({ hasText: "Cancel" }).click();
+      await page.locator("#smdConfirmModal").waitFor({ state: "hidden", timeout: 10000 });
+      await expect(page.locator("#smdConfirmModal")).not.toBeVisible();
     });
   });
 
@@ -1736,7 +1727,7 @@ test.describe("PlanMyDay - Regression", () => {
         const cb = document.querySelector('.job-checkbox');
         if (cb) { cb.checked = true; cb.dispatchEvent(new Event('change', { bubbles: true })); }
       });
-      await expect(page.locator("#deleteConfirmModal")).toBeVisible();
+      await expect(page.locator("#smdConfirmModal")).toBeVisible();
     });
 
     test("skip adhoc confirm setting works", async ({ page }) => {
@@ -1755,7 +1746,7 @@ test.describe("PlanMyDay - Regression", () => {
         if (cb) { cb.checked = true; cb.dispatchEvent(new Event('change', { bubbles: true })); }
       });
       await page.waitForTimeout(250);
-      await expect(page.locator("#deleteConfirmModal")).not.toBeVisible();
+      await expect(page.locator("#smdConfirmModal")).not.toBeVisible();
     });
   });
 
@@ -1822,9 +1813,9 @@ test.describe("PlanMyDay - Regression", () => {
       await expect(page.locator("#jobEditPage .smd-page-header h2")).toContainText("View Job");
       await page.locator("#btnViewJobEdit").click();
       await page.locator("#jobEditDelBtn").click();
-      await page.locator("#deleteConfirmModal").waitFor({ state: "visible" });
-      await page.locator("#deleteConfirmBtn").click();
-      await page.locator("#deleteConfirmModal").waitFor({ state: "hidden", timeout: 10000 });
+      await page.locator("#smdConfirmModal").waitFor({ state: "visible" });
+      await page.locator("#smdConfirmModal").locator("button").filter({ hasText: "Delete" }).click();
+      await page.locator("#smdConfirmModal").waitFor({ state: "hidden", timeout: 10000 });
       await expect(page.locator("#todayCardList .today-drag-card")).toHaveCount(1);
       await expect(page.locator("#todayCardList .today-drag-card").first()).toHaveAttribute("data-job-id", "job_3");
       const order = await page.evaluate(() => JSON.parse(localStorage.getItem("planmydays_today_order")));
@@ -3137,15 +3128,10 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#todayCardList").waitFor({ state: "visible", timeout: 10000 });
       await page.waitForTimeout(150);
       await page.locator('.job-checkbox').first().check();
-      await page.locator("#deleteConfirmModal").waitFor({ state: "visible", timeout: 10000 });
+      await page.locator("#smdConfirmModal").waitFor({ state: "visible", timeout: 10000 });
       await page.waitForTimeout(100);
-      await page.locator("#deleteConfirmBtn").click();
-      await page.waitForTimeout(200);
-      await page.evaluate(() => {
-        const modal = bootstrap.Modal.getInstance(document.getElementById("deleteConfirmModal"));
-        if (modal) modal.hide();
-      });
-      await page.locator("#deleteConfirmModal").waitFor({ state: "hidden", timeout: 10000 });
+      await page.locator("#smdConfirmModal").locator("button").filter({ hasText: "Remove" }).click();
+      await page.locator("#smdConfirmModal").waitFor({ state: "hidden", timeout: 10000 });
       await expect(page.getByText("RemoveMe")).not.toBeVisible();
     });
   });
@@ -3646,16 +3632,11 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#showDanger").check();
       await page.locator("#clearAllDataRow").waitFor({ state: "visible" });
       await page.getByRole("button", { name: "Clear All Data" }).click();
-      await expect(page.locator("#deleteConfirmModal")).toBeVisible();
+      await expect(page.locator("#smdConfirmModal")).toBeVisible();
       await page.waitForTimeout(100);
-      await page.locator("#deleteConfirmBtn").click();
-      await page.waitForTimeout(200);
-      await page.evaluate(() => {
-        const modal = bootstrap.Modal.getInstance(document.getElementById("deleteConfirmModal"));
-        if (modal) modal.hide();
-      });
+      await page.locator("#smdConfirmModal").locator("button").filter({ hasText: "Clear" }).click();
       await page.waitForTimeout(250);
-      await expect(page.locator("#deleteConfirmModal")).not.toBeVisible({ timeout: 10000 });
+      await expect(page.locator("#smdConfirmModal")).not.toBeVisible({ timeout: 10000 });
       const allKeys = await page.evaluate(() => {
         const k = Object.keys(localStorage);
         return k.filter(key => key !== "planmydays_last_gen" && key !== "planmydays_today_order" && key !== "planmydays_completed");
@@ -4515,14 +4496,10 @@ test.describe("PlanMyDay - Regression", () => {
     test("delete image via confirm", async ({ page }) => {
       const before = await page.evaluate(() => loadImages().length);
       await page.locator("#imagesList").getByTitle("Delete").first().click();
-      await page.locator("#deleteConfirmModal").waitFor({ state: "visible" });
+      await page.locator("#smdConfirmModal").waitFor({ state: "visible" });
       await page.waitForTimeout(100);
-      await page.locator("#deleteConfirmBtn").click();
+      await page.locator("#smdConfirmModal").locator("button").filter({ hasText: "Delete" }).click();
       await page.waitForTimeout(200);
-      await page.evaluate(() => {
-        const modal = bootstrap.Modal.getInstance(document.getElementById("deleteConfirmModal"));
-        if (modal) modal.hide();
-      });
       const after = await page.evaluate(() => loadImages().length);
       expect(after).toBe(before - 1);
     });
@@ -5750,9 +5727,9 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#jobAddTaskBtn").click();
       await expect(page.locator(".task-row")).toHaveCount(2);
       await page.locator("#jobTasksList .btn-danger").first().click();
-      await page.locator("#deleteConfirmModal").waitFor({ state: "visible" });
-      await page.locator("#deleteConfirmBtn").click();
-      await page.locator("#deleteConfirmModal").waitFor({ state: "hidden" });
+      await page.locator("#smdConfirmModal").waitFor({ state: "visible" });
+      await page.locator("#smdConfirmModal").locator("button").filter({ hasText: "Delete" }).click();
+      await page.locator("#smdConfirmModal").waitFor({ state: "hidden" });
       await expect(page.locator(".task-row")).toHaveCount(1);
       const tasks = await page.evaluate(() => jobsBuffer?.tasks);
       expect(tasks).toHaveLength(1);
@@ -5766,9 +5743,9 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#jobAddTaskBtn").click();
       await expect(page.locator(".task-row")).toHaveCount(2);
       await page.locator("#jobTasksList .btn-danger").first().click();
-      await page.locator("#deleteConfirmModal").waitFor({ state: "visible" });
-      await page.locator("#btnDeleteCancel").click();
-      await page.locator("#deleteConfirmModal").waitFor({ state: "hidden" });
+      await page.locator("#smdConfirmModal").waitFor({ state: "visible" });
+      await page.locator("#smdConfirmModal").locator("button").filter({ hasText: "Cancel" }).click();
+      await page.locator("#smdConfirmModal").waitFor({ state: "hidden" });
       await expect(page.locator(".task-row")).toHaveCount(2);
       const tasks = await page.evaluate(() => jobsBuffer?.tasks);
       expect(tasks).toHaveLength(2);
@@ -5781,9 +5758,9 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#jobAddTaskBtn").click();
       await page.locator(".task-desc-input").first().fill("My task name");
       await page.locator("#jobTasksList .btn-danger").first().click();
-      await page.locator("#deleteConfirmModal").waitFor({ state: "visible" });
-      await expect(page.locator("#deleteConfirmMessage")).toContainText("My task name");
-      await page.locator("#deleteConfirmBtn").click();
+      await page.locator("#smdConfirmModal").waitFor({ state: "visible" });
+      await expect(page.locator("#smdConfirmModal .smd-body")).toContainText("My task name");
+      await page.locator("#smdConfirmModal").locator("button").filter({ hasText: "Delete" }).click();
     });
 
     test("task note button toggles note textarea", async ({ page }) => {

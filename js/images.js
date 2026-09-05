@@ -562,14 +562,18 @@ function confirmDeleteImage(index) {
   const images = loadImages();
   const name = images[index].name;
 
-  const modalEl = document.getElementById("deleteConfirmModal");
-  document.getElementById("deleteConfirmMessage").innerHTML =
-    `Delete image "<strong>${escapeHtml(name)}</strong>"?`;
-  document.getElementById("deleteConfirmBtn").onclick = function() {
-    safeHideModal("deleteConfirmModal");
-    deleteImage(index);
-  };
-  new bootstrap.Modal(modalEl).show();
+  showSmdModal({
+    title: "Delete Image?",
+    content: `Delete image "<strong>${escapeHtml(name)}</strong>"?`,
+    buttons: [
+      { text: "Cancel", variant: "secondary", action: "cancel" },
+      { text: "Delete", variant: "danger", action: "delete" }
+    ],
+    onAction: function(detail) {
+      if (detail.action !== "delete") return;
+      deleteImage(index);
+    }
+  });
 }
 
 function deleteImage(index) {
