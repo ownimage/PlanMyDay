@@ -304,6 +304,13 @@ test.describe("PlanMyDay - Screenshots", () => {
     await screenshotAllThemes(page, "main-view-hide-done.png");
   });
 
+  test("main menu dropdown", async ({ page }) => {
+    await page.locator("#btnMainMenu").click();
+    await page.waitForSelector(".dropdown-menu.show");
+    await page.waitForTimeout(200);
+    await screenshotAllThemes(page, "main-menu-dropdown.png");
+  });
+
   test("add card modal", async ({ page }) => {
     await seedMainView(page);
     await page.reload();

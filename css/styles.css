@@ -749,6 +749,16 @@ body.drag-size-large .task-drag-card .drag-handle {
   backdrop-filter: none;
 }
 
+/* Quartz (and any glassmorphism theme) gives .dropdown-menu a translucent
+   white gradient + backdrop blur, which washes out the white menu text.
+   Fall back to the theme's opaque dropdown background for readability. */
+.dropdown-menu {
+  background-color: var(--bs-dropdown-bg, var(--bs-body-bg));
+  background-image: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
 /* Outline-secondary buttons: some themes define --bs-secondary as white/very light,
    making the resting text unreadable. Use body color for contrast; keep the theme's
    own hover/active/disabled treatment. */

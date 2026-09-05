@@ -10,7 +10,8 @@ pmdStreamHeaderTemplate.innerHTML = `
       align-items: center;
       width: 100%;
       padding: 0.25rem 0;
-      background-color: var(--bs-secondary-bg, var(--bs-body-bg));
+      background-color: var(--smd-secondary, var(--bs-secondary, #6c757d));
+      color: var(--smd-primary-text, #fff);
     }
     :host([expanded]) .stream-accordion-header {
       background-color: var(--bs-info);
@@ -23,7 +24,7 @@ pmdStreamHeaderTemplate.innerHTML = `
       font-size: 1.3rem;
       line-height: 1;
       padding: 0 0.25rem;
-      color: var(--bs-body-color);
+      color: currentColor;
       opacity: 0.55;
       user-select: none;
       -webkit-user-select: none;
