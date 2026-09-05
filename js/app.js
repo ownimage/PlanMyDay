@@ -634,39 +634,57 @@ function handleAccordionJobActiveToggle(streamIdx, jobIdx, checked) {
   updateEditorJobCountBadges();
 }
 
-function focusTitleOnShow(inputId, modalId) {
-  const el = document.getElementById(inputId);
-  const modalEl = document.getElementById(modalId);
-  if (!el || !modalEl) return;
-  const handler = function() {
-    el.focus();
-    modalEl.removeEventListener("shown.bs.modal", handler);
-  };
-  modalEl.addEventListener("shown.bs.modal", handler);
-}
+var _streamEditCloseTimer = null;
 
-function showStreamEditModal() {
+function openStreamEditPage() {
   const streams = loadStreams();
   const t = streams[editingIndex];
   const data = editBuffer || t;
-  document.getElementById("streamEditModalTitle").textContent = isNew ? "Add Stream" : "Edit Stream";
-  document.getElementById("streamEditModalBody").innerHTML = getStreamEditFormHTML(data);
+  const page = document.getElementById("streamEditPage");
+  if (!page) return;
+  page.classList.remove("d-none");
+  page.title = isNew ? "Add Stream" : "Edit Stream";
+  page.content = getStreamEditFormHTML(data);
+  page.buttons = [
+    { text: "Cancel", variant: "secondary", action: "cancel", id: "btnStreamEditCancel" },
+    { text: "OK", variant: "success", action: "done", id: "btnStreamEditOk" }
+  ];
+  injectStyleInto(page.shadowRoot, JOBS_EDITOR_STYLES);
+  page.show();
   updateStreamEditOkBtn();
-  new bootstrap.Modal(document.getElementById("streamEditModal")).show();
-  if (isNew) focusTitleOnShow("streamTitleInput", "streamEditModal");
+  if (isNew) {
+    const input = $id("streamTitleInput");
+    if (input) input.focus();
+  }
+}
+
+function hideStreamEditPage() {
+  const page = document.getElementById("streamEditPage");
+  if (page) {
+    page.hide();
+    clearTimeout(_streamEditCloseTimer);
+    _streamEditCloseTimer = setTimeout(function() {
+      page.classList.add("d-none");
+    }, Math.max(0, (page.slideDuration || 0) + 50));
+  }
 }
 
 function updateStreamEditOkBtn() {
-  const okBtn = document.getElementById("btnStreamEditOk");
-  const title = document.getElementById("streamTitleInput");
+  const okBtn = $id("btnStreamEditOk");
+  const title = $id("streamTitleInput");
   if (okBtn) okBtn.disabled = !title || !title.value.trim();
+}
+
+function streamEditSubmit() {
+  const okBtn = $id("btnStreamEditOk");
+  if (okBtn && !okBtn.disabled) doneEdit();
 }
 
 function getStreamEditFormHTML(data) {
   return `
     <div class="mb-2">
       <label class="form-label">Title</label>
-      <input class="form-control" id="streamTitleInput" value="${escapeHtml(data.title || "")}" oninput="editField('title', this.value);updateStreamEditOkBtn()" onkeydown="if(event.key==='Enter') document.getElementById('btnStreamEditOk').click()">
+      <input class="form-control" id="streamTitleInput" value="${escapeHtml(data.title || "")}" oninput="editField('title', this.value);updateStreamEditOkBtn()" onkeydown="if(event.key==='Enter') streamEditSubmit()">
     </div>
     <div class="mb-2">
       <label class="form-label">Tab</label>
@@ -764,7 +782,7 @@ function renderStreamsEditor() {
   page.title = "Edit Streams";
 
   if (editingIndex >= 0) {
-    showStreamEditModal();
+    openStreamEditPage();
   }
 
   updateEditorJobCountBadges();
@@ -1012,8 +1030,8 @@ function editField(field, value) {
 }
 
 function updateStreamImagePreview(name) {
-  var preview = document.getElementById("streamImagePreview");
-  var nameEl = document.getElementById("streamImageName");
+  var preview = $id("streamImagePreview");
+  var nameEl = $id("streamImageName");
   if (!preview) return;
   var url = getImageDataUrl(name);
   if (url) {
@@ -1108,11 +1126,11 @@ function editStream(index) {
   var streams = loadStreams();
   editBuffer = JSON.parse(JSON.stringify(streams[index]));
   editingIndex = index; isNew = false;
-  showStreamEditModal();
+  openStreamEditPage();
 }
 
 function cancelEdit() {
-  safeHideModal("streamEditModal");
+  hideStreamEditPage();
   if (isNew && editingIndex >= 0) {
     var streams = loadStreams();
     streams.splice(editingIndex, 1);
@@ -1128,7 +1146,7 @@ function doneEdit() {
     streams[editingIndex] = editBuffer;
     saveStreams(streams);
   }
-  safeHideModal("streamEditModal");
+  hideStreamEditPage();
   editingIndex = -1; editBuffer = null; isNew = false;
   renderStreamsEditor();
 }
@@ -1164,9 +1182,7 @@ function addNewStream() {
   saveStreams(streams);
   editBuffer = JSON.parse(JSON.stringify(newStream));
   editingIndex = streams.length - 1; isNew = true;
-  showStreamEditModal();
-  var el = document.getElementById("streamsEditor");
-  if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+  openStreamEditPage();
 }
 
 // JOBS EDITOR
@@ -2534,11 +2550,18 @@ function injectJobEditStyles() {
 }
 
 function injectStyleInto(root, css) {
-  if (!root || root.querySelector(".smd-shared-style")) return;
-  var style = document.createElement("style");
-  style.className = "smd-shared-style";
-  style.textContent = css || SETTINGS_STYLES;
-  root.appendChild(style);
+  if (!root) return;
+  css = css || SETTINGS_STYLES;
+  var style = root.querySelector(".smd-shared-style");
+  if (!style) {
+    style = document.createElement("style");
+    style.className = "smd-shared-style";
+    style.textContent = "";
+    root.appendChild(style);
+  }
+  if (style.textContent.indexOf(css) === -1) {
+    style.textContent += css;
+  }
 }
 
 function buildSettingsContent() {
@@ -2791,6 +2814,18 @@ document.addEventListener("DOMContentLoaded", () => {
         doneJobEdit();
       } else if (action === "delete") {
         deleteJobFromEdit();
+      }
+    });
+  }
+
+  const streamEditPage = document.getElementById("streamEditPage");
+  if (streamEditPage) {
+    streamEditPage.addEventListener("smd-page-action", (e) => {
+      const action = e.detail && (typeof e.detail === "string" ? e.detail : e.detail.action);
+      if (action === "cancel") {
+        cancelEdit();
+      } else if (action === "done") {
+        doneEdit();
       }
     });
   }
