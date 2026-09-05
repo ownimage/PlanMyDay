@@ -635,25 +635,6 @@ let imagePickerSearch = "";
 function openImagePicker(callback) {
   imagePickerCallback = callback;
   imagePickerSearch = "";
-  const modalIds = ["streamEditModal"];
-  const openModals = [];
-  modalIds.forEach(id => {
-    const el = document.getElementById(id);
-    if (!el || !el.classList.contains("show")) return;
-    const inst = bootstrap.Modal.getInstance(el);
-    if (inst) {
-      openModals.push(inst);
-      // Prevent hidden modals from intercepting clicks while they fade out
-      el.querySelector(".modal-dialog").style.pointerEvents = "none";
-      inst.hide();
-    } else {
-      // Force-hide modal that has no Bootstrap instance
-      el.classList.remove("show");
-      el.setAttribute("aria-hidden", "true");
-      el.removeAttribute("aria-modal");
-      el.style.display = "none";
-    }
-  });
   const modalEl = document.getElementById("imagePickerModal");
   modalEl.style.zIndex = "1060";
   modalEl.addEventListener("hidden.bs.modal", function onHide() {
@@ -661,10 +642,6 @@ function openImagePicker(callback) {
     modalEl.style.zIndex = "";
     imagePickerCallback = null;
     imagePickerSearch = "";
-    openModals.forEach(inst => {
-      inst.show();
-      inst._element.querySelector(".modal-dialog").style.pointerEvents = "";
-    });
   });
   new bootstrap.Modal(modalEl).show();
   renderImagePicker();

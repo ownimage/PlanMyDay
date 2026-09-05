@@ -87,6 +87,9 @@
 
   <!-- JOB VIEW/EDIT/ADD PAGE -->
   <smd-page id="jobEditPage" class="d-none"></smd-page>
+
+  <!-- STREAM ADD/EDIT PAGE -->
+  <smd-page id="streamEditPage" class="d-none"></smd-page>
   <template id="settingsTemplate">
       <div class="smd-settings">
 
@@ -408,23 +411,6 @@
 
   <!-- FLATPICKR -->
   <script src="vendor/flatpickr.min.js"></script>
-
-  <!-- STREAM EDIT MODAL -->
-  <div id="streamEditModal" class="modal fade" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
-    <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h3 class="modal-title" id="streamEditModalTitle">Edit Stream</h3>
-          <button id="btnStreamEditClose" type="button" class="btn btn-sm ms-auto" onclick="cancelEdit()" style="font-size:1.5rem;line-height:1;padding:0 0.25rem;color:inherit;border:none;background:none">&times;</button>
-        </div>
-        <div class="modal-body" id="streamEditModalBody"></div>
-        <div class="modal-footer">
-          <button id="btnStreamEditCancel" class="btn btn-secondary editor-btn flex-fill" onclick="cancelEdit()">Cancel</button>
-          <button id="btnStreamEditOk" class="btn btn-success editor-btn flex-fill" onclick="doneEdit()">OK</button>
-        </div>
-      </div>
-    </div>
-  </div>
 
   <!-- IMAGE EDIT MODAL -->
   <div id="imageEditModal" class="modal fade" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">

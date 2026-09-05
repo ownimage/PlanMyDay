@@ -558,39 +558,39 @@ test.describe("PlanMyDay - Regression", () => {
 
     test("add stream creates a new stream", async ({ page }) => {
       await page.getByRole("button", { name: "Add Stream" }).click();
-      await expect(page.locator("#streamEditModal")).toBeVisible();
+      await expect(page.locator("#streamEditPage")).toBeVisible();
       await expect(page.locator("#streamTitleInput")).toHaveValue("");
       await page.locator("#streamTitleInput").fill("New Stream");
       await page.locator("#btnStreamEditOk").click();
-      await page.locator("#streamEditModal").waitFor({ state: "hidden", timeout: 15000 });
+      await page.locator("#streamEditPage").waitFor({ state: "hidden", timeout: 15000 });
       await expect(page.locator("#streamEditorList .editor-title").filter({ hasText: "New Stream" })).toBeVisible();
     });
 
     test("add stream OK button is disabled until title has text", async ({ page }) => {
       await page.getByRole("button", { name: "Add Stream" }).click();
-      await expect(page.locator("#streamEditModal")).toBeVisible();
-      await expect(page.locator("#btnStreamEditOk")).toBeDisabled();
+      await expect(page.locator("#streamEditPage")).toBeVisible();
+      await expect(page.locator("#btnStreamEditOk button")).toBeDisabled();
       await page.locator("#streamTitleInput").fill("My Stream");
-      await expect(page.locator("#btnStreamEditOk")).toBeEnabled();
+      await expect(page.locator("#btnStreamEditOk button")).toBeEnabled();
       await page.locator("#streamTitleInput").fill("   ");
-      await expect(page.locator("#btnStreamEditOk")).toBeDisabled();
+      await expect(page.locator("#btnStreamEditOk button")).toBeDisabled();
       await page.locator("#streamTitleInput").fill("My Stream");
-      await expect(page.locator("#btnStreamEditOk")).toBeEnabled();
+      await expect(page.locator("#btnStreamEditOk button")).toBeEnabled();
     });
 
     test("add stream focuses the title input", async ({ page }) => {
       await page.getByRole("button", { name: "Add Stream" }).click();
-      await page.locator("#streamEditModal").waitFor({ state: "visible" });
+      await page.locator("#streamEditPage").waitFor({ state: "visible" });
       await expect(page.locator("#streamTitleInput")).toBeFocused();
     });
 
     test("add stream Enter key confirms via OK", async ({ page }) => {
       await page.getByRole("button", { name: "Add Stream" }).click();
-      await page.locator("#streamEditModal").waitFor({ state: "visible" });
+      await page.locator("#streamEditPage").waitFor({ state: "visible" });
       await expect(page.locator("#streamTitleInput")).toBeFocused();
       await page.locator("#streamTitleInput").fill("Enter Stream");
       await page.keyboard.press("Enter");
-      await page.locator("#streamEditModal").waitFor({ state: "hidden", timeout: 15000 });
+      await page.locator("#streamEditPage").waitFor({ state: "hidden", timeout: 15000 });
       await expect(page.locator("#streamEditorList .editor-title").filter({ hasText: "Enter Stream" })).toBeVisible();
     });
 
@@ -598,22 +598,22 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#streamEditorList .stream-header-main").first().click();
       await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible", timeout: 5000 });
       await page.locator("#streamEditorList .btn-primary").filter({ hasText: "Edit" }).first().click();
-      await page.locator("#streamEditModal").waitFor({ state: "visible" });
-      await expect(page.locator("#btnStreamEditOk")).toBeEnabled();
+      await page.locator("#streamEditPage").waitFor({ state: "visible" });
+      await expect(page.locator("#btnStreamEditOk button")).toBeEnabled();
     });
 
     test("can edit a stream", async ({ page }) => {
       await page.locator("#streamEditorList .stream-header-main").first().click();
       await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible", timeout: 5000 });
       await page.locator("#streamEditorList .btn-primary").filter({ hasText: "Edit" }).first().click();
-      await page.locator("#streamEditModal").waitFor({ state: "visible" });
-      const titleInput = page.locator("#streamEditModalBody input[value=\"Work\"]");
+      await page.locator("#streamEditPage").waitFor({ state: "visible" });
+      const titleInput = page.locator("#streamEditPage .smd-page-body input[value=\"Work\"]");
       await expect(titleInput).toBeVisible();
       await titleInput.fill("Work Updated");
       await page.waitForTimeout(100);
       await page.locator("#btnStreamEditOk").first().click();
       await page.waitForTimeout(300);
-      await page.locator("#streamEditModal").waitFor({ state: "hidden", timeout: 15000 });
+      await page.locator("#streamEditPage").waitFor({ state: "hidden", timeout: 15000 });
       await expect(page.getByText("Work Updated")).toBeVisible();
     });
 
@@ -621,12 +621,12 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#streamEditorList .stream-header-main").first().click();
       await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible", timeout: 5000 });
       await page.locator("#streamEditorList .btn-primary").filter({ hasText: "Edit" }).first().click();
-      await page.locator("#streamEditModal").waitFor({ state: "visible" });
-      await page.locator("#streamEditModalBody input").first().fill("Cancelled");
+      await page.locator("#streamEditPage").waitFor({ state: "visible" });
+      await page.locator("#streamEditPage .smd-page-body input").first().fill("Cancelled");
       await page.waitForTimeout(100);
       await page.locator("#btnStreamEditCancel").click();
       await page.waitForTimeout(300);
-      await page.locator("#streamEditModal").waitFor({ state: "hidden", timeout: 15000 });
+      await page.locator("#streamEditPage").waitFor({ state: "hidden", timeout: 15000 });
       await page.locator("#streamEditorList .editor-title").filter({ hasText: "Work" }).waitFor({ state: "visible" });
       await expect(page.getByText("Cancelled")).not.toBeVisible();
     });
@@ -750,7 +750,7 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#streamEditorList .stream-header-main").first().click();
       await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible", timeout: 5000 });
       await page.locator("#streamEditorList .btn-primary").filter({ hasText: "Edit" }).first().click();
-      await expect(page.locator("#streamEditModal")).toBeVisible();
+      await expect(page.locator("#streamEditPage")).toBeVisible();
       await expect(page.locator("#btnStreamImageChoose")).toBeVisible();
       await expect(page.locator("#btnStreamImageChoose")).toHaveText("Edit");
     });
@@ -761,10 +761,10 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#streamEditorList .accordion-collapse.show").waitFor({ state: "visible", timeout: 5000 });
       // edit the stream
       await page.locator("#streamEditorList .btn-primary").filter({ hasText: "Edit" }).first().click();
-      await page.locator("#streamEditModal").waitFor({ state: "visible" });
-      await page.locator("#streamEditModalBody input").first().fill("WorkUpdated");
+      await page.locator("#streamEditPage").waitFor({ state: "visible" });
+      await page.locator("#streamEditPage .smd-page-body input").first().fill("WorkUpdated");
       await page.locator("#btnStreamEditOk").click();
-      await page.locator("#streamEditModal").waitFor({ state: "hidden", timeout: 10000 });
+      await page.locator("#streamEditPage").waitFor({ state: "hidden", timeout: 10000 });
       // accordion should still be expanded
       await expect(page.locator("#streamEditorList .accordion-collapse.show")).toBeVisible({ timeout: 5000 });
       // renamed title should be visible
@@ -3945,10 +3945,10 @@ test.describe("PlanMyDay - Regression", () => {
       await expect(page.locator("#streamsEditor")).toBeVisible();
       await expect(page.locator("#streamEditorList .editor-title").filter({ hasText: "MyStream" })).toBeVisible();
       await page.getByRole("button", { name: "Add Stream" }).click();
-      await expect(page.locator("#streamEditModal")).toBeVisible();
+      await expect(page.locator("#streamEditPage")).toBeVisible();
       await page.waitForTimeout(150);
       await page.evaluate(() => cancelEdit());
-      await page.locator("#streamEditModal").waitFor({ state: "hidden", timeout: 15000 });
+      await page.locator("#streamEditPage").waitFor({ state: "hidden", timeout: 15000 });
       await expect(page.locator("#streamEditorList")).toBeVisible();
     });
 
@@ -5163,11 +5163,11 @@ test.describe("PlanMyDay - Regression", () => {
       await page.reload();
       await page.evaluate(() => exportToMinio());
       await page.waitForTimeout(150);
-      await expect(page.locator("#minioAlertModal")).toBeVisible();
-      await expect(page.locator("#minioAlertModal").locator("p")).toContainText("configure all Minio settings");
-      await page.locator("#minioAlertModal .btn").click();
+      await expect(page.locator("#smdConfirmModal")).toBeVisible();
+      await expect(page.locator("#smdConfirmModal").locator("p")).toContainText("configure all Minio settings");
+      await page.locator("#smdConfirmModal .smd-footer button").click();
       await page.waitForTimeout(150);
-      await expect(page.locator("#minioAlertModal")).not.toBeAttached();
+      await expect(page.locator("#smdConfirmModal")).not.toBeVisible();
     });
 
     test("export to minio alerts self-remove from DOM after close", async ({ page }) => {
@@ -5177,9 +5177,9 @@ test.describe("PlanMyDay - Regression", () => {
       await page.reload();
       await page.evaluate(() => exportToMinio());
       await page.waitForTimeout(150);
-      await page.locator("#minioAlertModal .btn").click();
+      await page.locator("#smdConfirmModal .smd-footer button").click();
       await page.waitForTimeout(250);
-      await expect(page.locator("#minioAlertModal")).not.toBeAttached();
+      await expect(page.locator("#smdConfirmModal")).not.toBeVisible();
     });
 
     // ── Import error handling ──────────────────────────────
@@ -5191,14 +5191,14 @@ test.describe("PlanMyDay - Regression", () => {
       await page.reload();
       await page.evaluate(() => importFromMinio());
       await page.waitForTimeout(150);
-      await expect(page.locator("#minioAlertModal")).toBeVisible();
-      await expect(page.locator("#minioAlertModal").locator("p")).toContainText("server, username and password");
+      await expect(page.locator("#smdConfirmModal")).toBeVisible();
+      await expect(page.locator("#smdConfirmModal").locator("p")).toContainText("server, username and password");
     });
 
     test("import from minio does nothing when disabled", async ({ page }) => {
       await page.evaluate(() => importFromMinio());
       await page.waitForTimeout(150);
-      await expect(page.locator("#minioImportModal")).not.toBeAttached();
+      await expect(page.locator("#smdConfirmModal")).not.toBeVisible();
     });
 
     // ── getMinioConfig returns correct shape ───────────────
@@ -5234,33 +5234,33 @@ test.describe("PlanMyDay - Regression", () => {
     test("showMinioAlert creates and shows modal", async ({ page }) => {
       await page.evaluate(() => showMinioAlert("Test message"));
       await page.waitForTimeout(150);
-      await expect(page.locator("#minioAlertModal")).toBeVisible();
-      await expect(page.locator("#minioAlertModal").locator("p")).toContainText("Test message");
+      await expect(page.locator("#smdConfirmModal")).toBeVisible();
+      await expect(page.locator("#smdConfirmModal").locator("p")).toContainText("Test message");
     });
 
     test("showMinioAlert error type uses red button", async ({ page }) => {
       await page.evaluate(() => showMinioAlert("Error!", "error"));
       await page.waitForTimeout(150);
-      await expect(page.locator("#minioAlertModal .btn-danger")).toBeVisible();
+      await expect(page.locator("#smdConfirmModal .smd-footer button[variant='danger']")).toBeVisible();
     });
 
     test("showMinioAlert info type uses primary button", async ({ page }) => {
       await page.evaluate(() => showMinioAlert("Info", "info"));
       await page.waitForTimeout(150);
-      await expect(page.locator("#minioAlertModal .btn-primary")).toBeVisible();
+      await expect(page.locator("#smdConfirmModal .smd-footer button[variant='primary']")).toBeVisible();
     });
 
     test("showMinioAlert cleans up old modal before showing new", async ({ page }) => {
       const counts = await page.evaluate(() => {
         showMinioAlert("First");
-        const before = document.querySelectorAll("#minioAlertModal").length;
+        const before = document.querySelectorAll("#smdConfirmModal").length;
         showMinioAlert("Second");
-        const after = document.querySelectorAll("#minioAlertModal").length;
+        const after = document.querySelectorAll("#smdConfirmModal").length;
         return { before, after };
       });
       expect(counts.before).toBe(1);
       expect(counts.after).toBe(1);
-      await expect(page.locator("#minioAlertModal").filter({ hasText: "Second" })).toBeVisible();
+      await expect(page.locator("#smdConfirmModal").filter({ hasText: "Second" })).toBeVisible();
     });
 
     // ── Crypto functions ──────────────────────────────────
@@ -5436,7 +5436,7 @@ test.describe("PlanMyDay - Regression", () => {
       await page.reload();
       await page.evaluate(() => showMinioImportModal());
       await page.waitForTimeout(150);
-      await expect(page.locator("#minioImportModal")).toBeVisible();
+      await expect(page.locator("#smdConfirmModal")).toBeVisible();
       await expect(page.locator("#minioImportBody")).toContainText("Loading buckets");
     });
 
@@ -5452,7 +5452,7 @@ test.describe("PlanMyDay - Regression", () => {
       await page.waitForTimeout(150);
       await page.evaluate(() => closeMinioImport());
       await page.waitForTimeout(250);
-      await expect(page.locator("#minioImportModal")).not.toBeAttached();
+      await expect(page.locator("#smdConfirmModal")).not.toBeVisible();
     });
 
     // ── Import modal error paths ───────────────────────────
@@ -5469,7 +5469,7 @@ test.describe("PlanMyDay - Regression", () => {
       await page.waitForTimeout(150);
       // Should show error (fetch to non-existent server will fail)
       // At minimum the modal should still exist
-      await expect(page.locator("#minioImportModal")).toBeVisible();
+      await expect(page.locator("#smdConfirmModal")).toBeVisible();
     });
 
     // ── Export does nothing when disabled ──────────────────
@@ -5477,7 +5477,7 @@ test.describe("PlanMyDay - Regression", () => {
     test("export to minio does nothing when disabled", async ({ page }) => {
       await page.evaluate(() => exportToMinio());
       await page.waitForTimeout(150);
-      await expect(page.locator("#minioAlertModal")).not.toBeAttached();
+      await expect(page.locator("#smdConfirmModal")).not.toBeVisible();
     });
 
     // ── toggleMinioPassword edge cases ─────────────────────

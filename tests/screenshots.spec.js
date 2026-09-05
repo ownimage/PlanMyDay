@@ -186,11 +186,11 @@ async function setTheme(page, themeName) {
       if (imagesEditor && !imagesEditor.classList.contains("d-none")) renderImagesEditor();
     }
     // The streams editor list also shows themed images but is not re-rendered
-    // by changeTheme(); rebuild it unless the stream edit modal is open on top
-    // (editingIndex >= 0 makes renderStreamsEditor early-return via the modal).
+    // by changeTheme(); rebuild it unless the stream add/edit page is open on top
+    // (editingIndex >= 0 makes renderStreamsEditor early-return via the page).
     const streamsEditor = document.getElementById("streamsEditor");
-    const streamModalOpen = !!document.getElementById("streamEditModal") && document.getElementById("streamEditModal").classList.contains("show");
-    if (streamsEditor && !streamsEditor.classList.contains("d-none") && !streamModalOpen && typeof renderStreamsEditor === "function") {
+    const streamEditPageOpen = !!document.getElementById("streamEditPage") && document.getElementById("streamEditPage").hasAttribute("open");
+    if (streamsEditor && !streamsEditor.classList.contains("d-none") && !streamEditPageOpen && typeof renderStreamsEditor === "function") {
       renderStreamsEditor();
     }
     // Refresh themed preview images in open modals, preserving form/tab state.
@@ -202,7 +202,7 @@ async function setTheme(page, themeName) {
         updateJobImagePreview(jobsBuffer.image);
       }
     }
-    if (streamModalOpen) {
+    if (streamEditPageOpen) {
       if (typeof updateStreamImagePreview === "function" && typeof editBuffer !== "undefined" && editBuffer) {
         updateStreamImagePreview(editBuffer.image);
       }
@@ -392,7 +392,7 @@ test.describe("PlanMyDay - Screenshots", () => {
     await page.locator("a.dropdown-item").filter({ hasText: "Streams" }).click();
     await page.waitForSelector("#streamEditorList .accordion-item");
     await page.getByRole("button", { name: "Add Stream" }).click();
-    await page.locator("#streamEditModal").waitFor({ state: "visible" });
+    await page.locator("#streamEditPage").waitFor({ state: "visible" });
     await page.waitForTimeout(400);
     await screenshotAllThemes(page, "add-stream.png");
   });
@@ -688,7 +688,8 @@ test.describe("PlanMyDay - Screenshots", () => {
     });
     await page.reload();
     await page.evaluate(() => importFromMinio());
-    await page.waitForSelector("#minioImportModal");
+    await page.waitForSelector("#smdConfirmModal");
+    await page.waitForSelector("#minioImportBody .list-group-item");
     await page.waitForTimeout(400);
     await screenshotAllThemes(page, "import-minio.png");
   });
