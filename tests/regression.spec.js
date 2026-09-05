@@ -5154,6 +5154,35 @@ test.describe("PlanMyDay - Regression", () => {
       await expect(page.locator("a.dropdown-item").filter({ hasText: "Import from Minio" })).toBeVisible();
     });
 
+    test("minio menu options hidden when disabled via the settings minio tab", async ({ page }) => {
+      // settings -> minio tab -> disabled
+      await page.locator("#btnMainMenu").click();
+      await page.locator("a.dropdown-item").filter({ hasText: "Settings" }).click();
+      await page.locator("#minio-tab").click();
+      await expect(page.locator("#minioEnabled")).not.toBeChecked();
+      await page.getByRole("button", { name: "Done" }).click();
+      // main menu should not show the import/export options
+      await page.locator("#btnMainMenu").click();
+      await expect(page.locator("a.dropdown-item").filter({ hasText: "Export to Minio" })).not.toBeVisible();
+      await expect(page.locator("a.dropdown-item").filter({ hasText: "Import from Minio" })).not.toBeVisible();
+      // enabling in settings makes them appear
+      await page.locator("a.dropdown-item").filter({ hasText: "Settings" }).click();
+      await page.locator("#minio-tab").click();
+      await page.locator("#minioEnabled").check();
+      await page.getByRole("button", { name: "Done" }).click();
+      await page.locator("#btnMainMenu").click();
+      await expect(page.locator("a.dropdown-item").filter({ hasText: "Export to Minio" })).toBeVisible();
+      await expect(page.locator("a.dropdown-item").filter({ hasText: "Import from Minio" })).toBeVisible();
+      // disabling again hides them again
+      await page.locator("a.dropdown-item").filter({ hasText: "Settings" }).click();
+      await page.locator("#minio-tab").click();
+      await page.locator("#minioEnabled").uncheck();
+      await page.getByRole("button", { name: "Done" }).click();
+      await page.locator("#btnMainMenu").click();
+      await expect(page.locator("a.dropdown-item").filter({ hasText: "Export to Minio" })).not.toBeVisible();
+      await expect(page.locator("a.dropdown-item").filter({ hasText: "Import from Minio" })).not.toBeVisible();
+    });
+
     // ── Export error handling ──────────────────────────────
 
     test("export to minio shows alert when missing server config", async ({ page }) => {
@@ -5426,7 +5455,7 @@ test.describe("PlanMyDay - Regression", () => {
 
     // ── Import modal UI ────────────────────────────────────
 
-    test("showMinioImportModal creates modal with loading state", async ({ page }) => {
+    test("openMinioImportPage creates page with loading state", async ({ page }) => {
       await page.evaluate(() => {
         localStorage.setItem("planmydays_minio_enabled", "true");
         localStorage.setItem("planmydays_minio_server", "http://localhost:9000");
@@ -5434,13 +5463,13 @@ test.describe("PlanMyDay - Regression", () => {
         localStorage.setItem("planmydays_minio_password", "p");
       });
       await page.reload();
-      await page.evaluate(() => showMinioImportModal());
+      await page.evaluate(() => openMinioImportPage());
       await page.waitForTimeout(150);
-      await expect(page.locator("#smdConfirmModal")).toBeVisible();
+      await expect(page.locator("#minioImportPage")).toBeVisible();
       await expect(page.locator("#minioImportBody")).toContainText("Loading buckets");
     });
 
-    test("closeMinioImport hides and removes modal", async ({ page }) => {
+    test("closeMinioImport hides the import page", async ({ page }) => {
       await page.evaluate(() => {
         localStorage.setItem("planmydays_minio_enabled", "true");
         localStorage.setItem("planmydays_minio_server", "http://localhost:9000");
@@ -5448,16 +5477,16 @@ test.describe("PlanMyDay - Regression", () => {
         localStorage.setItem("planmydays_minio_password", "p");
       });
       await page.reload();
-      await page.evaluate(() => showMinioImportModal());
+      await page.evaluate(() => openMinioImportPage());
       await page.waitForTimeout(150);
       await page.evaluate(() => closeMinioImport());
       await page.waitForTimeout(250);
-      await expect(page.locator("#smdConfirmModal")).not.toBeVisible();
+      await expect(page.locator("#minioImportPage")).not.toBeVisible();
     });
 
-    // ── Import modal error paths ───────────────────────────
+    // ── Import page error paths ────────────────────────────
 
-    test("import modal list buckets shows error on invalid server", async ({ page }) => {
+    test("import page shows error alert when bucket list fails", async ({ page }) => {
       await page.evaluate(() => {
         localStorage.setItem("planmydays_minio_enabled", "true");
         localStorage.setItem("planmydays_minio_server", "http://127.0.0.1:1");
@@ -5465,11 +5494,11 @@ test.describe("PlanMyDay - Regression", () => {
         localStorage.setItem("planmydays_minio_password", "p");
       });
       await page.reload();
-      await page.evaluate(() => showMinioImportModal());
-      await page.waitForTimeout(150);
-      // Should show error (fetch to non-existent server will fail)
-      // At minimum the modal should still exist
-      await expect(page.locator("#smdConfirmModal")).toBeVisible();
+      await page.evaluate(() => openMinioImportPage());
+      // Fetch to a non-existent server fails: the page closes and an error alert shows
+      await expect(page.locator("#smdConfirmModal")).toBeVisible({ timeout: 10000 });
+      await expect(page.locator("#smdConfirmModal")).toContainText("Failed to list buckets");
+      await expect(page.locator("#minioImportPage")).not.toBeVisible();
     });
 
     // ── Export does nothing when disabled ──────────────────
@@ -5619,6 +5648,7 @@ test.describe("PlanMyDay - Regression", () => {
       await page.waitForSelector("#minioImportBody .list-group-item");
       const shown = await page.$$eval("#minioImportBody .list-group-item", (items) => items.map((li) => li.textContent.trim()));
       expect(shown).toEqual(["zulu.json", "mike.json", "bravo.json", "alpha.json"]);
+      await expect(page.locator("#minioImportPage .smd-page-header")).toContainText("Bucket: testbucket");
     });
   });
 
