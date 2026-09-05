@@ -688,7 +688,7 @@ test.describe("PlanMyDay - Screenshots", () => {
     });
     await page.reload();
     await page.evaluate(() => importFromMinio());
-    await page.waitForSelector("#smdConfirmModal");
+    await page.waitForSelector("#minioImportPage");
     await page.waitForSelector("#minioImportBody .list-group-item");
     await page.waitForTimeout(400);
     await screenshotAllThemes(page, "import-minio.png");

@@ -383,29 +383,29 @@ function importFromMinio() {
     return;
   }
 
-  showMinioImportModal();
+  openMinioImportPage();
 }
 
 var MINIO_IMPORT_STYLES = `
-  .smd-body .text-center { text-align: center; }
-  .smd-body .text-start { text-align: left; }
-  .smd-body .text-secondary { color: var(--bs-secondary, #6c757d); }
-  .smd-body .d-flex { display: flex; }
-  .smd-body .align-items-center { align-items: center; }
-  .smd-body .gap-2 { gap: 0.5rem; }
-  .smd-body .mb-0 { margin-bottom: 0; }
-  .smd-body .mb-1 { margin-bottom: 0.25rem; }
-  .smd-body .mb-2 { margin-bottom: 0.5rem; }
-  .smd-body .mb-3 { margin-bottom: 1rem; }
-  .smd-body .mt-2 { margin-top: 0.5rem; }
-  .smd-body .me-2 { margin-right: 0.5rem; }
-  .smd-body .py-3 { padding-top: 1rem; padding-bottom: 1rem; }
-  .smd-body .py-5 { padding-top: 3rem; padding-bottom: 3rem; }
-  .smd-body .w-100 { width: 100%; }
-  .smd-body h5 { margin: 0 0 0.5rem; }
-  .smd-body h6 { margin: 0 0 0.5rem; }
-  .smd-body p { margin: 0.5rem 0 0; }
-  .smd-body .btn {
+  .smd-page-body * { box-sizing: border-box; }
+  .smd-page-body .text-center { text-align: center; }
+  .smd-page-body .text-start { text-align: left; }
+  .smd-page-body .text-secondary { color: var(--bs-secondary, #6c757d); }
+  .smd-page-body .d-flex { display: flex; }
+  .smd-page-body .align-items-center { align-items: center; }
+  .smd-page-body .gap-2 { gap: 0.5rem; }
+  .smd-page-body .mb-0 { margin-bottom: 0; }
+  .smd-page-body .mb-2 { margin-bottom: 0.5rem; }
+  .smd-page-body .mb-3 { margin-bottom: 1rem; }
+  .smd-page-body .mt-2 { margin-top: 0.5rem; }
+  .smd-page-body .me-2 { margin-right: 0.5rem; }
+  .smd-page-body .py-3 { padding-top: 1rem; padding-bottom: 1rem; }
+  .smd-page-body .py-5 { padding-top: 3rem; padding-bottom: 3rem; }
+  .smd-page-body .w-100 { width: 100%; }
+  .smd-page-body h5 { margin: 0 0 0.5rem; }
+  .smd-page-body h6 { margin: 0 0 0.5rem; }
+  .smd-page-body p { margin: 0.5rem 0 0; }
+  .smd-page-body .btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -418,12 +418,12 @@ var MINIO_IMPORT_STYLES = `
     border: 1px solid var(--bs-border-color, #444);
     color: var(--bs-body-color, #eee);
   }
-  .smd-body .btn:hover { opacity: 0.85; }
-  .smd-body .btn-lg { padding: 0.5rem 1rem; font-size: 1.25rem; }
-  .smd-body .btn-sm { padding: 0.25rem 0.5rem; font-size: 0.875rem; }
-  .smd-body .btn-outline-primary { border-color: var(--smd-primary, #0d6efd); color: var(--smd-primary, #0d6efd); }
-  .smd-body .btn-outline-secondary { border-color: var(--bs-secondary, #6c757d); color: var(--bs-secondary, #6c757d); }
-  .smd-body .spinner-border {
+  .smd-page-body .btn:hover { opacity: 0.85; }
+  .smd-page-body .btn-lg { padding: 0.5rem 1rem; font-size: 1.25rem; }
+  .smd-page-body .btn-sm { padding: 0.25rem 0.5rem; font-size: 0.875rem; }
+  .smd-page-body .btn-outline-primary { border-color: var(--smd-primary, #0d6efd); color: var(--smd-primary, #0d6efd); }
+  .smd-page-body .btn-outline-secondary { border-color: var(--bs-secondary, #6c757d); color: var(--bs-secondary, #6c757d); }
+  .smd-page-body .spinner-border {
     display: inline-block;
     width: 2rem;
     height: 2rem;
@@ -433,16 +433,17 @@ var MINIO_IMPORT_STYLES = `
     animation: smdSpin 0.75s linear infinite;
   }
   @keyframes smdSpin { to { transform: rotate(360deg); } }
-  .smd-body .list-group {
+  .smd-page-body .list-group {
     display: flex;
     flex-direction: column;
+    list-style: none;
+    margin: 0;
     padding-left: 0;
-    margin-bottom: 0;
     border: 1px solid var(--bs-border-color, #444);
     border-radius: 0.375rem;
     overflow: hidden;
   }
-  .smd-body .list-group-item {
+  .smd-page-body .list-group-item {
     position: relative;
     display: block;
     padding: 0.75rem 1rem;
@@ -450,22 +451,30 @@ var MINIO_IMPORT_STYLES = `
     border-top: 1px solid var(--bs-border-color, #444);
     cursor: pointer;
   }
-  .smd-body .list-group-item:first-child { border-top: 0; }
-  .smd-body .list-group-item:hover { background: var(--bs-secondary-bg, rgba(255,255,255,0.05)); }
+  .smd-page-body .list-group-item:first-child { border-top: 0; }
+  .smd-page-body .list-group-item:hover { background: var(--bs-secondary-bg, rgba(255,255,255,0.05)); }
 `;
 
-function showMinioImportModal() {
-  showSmdModal({
-    title: "Import from Minio",
-    content: '<div id="minioImportBody">' +
-      '<div class="text-center py-5"><div class="spinner-border"></div><p class="mt-2">Loading buckets...</p></div>' +
-      '</div>',
-    buttons: [
-      { text: "Cancel", variant: "secondary", action: "cancel" }
-    ]
-  });
-  const host = document.getElementById("smdConfirmModal");
-  if (host && host.shadowRoot) injectStyleInto(host.shadowRoot, MINIO_IMPORT_STYLES);
+var _minioImportCloseTimer = null;
+
+function openMinioImportPage() {
+  var page = document.getElementById("minioImportPage");
+  if (!page) return;
+  if (!page.__minioImportBound) {
+    page.__minioImportBound = true;
+    page.addEventListener("smd-page-action", function() { closeMinioImport(); });
+  }
+  page.classList.remove("d-none");
+  page.title = "Import from Minio";
+  page.content = '<div id="minioImportBody">' +
+    '<div class="text-center py-5"><div class="spinner-border"></div><p class="mt-2">Loading buckets...</p></div>' +
+    '</div>';
+  page.headerHtml = "";
+  page.buttons = [
+    { text: "Close", variant: "secondary", action: "cancel" }
+  ];
+  injectStyleInto(page.shadowRoot, MINIO_IMPORT_STYLES);
+  page.show();
 
   var config = getMinioConfig();
   if (config.bucket) {
@@ -476,8 +485,13 @@ function showMinioImportModal() {
 }
 
 function closeMinioImport() {
-  const host = document.getElementById("smdConfirmModal");
-  if (host && host.hasAttribute("open")) host.hide();
+  var page = document.getElementById("minioImportPage");
+  if (!page) return;
+  page.hide();
+  clearTimeout(_minioImportCloseTimer);
+  _minioImportCloseTimer = setTimeout(function() {
+    page.classList.add("d-none");
+  }, Math.max(0, (page.slideDuration || 0) + 50));
 }
 
 function loadMinioBuckets() {
@@ -505,28 +519,29 @@ function loadMinioBuckets() {
 }
 
 function loadMinioBucketFiles(bucket) {
+  var page = document.getElementById("minioImportPage");
+  if (page) {
+    page.headerHtml = '<span class="badge bg-info" style="font-size:0.8em;vertical-align:middle">Bucket: ' +
+      bucket.replace(/</g, "&lt;").replace(/>/g, "&gt;") + '</span>';
+    // Setting headerHtml re-renders the page shadow root, which wipes any
+    // injected style element, so re-apply the import styles.
+    injectStyleInto(page.shadowRoot, MINIO_IMPORT_STYLES);
+  }
   var body = $id("minioImportBody");
   if (!body) return;
   var config = getMinioConfig();
 
-  body.innerHTML = '<div class="d-flex align-items-center gap-2 mb-3">' +
-    '<button class="btn btn-sm btn-outline-secondary" onclick="loadMinioBuckets()">&#8592; Back</button>' +
-    '<h5 class="mb-0">Bucket: ' + bucket.replace(/</g, "&lt;").replace(/>/g, "&gt;") + '</h5></div>' +
-    '<div class="text-center py-3"><div class="spinner-border"></div><p class="mt-2">Loading files...</p></div>';
+  body.innerHTML = '<div class="text-center py-3"><div class="spinner-border"></div><p class="mt-2">Loading files...</p></div>';
 
   minioListObjects(bucket, config).then(function(objects) {
     var jsonFiles = objects.filter(function(o) { return o.toLowerCase().endsWith(".json"); }).sort().reverse();
 
-    body.innerHTML = '<div class="d-flex align-items-center gap-2 mb-3">' +
-      '<button class="btn btn-sm btn-outline-secondary" onclick="loadMinioBuckets()">&#8592; Back</button>' +
-      '<h5 class="mb-0">Bucket: ' + bucket.replace(/</g, "&lt;").replace(/>/g, "&gt;") + '</h5></div>';
-
     if (jsonFiles.length === 0) {
-      body.innerHTML += '<p class="text-secondary">No JSON files found in this bucket.</p>';
+      body.innerHTML = '<p class="text-secondary">No JSON files found in this bucket.</p>';
       return;
     }
 
-    body.innerHTML += '<h6>Select a file to import:</h6><ul class="list-group">' +
+    body.innerHTML = '<h6>Select a file to import:</h6><ul class="list-group">' +
       jsonFiles.map(function(f) {
         var escapedBucket = bucket.replace(/\\/g, "\\\\").replace(/'/g, "\\'").replace(/"/g, "&quot;");
         var escapedKey = f.replace(/\\/g, "\\\\").replace(/'/g, "\\'").replace(/"/g, "&quot;");
