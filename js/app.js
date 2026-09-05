@@ -61,9 +61,13 @@ function safeHideModal(modalId) {
 }
 
 function showInfoConfirm(message) {
-  const modalEl = document.getElementById("infoConfirmModal");
-  document.getElementById("infoConfirmMessage").textContent = message;
-  new bootstrap.Modal(modalEl).show();
+  showSmdModal({
+    title: "Sample images loaded",
+    content: escapeHtml(message).replace(/\n/g, "<br>"),
+    buttons: [
+      { text: "OK", variant: "primary", action: "ok" }
+    ]
+  });
 }
 
 let _smdModalHost = null;
@@ -1378,18 +1382,119 @@ function getScheduleText(schedule) {
   return "Every day";
 }
 
-let scheduleModalCallback = null;
+var SCHEDULE_MODAL_STYLES = `
+  .smd-body .form-check { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; }
+  .smd-body .form-check-input { position: relative; flex: 0 0 auto; width: 1rem; height: 1rem; margin: 0; accent-color: var(--smd-primary, #0d6efd); }
+  .smd-body .form-check-label { margin: 0; }
+  .smd-body .form-label { margin-bottom: 0.25rem; font-weight: 500; color: var(--bs-body-color, #f8f9fa); }
+  .smd-body .form-select {
+    background-color: var(--bs-body-bg, #222);
+    color: var(--bs-body-color, #eee);
+    border: 1px solid var(--bs-border-color, #444);
+    border-radius: 0.35rem;
+    padding: 0.375rem 2rem 0.375rem 0.75rem;
+    font-size: 0.9rem;
+  }
+  .smd-body .form-select option { background-color: var(--bs-body-bg, #222); }
+  .smd-body .d-none { display: none !important; }
+  .smd-body .ms-4 { margin-left: 1.5rem; }
+  .smd-body .mb-0 { margin-bottom: 0; }
+  .smd-body .mb-1 { margin-bottom: 0.25rem; }
+  .smd-body .mb-2 { margin-bottom: 0.5rem; }
+  .smd-body .mb-3 { margin-bottom: 1rem; }
+  .smd-body .d-flex { display: flex; }
+  .smd-body .align-items-center { align-items: center; }
+  .smd-body .gap-2 { gap: 0.5rem; }
+  .smd-body .flex-wrap { flex-wrap: wrap; }
+  .smd-body .text-muted { opacity: 0.75; }
+  .smd-body .small { font-size: 0.875em; }
+`;
+
+function scheduleEl(id) {
+  const host = document.getElementById("smdConfirmModal");
+  return host && host.shadowRoot ? host.shadowRoot.getElementById(id) : null;
+}
+function scheduleRadios() {
+  const host = document.getElementById("smdConfirmModal");
+  return host && host.shadowRoot ? host.shadowRoot.querySelectorAll('input[name="scheduleType"]') : [];
+}
+
+function getScheduleFormHTML() {
+  return `
+    <div class="mb-3">
+      <div class="form-check mb-2">
+        <input class="form-check-input" type="radio" name="scheduleType" id="schedDaily" value="daily" onchange="onScheduleTypeChange()">
+        <label class="form-check-label" for="schedDaily">Every day</label>
+      </div>
+      <div class="form-check mb-2">
+        <input class="form-check-input" type="radio" name="scheduleType" id="schedNDays" value="ndays" onchange="onScheduleTypeChange()">
+        <label class="form-check-label" for="schedNDays">Every n days</label>
+      </div>
+      <div id="schedNDaysOptions" class="d-none ms-4 mb-2">
+        <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
+          <label class="form-label mb-0">Every</label>
+          <select class="form-select" id="schedNInterval" onchange="onScheduleNDaysChange()" style="width:auto;min-width:60px"></select>
+          <label class="form-label mb-0">day(s)</label>
+          <label class="form-label mb-0 ms-2">Offset</label>
+          <select class="form-select" id="schedNOffset" onchange="onScheduleNDaysChange()" style="width:auto;min-width:60px"></select>
+        </div>
+        <div id="schedNextDue" class="text-muted small"></div>
+      </div>
+      <div class="form-check mb-2">
+        <input class="form-check-input" type="radio" name="scheduleType" id="schedWeekdays" value="weekdays" onchange="onScheduleTypeChange()">
+        <label class="form-check-label" for="schedWeekdays">Weekdays (Mon&ndash;Fri)</label>
+      </div>
+      <div class="form-check mb-2">
+        <input class="form-check-input" type="radio" name="scheduleType" id="schedWeekends" value="weekends" onchange="onScheduleTypeChange()">
+        <label class="form-check-label" for="schedWeekends">Weekends (Sat&ndash;Sun)</label>
+      </div>
+      <div class="form-check mb-2">
+        <input class="form-check-input" type="radio" name="scheduleType" id="schedDays" value="days" onchange="onScheduleTypeChange()">
+        <label class="form-check-label" for="schedDays">Specific days</label>
+      </div>
+      <div id="schedDaysOptions" class="d-none ms-4 mb-2 d-flex gap-2 flex-wrap">
+        <div class="form-check"><input class="form-check-input" type="checkbox" id="schedDay0" value="0"><label class="form-check-label" for="schedDay0">Sun</label></div>
+        <div class="form-check"><input class="form-check-input" type="checkbox" id="schedDay1" value="1"><label class="form-check-label" for="schedDay1">Mon</label></div>
+        <div class="form-check"><input class="form-check-input" type="checkbox" id="schedDay2" value="2"><label class="form-check-label" for="schedDay2">Tue</label></div>
+        <div class="form-check"><input class="form-check-input" type="checkbox" id="schedDay3" value="3"><label class="form-check-label" for="schedDay3">Wed</label></div>
+        <div class="form-check"><input class="form-check-input" type="checkbox" id="schedDay4" value="4"><label class="form-check-label" for="schedDay4">Thu</label></div>
+        <div class="form-check"><input class="form-check-input" type="checkbox" id="schedDay5" value="5"><label class="form-check-label" for="schedDay5">Fri</label></div>
+        <div class="form-check"><input class="form-check-input" type="checkbox" id="schedDay6" value="6"><label class="form-check-label" for="schedDay6">Sat</label></div>
+      </div>
+      <div class="form-check mb-2">
+        <input class="form-check-input" type="radio" name="scheduleType" id="schedMonthly" value="monthly" onchange="onScheduleTypeChange()">
+        <label class="form-check-label" for="schedMonthly">Day of month</label>
+      </div>
+      <div id="schedMonthlyOptions" class="d-none ms-4 mb-2">
+        <select class="form-select" id="schedMonthlyDay" style="width:auto"></select>
+      </div>
+    </div>
+  `;
+}
 
 function openScheduleModal() {
   const s = (jobsBuffer && jobsBuffer.schedule) || { type: "daily" };
-  document.querySelectorAll('input[name="scheduleType"]').forEach(r => r.checked = r.value === s.type);
-  document.getElementById("schedDaysOptions").classList.toggle("d-none", s.type !== "days");
-  document.getElementById("schedMonthlyOptions").classList.toggle("d-none", s.type !== "monthly");
-  document.getElementById("schedNDaysOptions").classList.toggle("d-none", s.type !== "ndays");
+  showSmdModal({
+    title: "Schedule",
+    content: getScheduleFormHTML(),
+    buttons: [
+      { text: "Cancel", variant: "secondary", action: "cancel" },
+      { text: "OK", variant: "primary", action: "ok" }
+    ],
+    onAction: function(detail) {
+      if (detail.action === "ok") saveScheduleModal();
+    }
+  });
+  const host = document.getElementById("smdConfirmModal");
+  if (host && host.shadowRoot) injectStyleInto(host.shadowRoot, SCHEDULE_MODAL_STYLES);
+  scheduleRadios().forEach(r => r.checked = r.value === s.type);
+  scheduleEl("schedDaysOptions").classList.toggle("d-none", s.type !== "days");
+  scheduleEl("schedMonthlyOptions").classList.toggle("d-none", s.type !== "monthly");
+  scheduleEl("schedNDaysOptions").classList.toggle("d-none", s.type !== "ndays");
   for (let i = 0; i < 7; i++) {
-    document.getElementById("schedDay" + i).checked = (s.days || []).includes(i);
+    scheduleEl("schedDay" + i).checked = (s.days || []).includes(i);
   }
-  const mSel = document.getElementById("schedMonthlyDay");
+  const mSel = scheduleEl("schedMonthlyDay");
   mSel.innerHTML = "";
   for (let i = 1; i <= 31; i++) {
     const opt = document.createElement("option");
@@ -1398,7 +1503,7 @@ function openScheduleModal() {
     if (i === (s.date || 1)) opt.selected = true;
     mSel.appendChild(opt);
   }
-  const intervalSel = document.getElementById("schedNInterval");
+  const intervalSel = scheduleEl("schedNInterval");
   intervalSel.innerHTML = "";
   for (let i = 2; i <= 7; i++) {
     const opt = document.createElement("option");
@@ -1408,7 +1513,7 @@ function openScheduleModal() {
     intervalSel.appendChild(opt);
   }
   const curInterval = s.interval || 2;
-  const offsetSel = document.getElementById("schedNOffset");
+  const offsetSel = scheduleEl("schedNOffset");
   offsetSel.innerHTML = "";
   for (let i = 0; i < curInterval; i++) {
     const opt = document.createElement("option");
@@ -1418,38 +1523,21 @@ function openScheduleModal() {
     offsetSel.appendChild(opt);
   }
   if (s.type === "ndays") onScheduleNDaysChange();
-  const modalEl = document.getElementById("scheduleModal");
-  modalEl.addEventListener("show.bs.modal", function boostZ() {
-    modalEl.removeEventListener("show.bs.modal", boostZ);
-    modalEl.style.zIndex = 2000;
-    const backdrops = document.querySelectorAll(".modal-backdrop");
-    if (backdrops.length > 0) backdrops[backdrops.length - 1].style.zIndex = 1999;
-  });
-  modalEl.addEventListener("hidden.bs.modal", function resetZ() {
-    modalEl.removeEventListener("hidden.bs.modal", resetZ);
-    modalEl.style.zIndex = "";
-    const backdrops = document.querySelectorAll(".modal-backdrop");
-    if (backdrops.length > 0) backdrops[backdrops.length - 1].style.zIndex = "";
-  });
-  new bootstrap.Modal(modalEl).show();
-}
-
-function closeScheduleModal() {
-  safeHideModal("scheduleModal");
 }
 
 function onScheduleTypeChange() {
-  const val = document.querySelector('input[name="scheduleType"]:checked');
-  const type = val ? val.value : "daily";
-  document.getElementById("schedDaysOptions").classList.toggle("d-none", type !== "days");
-  document.getElementById("schedMonthlyOptions").classList.toggle("d-none", type !== "monthly");
-  document.getElementById("schedNDaysOptions").classList.toggle("d-none", type !== "ndays");
+  let checked = null;
+  scheduleRadios().forEach(r => { if (r.checked) checked = r; });
+  const type = checked ? checked.value : "daily";
+  scheduleEl("schedDaysOptions").classList.toggle("d-none", type !== "days");
+  scheduleEl("schedMonthlyOptions").classList.toggle("d-none", type !== "monthly");
+  scheduleEl("schedNDaysOptions").classList.toggle("d-none", type !== "ndays");
   if (type === "ndays") onScheduleNDaysChange();
 }
 
 function onScheduleNDaysChange() {
-  const interval = parseInt(document.getElementById("schedNInterval").value, 10) || 2;
-  const offsetSel = document.getElementById("schedNOffset");
+  const interval = parseInt(scheduleEl("schedNInterval").value, 10) || 2;
+  const offsetSel = scheduleEl("schedNOffset");
   const currentOffset = parseInt(offsetSel.value, 10) || 0;
   offsetSel.innerHTML = "";
   for (let i = 0; i < interval; i++) {
@@ -1460,28 +1548,29 @@ function onScheduleNDaysChange() {
     offsetSel.appendChild(opt);
   }
   const offset = parseInt(offsetSel.value, 10) || 0;
-  document.getElementById("schedNextDue").textContent = getNextDueText(interval, offset);
+  scheduleEl("schedNextDue").textContent = getNextDueText(interval, offset);
 }
 
 function saveScheduleModal() {
-  const type = (document.querySelector('input[name="scheduleType"]:checked') || {}).value || "daily";
+  let checked = null;
+  scheduleRadios().forEach(r => { if (r.checked) checked = r; });
+  const type = checked ? checked.value : "daily";
   let schedule = { type: type };
   if (type === "days") {
     schedule.days = [];
     for (let i = 0; i < 7; i++) {
-      if (document.getElementById("schedDay" + i).checked) schedule.days.push(i);
+      if (scheduleEl("schedDay" + i).checked) schedule.days.push(i);
     }
     if (schedule.days.length === 0) schedule = { type: "daily" };
   } else if (type === "monthly") {
-    schedule.date = parseInt(document.getElementById("schedMonthlyDay").value, 10) || 1;
+    schedule.date = parseInt(scheduleEl("schedMonthlyDay").value, 10) || 1;
   } else if (type === "ndays") {
-    schedule.interval = parseInt(document.getElementById("schedNInterval").value, 10) || 2;
-    schedule.offset = parseInt(document.getElementById("schedNOffset").value, 10) || 0;
+    schedule.interval = parseInt(scheduleEl("schedNInterval").value, 10) || 2;
+    schedule.offset = parseInt(scheduleEl("schedNOffset").value, 10) || 0;
   }
   jobField("schedule", schedule);
   const el = $id("jobScheduleText");
   if (el) el.textContent = getScheduleText(schedule);
-  closeScheduleModal();
 }
 
 function shouldShowJobToday(job) {

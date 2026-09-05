@@ -38,6 +38,7 @@ const pageStyles = `
     margin: 0;
     font-size: 1.2rem;
     font-weight: 500;
+    color: color-mix(in srgb, var(--bs-body-color, #eee) 60%, white);
   }
   .smd-page-header .badge {
     vertical-align: middle;

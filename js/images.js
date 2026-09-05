@@ -780,7 +780,7 @@ function uploadStandardImages() {
       }
       const total = data.images.length;
       const ignored = total - added;
-      showInfoConfirm(`Sample images loaded.\n${total} image${total === 1 ? "" : "s"} uploaded.\n${added} added\n${ignored} duplicate${ignored === 1 ? "" : "s"} ignored.`);
+      showInfoConfirm(`${total} image${total === 1 ? "" : "s"} uploaded.\n${added} added\n${ignored} duplicate${ignored === 1 ? "" : "s"} ignored.`);
     })
     .catch(() => {})
     .finally(() => hideUploadDialog());

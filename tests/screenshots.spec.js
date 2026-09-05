@@ -532,7 +532,7 @@ test.describe("PlanMyDay - Screenshots", () => {
     await page.locator("#jobEditPage").waitFor({ state: "visible" });
     await page.locator("#jobSchedule-tab").click();
     await page.locator("#btnScheduleChange").click();
-    await page.locator("#scheduleModal").waitFor({ state: "visible" });
+    await page.locator("#smdConfirmModal").waitFor({ state: "visible" });
     await page.waitForTimeout(300);
   }
 
@@ -583,7 +583,7 @@ test.describe("PlanMyDay - Screenshots", () => {
     await page.evaluate(() => {
       if (typeof uploadStandardImages === "function") uploadStandardImages();
     });
-    await page.locator("#infoConfirmModal").waitFor({ state: "visible", timeout: 15000 });
+    await page.locator("#smdConfirmModal").waitFor({ state: "visible", timeout: 15000 });
     await page.getByRole("button", { name: "OK" }).click();
     await page.locator("#btnMainMenu").click();
     await page.locator("a.dropdown-item").filter({ hasText: "Images" }).click();
@@ -600,7 +600,7 @@ test.describe("PlanMyDay - Screenshots", () => {
     await page.locator("#showDanger").check();
     await page.locator("#uploadStandardImagesRow").waitFor({ state: "visible" });
     await page.locator("#btnUploadImages").click();
-    await page.locator("#infoConfirmModal").waitFor({ state: "visible", timeout: 15000 });
+    await page.locator("#smdConfirmModal").waitFor({ state: "visible", timeout: 15000 });
     await page.waitForTimeout(400);
     await screenshotAllThemes(page, "upload-images-confirm.png");
   });
