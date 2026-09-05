@@ -66,6 +66,26 @@ function showInfoConfirm(message) {
   new bootstrap.Modal(modalEl).show();
 }
 
+let _smdModalHost = null;
+function showSmdModal(options) {
+  if (!_smdModalHost) {
+    _smdModalHost = document.createElement("smd-modal");
+    _smdModalHost.id = "smdConfirmModal";
+    document.body.appendChild(_smdModalHost);
+  }
+  const modal = _smdModalHost;
+  modal.title = options.title || "";
+  modal.content = options.content || "";
+  modal.buttons = options.buttons || [{ text: "OK", variant: "primary", action: "ok" }];
+  const onAction = options.onAction;
+  const handler = function(e) {
+    modal.removeEventListener("smd-modal-action", handler);
+    if (onAction) onAction(e.detail);
+  };
+  modal.addEventListener("smd-modal-action", handler);
+  modal.show();
+}
+
 // JOB COMPLETION STORAGE
 function loadCompletedJobs() {
   const data = localStorage.getItem("planmydays_completed");
@@ -299,23 +319,19 @@ function renderMain() {
           const skipConfirm = localStorage.getItem("planmydays_skipAdhocConfirm") === "true";
           if (!skipConfirm) {
             const job = (stream.jobs || []).find(j => j.id === jobId);
-            const modalEl = document.getElementById("deleteConfirmModal");
-            const confirmBtn = document.getElementById("deleteConfirmBtn");
-            document.getElementById("deleteConfirmMessage").innerHTML = `Remove "<strong>${escapeHtml(job?.title || jobId)}</strong>" from Ad Hoc?`;
-            confirmBtn.className = "btn btn-danger editor-btn btn-wide";
-            confirmBtn.textContent = "Remove";
             const cbRef = this;
-            let confirmed = false;
-            confirmBtn.onclick = function() {
-              confirmed = true;
-              safeHideModal("deleteConfirmModal");
-              removeAdhocJob(streamIdx, jobId, cbRef);
-            };
-            modalEl.addEventListener("hidden.bs.modal", function handler() {
-              modalEl.removeEventListener("hidden.bs.modal", handler);
-              if (!confirmed) cbRef.checked = false;
+            showSmdModal({
+              title: "Remove from Ad Hoc?",
+              content: `Remove "<strong>${escapeHtml(job?.title || jobId)}</strong>" from Ad Hoc?`,
+              buttons: [
+                { text: "Cancel", variant: "secondary", action: "cancel" },
+                { text: "Remove", variant: "danger", action: "remove" }
+              ],
+              onAction: (detail) => {
+                if (detail.action === "remove") removeAdhocJob(streamIdx, jobId, cbRef);
+                else cbRef.checked = false;
+              }
             });
-            new bootstrap.Modal(modalEl).show();
             return;
           }
           removeAdhocJob(streamIdx, jobId, this);
@@ -1117,18 +1133,23 @@ function confirmDeleteStream(index) {
   editingIndex = index;
   var streams = loadStreams();
   var stream = streams[index] || {};
-  var modalEl = document.getElementById("deleteConfirmModal");
-  document.getElementById("deleteConfirmMessage").textContent = 'Delete stream "' + (stream.title || "") + '"?';
-  document.getElementById("deleteConfirmBtn").onclick = function() {
-    var s = loadStreams();
-    s.splice(index, 1);
-    s.forEach(function(t, i) { t.sequence = i + 1; });
-    saveStreams(s);
-    safeHideModal("deleteConfirmModal");
-    editingIndex = -1; editBuffer = null; isNew = false;
-    renderStreamsEditor();
-  };
-  new bootstrap.Modal(modalEl).show();
+  showSmdModal({
+    title: "Delete Stream?",
+    content: 'Delete stream "' + escapeHtml(stream.title || "") + '"?',
+    buttons: [
+      { text: "Cancel", variant: "secondary", action: "cancel" },
+      { text: "Delete", variant: "danger", action: "delete" }
+    ],
+    onAction: function(detail) {
+      if (detail.action !== "delete") return;
+      var s = loadStreams();
+      s.splice(index, 1);
+      s.forEach(function(t, i) { t.sequence = i + 1; });
+      saveStreams(s);
+      editingIndex = -1; editBuffer = null; isNew = false;
+      renderStreamsEditor();
+    }
+  });
 }
 
 function addNewStream() {
@@ -1201,26 +1222,19 @@ function jobAddTask() {
 function jobDeleteTask(index) {
   if (!jobsBuffer || !jobsBuffer.tasks) return;
   var taskText = (jobsBuffer.tasks[index] && jobsBuffer.tasks[index].description) ? jobsBuffer.tasks[index].description : "Unnamed task";
-  var modalEl = document.getElementById("deleteConfirmModal");
-  document.getElementById("deleteConfirmMessage").textContent = 'Delete task "' + taskText + '"?';
-  modalEl.addEventListener("show.bs.modal", function boostZ() {
-    modalEl.removeEventListener("show.bs.modal", boostZ);
-    modalEl.style.zIndex = 2000;
-    var backdrops = document.querySelectorAll(".modal-backdrop");
-    if (backdrops.length > 0) backdrops[backdrops.length - 1].style.zIndex = 1999;
+  showSmdModal({
+    title: "Delete Task?",
+    content: 'Delete task "' + escapeHtml(taskText) + '"?',
+    buttons: [
+      { text: "Cancel", variant: "secondary", action: "cancel" },
+      { text: "Delete", variant: "danger", action: "delete" }
+    ],
+    onAction: function(detail) {
+      if (detail.action !== "delete") return;
+      jobsBuffer.tasks.splice(index, 1);
+      renderJobTasks();
+    }
   });
-  modalEl.addEventListener("hidden.bs.modal", function resetZ() {
-    modalEl.removeEventListener("hidden.bs.modal", resetZ);
-    modalEl.style.zIndex = "";
-    var backdrops = document.querySelectorAll(".modal-backdrop");
-    if (backdrops.length > 0) backdrops[backdrops.length - 1].style.zIndex = "";
-  });
-  document.getElementById("deleteConfirmBtn").onclick = function() {
-    jobsBuffer.tasks.splice(index, 1);
-    renderJobTasks();
-    safeHideModal("deleteConfirmModal");
-  };
-  new bootstrap.Modal(modalEl).show();
 }
 
 function jobTaskField(index, field, value) {
@@ -1921,36 +1935,41 @@ function confirmDeleteJob(index) {
   var stream = streams[jobsStreamIndex] || {};
   var jobs = stream.jobs || [];
   var job = jobs[index] || {};
-  var modalEl = document.getElementById("deleteConfirmModal");
-  document.getElementById("deleteConfirmMessage").textContent = 'Delete "' + (job.title || "") + '" from "' + (stream.title || "") + '"?';
-  document.getElementById("deleteConfirmBtn").onclick = function() {
-    var s = loadStreams();
-    var jbs = s[jobsStreamIndex].jobs || [];
-    var deletedId = (jbs[index] || {}).id;
-    jbs.splice(index, 1);
-    jbs.forEach(function(j, i) { j.sequence = i + 1; });
-    s[jobsStreamIndex].jobs = jbs;
-    saveStreams(s);
-    if (deletedId) {
-      var order = loadTodayOrder();
-      if (order) {
-        order = order.filter(function(id) { return id !== deletedId; });
-        saveTodayOrder(order);
+  showSmdModal({
+    title: "Delete Job?",
+    content: 'Delete "' + escapeHtml(job.title || "") + '" from "' + escapeHtml(stream.title || "") + '"?',
+    buttons: [
+      { text: "Cancel", variant: "secondary", action: "cancel" },
+      { text: "Delete", variant: "danger", action: "delete" }
+    ],
+    onAction: function(detail) {
+      if (detail.action !== "delete") return;
+      var s = loadStreams();
+      var jbs = s[jobsStreamIndex].jobs || [];
+      var deletedId = (jbs[index] || {}).id;
+      jbs.splice(index, 1);
+      jbs.forEach(function(j, i) { j.sequence = i + 1; });
+      s[jobsStreamIndex].jobs = jbs;
+      saveStreams(s);
+      if (deletedId) {
+        var order = loadTodayOrder();
+        if (order) {
+          order = order.filter(function(id) { return id !== deletedId; });
+          saveTodayOrder(order);
+        }
+        var completed = loadCompletedJobs();
+        if (completed.indexOf(deletedId) !== -1) {
+          saveCompletedJobs(completed.filter(function(id) { return id !== deletedId; }));
+        }
       }
-      var completed = loadCompletedJobs();
-      if (completed.indexOf(deletedId) !== -1) {
-        saveCompletedJobs(completed.filter(function(id) { return id !== deletedId; }));
+      jobsEditingIdx = -1; jobsBuffer = null; isNewJob = false;
+      if (document.getElementById("streamsEditor").classList.contains("d-none")) {
+        renderMain();
+      } else {
+        renderStreamsEditor();
       }
     }
-    safeHideModal("deleteConfirmModal");
-    jobsEditingIdx = -1; jobsBuffer = null; isNewJob = false;
-    if (document.getElementById("streamsEditor").classList.contains("d-none")) {
-      renderMain();
-    } else {
-      renderStreamsEditor();
-    }
-  };
-  new bootstrap.Modal(modalEl).show();
+  });
 }
 
 function addNewJob() {
@@ -2603,15 +2622,20 @@ function sortJobsInStreams() {
 }
 
 function confirmClearAllData() {
-  const modalEl = document.getElementById("deleteConfirmModal");
-  document.getElementById("deleteConfirmMessage").textContent = "Clear ALL data? This cannot be undone.";
-  document.getElementById("deleteConfirmBtn").onclick = function() {
-    const keys = Object.keys(localStorage);
-    keys.forEach(k => localStorage.removeItem(k));
-    safeHideModal("deleteConfirmModal");
-    closeSettings();
-  };
-  new bootstrap.Modal(modalEl).show();
+  showSmdModal({
+    title: "Clear All Data?",
+    content: "Clear ALL data? This cannot be undone.",
+    buttons: [
+      { text: "Cancel", variant: "secondary", action: "cancel" },
+      { text: "Clear", variant: "danger", action: "clear" }
+    ],
+    onAction: function(detail) {
+      if (detail.action !== "clear") return;
+      const keys = Object.keys(localStorage);
+      keys.forEach(k => localStorage.removeItem(k));
+      closeSettings();
+    }
+  });
 }
 
 function exportData() {
