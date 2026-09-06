@@ -15,6 +15,17 @@ python tests/http-server.py
 ```bash
 npx playwright test tests/sampleImages.spec.js --workers 1
 ```
+Regenerate `sampleImages.json` from the native files in `sampleImages/` (preserves
+per-image metadata from the existing JSON and only updates the `data`):
+```bash
+node regen_sample_images.js
+npm run regen:images
+```
+Extract `sampleImages.json` back into native files in `sampleImages/`:
+```bash
+node regen_sample_images.js extract
+npm run extract:images
+```
 ### Screenshots
 ```bash
 .\node_modules\.bin\playwright.cmd test tests/screenshots.spec.js --workers 16
