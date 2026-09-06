@@ -1594,6 +1594,46 @@ test.describe("PlanMyDay - Regression", () => {
       await expect(page.getByText("No Image")).toBeVisible();
       await expect(page.locator("#imagePickerPage .smd-page-footer smd-button").filter({ hasText: "Cancel" })).toBeVisible();
     });
+
+    test("picker has Local and Bootstrap tabs, Local active by default", async ({ page }) => {
+      await expect(page.locator("#imagePickerPage .smd-tab-btn").filter({ hasText: "Local" })).toBeVisible();
+      await expect(page.locator("#imagePickerPage .smd-tab-btn").filter({ hasText: "Bootstrap" })).toBeVisible();
+      await expect(page.locator("#imagePickerPage .smd-tab-btn[active]")).toHaveText(/Local/);
+      await expect(page.locator(".image-picker-item").first()).toBeVisible();
+    });
+
+    test("bootstrap tab shows all bootstrap icons with the icon font", async ({ page }) => {
+      await page.locator("#imagePickerPage .smd-tab-btn").filter({ hasText: "Bootstrap" }).click();
+      await page.locator(".bootstrap-icon-item").first().waitFor({ state: "visible", timeout: 10000 });
+      expect(await page.locator(".bootstrap-icon-item").count()).toBeGreaterThan(500);
+      const fontFamily = await page.locator(".bootstrap-icon-item .bi").first()
+        .evaluate((el) => getComputedStyle(el, "::before").fontFamily);
+      expect(fontFamily).toContain("bootstrap-icons");
+      await expect(page.locator("#imagePickerPage .smd-tab-btn[active]")).toHaveText(/Bootstrap/);
+    });
+
+    test("bootstrap tab search filters icons and clear restores them", async ({ page }) => {
+      await page.locator("#imagePickerPage .smd-tab-btn").filter({ hasText: "Bootstrap" }).click();
+      await page.locator(".bootstrap-icon-item").first().waitFor({ state: "visible", timeout: 10000 });
+      const total = await page.locator(".bootstrap-icon-item").count();
+      await page.locator(".image-picker-search").fill("house");
+      await expect(page.locator(".bootstrap-icon-item .bootstrap-icon-name").first()).toContainText("house");
+      const filtered = await page.locator(".bootstrap-icon-item").count();
+      expect(filtered).toBeGreaterThan(0);
+      expect(filtered).toBeLessThan(total);
+      await page.locator("#btnImagePickerClear").click();
+      await expect(page.locator(".image-picker-search")).toHaveValue("");
+      await expect(page.locator(".bootstrap-icon-item")).toHaveCount(total, { timeout: 10000 });
+    });
+
+    test("selecting a bootstrap icon returns a bi: prefixed name and closes the picker", async ({ page }) => {
+      await page.locator("#imagePickerPage .smd-tab-btn").filter({ hasText: "Bootstrap" }).click();
+      await page.locator(".bootstrap-icon-item").first().waitFor({ state: "visible", timeout: 10000 });
+      const firstItemName = (await page.locator(".bootstrap-icon-item .bootstrap-icon-name").first().textContent()).trim();
+      await page.locator(".bootstrap-icon-item").first().click();
+      await page.locator("#imagePickerPage").waitFor({ state: "hidden", timeout: 10000 });
+      await expect(page.locator("#streamImageName")).toHaveText(`bi:${firstItemName}`);
+    });
   });
 
   // ── Dev Mode ───────────────────────────────────────────────

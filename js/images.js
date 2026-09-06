@@ -633,27 +633,45 @@ function getImageDataUrl(name) {
 
 let imagePickerCallback = null;
 let imagePickerSearch = "";
+let imagePickerTab = 0;
 let _imagePickerCloseTimer = null;
+let _bootstrapIconsCss = null;
+let _bootstrapIconsCssPromise = null;
+let _bootstrapIconNames = null;
 
 const IMAGE_PICKER_STYLES = `
-  .smd-page-body .text-center { text-align: center; }
-  .smd-page-body .py-4 { padding-top: 1.5rem; padding-bottom: 1.5rem; }
-  .smd-page-body .flex-wrap { flex-wrap: wrap; }
+  .smd-page-body .text-center, .smd-tab-panel .text-center { text-align: center; }
+  .smd-page-body .py-4, .smd-tab-panel .py-4 { padding-top: 1.5rem; padding-bottom: 1.5rem; }
+  .smd-page-body .flex-wrap, .smd-tab-panel .flex-wrap { flex-wrap: wrap; }
+  .smd-tab-panel .bootstrap-icon-item .bi {
+    font-size: 2rem;
+    color: var(--bs-body-color, #f8f9fa);
+    line-height: 1;
+  }
+  .smd-tab-panel .bootstrap-icon-item .bootstrap-icon-name {
+    font-size: 0.75rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    margin-top: 4px;
+    color: var(--bs-body-color, #f8f9fa);
+  }
 `;
 
 function openImagePicker(callback) {
   imagePickerCallback = callback;
   imagePickerSearch = "";
+  imagePickerTab = 0;
   const page = document.getElementById("imagePickerPage");
   if (!page) return;
   page.classList.remove("d-none");
   page.title = "Choose Image";
   page.content =
     '<div class="mb-2 d-flex gap-2">' +
-      '<input class="form-control image-picker-search" id="imagePickerSearch" type="search" placeholder="Search images by name..." oninput="filterImagePicker(this.value)">' +
+      '<input class="form-control image-picker-search" id="imagePickerSearch" type="search" placeholder="Search images or icons..." oninput="filterImagePicker(this.value)">' +
       '<button class="btn btn-outline-secondary" id="btnImagePickerClear" onclick="clearImagePickerFilter()">Clear</button>' +
     '</div>' +
-    '<div class="image-picker-list d-flex flex-wrap w-100" id="imagePickerList" style="gap:8px;min-height:120px"></div>';
+    '<smd-tabs id="imagePickerTabs"></smd-tabs>';
   page.buttons = [
     { text: "Cancel", variant: "secondary", action: "cancel" },
     { text: "No Image", variant: "secondary", action: "no-image" }
@@ -669,9 +687,31 @@ function openImagePicker(callback) {
       }
     });
   }
-  injectStyleInto(page.shadowRoot, JOBS_EDITOR_STYLES + IMAGE_PICKER_STYLES);
+  const tabsEl = $id("imagePickerTabs");
+  if (tabsEl) {
+    tabsEl.tabs = [
+      { title: "Local", content: '<div class="image-picker-list d-flex flex-wrap w-100" id="imagePickerList" style="gap:8px;min-height:120px"></div>' },
+      { title: "Bootstrap", content: '<div class="bootstrap-icon-list d-flex flex-wrap w-100" id="bootstrapIconList" style="gap:8px;min-height:120px"></div>' }
+    ];
+    if (!tabsEl.__pickerTabsBound) {
+      tabsEl.__pickerTabsBound = true;
+      tabsEl.addEventListener("smd-tabs-change", function(e) {
+        imagePickerTab = e.detail && e.detail.index === 1 ? 1 : 0;
+        if (imagePickerTab === 1) {
+          renderBootstrapPicker();
+        } else {
+          renderImagePicker();
+        }
+      });
+    }
+  }
+  injectPickerStyles();
   page.show();
   renderImagePicker();
+  getBootstrapIconsCss().then(function() {
+    injectPickerStyles();
+    if (imagePickerTab === 1) renderBootstrapPicker();
+  }).catch(function() {});
   setTimeout(() => {
     const input = $id("imagePickerSearch");
     if (input) { input.focus(); input.value = ""; }
@@ -689,6 +729,52 @@ function closeImagePicker() {
   }
   imagePickerCallback = null;
   imagePickerSearch = "";
+}
+
+function injectPickerStyles() {
+  const page = document.getElementById("imagePickerPage");
+  const tabs = $id("imagePickerTabs");
+  const css = JOBS_EDITOR_STYLES + IMAGE_PICKER_STYLES;
+  if (page && page.shadowRoot) injectStyleInto(page.shadowRoot, css);
+  if (tabs && tabs.shadowRoot) injectStyleInto(tabs.shadowRoot, css);
+  if (_bootstrapIconsCss) {
+    if (page && page.shadowRoot) injectStyleInto(page.shadowRoot, _bootstrapIconsCss);
+    if (tabs && tabs.shadowRoot) injectStyleInto(tabs.shadowRoot, _bootstrapIconsCss);
+  }
+}
+
+// Fetch the vendor bootstrap-icons.css once (version-cached via ?v=BUILD) so
+// its @font-face/.bi glyph rules can be injected into the picker shadow roots,
+// where document-level stylesheets do not reach.
+function getBootstrapIconsCss() {
+  if (_bootstrapIconsCss) return Promise.resolve(_bootstrapIconsCss);
+  if (!_bootstrapIconsCssPromise) {
+    const v = typeof BUILD_NUMBER !== "undefined" ? BUILD_NUMBER : Date.now();
+    _bootstrapIconsCssPromise = fetch("vendor/bootstrap-icons.css?v=" + v)
+      .then(function(r) {
+        if (!r.ok) throw new Error("HTTP " + r.status);
+        return r.text();
+      })
+      .then(function(txt) {
+        _bootstrapIconsCss = txt.replace(/url\(\s*["']?\.\/fonts\//g, 'url("/vendor/fonts/');
+        return _bootstrapIconsCss;
+      })
+      .catch(function(err) {
+        _bootstrapIconsCssPromise = null;
+        throw err;
+      });
+  }
+  return _bootstrapIconsCssPromise;
+}
+
+function getBootstrapIconNames() {
+  if (_bootstrapIconNames) return _bootstrapIconNames;
+  _bootstrapIconNames = [];
+  if (!_bootstrapIconsCss) return _bootstrapIconNames;
+  const re = /\.bi-([a-z0-9][a-z0-9-]*)::before/g;
+  let m;
+  while ((m = re.exec(_bootstrapIconsCss))) _bootstrapIconNames.push(m[1]);
+  return _bootstrapIconNames;
 }
 
 function renderImagePicker() {
@@ -719,6 +805,32 @@ function renderImagePicker() {
   });
 }
 
+function renderBootstrapPicker() {
+  const list = $id("bootstrapIconList");
+  if (!list) return;
+  list.innerHTML = "";
+
+  const names = getBootstrapIconNames();
+  const q = (imagePickerSearch || "").toLowerCase();
+  const filtered = q ? names.filter(n => n.toLowerCase().includes(q)) : names;
+
+  if (filtered.length === 0) {
+    list.innerHTML = `<div class="text-secondary w-100 text-center py-4">${q ? "No icons match your search." : (names.length ? "Loading icons..." : "Bootstrap icons unavailable.")}</div>`;
+    return;
+  }
+
+  filtered.forEach(n => {
+    const item = document.createElement("div");
+    item.className = "bootstrap-icon-item text-center";
+    item.style.cssText = "width:95px;cursor:pointer;border:2px solid transparent;border-radius:8px;padding:6px;transition:border-color 0.15s";
+    item.innerHTML = `<span class="bi bi-${n}" title="${escapeHtml(n)}"></span><div class="bootstrap-icon-name">${escapeHtml(n)}</div>`;
+    item.onclick = () => { selectImagePickerItem("bi:" + n); };
+    item.onmouseenter = () => { item.style.borderColor = "var(--bs-primary)"; };
+    item.onmouseleave = () => { item.style.borderColor = "transparent"; };
+    list.appendChild(item);
+  });
+}
+
 function selectImagePickerItem(name) {
   if (imagePickerCallback) imagePickerCallback(name);
   closeImagePicker();
@@ -726,14 +838,22 @@ function selectImagePickerItem(name) {
 
 function filterImagePicker(val) {
   imagePickerSearch = val;
-  renderImagePicker();
+  if (imagePickerTab === 1) {
+    renderBootstrapPicker();
+  } else {
+    renderImagePicker();
+  }
 }
 
 function clearImagePickerFilter() {
   imagePickerSearch = "";
   const input = $id("imagePickerSearch");
   if (input) input.value = "";
-  renderImagePicker();
+  if (imagePickerTab === 1) {
+    renderBootstrapPicker();
+  } else {
+    renderImagePicker();
+  }
 }
 
 function seedSampleImages() {
