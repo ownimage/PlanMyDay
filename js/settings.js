@@ -32,7 +32,10 @@ const themeConfig = (() => {
 function applyTheme(name) {
   const config = themeConfig[name] || themeConfig.darkly;
   const link = document.getElementById("bootstrap-theme-css");
-  if (link) link.href = config.css;
+  if (link) {
+    const v = typeof BUILD_NUMBER !== "undefined" ? BUILD_NUMBER : Date.now();
+    link.href = config.css + (config.css.indexOf("?") >= 0 ? "&" : "?") + "v=" + v;
+  }
   document.documentElement.setAttribute("data-bs-theme", config.bsTheme);
   document.documentElement.setAttribute("data-theme", name);
   localStorage.setItem("planmydays_theme", name);

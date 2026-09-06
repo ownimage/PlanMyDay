@@ -15,6 +15,19 @@
   <link rel="stylesheet" href="vendor/flatpickr.min.css">
   <link rel="stylesheet" href="css/styles.css">
   <script src="js/build-number.js"></script>
+  <script>
+    // Cache-bust every same-origin link (stylesheet/manifest/icon) with the
+    // build number so a new build always fetches fresh assets.
+    (function () {
+      if (typeof BUILD_NUMBER === "undefined") return;
+      var stamp = function (u) { return u + (u.indexOf("?") >= 0 ? "&" : "?") + "v=" + BUILD_NUMBER; };
+      var isLocal = function (u) { return u && u.indexOf("://") === -1 && u.charAt(0) !== "//"; };
+      document.querySelectorAll("link[href]").forEach(function (l) {
+        var h = l.getAttribute("href") || "";
+        if (isLocal(h) && h.indexOf("v=") === -1) l.setAttribute("href", stamp(h));
+      });
+    })();
+  </script>
 </head>
 
 <body>
@@ -390,10 +403,10 @@
   </div>
 
   <!-- BOOTSTRAP JS -->
-  <script src="vendor/bootstrap.bundle.min.js"></script>
+  <script>document.write('<script src="vendor/bootstrap.bundle.min.js?v=' + BUILD_NUMBER + '"><\/script>');</script>
 
   <!-- FLATPICKR -->
-  <script src="vendor/flatpickr.min.js"></script>
+  <script>document.write('<script src="vendor/flatpickr.min.js?v=' + BUILD_NUMBER + '"><\/script>');</script>
 
   <!-- IMAGE EDIT MODAL -->
   <div id="imageEditModal" class="modal fade" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
@@ -409,10 +422,10 @@
   </div>
 
   <!-- QR CODE -->
-  <script src="vendor/qrcode.min.js"></script>
+  <script>document.write('<script src="vendor/qrcode.min.js?v=' + BUILD_NUMBER + '"><\/script>');</script>
 
   <!-- SORTABLEJS -->
-  <script src="vendor/sortable.min.js"></script>
+  <script>document.write('<script src="vendor/sortable.min.js?v=' + BUILD_NUMBER + '"><\/script>');</script>
 
   <script>
   document.write('<script src="js/components/styles.js?v=' + BUILD_NUMBER + '"><\/script>');
@@ -421,7 +434,6 @@
   document.write('<script src="js/components/smd-modal.js?v=' + BUILD_NUMBER + '"><\/script>');
   document.write('<script src="js/components/smd-page.js?v=' + BUILD_NUMBER + '"><\/script>');
   document.write('<script src="js/components/smd-tabs.js?v=' + BUILD_NUMBER + '"><\/script>');
-  document.write('<script src="js/components/smd-image.js?v=' + BUILD_NUMBER + '"><\/script>');
   document.write('<script src="js/components/smd-image-card.js?v=' + BUILD_NUMBER + '"><\/script>');
   document.write('<script src="js/components/smd-image-select.js?v=' + BUILD_NUMBER + '"><\/script>');
   document.write('<script src="js/components/pmd-stream-header.js?v=' + BUILD_NUMBER + '"><\/script>');
@@ -433,11 +445,55 @@
   document.write('<script src="js/images.js?v=' + BUILD_NUMBER + '"><\/script>');
   </script>
 
-  <script>
+<script>
   if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("sw.js?v=" + BUILD_NUMBER);
+    var __updatePrompted = false;
+    var __applyingUpdate = false;
+    function showUpdatePrompt(reg) {
+      if (__updatePrompted) return;
+      __updatePrompted = true;
+      if (typeof showSmdModal === "function") {
+        showSmdModal({
+          title: "Update available",
+          content: "A new version of Plan My Day is ready. Update now to get the latest changes?",
+          buttons: [
+            { text: "Later", variant: "secondary", action: "later" },
+            { text: "Update now", variant: "primary", action: "update" }
+          ],
+          onAction: function(detail) {
+            if (detail.action === "update" && reg.waiting) {
+              __applyingUpdate = true;
+              reg.waiting.postMessage({ type: "SKIP_WAITING" });
+            }
+          }
+        });
+      }
+    }
+    window.__pmdSwUpdater = { showUpdatePrompt: showUpdatePrompt };
+
+    navigator.serviceWorker.register("sw.js?v=" + BUILD_NUMBER).then(function(reg) {
+      if (navigator.serviceWorker.controller) {
+        if (reg.waiting) showUpdatePrompt(reg);
+        reg.addEventListener("updatefound", function() {
+          var inst = reg.installing;
+          if (!inst) return;
+          inst.addEventListener("statechange", function() {
+            if (inst.state === "installed" && navigator.serviceWorker.controller) showUpdatePrompt(reg);
+          });
+        });
+      }
+      // Re-check for a newer build on return visits / poor networks.
+      window.addEventListener("focus", function() { if (reg.update) reg.update(); });
+    });
+
+    // Only reload when the user chose to update (don't reload on the very first
+    // activation, which fires controllerchange with no prior controller).
+    navigator.serviceWorker.addEventListener("controllerchange", function() {
+      if (!__applyingUpdate) return;
+      window.location.reload();
+    });
   }
-  </script>
+</script>
 
 </body>
 </html>
