@@ -45,7 +45,7 @@
 
   class SmdImage extends HTMLElement {
     static get observedAttributes() {
-      return ["image", "key-prefix", "theme", "alt"];
+      return ["image", "key-prefix", "theme", "alt", "size"];
     }
 
     constructor() {
@@ -103,6 +103,12 @@
       return (document.documentElement.getAttribute("data-bs-theme") || "dark") === "dark" ? "dark" : "light";
     }
 
+    // Requested render size in px (attr `size`), or 0 when not set.
+    _sizePx() {
+      const v = parseInt(this.getAttribute("size"), 10);
+      return isNaN(v) || v <= 0 ? 0 : v;
+    }
+
     _findImage() {
       const key = this.keyPrefix + "images";
       let images = [];
@@ -127,9 +133,17 @@
       if (!img) return;
       const stored = this._findImage();
       const alt = this.getAttribute("alt") || "";
+
+      // Sized renders get a shared, cached `:host` stylesheet (one sheet per px).
+      const px = this._sizePx();
+      if (px > 0) {
+        SmdStyles.adoptStyles(this.shadowRoot, SmdStyles.sheetFor(":host { width: " + px + "px; height: " + px + "px; }"));
+      }
+
       // Non-SVG images may only carry downscaled thumbnails (data64/80/100) when
-      // the full-size `data` has been stripped for size; fall back to the largest.
-      const src = stored ? (stored.data || stored.data100 || stored.data80 || stored.data64) : null;
+      // the full-size `data` has been stripped for size; prefer the thumbnail for
+      // the requested size, then any larger one.
+      const src = stored ? (stored.data || stored["data" + px] || stored.data100 || stored.data80 || stored.data64) : null;
       if (!stored || !src) {
         img.removeAttribute("src");
         img.hidden = true;

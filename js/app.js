@@ -289,8 +289,8 @@ function renderMain() {
           </div>
         </div>
         <div class="col-auto d-flex align-items-center gap-1 px-0" style="min-width:68px">
-          <div style="width:32px;height:32px;display:flex;align-items:center;justify-content:center">${streamImageName ? `<smd-image key-prefix="planmydays_" image="${escapeHtml(streamImageName)}" style="max-width:32px;max-height:32px"></smd-image>` : ""}</div>
-          <div style="width:32px;height:32px;display:flex;align-items:center;justify-content:center">${jobImageName ? `<smd-image key-prefix="planmydays_" image="${escapeHtml(jobImageName)}" style="max-width:32px;max-height:32px"></smd-image>` : ""}</div>
+          <div style="width:32px;height:32px;display:flex;align-items:center;justify-content:center">${streamImageName ? `<smd-image key-prefix="planmydays_" image="${escapeHtml(streamImageName)}" size="32"></smd-image>` : ""}</div>
+          <div style="width:32px;height:32px;display:flex;align-items:center;justify-content:center">${jobImageName ? `<smd-image key-prefix="planmydays_" image="${escapeHtml(jobImageName)}" size="32"></smd-image>` : ""}</div>
         </div>
         <div class="col" style="min-width:0">
           <div class="d-flex align-items-center gap-2 mb-1">
