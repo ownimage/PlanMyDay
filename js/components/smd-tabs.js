@@ -13,7 +13,7 @@ const smdTabsSheet = SmdStyles.sheetFor(`
     border-bottom: none;
     border-radius: 6px 6px 0 0;
     background: var(--smd-secondary, #6c757d);
-    color: var(--smd-primary-text, #fff);
+    color: var(--bs-emphasis-color, var(--smd-primary-text, #fff));
     cursor: pointer;
     font-size: 0.95rem;
     font-weight: 500;

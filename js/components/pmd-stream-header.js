@@ -8,7 +8,7 @@ const pmdStreamHeaderSheet = SmdStyles.sheetFor(`
     width: 100%;
     padding: 0.25rem 0;
     background-color: var(--smd-secondary, var(--bs-secondary, #6c757d));
-    color: var(--smd-primary-text, #fff);
+    color: var(--bs-emphasis-color, var(--smd-primary-text, #fff));
   }
   :host([expanded]) .stream-accordion-header {
     background-color: var(--bs-info);
@@ -141,7 +141,7 @@ pmdStreamHeaderTemplate.innerHTML = `
 
 class PmdStreamHeader extends HTMLElement {
   static get observedAttributes() {
-    return ['stream-idx', 'title', 'image', 'tab', 'expanded', 'can-delete', 'jobcounts'];
+    return ['stream-idx', 'title', 'image', 'tab', 'expanded', 'can-delete', 'jobcounts', 'key-prefix'];
   }
 
   constructor() {
@@ -210,6 +210,7 @@ class PmdStreamHeader extends HTMLElement {
 
     const thumb = root.querySelector('.thumb');
     const sImg = root.querySelector('.thumb smd-image');
+    sImg.setAttribute('key-prefix', this.getAttribute('key-prefix') || 'planmydays_');
     if (image) {
       sImg.setAttribute('image', image);
       thumb.hidden = false;

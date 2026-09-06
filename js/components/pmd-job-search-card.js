@@ -5,7 +5,7 @@ const pmdJobSearchCardSheet = SmdStyles.sheetFor(`
     position: relative;
     min-width: 0;
     word-wrap: break-word;
-    background-color: var(--bs-card-bg, var(--bs-secondary-bg, #303030));
+    background-color: var(--bs-body-bg, #303030);
     border: 1px solid var(--bs-border-color, #495057);
     border-radius: 0.375rem;
     padding: 0.5rem;
@@ -98,7 +98,7 @@ pmdJobSearchCardTemplate.innerHTML = `
 
 class PmdJobSearchCard extends HTMLElement {
   static get observedAttributes() {
-    return ['stream-idx', 'job-idx', 'title', 'image', 'stream-image', 'stream-title', 'tab', 'suffix', 'schedule', 'time', 'extra', 'active'];
+    return ['stream-idx', 'job-idx', 'title', 'image', 'stream-image', 'stream-title', 'tab', 'suffix', 'schedule', 'time', 'extra', 'active', 'key-prefix'];
   }
 
   constructor() {
@@ -158,6 +158,7 @@ class PmdJobSearchCard extends HTMLElement {
     const setThumb = (thumbCls, src) => {
       const thumb = root.querySelector(thumbCls);
       const sImg = thumb.querySelector('smd-image');
+      sImg.setAttribute('key-prefix', this.getAttribute('key-prefix') || 'planmydays_');
       if (src) {
         sImg.setAttribute('image', src);
         thumb.hidden = false;
