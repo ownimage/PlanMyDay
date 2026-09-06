@@ -633,22 +633,34 @@ function getImageDataUrl(name) {
 
 let imagePickerCallback = null;
 let imagePickerSearch = "";
-let imagePickerTab = 0;
+let imagePickerSet = null;
 let _imagePickerCloseTimer = null;
-let _bootstrapIconsCss = null;
-let _bootstrapIconsCssPromise = null;
-let _bootstrapIconNames = null;
+
+const PICKER_ICON_SETS = [
+  { key: "bi", title: "Bootstrap", css: "/vendor/bootstrap-icons.css", family: "bootstrap-icons" },
+  { key: "ri", title: "Remix", css: "/vendor/remixicon.css", family: "remixicon" },
+  { key: "fa", title: "Font Awesome", json: "/vendor/fontawesome-icons.json", slot: "fa", family: "Font Awesome 6 Free" },
+  { key: "fab", title: "FA Brands", json: "/vendor/fontawesome-icons.json", slot: "fab", family: "Font Awesome 6 Brands" },
+  { key: "ms", title: "Material", json: "/vendor/material-symbols-names.json", family: "Material Symbols Outlined", ligature: true }
+];
+const IO_CODEPOINT_RE = {
+  bi: /\.bi-([a-z0-9][a-z0-9-]*)::before\s*\{\s*content:\s*["']\\([0-9a-fA-F]+)["']/g,
+  ri: /\.ri-([a-z0-9][a-z0-9-]*):before\s*\{\s*content:\s*["']\\([0-9a-fA-F]+)["']/g
+};
+const _pickerIconData = Object.create(null);
+const _pickerIconPromises = Object.create(null);
 
 const IMAGE_PICKER_STYLES = `
   .smd-page-body .text-center, .smd-tab-panel .text-center { text-align: center; }
   .smd-page-body .py-4, .smd-tab-panel .py-4 { padding-top: 1.5rem; padding-bottom: 1.5rem; }
   .smd-page-body .flex-wrap, .smd-tab-panel .flex-wrap { flex-wrap: wrap; }
-  .smd-tab-panel .bootstrap-icon-item .bi {
+  .smd-tab-panel .smd-tab-list { flex-wrap: wrap; }
+  .smd-tab-panel .icon-picker-item .icon-glyph {
     font-size: 2rem;
     color: var(--bs-body-color, #f8f9fa);
     line-height: 1;
   }
-  .smd-tab-panel .bootstrap-icon-item .bootstrap-icon-name {
+  .smd-tab-panel .icon-picker-item .icon-name {
     font-size: 0.75rem;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -658,10 +670,48 @@ const IMAGE_PICKER_STYLES = `
   }
 `;
 
+function parsePickerCssGlyphs(cssText, selectorRe) {
+  const map = {};
+  let m;
+  while ((m = selectorRe.exec(cssText))) map[m[1]] = m[2];
+  return map;
+}
+
+function loadPickerIconSet(setCfg) {
+  if (_pickerIconData[setCfg.key]) return Promise.resolve(_pickerIconData[setCfg.key]);
+  if (!_pickerIconPromises[setCfg.key]) {
+    const v = typeof BUILD_NUMBER !== "undefined" ? BUILD_NUMBER : Date.now();
+    _pickerIconPromises[setCfg.key] = (setCfg.css
+      ? fetch(setCfg.css + "?v=" + v).then((r) => { if (!r.ok) throw new Error("HTTP " + r.status); return r.text(); })
+          .then((txt) => {
+            const glyphs = parsePickerCssGlyphs(txt, IO_CODEPOINT_RE[setCfg.key]);
+            return Object.keys(glyphs).map((name) => ({ name, hex: glyphs[name] }));
+          })
+      : fetch(setCfg.json + "?v=" + v).then((r) => { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+          .then((data) => {
+            if (setCfg.slot) {
+              const slot = data[setCfg.slot] || {};
+              return Object.keys(slot).map((name) => ({ name, hex: slot[name].h, weight: slot[name].w }));
+            }
+            return data.map((name) => ({ name }));
+          })
+    ).then((names) => {
+      const byName = Object.create(null);
+      names.forEach((n) => { byName[n.name] = { hex: n.hex, weight: n.weight }; });
+      _pickerIconData[setCfg.key] = { names: names.map((n) => n.name), byName };
+      return _pickerIconData[setCfg.key];
+    }).catch((err) => {
+      _pickerIconPromises[setCfg.key] = null;
+      throw err;
+    });
+  }
+  return _pickerIconPromises[setCfg.key];
+}
+
 function openImagePicker(callback) {
   imagePickerCallback = callback;
   imagePickerSearch = "";
-  imagePickerTab = 0;
+  imagePickerSet = null;
   const page = document.getElementById("imagePickerPage");
   if (!page) return;
   page.classList.remove("d-none");
@@ -690,28 +740,27 @@ function openImagePicker(callback) {
   const tabsEl = $id("imagePickerTabs");
   if (tabsEl) {
     tabsEl.tabs = [
-      { title: "Local", content: '<div class="image-picker-list d-flex flex-wrap w-100" id="imagePickerList" style="gap:8px;min-height:120px"></div>' },
-      { title: "Bootstrap", content: '<div class="bootstrap-icon-list d-flex flex-wrap w-100" id="bootstrapIconList" style="gap:8px;min-height:120px"></div>' }
-    ];
+      { title: "Local", content: '<div class="image-picker-list d-flex flex-wrap w-100" id="imagePickerList" style="gap:8px;min-height:120px"></div>' }
+    ].concat(PICKER_ICON_SETS.map(set =>
+      ({ title: set.title, content: `<div class="icon-picker-list d-flex flex-wrap w-100" id="iconPickerList-${set.key}" style="gap:8px;min-height:120px"></div>` })
+    ));
     if (!tabsEl.__pickerTabsBound) {
       tabsEl.__pickerTabsBound = true;
       tabsEl.addEventListener("smd-tabs-change", function(e) {
-        imagePickerTab = e.detail && e.detail.index === 1 ? 1 : 0;
-        if (imagePickerTab === 1) {
-          renderBootstrapPicker();
-        } else {
-          renderImagePicker();
-        }
+        const idx = e.detail && typeof e.detail.index === "number" ? e.detail.index : 0;
+        imagePickerSet = idx === 0 ? null : (PICKER_ICON_SETS[idx - 1] ? PICKER_ICON_SETS[idx - 1].key : null);
+        renderPickerList();
       });
     }
   }
   injectPickerStyles();
   page.show();
-  renderImagePicker();
-  getBootstrapIconsCss().then(function() {
-    injectPickerStyles();
-    if (imagePickerTab === 1) renderBootstrapPicker();
-  }).catch(function() {});
+  renderPickerList();
+  PICKER_ICON_SETS.forEach((set) => {
+    loadPickerIconSet(set).then(() => {
+      if (imagePickerSet === set.key) renderPickerList();
+    }).catch(function() {});
+  });
   setTimeout(() => {
     const input = $id("imagePickerSearch");
     if (input) { input.focus(); input.value = ""; }
@@ -737,44 +786,6 @@ function injectPickerStyles() {
   const css = JOBS_EDITOR_STYLES + IMAGE_PICKER_STYLES;
   if (page && page.shadowRoot) injectStyleInto(page.shadowRoot, css);
   if (tabs && tabs.shadowRoot) injectStyleInto(tabs.shadowRoot, css);
-  if (_bootstrapIconsCss) {
-    if (page && page.shadowRoot) injectStyleInto(page.shadowRoot, _bootstrapIconsCss);
-    if (tabs && tabs.shadowRoot) injectStyleInto(tabs.shadowRoot, _bootstrapIconsCss);
-  }
-}
-
-// Fetch the vendor bootstrap-icons.css once (version-cached via ?v=BUILD) so
-// its @font-face/.bi glyph rules can be injected into the picker shadow roots,
-// where document-level stylesheets do not reach.
-function getBootstrapIconsCss() {
-  if (_bootstrapIconsCss) return Promise.resolve(_bootstrapIconsCss);
-  if (!_bootstrapIconsCssPromise) {
-    const v = typeof BUILD_NUMBER !== "undefined" ? BUILD_NUMBER : Date.now();
-    _bootstrapIconsCssPromise = fetch("/vendor/bootstrap-icons.css?v=" + v)
-      .then(function(r) {
-        if (!r.ok) throw new Error("HTTP " + r.status);
-        return r.text();
-      })
-      .then(function(txt) {
-        _bootstrapIconsCss = txt.replace(/url\(\s*["']?\.\/fonts\//g, 'url("/vendor/fonts/');
-        return _bootstrapIconsCss;
-      })
-      .catch(function(err) {
-        _bootstrapIconsCssPromise = null;
-        throw err;
-      });
-  }
-  return _bootstrapIconsCssPromise;
-}
-
-function getBootstrapIconNames() {
-  if (_bootstrapIconNames) return _bootstrapIconNames;
-  _bootstrapIconNames = [];
-  if (!_bootstrapIconsCss) return _bootstrapIconNames;
-  const re = /\.bi-([a-z0-9][a-z0-9-]*)::before/g;
-  let m;
-  while ((m = re.exec(_bootstrapIconsCss))) _bootstrapIconNames.push(m[1]);
-  return _bootstrapIconNames;
 }
 
 function renderImagePicker() {
@@ -805,26 +816,52 @@ function renderImagePicker() {
   });
 }
 
-function renderBootstrapPicker() {
-  const list = $id("bootstrapIconList");
+function renderPickerList() {
+  if (!imagePickerSet) {
+    renderImagePicker();
+    return;
+  }
+  const cfg = PICKER_ICON_SETS.find(s => s.key === imagePickerSet);
+  if (!cfg) return;
+  const list = $id("iconPickerList-" + cfg.key);
   if (!list) return;
   list.innerHTML = "";
+  const data = _pickerIconData[cfg.key];
 
-  const names = getBootstrapIconNames();
+  if (!data) {
+    list.innerHTML = `<div class="text-secondary w-100 text-center py-4">Loading icons...</div>`;
+    loadPickerIconSet(cfg).then(() => {
+      if (imagePickerSet === cfg.key) renderPickerList();
+    }).catch(function() {});
+    return;
+  }
+
   const q = (imagePickerSearch || "").toLowerCase();
-  const filtered = q ? names.filter(n => n.toLowerCase().includes(q)) : names;
+  const filtered = q ? data.names.filter(n => n.toLowerCase().includes(q)) : data.names;
 
   if (filtered.length === 0) {
-    list.innerHTML = `<div class="text-secondary w-100 text-center py-4">${q ? "No icons match your search." : (names.length ? "Loading icons..." : "Bootstrap icons unavailable.")}</div>`;
+    list.innerHTML = `<div class="text-secondary w-100 text-center py-4">${q ? "No icons match your search." : "No icons available."}</div>`;
     return;
   }
 
   filtered.forEach(n => {
     const item = document.createElement("div");
-    item.className = "bootstrap-icon-item text-center";
+    item.className = "icon-picker-item text-center";
     item.style.cssText = "width:95px;cursor:pointer;border:2px solid transparent;border-radius:8px;padding:6px;transition:border-color 0.15s";
-    item.innerHTML = `<span class="bi bi-${n}" title="${escapeHtml(n)}"></span><div class="bootstrap-icon-name">${escapeHtml(n)}</div>`;
-    item.onclick = () => { selectImagePickerItem("bi:" + n); };
+    const entry = data.byName[n] || {};
+    const glyph = cfg.ligature ? n : (entry.hex ? String.fromCodePoint(parseInt(entry.hex, 16)) : "");
+    const span = document.createElement("span");
+    span.className = "icon-glyph";
+    span.textContent = glyph;
+    span.style.setProperty("font-family", '"' + cfg.family + '"');
+    if (entry.weight != null) span.style.setProperty("font-weight", entry.weight);
+    if (cfg.ligature) span.style.setProperty("white-space", "nowrap");
+    const label = document.createElement("div");
+    label.className = "icon-name";
+    label.textContent = n;
+    item.appendChild(span);
+    item.appendChild(label);
+    item.onclick = () => { selectImagePickerItem(cfg.key + ":" + n); };
     item.onmouseenter = () => { item.style.borderColor = "var(--bs-primary)"; };
     item.onmouseleave = () => { item.style.borderColor = "transparent"; };
     list.appendChild(item);
@@ -838,22 +875,14 @@ function selectImagePickerItem(name) {
 
 function filterImagePicker(val) {
   imagePickerSearch = val;
-  if (imagePickerTab === 1) {
-    renderBootstrapPicker();
-  } else {
-    renderImagePicker();
-  }
+  renderPickerList();
 }
 
 function clearImagePickerFilter() {
   imagePickerSearch = "";
   const input = $id("imagePickerSearch");
   if (input) input.value = "";
-  if (imagePickerTab === 1) {
-    renderBootstrapPicker();
-  } else {
-    renderImagePicker();
-  }
+  renderPickerList();
 }
 
 function seedSampleImages() {

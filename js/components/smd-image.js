@@ -43,42 +43,66 @@
     return out;
   }
 
-  let biCssPromise = null;
-  let biGlyphs = null;
+  const ICON_SETS = {
+    bi: { css: "/vendor/bootstrap-icons.css", family: "bootstrap-icons", mode: "codepoint" },
+    ri: { css: "/vendor/remixicon.css", family: "remixicon", mode: "codepoint" },
+    fa: { json: "/vendor/fontawesome-icons.json", slot: "fa", family: "Font Awesome 6 Free", mode: "codepoint" },
+    fab: { json: "/vendor/fontawesome-icons.json", slot: "fab", family: "Font Awesome 6 Brands", mode: "codepoint" },
+    ms: { json: "/vendor/material-symbols-names.json", family: "Material Symbols Outlined", mode: "ligature" }
+  };
 
-  function parseBiGlyphs(cssText) {
+  const iconDataBySet = Object.create(null);
+  const iconLoadPromises = Object.create(null);
+
+  function parseCssGlyphs(cssText, selectorRe) {
     const map = {};
-    const re = /\.bi-([a-z0-9][a-z0-9-]*)::before[^}]*content:\s*["']\\([0-9a-fA-F]+)["']/g;
     let m;
-    while ((m = re.exec(cssText))) map[m[1]] = m[2];
+    while ((m = selectorRe.exec(cssText))) map[m[1]] = m[2];
     return map;
   }
 
-  function ensureBiGlyphs() {
-    if (biGlyphs) return Promise.resolve(biGlyphs);
-    if (!biCssPromise) {
-      const v = typeof global.BUILD_NUMBER !== "undefined" ? global.BUILD_NUMBER : Date.now();
-      biCssPromise = global.fetch("/vendor/bootstrap-icons.css?v=" + v)
-        .then(function (r) {
-          if (!r.ok) throw new Error("HTTP " + r.status);
-          return r.text();
+  function loadIconSet(set) {
+    if (iconLoadPromises[set]) return iconLoadPromises[set];
+    const cfg = ICON_SETS[set];
+    const v = typeof global.BUILD_NUMBER !== "undefined" ? global.BUILD_NUMBER : Date.now();
+    const fail = (err) => {
+      iconLoadPromises[set] = null;
+      throw err;
+    };
+    const finish = (names) => {
+      const map = {};
+      names.forEach((n) => { map[n.name] = { hex: n.hex, weight: n.weight }; });
+      iconDataBySet[set] = map;
+      return map;
+    };
+    if (cfg.css) {
+      iconLoadPromises[set] = global.fetch(cfg.css + "?v=" + v)
+        .then((r) => { if (!r.ok) throw new Error("HTTP " + r.status); return r.text(); })
+        .then((txt) => {
+          const glyphs = set === "ri"
+            ? parseCssGlyphs(txt, /\.ri-([a-z0-9][a-z0-9-]*):before\s*\{\s*content:\s*["']\\([0-9a-fA-F]+)["']/g)
+            : parseCssGlyphs(txt, /\.bi-([a-z0-9][a-z0-9-]*)::before\s*\{\s*content:\s*["']\\([0-9a-fA-F]+)["']/g);
+          return finish(Object.keys(glyphs).map((name) => ({ name, hex: glyphs[name] })));
         })
-        .then(function (txt) {
-          biGlyphs = parseBiGlyphs(txt);
-          return biGlyphs;
+        .catch(fail);
+    } else {
+      iconLoadPromises[set] = global.fetch(cfg.json + "?v=" + v)
+        .then((r) => { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+        .then((data) => {
+          if (cfg.slot) {
+            const slot = data[cfg.slot] || {};
+            return finish(Object.keys(slot).map((name) => ({ name, hex: slot[name].h, weight: slot[name].w })));
+          }
+          return finish(data.map((name) => ({ name })));
         })
-        .catch(function (err) {
-          biCssPromise = null;
-          throw err;
-        });
+        .catch(fail);
     }
-    return biCssPromise;
+    return iconLoadPromises[set];
   }
 
-  function biGlyph(name) {
-    if (!biGlyphs) return null;
-    const hex = biGlyphs[name];
-    return hex ? String.fromCodePoint(parseInt(hex, 16)) : null;
+  function iconEntry(set, name) {
+    if (!ICON_SETS[set] || !iconDataBySet[set]) return null;
+    return iconDataBySet[set][name] || null;
   }
 
   class SmdImage extends HTMLElement {
@@ -190,9 +214,13 @@
         SmdStyles.adoptStyles(this.shadowRoot, SmdStyles.sheetFor(":host { width: " + px + "px; height: " + px + "px; }"));
       }
 
-      if (name.indexOf("bi:") === 0) {
-        this._renderBi(name.slice(3), px);
-        return;
+      const colon = name.indexOf(":");
+      if (colon > 0) {
+        const set = name.slice(0, colon);
+        if (ICON_SETS[set]) {
+          this._renderIcon(set, name.slice(colon + 1), px);
+          return;
+        }
       }
       this._renderStored(name, px);
     }
@@ -221,19 +249,22 @@
       img.hidden = false;
     }
 
-    _renderBi(iconName, px) {
+    _renderIcon(set, iconName, px) {
       const img = this.shadowRoot.querySelector("img");
       if (img) {
         img.removeAttribute("src");
         img.hidden = true;
       }
       let span = this.shadowRoot.querySelector(".smd-bi");
-      const glyph = biGlyph(iconName);
-      if (!glyph) {
+      const cfg = ICON_SETS[set];
+      const entry = iconEntry(set, iconName);
+      const glyph = entry && entry.hex ? String.fromCodePoint(parseInt(entry.hex, 16)) : (iconName || "");
+      const ready = !!iconDataBySet[set];
+      if (!entry || (cfg.mode === "ligature" && !iconName)) {
         if (span) span.hidden = true;
-        if (!biGlyphs) {
-          ensureBiGlyphs().then(() => {
-            if (this.isConnected && (this.getAttribute("image") || "") === "bi:" + iconName) this._render();
+        if (!ready) {
+          loadIconSet(set).then(() => {
+            if (this.isConnected && (this.getAttribute("image") || "") === set + ":" + iconName) this._render();
           }).catch(() => {});
         }
         return;
@@ -244,6 +275,11 @@
         this.shadowRoot.appendChild(span);
       }
       span.textContent = glyph;
+      span.style.setProperty("font-family", '"' + cfg.family + '"');
+      if (entry.weight != null) span.style.setProperty("font-weight", entry.weight);
+      else span.style.removeProperty("font-weight");
+      if (cfg.mode === "ligature") span.style.setProperty("white-space", "nowrap");
+      else span.style.removeProperty("white-space");
       span.style.fontSize = px > 0 ? Math.max(8, Math.round(px * 0.8)) + "px" : "1.5rem";
       span.hidden = false;
     }
