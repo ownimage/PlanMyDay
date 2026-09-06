@@ -654,7 +654,6 @@ const IMAGE_PICKER_STYLES = `
   .smd-page-body .text-center, .smd-tab-panel .text-center { text-align: center; }
   .smd-page-body .py-4, .smd-tab-panel .py-4 { padding-top: 1.5rem; padding-bottom: 1.5rem; }
   .smd-page-body .flex-wrap, .smd-tab-panel .flex-wrap { flex-wrap: wrap; }
-  .smd-tab-panel .smd-tab-list { flex-wrap: wrap; }
   .smd-tab-panel .icon-picker-item .icon-glyph {
     font-size: 2rem;
     color: var(--bs-body-color, #f8f9fa);
@@ -739,6 +738,7 @@ function openImagePicker(callback) {
   }
   const tabsEl = $id("imagePickerTabs");
   if (tabsEl) {
+    tabsEl.wrap = true;
     tabsEl.tabs = [
       { title: "Local", content: '<div class="image-picker-list d-flex flex-wrap w-100" id="imagePickerList" style="gap:8px;min-height:120px"></div>' }
     ].concat(PICKER_ICON_SETS.map(set =>

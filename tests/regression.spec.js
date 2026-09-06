@@ -1603,6 +1603,20 @@ test.describe("PlanMyDay - Regression", () => {
       await expect(page.locator(".image-picker-item").first()).toBeVisible();
     });
 
+    test("picker tabs wrap onto multiple lines", async ({ page }) => {
+      await expect(page.locator("#imagePickerPage smd-tabs")).toHaveAttribute("wrap", "");
+      const wrap = await page.locator("#imagePickerPage smd-tabs").first()
+        .evaluate((el) => getComputedStyle(el.shadowRoot.querySelector(".smd-tab-list")).flexWrap);
+      expect(wrap).toBe("wrap");
+      await page.setViewportSize({ width: 360, height: 640 });
+      await page.waitForTimeout(300);
+      const rows = await page.locator("#imagePickerPage .smd-tab-btn").evaluateAll((btns) => {
+        const tops = btns.map((b) => Math.round(b.getBoundingClientRect().top));
+        return new Set(tops).size;
+      });
+      expect(rows).toBeGreaterThan(1);
+    });
+
     test("bootstrap tab shows all bootstrap icons with the icon font", async ({ page }) => {
       await page.locator("#imagePickerPage .smd-tab-btn").filter({ hasText: "Bootstrap" }).click();
       await page.locator("#iconPickerList-bi .icon-picker-item").first().waitFor({ state: "visible", timeout: 10000 });

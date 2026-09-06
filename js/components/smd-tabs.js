@@ -2,10 +2,14 @@ const smdTabsSheet = SmdStyles.sheetFor(`
   :host { display: block; width: 100%; box-sizing: border-box; }
   .smd-tab-list {
     display: flex;
+    flex-wrap: nowrap;
     gap: 2px;
     padding: 0 4px;
     position: relative;
     z-index: 1;
+  }
+  :host([wrap]) .smd-tab-list {
+    flex-wrap: wrap;
   }
 .smd-tab-btn {
     padding: 0.5rem 1.25rem;
@@ -69,7 +73,7 @@ class SmdTabs extends HTMLElement {
     }
 
     static get observedAttributes() {
-        return ['bottomline'];
+        return ['bottomline', 'wrap'];
     }
 
     attributeChangedCallback(name, oldValue, newValue) {
@@ -96,6 +100,14 @@ class SmdTabs extends HTMLElement {
 
     set bottomline(val) {
         this.toggleAttribute('bottomline', !!val);
+    }
+
+    get wrap() {
+        return this.hasAttribute('wrap');
+    }
+
+    set wrap(val) {
+        this.toggleAttribute('wrap', !!val);
     }
 
     _render() {

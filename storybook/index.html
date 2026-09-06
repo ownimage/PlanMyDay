@@ -419,13 +419,14 @@
       id: "smd-tabs",
       name: "smd-tabs",
       tag: "<smd-tabs>",
-      desc: "Tab bar + panels. Set the <code>tabs</code> array {title, content, id?}. Dispatches <code>smd-tabs-change</code>. Set <code>bottomline = false</code> to hide the horizontal rule at the bottom of the tab section.",
+      desc: "Tab bar + panels. Set the <code>tabs</code> array {title, content, id?}. Dispatches <code>smd-tabs-change</code>. Set <code>bottomline = false</code> to hide the horizontal rule at the bottom of the tab section; set <code>wrap</code> to let the tab buttons wrap onto multiple lines.",
       html: () => `
         <div class="sb-canvas" style="flex-direction:column;width:100%">
           <smd-tabs id="sb-tabs"></smd-tabs>
         </div>
         <div class="sb-controls">
           <label><input type="checkbox" id="ctrl-tabs-bottomline"> Show bottom line</label>
+          <label><input type="checkbox" id="ctrl-tabs-wrap"> Wrap tabs</label>
           <button type="button" class="btn sb-run" id="btn-tabs-apply">Apply</button>
         </div>
         <div class="sb-log" id="log-smd-tabs">events: none yet</div>
@@ -441,7 +442,9 @@
         document.getElementById("btn-tabs-apply").addEventListener("click", () => {
           const val = document.getElementById("ctrl-tabs-bottomline").checked;
           tabs.setAttribute("bottomline", val ? "true" : "false");
-          log("smd-tabs", "bottomline=" + (val ? "true" : "false"));
+          const wrap = document.getElementById("ctrl-tabs-wrap").checked;
+          tabs.toggleAttribute("wrap", wrap);
+          log("smd-tabs", "bottomline=" + (val ? "true" : "false") + " wrap=" + (wrap ? "true" : "false"));
         });
       }
     });
