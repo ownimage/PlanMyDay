@@ -168,6 +168,7 @@ const PRECACHE_URLS = [
   "js/components/styles.js",
   "js/components/smd-button.js",
   "js/components/smd-image.js",
+  "js/components/smd-image-card.js",
   "js/components/smd-page.js",
   "js/components/smd-tabs.js",
   "js/components/pmd-stream-header.js",

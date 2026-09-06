@@ -252,12 +252,12 @@ function renderImagesEditor() {
   listEl.innerHTML = "";
 
   pageItems.forEach((img) => {
-    const card = document.createElement("pmd-image-card");
+    const card = document.createElement("smd-image-card");
     const inUse = isImageInUse(img.name);
-    const themedData = getThemedImageDataUrl(img);
-    card.setAttribute("image-idx", images.indexOf(img));
-    card.setAttribute("name", img.name);
-    if (themedData) card.setAttribute("image", themedData);
+    card.setAttribute("index", images.indexOf(img));
+    card.setAttribute("title", img.name);
+    card.setAttribute("image", img.name);
+    card.setAttribute("key-prefix", "planmydays_");
     if (inUse) card.setAttribute("in-use", "");
     listEl.appendChild(card);
   });

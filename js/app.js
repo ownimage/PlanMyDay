@@ -2892,14 +2892,16 @@ document.addEventListener("DOMContentLoaded", () => {
         closeImagesEditor();
       }
     });
-    imagesEditor.addEventListener("pmd-image-delete", (e) => {
-      confirmDeleteImage(e.detail.imageIdx);
-    });
-    imagesEditor.addEventListener("pmd-image-duplicate", (e) => {
-      duplicateImage(e.detail.imageIdx);
-    });
-    imagesEditor.addEventListener("pmd-image-edit", (e) => {
-      startEditImage(e.detail.imageIdx);
+    imagesEditor.addEventListener("smd-image-card-action", (e) => {
+      const action = e.detail && e.detail.action;
+      const idx = e.detail && e.detail.index;
+      if (action === "delete") {
+        confirmDeleteImage(idx);
+      } else if (action === "duplicate") {
+        duplicateImage(idx);
+      } else if (action === "edit") {
+        startEditImage(idx);
+      }
     });
   }
 

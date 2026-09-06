@@ -213,10 +213,11 @@
   <script src="../js/components/smd-tabs.js"></script>
   <script src="../js/components/smd-qrcode.js"></script>
   <script src="../js/components/smd-buymeacoffee.js"></script>
+  <script src="../js/components/smd-image.js"></script>
+  <script src="../js/components/smd-image-card.js"></script>
   <script src="../js/components/pmd-stream-header.js"></script>
   <script src="../js/components/pmd-stream-job-card.js"></script>
   <script src="../js/components/pmd-job-search-card.js"></script>
-  <script src="../js/components/pmd-image-card.js"></script>
   <script src="../vendor/qrcode.min.js"></script>
 
   <script>
@@ -656,12 +657,12 @@
       }
     });
 
-    // ---- pmd-image-card ----
+    // ---- smd-image-card ----
     sections.push({
-      id: "pmd-image-card",
-      name: "pmd-image-card",
-      tag: "<pmd-image-card>",
-      desc: "Image list card used by the Images editor. Attributes: <code>image-idx</code>, <code>name</code>, <code>image</code> (data URL), <code>in-use</code>. Set <code>in-use</code> to disable the Delete button. Dispatches <code>pmd-image-delete</code>, <code>pmd-image-duplicate</code>, <code>pmd-image-edit</code>.",
+      id: "smd-image-card",
+      name: "smd-image-card",
+      tag: "<smd-image-card>",
+      desc: "Card for a single entry of a localStorage images list. The image is looked up by NAME via <code>&lt;smd-image&gt;</code> using <code>key-prefix</code> (list key = <code>keyPrefix + \"images\"</code>) + <code>image</code>; <code>title</code> is the label (defaults to the image name), <code>index</code> is echoed in events, and <code>in-use</code> disables Delete. Dispatches <code>smd-image-card-action</code> with <code>{ action: delete|duplicate|edit, index }</code>.",
       html: () => `
         <div class="sb-canvas">
           <div class="sb-stack" id="sb-image-cards"></div>
@@ -669,29 +670,25 @@
         <div class="sb-controls">
           <label><input type="checkbox" id="ctrl-image-inuse"> Mark Delete disabled (in-use)</label>
         </div>
-        <div class="sb-log" id="log-pmd-image-card">events: none yet</div>
+        <div class="sb-log" id="log-smd-image-card">events: none yet</div>
       `,
       init: () => {
+        const seed = [
+          { name: "Calendar", data: "data:image/svg+xml," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" stroke="#111111" stroke-width="2" fill="none"/><path d="M3 9h18M8 3v4M16 3v4" stroke="#111111" stroke-width="2" fill="none"/></svg>'), themes: { dark: { line: "#39cbfb", width: "2" }, light: { line: "#a55", width: "2" } } },
+          { name: "Pie chart", data: "data:image/svg+xml," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" stroke="#111111" stroke-width="2" fill="none"/><path d="M12 3a9 9 0 0 1 9 9H12z" stroke="#111111" stroke-width="2" fill="none"/></svg>'), themes: { dark: { line: "#00bc8c", width: "2" }, light: { line: "#0aa575", width: "2" } } },
+          { name: "Clock", data: "data:image/svg+xml," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" stroke="#111111" stroke-width="2" fill="none"/><path d="M12 7v5l3 3" stroke="#111111" stroke-width="2" fill="none"/></svg>'), themes: { dark: { line: "#375a7f", width: "2" }, light: { line: "#123", width: "2" } } }
+        ];
+        localStorage.setItem("sbic_images", JSON.stringify(seed));
         const host = document.getElementById("sb-image-cards");
         const renderCards = () => {
           const inUse = document.getElementById("ctrl-image-inuse").checked;
-          host.innerHTML = `
+          host.innerHTML = seed.map((img, i) => `
             <div class="sb-frame-wrapper">
-              <div class="sb-label">No image</div>
-              <pmd-image-card image-idx="0" name="Calendar"></pmd-image-card>
-            </div>
-            <div class="sb-frame-wrapper">
-              <div class="sb-label">SVG image</div>
-              <pmd-image-card image-idx="1" name="Pie chart" image="${SVG("#00bc8c")}"></pmd-image-card>
-            </div>
-            <div class="sb-frame-wrapper">
-              <div class="sb-label">In use (delete disabled)</div>
-              <pmd-image-card image-idx="2" name="Clock" image="${SVG("#375a7f")}" ${inUse ? "in-use" : ""}></pmd-image-card>
-            </div>`;
-          host.querySelectorAll("pmd-image-card").forEach((card) => {
-            ["pmd-image-delete", "pmd-image-duplicate", "pmd-image-edit"].forEach(type => {
-              card.addEventListener(type, (e) => log("pmd-image-card", type + " idx=" + e.detail.imageIdx));
-            });
+              <div class="sb-label">${img.name}</div>
+              <smd-image-card key-prefix="sbic_" index="${i}" title="${img.name}" image="${img.name}" ${inUse ? "in-use" : ""}></smd-image-card>
+            </div>`).join("");
+          host.querySelectorAll("smd-image-card").forEach((card) => {
+            card.addEventListener("smd-image-card-action", (e) => log("smd-image-card", e.detail.action + " idx=" + e.detail.index));
           });
         };
         renderCards();
