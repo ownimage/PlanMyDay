@@ -18,7 +18,6 @@ const smdTabsSheet = SmdStyles.sheetFor(`
     font-size: 0.95rem;
     font-weight: 500;
     transition: background 0.15s, color 0.15s;
-    margin-bottom: -1px;
   }
   .smd-tab-btn:hover:not([active]) {
     background: color-mix(in srgb, var(--smd-secondary, #6c757d) 85%, var(--smd-primary-text, #fff));
@@ -34,7 +33,7 @@ const smdTabsSheet = SmdStyles.sheetFor(`
   }
   .smd-tab-line {
     height: 1px;
-    background: var(--bs-border-color, #444);
+    background: var(--smd-primary, #0d6efd);
     width: 100%;
     box-sizing: border-box;
   }
