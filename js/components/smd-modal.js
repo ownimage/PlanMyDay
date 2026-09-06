@@ -1,4 +1,4 @@
-const modalStyles = `
+const smdModalSheet = SmdStyles.sheetFor(`
   :host {
     display: none;
     position: fixed;
@@ -72,12 +72,13 @@ const modalStyles = `
   .smd-footer button[variant="success"] { background: var(--smd-success, #198754); }
   .smd-footer button[variant="danger"] { background: var(--smd-danger, #dc3545); }
   .smd-footer button[variant="warning"] { background: var(--smd-warning, #ffc107); color: #000; }
-`;
+`);
 
 class SmdModal extends HTMLElement {
   constructor() {
     super();
     this.attachShadow({ mode: 'open' });
+    SmdStyles.adoptStyles(this.shadowRoot, [smdModalSheet]);
     this._buttons = [];
     this._title = '';
     this._content = '';
@@ -110,7 +111,6 @@ class SmdModal extends HTMLElement {
     }).join('');
 
     this.shadowRoot.innerHTML = `
-      <style>${modalStyles}</style>
       <div class="smd-overlay"></div>
       <div class="smd-dialog" role="dialog" aria-modal="true">
         <div class="smd-header">

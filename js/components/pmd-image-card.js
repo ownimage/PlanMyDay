@@ -1,68 +1,68 @@
+const pmdImageCardSheet = SmdStyles.sheetFor(`
+  :host {
+    display: block;
+  }
+  .card {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background-color: var(--bs-card-bg, var(--bs-secondary-bg, #303030));
+    border: 1px solid var(--bs-border-color, #495057);
+    border-radius: 0.375rem;
+    padding: 1rem;
+    margin-bottom: 0.5rem;
+    min-width: 0;
+  }
+  .thumb {
+    width: 44px;
+    height: 44px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .thumb img {
+    display: block;
+    max-width: 44px;
+    max-height: 44px;
+  }
+  .editor-title {
+    font-weight: 700;
+    flex: 1;
+    min-width: 0;
+    color: inherit;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .image-actions {
+    display: flex;
+    gap: 1rem;
+    flex-shrink: 0;
+  }
+  .image-actions .btn {
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border: none;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: #fff;
+    flex-shrink: 0;
+    transition: opacity 0.2s;
+  }
+  .image-actions .btn:hover { opacity: 0.85; }
+  .image-actions .btn-danger { background: var(--bs-danger, #dc3545); }
+  .image-actions .btn-info { background: var(--bs-info, #0dcaf0); color: #000; }
+  .image-actions .btn-primary { background: var(--bs-primary, #0d6efd); }
+  .image-actions .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+`);
+
 const pmdImageCardTemplate = document.createElement('template');
 pmdImageCardTemplate.innerHTML = `
-  <style>
-    :host {
-      display: block;
-    }
-    .card {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      background-color: var(--bs-card-bg, var(--bs-secondary-bg, #303030));
-      border: 1px solid var(--bs-border-color, #495057);
-      border-radius: 0.375rem;
-      padding: 1rem;
-      margin-bottom: 0.5rem;
-      min-width: 0;
-    }
-    .card [hidden] { display: none !important; }
-    .thumb {
-      width: 44px;
-      height: 44px;
-      flex-shrink: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .thumb img {
-      display: block;
-      max-width: 44px;
-      max-height: 44px;
-    }
-    .editor-title {
-      font-weight: 700;
-      flex: 1;
-      min-width: 0;
-      color: inherit;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-    .image-actions {
-      display: flex;
-      gap: 1rem;
-      flex-shrink: 0;
-    }
-    .image-actions .btn {
-      width: 36px;
-      height: 36px;
-      padding: 0;
-      border: none;
-      border-radius: 4px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      color: #fff;
-      flex-shrink: 0;
-      transition: opacity 0.2s;
-    }
-    .image-actions .btn:hover { opacity: 0.85; }
-    .image-actions .btn-danger { background: var(--bs-danger, #dc3545); }
-    .image-actions .btn-info { background: var(--bs-info, #0dcaf0); color: #000; }
-    .image-actions .btn-primary { background: var(--bs-primary, #0d6efd); }
-    .image-actions .btn:disabled { opacity: 0.5; cursor: not-allowed; }
-  </style>
   <div class="card p-3 mb-3">
     <div class="thumb" hidden><img alt=""></div>
     <span class="editor-title"></span>
@@ -88,6 +88,7 @@ class PmdImageCard extends HTMLElement {
   constructor() {
     super();
     this.attachShadow({ mode: 'open' });
+    SmdStyles.adoptStyles(this.shadowRoot, [SmdStyles.hiddenSheet, SmdStyles.btnBadgeSheet, pmdImageCardSheet]);
     this.shadowRoot.appendChild(pmdImageCardTemplate.content.cloneNode(true));
   }
 

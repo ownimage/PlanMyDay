@@ -2570,16 +2570,7 @@ function injectJobEditStyles() {
 function injectStyleInto(root, css) {
   if (!root) return;
   css = css || SETTINGS_STYLES;
-  var style = root.querySelector(".smd-shared-style");
-  if (!style) {
-    style = document.createElement("style");
-    style.className = "smd-shared-style";
-    style.textContent = "";
-    root.appendChild(style);
-  }
-  if (style.textContent.indexOf(css) === -1) {
-    style.textContent += css;
-  }
+  SmdStyles.adoptStyles(root, css);
 }
 
 function buildSettingsContent() {
