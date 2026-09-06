@@ -122,9 +122,11 @@ function extract() {
   let skipped = 0;
   for (const img of images) {
     if (!img || !img.name) continue;
-    if (!img.data) {
-      // Data-less entry (non-SVG after a regen): the native file already lives
-      // in sampleImages/ and can't be reconstructed from the thumbnails.
+    // Only entries with a full-size `data` are extracted to native files.
+    // Entries that carry ONLY scaled thumbnails (data64 / data80 / data100)
+    // are skipped — their original binaries already live in sampleImages/ and
+    // cannot be reconstructed from the thumbnails.
+    if (typeof img.data !== "string" || img.data === "") {
       skipped++;
       continue;
     }
