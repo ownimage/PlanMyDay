@@ -1,4 +1,4 @@
-const pageStyles = `
+const smdPageSheet = SmdStyles.sheetFor(`
   :host {
     display: block;
     position: fixed;
@@ -76,7 +76,7 @@ const pageStyles = `
     box-sizing: border-box;
     font-size: 0.9rem;
   }
-`;
+`);
 
 class SmdPage extends HTMLElement {
   static get observedAttributes() {
@@ -86,6 +86,7 @@ class SmdPage extends HTMLElement {
   constructor() {
     super();
     this.attachShadow({ mode: 'open' });
+    SmdStyles.adoptStyles(this.shadowRoot, [smdPageSheet]);
     this._buttons = [];
     this._title = '';
     this._content = '';
@@ -134,7 +135,6 @@ class SmdPage extends HTMLElement {
     }).join('');
 
     this.shadowRoot.innerHTML = `
-      <style>${pageStyles}</style>
       <div class="smd-page">
         <div class="smd-page-header">
           <h2>${this._escapeHtml(this._title)}</h2>${this._headerHtml}

@@ -20,7 +20,35 @@ At the END of every session (or once a task is complete), BEFORE finishing, do t
 Keep this file up to date with things that will improve the project.
 If there are ways to run code for test purposes that do or do not work, note them in here so you learn from them.
 
+## Project status & useful techniques
+
+Architecture:
+- Dialog system is custom-web-component based. Only remaining bootstrap modals: `imagePickerModal` + `imageEditModal`.
+  - `smd-modal` = a single shared `#smdConfirmModal` host, driven by `showSmdModal(options)` in app.js; content lives in its shadow root (`.smd-body`); buttons on `smd-modal-action`.
+  - `smd-page` = full-screen overlay pages: `settingsPage`, `streamsEditor`, `jobSearchEditor`, `imagesEditor`, `jobEditPage`, `streamEditPage`, `minioImportPage`. Footer buttons fire `smd-page-action` (`cancel`/`done`/`add` etc).
+  - z-index stack: smd-page 1040 < smd-modal 1050 < imagePickerModal 1060. No z-index hacks needed.
+- Component styling uses CONSTRUCTABLE STYLESHEETS from `js/components/styles.js` (`window.SmdStyles`): `smdButtonSheet`/`smdTabsSheet`/`smdModalSheet`/`smdPageSheet` are per-component sheets; `SmdStyles.hiddenSheet` + `SmdStyles.btnBadgeSheet` are shared by the pmd-* cards/header. `SmdStyles.sheetFor(css)` caches a sheet by CSS text; `SmdStyles.adoptStyles(root, sheetsOrCss)` adopts (dedup) into `root.adoptedStyleSheets`. Adopted sheets SURVIVE `shadowRoot.innerHTML` re-renders (unlike injected `<style>` elements). `injectStyleInto(root, css)` in app.js is now a wrapper over `SmdStyles.adoptStyles` (page/modal content styles).
+- Colour/typography conventions: smd-tabs selected = `--smd-primary`/`--smd-primary-text`, non-selected = `--smd-secondary`; stream accordion header expanded = `--bs-info`, collapsed = `--smd-secondary`; page/modal header = lightened band (`color-mix(in srgb, var(--bs-body-bg) 85%, white)`) + title in lighter body-colour variant (`color-mix(... 60%, white)`).
+- Quartz's "glassmorphism" overrides live in `css/styles.css` (`.modal-content`, `.dropdown-menu`).
+- `js/build-number.js` BUILD_NUMBER is STATIC — the service worker caches by it, so browsers can serve STALE JS/CSS after edits unless the number is bumped or the page is hard-reloaded. Playwright tests hit the dev server fresh.
+
+Techniques / gotchas:
+- To inspect computed styles/DOM, drop a temp `tests/_probe.spec.js` that writes JSON via `require("fs").writeFileSync(path.join(__dirname, "_probe.out.json"), ...)`, run it with `--reporter=line`, `Get-Content` the JSON, then delete both files. (test `console.log` is hidden by the list reporter).
+- `page.evaluate` can't see inside shadow roots: query `document.getElementById("<pageId>").shadowRoot` first (e.g. `#streamsEditor`, `#jobEditPage`, `#smdConfirmModal`). Playwright locators pierce automatically.
+- smd-button disabled/`.disabled` assertions must target the inner native button: `#id button`, not the host element.
+- Grep on minified vendor files breaks the tool (giant matched lines) — scope searches to `js/**`/`tests/**`.
+
 ## Session log
+
+### 2026-09-06
+- Whole-component styling moved to CONSTRUCTABLE STYLESHEETS (`adoptedStyleSheets`) for consistency:
+  - Added `js/components/styles.js` (`window.SmdStyles`): `sheetFor(css)` caches a `CSSStyleSheet` by text; `adoptStyles(root, sheetsOrCss)` dedups into `root.adoptedStyleSheets`; shared `hiddenSheet` (`[hidden]`) + `btnBadgeSheet` (`.btn`/`.btn-primary|secondary|danger|info`/`.btn-sm`/`.badge`/`.bg-primary|success|info|secondary`).
+  - `smd-button`, `smd-tabs`, `smd-modal`, `smd-page` now build a per-component sheet and adopt it in the constructor; their `_render()` no longer writes a `<style>` child.
+  - `pmd-stream-header`, `pmd-stream-job-card`, `pmd-job-search-card`, `pmd-image-card` adopt `[hiddenSheet, btnBadgeSheet, ownSheet]` — the duplicated btn/badge/bg-* rules were deleted from each template. Per-component `.btn` sizing kept in own sheets (placed LAST so they win).
+  - `injectStyleInto(root, css)` (app.js) reimplemented as `SmdStyles.adoptStyles` — the old `<style class="smd-shared-style">`-in-shadow-DOM plus re-injection-after-render logic is GONE (adopted sheets survive `_render()`).
+  - Load order: `styles.js` is now the FIRST component script in `index.html`, `storybook/index.html`, and `sw.js` precache.
+- What worked: `sheetFor` string-cache means `injectStyleInto`/repeat adoption is a no-op (same sheet reference), so the schedule+minio style accumulation became unnecessary. Verified via probe (computed colors unchanged) + 157 regression tests, 3 touch, 5 screenshot.
+- Lesson: constructable sheets are the fix for "styles wiped on shadowRoot.innerHTML re-render" — prefer them when adding any new web-component styling.
 
 ### 2026-09-05
 - Added "Self-improving playbook" section (read at start, dated session log at end).

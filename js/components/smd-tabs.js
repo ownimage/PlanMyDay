@@ -1,4 +1,4 @@
-const tabsStyles = `
+const smdTabsSheet = SmdStyles.sheetFor(`
   :host { display: block; width: 100%; box-sizing: border-box; }
   .smd-tab-list {
     display: flex;
@@ -48,12 +48,13 @@ const tabsStyles = `
   .smd-tab-panel[active] {
     display: block;
   }
-`;
+`);
 
 class SmdTabs extends HTMLElement {
     constructor() {
         super();
         this.attachShadow({mode: 'open'});
+        SmdStyles.adoptStyles(this.shadowRoot, [smdTabsSheet]);
         this._tabs = [];
         this._activeIndex = 0;
     }
@@ -114,7 +115,6 @@ class SmdTabs extends HTMLElement {
         const bottomLineHtml = this.bottomline ? '<div class="smd-tab-line"></div>' : '';
 
         this.shadowRoot.innerHTML = `
-      <style>${tabsStyles}</style>
       <div class="smd-tab-list">${headersHtml}</div>
       <div class="smd-tab-line"></div>
       ${panelsHtml}

@@ -1,40 +1,41 @@
+const smdButtonSheet = SmdStyles.sheetFor(`
+  :host {
+    display: inline-block;
+  }
+  button {
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1rem;
+    background: var(--smd-primary, #0d6efd);
+    color: var(--smd-primary-text, #fff);
+    transition: opacity 0.2s;
+  }
+  button:hover {
+    opacity: 0.85;
+  }
+  button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  button[variant="secondary"] {
+    background: var(--smd-secondary, #6c757d);
+  }
+  button[variant="danger"] {
+    background: var(--smd-danger, #dc3545);
+  }
+  button[variant="success"] {
+    background: var(--smd-success, #198754);
+  }
+  button[variant="info"] {
+    background: var(--smd-info, #0dcaf0);
+    color: var(--smd-info-text, #fff);
+  }
+`);
+
 const template = document.createElement('template');
 template.innerHTML = `
-  <style>
-    :host {
-      display: inline-block;
-    }
-    button {
-      padding: 0.5rem 1rem;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 1rem;
-      background: var(--smd-primary, #0d6efd);
-      color: var(--smd-primary-text, #fff);
-      transition: opacity 0.2s;
-    }
-    button:hover {
-      opacity: 0.85;
-    }
-    button:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-    button[variant="secondary"] {
-      background: var(--smd-secondary, #6c757d);
-    }
-    button[variant="danger"] {
-      background: var(--smd-danger, #dc3545);
-    }
-    button[variant="success"] {
-      background: var(--smd-success, #198754);
-    }
-    button[variant="info"] {
-      background: var(--smd-info, #0dcaf0);
-      color: var(--smd-info-text, #fff);
-    }
-  </style>
   <button part="button">
     <slot>Button</slot>
   </button>
@@ -48,6 +49,7 @@ class SmdButton extends HTMLElement {
   constructor() {
     super();
     this.attachShadow({ mode: 'open' });
+    SmdStyles.adoptStyles(this.shadowRoot, [smdButtonSheet]);
     this.shadowRoot.appendChild(template.content.cloneNode(true));
   }
 

@@ -1,107 +1,83 @@
+const pmdJobSearchCardSheet = SmdStyles.sheetFor(`
+  :host {
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    min-width: 0;
+    word-wrap: break-word;
+    background-color: var(--bs-card-bg, var(--bs-secondary-bg, #303030));
+    border: 1px solid var(--bs-border-color, #495057);
+    border-radius: 0.375rem;
+    padding: 0.5rem;
+    margin-bottom: 0.5rem;
+  }
+  .row1 {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 0;
+  }
+  .row2 {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.25rem;
+    font-size: 0.875em;
+    min-width: 0;
+  }
+  .thumb {
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .thumb img { display: block; max-width: 32px; max-height: 32px; }
+  .title {
+    font-weight: 700;
+    min-width: 0;
+    flex: 1;
+    color: inherit;
+  }
+  .suffix { margin-left: 0.25rem; }
+  .stream-title {
+    font-weight: 700;
+    flex-shrink: 0;
+    color: inherit;
+  }
+  .btn {
+    min-width: 50px;
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    flex-shrink: 0;
+    align-self: center;
+    margin-left: 1rem;
+    touch-action: manipulation;
+  }
+  input.active-toggle {
+    width: 1.1em;
+    height: 1.1em;
+    margin: 0;
+    flex-shrink: 0;
+    appearance: none;
+    -webkit-appearance: none;
+    vertical-align: middle;
+    background-color: var(--bs-secondary-bg, #495057);
+    border: 1px solid var(--bs-border-color, #495057);
+    border-radius: 0.25em;
+    cursor: pointer;
+    position: static;
+  }
+  input.active-toggle:checked {
+    background-color: var(--bs-primary, #0d6efd);
+    border-color: var(--bs-primary, #0d6efd);
+  }
+`);
+
 const pmdJobSearchCardTemplate = document.createElement('template');
 pmdJobSearchCardTemplate.innerHTML = `
-  <style>
-    :host {
-      display: flex;
-      flex-direction: column;
-      position: relative;
-      min-width: 0;
-      word-wrap: break-word;
-      background-color: var(--bs-card-bg, var(--bs-secondary-bg, #303030));
-      border: 1px solid var(--bs-border-color, #495057);
-      border-radius: 0.375rem;
-      padding: 0.5rem;
-      margin-bottom: 0.5rem;
-    }
-    [hidden] { display: none !important; }
-    .row1 {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      min-width: 0;
-    }
-    .row2 {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      margin-top: 0.25rem;
-      font-size: 0.875em;
-      min-width: 0;
-    }
-    .thumb {
-      width: 32px;
-      height: 32px;
-      flex-shrink: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .thumb img { display: block; max-width: 32px; max-height: 32px; }
-    .title {
-      font-weight: 700;
-      min-width: 0;
-      flex: 1;
-      color: inherit;
-    }
-    .suffix { margin-left: 0.25rem; }
-    .stream-title {
-      font-weight: 700;
-      flex-shrink: 0;
-      color: inherit;
-    }
-    .btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      min-width: 50px;
-      padding: 0.5rem 1rem;
-      font-size: 0.875rem;
-      line-height: 1.5;
-      text-align: center;
-      border: 1px solid transparent;
-      border-radius: 0.25rem;
-      cursor: pointer;
-      white-space: nowrap;
-      flex-shrink: 0;
-      align-self: center;
-      margin-left: 1rem;
-      touch-action: manipulation;
-    }
-    .btn-primary { background: var(--bs-primary, #0d6efd); color: #fff; }
-    .badge {
-      display: inline-block;
-      padding: 0.35em 0.65em;
-      font-size: 0.75em;
-      font-weight: 700;
-      line-height: 1;
-      text-align: center;
-      white-space: nowrap;
-      border-radius: 0.375rem;
-      flex-shrink: 0;
-    }
-    .bg-primary { background: var(--bs-primary, #0d6efd); color: #fff; }
-    .bg-success { background: var(--bs-success, #198754); color: #fff; }
-    .bg-info { background: var(--bs-info, #0dcaf0); color: #000; }
-    .bg-secondary { background: var(--bs-secondary, #6c757d); color: #fff; }
-    input.active-toggle {
-      width: 1.1em;
-      height: 1.1em;
-      margin: 0;
-      flex-shrink: 0;
-      appearance: none;
-      -webkit-appearance: none;
-      vertical-align: middle;
-      background-color: var(--bs-secondary-bg, #495057);
-      border: 1px solid var(--bs-border-color, #495057);
-      border-radius: 0.25em;
-      cursor: pointer;
-      position: static;
-    }
-    input.active-toggle:checked {
-      background-color: var(--bs-primary, #0d6efd);
-      border-color: var(--bs-primary, #0d6efd);
-    }
-  </style>
   <div class="row1">
     <div class="thumb stream-thumb" hidden><img alt=""></div>
     <div class="thumb job-thumb" hidden><img alt=""></div>
@@ -128,6 +104,7 @@ class PmdJobSearchCard extends HTMLElement {
   constructor() {
     super();
     this.attachShadow({ mode: 'open' });
+    SmdStyles.adoptStyles(this.shadowRoot, [SmdStyles.hiddenSheet, SmdStyles.btnBadgeSheet, pmdJobSearchCardSheet]);
     this.shadowRoot.appendChild(pmdJobSearchCardTemplate.content.cloneNode(true));
   }
 

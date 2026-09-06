@@ -165,6 +165,7 @@ const PRECACHE_URLS = [
   "css/fonts/XRXV3I6Li01BKofIOOaBXso.woff2",
   "css/fonts/XRXV3I6Li01BKofIOuaBXso.woff2",
   "js/build-number.js",
+  "js/components/styles.js",
   "js/components/smd-button.js",
   "js/components/smd-page.js",
   "js/components/smd-tabs.js",
