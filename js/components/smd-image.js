@@ -43,6 +43,44 @@
     return out;
   }
 
+  let biCssPromise = null;
+  let biGlyphs = null;
+
+  function parseBiGlyphs(cssText) {
+    const map = {};
+    const re = /\.bi-([a-z0-9][a-z0-9-]*)::before[^}]*content:\s*["']\\([0-9a-fA-F]+)["']/g;
+    let m;
+    while ((m = re.exec(cssText))) map[m[1]] = m[2];
+    return map;
+  }
+
+  function ensureBiGlyphs() {
+    if (biGlyphs) return Promise.resolve(biGlyphs);
+    if (!biCssPromise) {
+      const v = typeof global.BUILD_NUMBER !== "undefined" ? global.BUILD_NUMBER : Date.now();
+      biCssPromise = global.fetch("/vendor/bootstrap-icons.css?v=" + v)
+        .then(function (r) {
+          if (!r.ok) throw new Error("HTTP " + r.status);
+          return r.text();
+        })
+        .then(function (txt) {
+          biGlyphs = parseBiGlyphs(txt);
+          return biGlyphs;
+        })
+        .catch(function (err) {
+          biCssPromise = null;
+          throw err;
+        });
+    }
+    return biCssPromise;
+  }
+
+  function biGlyph(name) {
+    if (!biGlyphs) return null;
+    const hex = biGlyphs[name];
+    return hex ? String.fromCodePoint(parseInt(hex, 16)) : null;
+  }
+
   class SmdImage extends HTMLElement {
     static get observedAttributes() {
       return ["image", "key-prefix", "theme", "alt", "size"];
@@ -64,6 +102,21 @@
             display: block;
             max-width: 100%;
             max-height: 100%;
+          }
+          .smd-bi {
+            font-family: "bootstrap-icons";
+            font-style: normal;
+            font-weight: normal;
+            font-variant: normal;
+            text-transform: none;
+            line-height: 1;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
           }
         `)
       ]);
@@ -129,16 +182,28 @@
     }
 
     _render() {
-      const img = this.shadowRoot.querySelector("img");
-      if (!img) return;
-      const stored = this._findImage();
-      const alt = this.getAttribute("alt") || "";
+      const name = this.getAttribute("image") || "";
+      const px = this._sizePx();
 
       // Sized renders get a shared, cached `:host` stylesheet (one sheet per px).
-      const px = this._sizePx();
       if (px > 0) {
         SmdStyles.adoptStyles(this.shadowRoot, SmdStyles.sheetFor(":host { width: " + px + "px; height: " + px + "px; }"));
       }
+
+      if (name.indexOf("bi:") === 0) {
+        this._renderBi(name.slice(3), px);
+        return;
+      }
+      this._renderStored(name, px);
+    }
+
+    _renderStored(name, px) {
+      const img = this.shadowRoot.querySelector("img");
+      const span = this.shadowRoot.querySelector(".smd-bi");
+      if (!img) return;
+      if (span) span.hidden = true;
+      const stored = this._findImage();
+      const alt = this.getAttribute("alt") || "";
 
       // Non-SVG images may only carry downscaled thumbnails (data64/80/100) when
       // the full-size `data` has been stripped for size; prefer the thumbnail for
@@ -154,6 +219,33 @@
       img.src = themedSrc(src, theme, overrides);
       img.alt = alt || escapeHtml(this.getAttribute("image") || "");
       img.hidden = false;
+    }
+
+    _renderBi(iconName, px) {
+      const img = this.shadowRoot.querySelector("img");
+      if (img) {
+        img.removeAttribute("src");
+        img.hidden = true;
+      }
+      let span = this.shadowRoot.querySelector(".smd-bi");
+      const glyph = biGlyph(iconName);
+      if (!glyph) {
+        if (span) span.hidden = true;
+        if (!biGlyphs) {
+          ensureBiGlyphs().then(() => {
+            if (this.isConnected && (this.getAttribute("image") || "") === "bi:" + iconName) this._render();
+          }).catch(() => {});
+        }
+        return;
+      }
+      if (!span) {
+        span = document.createElement("span");
+        span.className = "smd-bi";
+        this.shadowRoot.appendChild(span);
+      }
+      span.textContent = glyph;
+      span.style.fontSize = px > 0 ? Math.max(8, Math.round(px * 0.8)) + "px" : "1.5rem";
+      span.hidden = false;
     }
   }
 

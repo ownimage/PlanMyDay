@@ -1636,6 +1636,122 @@ test.describe("PlanMyDay - Regression", () => {
     });
   });
 
+  // ── smd-image bootstrap icons ──────────────────────────────
+
+  test.describe("smd-image bootstrap icons", () => {
+
+    test("renders a bi: prefixed name as a bootstrap icon glyph", async ({ page }) => {
+      await page.goto("/");
+      await page.evaluate(() => {
+        const el = document.createElement("smd-image");
+        el.setAttribute("image", "bi:house");
+        el.setAttribute("size", "64");
+        document.body.appendChild(el);
+      });
+      await page.waitForFunction(() => {
+        const el = document.querySelector("smd-image[image='bi:house']");
+        if (!el || !el.shadowRoot) return false;
+        const span = el.shadowRoot.querySelector(".smd-bi");
+        return span && !span.hidden && span.textContent.length > 0;
+      }, null, { timeout: 10000 });
+      const info = await page.evaluate(() => {
+        const el = document.querySelector("smd-image[image='bi:house']");
+        const span = el.shadowRoot.querySelector(".smd-bi");
+        return {
+          glyph: span.textContent,
+          fontFamily: getComputedStyle(span).fontFamily,
+          fontSize: getComputedStyle(span).fontSize,
+          hostW: getComputedStyle(el).width,
+          imgHidden: el.shadowRoot.querySelector("img").hidden
+        };
+      });
+      expect(info.fontFamily).toContain("bootstrap-icons");
+      expect(info.fontSize).toBe("51px");
+      expect(info.hostW).toBe("64px");
+      expect(info.imgHidden).toBeTruthy();
+
+      const expected = await page.evaluate(async () => {
+        const css = await (await fetch("vendor/bootstrap-icons.css?v=" + (typeof BUILD_NUMBER !== "undefined" ? BUILD_NUMBER : 0))).text();
+        const m = css.match(/\.bi-house::before[^}]*content:\s*["']\\([0-9a-fA-F]+)["']/);
+        return m ? String.fromCodePoint(parseInt(m[1], 16)) : "";
+      });
+      expect(info.glyph).toBe(expected);
+    });
+
+    test("unknown bi: names stay hidden", async ({ page }) => {
+      await page.goto("/");
+      await page.evaluate(() => {
+        const el = document.createElement("smd-image");
+        el.setAttribute("image", "bi:no-such-icon-xyz");
+        document.body.appendChild(el);
+      });
+      await page.waitForFunction(() => {
+        const el = document.querySelector("smd-image[image='bi:no-such-icon-xyz']");
+        return el && el.shadowRoot;
+      });
+      await page.waitForTimeout(800);
+      const hidden = await page.evaluate(() => {
+        const el = document.querySelector("smd-image[image='bi:no-such-icon-xyz']");
+        const span = el.shadowRoot.querySelector(".smd-bi");
+        const img = el.shadowRoot.querySelector("img");
+        return { spanMissing: !span, imgHidden: img ? img.hidden : null };
+      });
+      expect(hidden.spanMissing).toBeTruthy();
+      expect(hidden.imgHidden).toBeTruthy();
+    });
+
+    test("stored images still render when image name is not bi: prefixed", async ({ page }) => {
+      await page.goto("/");
+      await page.evaluate(() => {
+        localStorage.setItem("planmydays_images", JSON.stringify([
+          { name: "Apple", data: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%23ff0000'/%3E%3C/svg%3E" }
+        ]));
+        const el = document.createElement("smd-image");
+        el.setAttribute("key-prefix", "planmydays_");
+        el.setAttribute("image", "Apple");
+        el.setAttribute("size", "32");
+        document.body.appendChild(el);
+      });
+      await page.waitForFunction(() => {
+        const el = document.querySelector("smd-image[image='Apple']");
+        if (!el || !el.shadowRoot) return false;
+        const img = el.shadowRoot.querySelector("img");
+        return img && !img.hidden && img.hasAttribute("src");
+      });
+      const hasBiSpan = await page.evaluate(() => {
+        const el = document.querySelector("smd-image[image='Apple']");
+        return !!el.shadowRoot.querySelector(".smd-bi");
+      });
+      expect(hasBiSpan).toBeFalsy();
+    });
+
+    test("main view renders a bi: job image as an icon glyph", async ({ page }) => {
+      const streams = JSON.parse(JSON.stringify(TEST_STREAMS));
+      streams[0].jobs[0].image = "bi:house";
+      await page.evaluate(({ streams, ds }) => {
+        localStorage.setItem("planmydays_images", "[]");
+        localStorage.setItem("planmydays_streams", JSON.stringify(streams));
+        localStorage.setItem("planmydays_today_order", JSON.stringify(["job_1"]));
+        localStorage.setItem("planmydays_last_gen", ds);
+        localStorage.setItem("planmydays_completed", "[]");
+      }, { streams, ds: todayStr });
+      await page.reload();
+      await page.locator("#todayCardList smd-image[image='bi:house']").waitFor({ state: "attached" });
+      await page.waitForFunction(() => {
+        const el = document.querySelector("#todayCardList smd-image[image='bi:house']");
+        if (!el || !el.shadowRoot) return false;
+        const span = el.shadowRoot.querySelector(".smd-bi");
+        return span && !span.hidden;
+      }, null, { timeout: 10000 });
+      const glyphInfo = await page.locator("#todayCardList smd-image[image='bi:house']").evaluate((el) => {
+        const span = el.shadowRoot.querySelector(".smd-bi");
+        return { glyph: span.textContent, fontFamily: getComputedStyle(span).fontFamily };
+      });
+      expect(glyphInfo.fontFamily).toContain("bootstrap-icons");
+      expect(glyphInfo.glyph.length).toBeGreaterThan(0);
+    });
+  });
+
   // ── Dev Mode ───────────────────────────────────────────────
 
   test.describe("Dev Mode", () => {

@@ -750,7 +750,7 @@ function getBootstrapIconsCss() {
   if (_bootstrapIconsCss) return Promise.resolve(_bootstrapIconsCss);
   if (!_bootstrapIconsCssPromise) {
     const v = typeof BUILD_NUMBER !== "undefined" ? BUILD_NUMBER : Date.now();
-    _bootstrapIconsCssPromise = fetch("vendor/bootstrap-icons.css?v=" + v)
+    _bootstrapIconsCssPromise = fetch("/vendor/bootstrap-icons.css?v=" + v)
       .then(function(r) {
         if (!r.ok) throw new Error("HTTP " + r.status);
         return r.text();
