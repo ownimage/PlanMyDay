@@ -25,7 +25,7 @@
     const encoded = value && value.startsWith("#") ? value : value || "none";
     const rx = new RegExp(`\\b${attr}\\s*=\\s*["'][^"']*["']`);
     if (rx.test(decoded)) {
-      return "data:image/svg+xml," + encodeURIComponent(decoded.replace(rx, function (m) {
+      return "data:image/svg+xml," + encodeURIComponent(decoded.replace(new RegExp(rx.source, "g"), function (m) {
         const quote = m.indexOf('"') !== -1 ? '"' : "'";
         return attr + "=" + quote + encoded + quote;
       }));

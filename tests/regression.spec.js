@@ -1636,9 +1636,44 @@ test.describe("PlanMyDay - Regression", () => {
     });
   });
 
-  // ── smd-image bootstrap icons ──────────────────────────────
+  // ── smd-image rendering ────────────────────────────────────
 
-  test.describe("smd-image bootstrap icons", () => {
+  test.describe("smd-image rendering", () => {
+
+    test("applies light and dark svg theme overrides to nested elements like the editor preview", async ({ page }) => {
+      await page.goto("/");
+      const nestedSvg = "data:image/svg+xml," + encodeURIComponent('<svg fill="#f7f7f7" stroke="#8f8f8f" xmlns="http://www.w3.org/2000/svg"><path fill="#f7f7f7" stroke="#8f8f8f" d="M0 0h10v10H0z"/></svg>');
+      await page.evaluate((svgData) => {
+        localStorage.setItem("planmydays_images", JSON.stringify([{
+          name: "NestedIcon",
+          data: svgData,
+          themes: {
+            light: { line: "none", fill: "#000000", width: null },
+            dark: { line: "none", fill: "#ffffff", width: null }
+          }
+        }]));
+      }, nestedSvg);
+      await page.reload();
+
+      for (const [theme, wantFill] of [["dark", "#ffffff"], ["light", "#000000"]]) {
+        await page.evaluate((t) => {
+          document.documentElement.setAttribute("data-bs-theme", t);
+          const el = document.createElement("smd-image");
+          el.setAttribute("key-prefix", "planmydays_");
+          el.setAttribute("image", "NestedIcon");
+          el.setAttribute("size", "64");
+          document.body.appendChild(el);
+        }, theme);
+        const src = await page.evaluate(() =>
+          document.querySelector("smd-image[image='NestedIcon']").shadowRoot.querySelector("img").getAttribute("src"));
+        const decoded = decodeURIComponent(src.substring("data:image/svg+xml,".length));
+        expect(decoded).toContain(`<svg fill="${wantFill}"`);
+        expect(decoded).toContain(`<path fill="${wantFill}"`);
+        const editorOut = await page.evaluate(() => decodeURIComponent(getThemedImageDataUrl(loadImages()[0]).substring("data:image/svg+xml,".length)));
+        expect(decoded).toBe(editorOut);
+        await page.evaluate(() => { document.querySelector("smd-image[image='NestedIcon']").remove(); });
+      }
+    });
 
     test("renders a bi: prefixed name as a bootstrap icon glyph", async ({ page }) => {
       await page.goto("/");
