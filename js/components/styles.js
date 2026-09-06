@@ -74,10 +74,10 @@
     white-space: nowrap;
     border-radius: 0.375rem;
   }
-  .bg-primary { background: var(--bs-primary, #0d6efd); color: #fff; }
-  .bg-success { background: var(--bs-success, #198754); color: #fff; }
-  .bg-info { background: var(--bs-info, #0dcaf0); color: #000; }
-  .bg-secondary { background: var(--bs-secondary, #6c757d); color: #fff; }
+  .bg-primary { background: var(--bs-primary, #0d6efd); color: var(--bs-emphasis-color, #fff); }
+  .bg-success { background: var(--bs-success, #198754); color: var(--bs-emphasis-color, #fff); }
+  .bg-info { background: var(--bs-info, #0dcaf0); color: var(--bs-emphasis-color, #000); }
+  .bg-secondary { background: var(--bs-secondary, #6c757d); color: var(--bs-emphasis-color, #fff); }
 `;
 
   global.SmdStyles = {

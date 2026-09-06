@@ -1,5 +1,5 @@
 const themeConfig = (() => {
-  const bw = "css/themes";
+  const bw = "/css/themes";
   return {
     cerulean:  { css: `${bw}/cerulean/bootstrap.min.css`,   bsTheme: "light" },
     cosmo:     { css: `${bw}/cosmo/bootstrap.min.css`,      bsTheme: "light" },

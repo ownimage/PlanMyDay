@@ -3,11 +3,12 @@ const pmdStreamJobCardSheet = SmdStyles.sheetFor(`
     display: block;
     flex: 1 1 auto;
     min-width: 0;
-    background-color: var(--bs-secondary-bg, #303030);
+    background-color: var(--bs-body-bg, #303030);
     border: 1px solid var(--bs-border-color, #495057);
     border-radius: 0;
     padding: 0.5rem;
   }
+  .drag-handle,
   ::slotted(.drag-handle) {
     flex-shrink: 0;
     line-height: 1;
@@ -18,7 +19,9 @@ const pmdStreamJobCardSheet = SmdStyles.sheetFor(`
     user-select: none;
     -webkit-user-select: none;
   }
+  .drag-handle:active,
   ::slotted(.drag-handle:active) { cursor: grabbing; }
+  :host([drag-handle]) .drag-handle { display: none; }
   .row1 {
     display: flex;
     align-items: center;
@@ -92,7 +95,7 @@ const pmdStreamJobCardSheet = SmdStyles.sheetFor(`
 const pmdStreamJobCardTemplate = document.createElement('template');
 pmdStreamJobCardTemplate.innerHTML = `
   <div class="row1">
-    <slot name="drag-handle"></slot>
+    <slot name="drag-handle"><div class="drag-handle">&#9776;</div></slot>
     <div class="thumb" hidden><smd-image key-prefix="planmydays_"></smd-image></div>
     <div class="title">
       <span class="job-title"></span><span class="suffix badge bg-secondary" hidden></span>
@@ -112,7 +115,7 @@ pmdStreamJobCardTemplate.innerHTML = `
 
 class PmdStreamJobCard extends HTMLElement {
   static get observedAttributes() {
-    return ['stream-idx', 'job-idx', 'title', 'image', 'suffix', 'schedule', 'time', 'active', 'extra'];
+    return ['stream-idx', 'job-idx', 'title', 'image', 'suffix', 'schedule', 'time', 'active', 'extra', 'key-prefix'];
   }
 
   constructor() {
@@ -168,6 +171,7 @@ class PmdStreamJobCard extends HTMLElement {
 
     const thumb = root.querySelector('.thumb');
     const sImg = root.querySelector('.thumb smd-image');
+    sImg.setAttribute('key-prefix', this.getAttribute('key-prefix') || 'planmydays_');
     if (image) {
       sImg.setAttribute('image', image);
       thumb.hidden = false;
