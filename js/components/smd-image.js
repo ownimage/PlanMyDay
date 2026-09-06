@@ -127,14 +127,17 @@
       if (!img) return;
       const stored = this._findImage();
       const alt = this.getAttribute("alt") || "";
-      if (!stored || !stored.data) {
+      // Non-SVG images may only carry downscaled thumbnails (data64/80/100) when
+      // the full-size `data` has been stripped for size; fall back to the largest.
+      const src = stored ? (stored.data || stored.data100 || stored.data80 || stored.data64) : null;
+      if (!stored || !src) {
         img.removeAttribute("src");
         img.hidden = true;
         return;
       }
       const theme = this.theme;
       const overrides = (stored.themes && stored.themes[theme]) || {};
-      img.src = themedSrc(stored.data, theme, overrides);
+      img.src = themedSrc(src, theme, overrides);
       img.alt = alt || escapeHtml(this.getAttribute("image") || "");
       img.hidden = false;
     }

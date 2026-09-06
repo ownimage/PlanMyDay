@@ -77,10 +77,12 @@ function ensureThemeOverride(img, themeIdx) {
 
 function getThemedImageDataUrl(img, themeKey) {
   if (!img) return null;
-  if (!isSvgDataUrl(img.data)) return img.data;
+  const data = img.data || img.data100 || img.data80 || img.data64;
+  if (!data) return null;
+  if (!isSvgDataUrl(data)) return data;
   const key = themeKey || getThemeKey();
   const t = (img.themes && img.themes[key]) || {};
-  let out = img.data;
+  let out = data;
   if (t.line != null && t.line !== "") out = applySvgAttr(out, "stroke", t.line);
   if (t.fill != null && t.fill !== "") out = applySvgAttr(out, "fill", t.fill);
   if (t.width != null && t.width !== "") out = applySvgAttr(out, "stroke-width", t.width);
