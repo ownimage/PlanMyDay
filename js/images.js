@@ -77,10 +77,12 @@ function ensureThemeOverride(img, themeIdx) {
 
 function getThemedImageDataUrl(img, themeKey) {
   if (!img) return null;
-  if (!isSvgDataUrl(img.data)) return img.data;
+  const data = img.data || img.data100 || img.data80 || img.data64;
+  if (!data) return null;
+  if (!isSvgDataUrl(data)) return data;
   const key = themeKey || getThemeKey();
   const t = (img.themes && img.themes[key]) || {};
-  let out = img.data;
+  let out = data;
   if (t.line != null && t.line !== "") out = applySvgAttr(out, "stroke", t.line);
   if (t.fill != null && t.fill !== "") out = applySvgAttr(out, "fill", t.fill);
   if (t.width != null && t.width !== "") out = applySvgAttr(out, "stroke-width", t.width);
@@ -252,12 +254,12 @@ function renderImagesEditor() {
   listEl.innerHTML = "";
 
   pageItems.forEach((img) => {
-    const card = document.createElement("pmd-image-card");
+    const card = document.createElement("smd-image-card");
     const inUse = isImageInUse(img.name);
-    const themedData = getThemedImageDataUrl(img);
-    card.setAttribute("image-idx", images.indexOf(img));
-    card.setAttribute("name", img.name);
-    if (themedData) card.setAttribute("image", themedData);
+    card.setAttribute("index", images.indexOf(img));
+    card.setAttribute("title", img.name);
+    card.setAttribute("image", img.name);
+    card.setAttribute("key-prefix", "planmydays_");
     if (inUse) card.setAttribute("in-use", "");
     listEl.appendChild(card);
   });
@@ -631,37 +633,67 @@ function getImageDataUrl(name) {
 
 let imagePickerCallback = null;
 let imagePickerSearch = "";
+let _imagePickerCloseTimer = null;
+
+const IMAGE_PICKER_STYLES = `
+  .smd-page-body .text-center { text-align: center; }
+  .smd-page-body .py-4 { padding-top: 1.5rem; padding-bottom: 1.5rem; }
+  .smd-page-body .flex-wrap { flex-wrap: wrap; }
+`;
 
 function openImagePicker(callback) {
   imagePickerCallback = callback;
   imagePickerSearch = "";
-  const modalEl = document.getElementById("imagePickerModal");
-  modalEl.style.zIndex = "1060";
-  modalEl.addEventListener("hidden.bs.modal", function onHide() {
-    modalEl.removeEventListener("hidden.bs.modal", onHide);
-    modalEl.style.zIndex = "";
-    imagePickerCallback = null;
-    imagePickerSearch = "";
-  });
-  new bootstrap.Modal(modalEl).show();
+  const page = document.getElementById("imagePickerPage");
+  if (!page) return;
+  page.classList.remove("d-none");
+  page.title = "Choose Image";
+  page.content =
+    '<div class="mb-2 d-flex gap-2">' +
+      '<input class="form-control image-picker-search" id="imagePickerSearch" type="search" placeholder="Search images by name..." oninput="filterImagePicker(this.value)">' +
+      '<button class="btn btn-outline-secondary" id="btnImagePickerClear" onclick="clearImagePickerFilter()">Clear</button>' +
+    '</div>' +
+    '<div class="image-picker-list d-flex flex-wrap w-100" id="imagePickerList" style="gap:8px;min-height:120px"></div>';
+  page.buttons = [
+    { text: "Cancel", variant: "secondary", action: "cancel" },
+    { text: "No Image", variant: "secondary", action: "no-image" }
+  ];
+  if (!page.__pickerBound) {
+    page.__pickerBound = true;
+    page.addEventListener("smd-page-action", function(e) {
+      const action = e.detail && e.detail.action;
+      if (action === "no-image") {
+        selectImagePickerItem(null);
+      } else if (action === "cancel") {
+        closeImagePicker();
+      }
+    });
+  }
+  injectStyleInto(page.shadowRoot, JOBS_EDITOR_STYLES + IMAGE_PICKER_STYLES);
+  page.show();
   renderImagePicker();
   setTimeout(() => {
-    const input = modalEl.querySelector(".image-picker-search");
+    const input = $id("imagePickerSearch");
     if (input) { input.focus(); input.value = ""; }
   }, 200);
 }
 
 function closeImagePicker() {
-  const modalEl = document.getElementById("imagePickerModal");
-  const modal = bootstrap.Modal.getInstance(modalEl);
-  if (modal) safeHideModal("imagePickerModal");
+  const page = document.getElementById("imagePickerPage");
+  if (page) {
+    page.hide();
+    clearTimeout(_imagePickerCloseTimer);
+    _imagePickerCloseTimer = setTimeout(function() {
+      page.classList.add("d-none");
+    }, Math.max(0, (page.slideDuration || 0) + 50));
+  }
   imagePickerCallback = null;
   imagePickerSearch = "";
 }
 
 function renderImagePicker() {
-  const modal = document.getElementById("imagePickerModal");
-  const list = modal.querySelector(".image-picker-list");
+  const list = $id("imagePickerList");
+  if (!list) return;
   list.innerHTML = "";
 
   const images = loadImages();
@@ -679,7 +711,7 @@ function renderImagePicker() {
     const item = document.createElement("div");
     item.className = "image-picker-item text-center";
     item.style.cssText = "width:95px;cursor:pointer;border:2px solid transparent;border-radius:8px;padding:6px;transition:border-color 0.15s";
-    item.innerHTML = `<img src="${getThemedImageDataUrl(img)}" class="date-img" style="width:64px;height:64px;object-fit:contain;display:block;margin:0 auto"><div style="font-size:0.75rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:4px">${escapeHtml(img.name)}</div>`;
+    item.innerHTML = `<smd-image key-prefix="planmydays_" image="${escapeHtml(img.name)}" title="${escapeHtml(img.name)}" size="64"></smd-image><div style="font-size:0.75rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:4px">${escapeHtml(img.name)}</div>`;
     item.onclick = () => { selectImagePickerItem(img.name); };
     item.onmouseenter = () => { item.style.borderColor = "var(--bs-primary)"; };
     item.onmouseleave = () => { item.style.borderColor = "transparent"; };
@@ -699,7 +731,7 @@ function filterImagePicker(val) {
 
 function clearImagePickerFilter() {
   imagePickerSearch = "";
-  const input = document.querySelector(".image-picker-search");
+  const input = $id("imagePickerSearch");
   if (input) input.value = "";
   renderImagePicker();
 }

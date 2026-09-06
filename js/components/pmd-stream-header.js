@@ -1,141 +1,124 @@
+const pmdStreamHeaderSheet = SmdStyles.sheetFor(`
+  :host {
+    display: block;
+  }
+  .stream-accordion-header {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    padding: 0.25rem 0;
+    background-color: var(--smd-secondary, var(--bs-secondary, #6c757d));
+    color: var(--smd-primary-text, #fff);
+  }
+  :host([expanded]) .stream-accordion-header {
+    background-color: var(--bs-info);
+    color: var(--bs-info-text, var(--bs-dark));
+  }
+  .drag-handle {
+    flex-shrink: 0;
+    cursor: grab;
+    touch-action: none;
+    font-size: 1.3rem;
+    line-height: 1;
+    padding: 0 0.25rem;
+    color: currentColor;
+    opacity: 0.55;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .drag-handle:active { cursor: grabbing; }
+  .thumb {
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
+    margin: 0 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .thumb smd-image { width: 100%; height: 100%; }
+  .body {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    flex: 1;
+    gap: 0.25rem;
+    overflow: hidden;
+    margin-right: 0.5rem;
+  }
+  .row1 { display: flex; align-items: center; gap: 0.35rem; min-width: 0; }
+  .stream-header-main {
+    display: flex;
+    align-items: center;
+    flex: 1 1 auto;
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+  .editor-title {
+    font-weight: 800;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .header-actions {
+    display: flex;
+    align-items: center;
+    flex: 0 0 auto;
+    gap: 0.35rem;
+    padding: 0 0.35rem;
+    color: inherit;
+  }
+  .row2 { display: flex; gap: 0.25rem; flex-wrap: nowrap; }
+  .chevron {
+    flex: 0 0 auto;
+    width: 2.5rem;
+    min-height: 3rem;
+    border: 0;
+    background: transparent;
+    position: relative;
+    cursor: pointer;
+  }
+  .chevron::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0.7rem;
+    height: 0.7rem;
+    margin-top: -0.45rem;
+    margin-left: -0.35rem;
+    border-right: 2.5px solid currentColor;
+    border-bottom: 2.5px solid currentColor;
+    transform: rotate(45deg);
+    transition: transform 0.2s ease;
+  }
+  :host([expanded]) .chevron::after {
+    transform: rotate(225deg);
+  }
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    text-align: center;
+    border-radius: 0.25rem;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+`);
+
 const pmdStreamHeaderTemplate = document.createElement('template');
 pmdStreamHeaderTemplate.innerHTML = `
-  <style>
-    :host {
-      display: block;
-    }
-    [hidden] { display: none !important; }
-    .stream-accordion-header {
-      display: flex;
-      align-items: center;
-      width: 100%;
-      padding: 0.25rem 0;
-      background-color: var(--smd-secondary, var(--bs-secondary, #6c757d));
-      color: var(--smd-primary-text, #fff);
-    }
-    :host([expanded]) .stream-accordion-header {
-      background-color: var(--bs-info);
-      color: var(--bs-info-text, var(--bs-dark));
-    }
-    .drag-handle {
-      flex-shrink: 0;
-      cursor: grab;
-      touch-action: none;
-      font-size: 1.3rem;
-      line-height: 1;
-      padding: 0 0.25rem;
-      color: currentColor;
-      opacity: 0.55;
-      user-select: none;
-      -webkit-user-select: none;
-    }
-    .drag-handle:active { cursor: grabbing; }
-    .thumb {
-      width: 40px;
-      height: 40px;
-      flex-shrink: 0;
-      margin: 0 0.5rem;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .thumb img { display: block; max-width: 40px; max-height: 40px; }
-    .body {
-      display: flex;
-      flex-direction: column;
-      min-width: 0;
-      flex: 1;
-      gap: 0.25rem;
-      overflow: hidden;
-      margin-right: 0.5rem;
-    }
-    .row1 { display: flex; align-items: center; gap: 0.35rem; min-width: 0; }
-    .stream-header-main {
-      display: flex;
-      align-items: center;
-      flex: 1 1 auto;
-      min-width: 0;
-      padding: 0;
-      border: 0;
-      background: transparent;
-      color: inherit;
-      text-align: left;
-      cursor: pointer;
-    }
-    .editor-title {
-      font-weight: 800;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .header-actions {
-      display: flex;
-      align-items: center;
-      flex: 0 0 auto;
-      gap: 0.35rem;
-      padding: 0 0.35rem;
-      color: inherit;
-    }
-    .row2 { display: flex; gap: 0.25rem; flex-wrap: nowrap; }
-    .chevron {
-      flex: 0 0 auto;
-      width: 2.5rem;
-      min-height: 3rem;
-      border: 0;
-      background: transparent;
-      position: relative;
-      cursor: pointer;
-    }
-    .chevron::after {
-      content: "";
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      width: 0.7rem;
-      height: 0.7rem;
-      margin-top: -0.45rem;
-      margin-left: -0.35rem;
-      border-right: 2.5px solid currentColor;
-      border-bottom: 2.5px solid currentColor;
-      transform: rotate(45deg);
-      transition: transform 0.2s ease;
-    }
-    :host([expanded]) .chevron::after {
-      transform: rotate(225deg);
-    }
-    .btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      padding: 0.25rem 0.5rem;
-      font-size: 0.85rem;
-      line-height: 1.5;
-      text-align: center;
-      border: 1px solid transparent;
-      border-radius: 0.25rem;
-      cursor: pointer;
-      white-space: nowrap;
-    }
-    .btn-primary { background: var(--bs-primary, #0d6efd); color: #fff; }
-    .btn-secondary { background: var(--bs-secondary, #6c757d); color: #fff; }
-    .btn-danger { background: var(--bs-danger, #e74c3c); color: #fff; }
-    .badge {
-      display: inline-block;
-      padding: 0.35em 0.65em;
-      font-size: 0.75em;
-      font-weight: 700;
-      line-height: 1;
-      text-align: center;
-      white-space: nowrap;
-      border-radius: 0.375rem;
-    }
-    .bg-success { background: var(--bs-success, #198754); color: #fff; }
-    .bg-info { background: var(--bs-info, #0dcaf0); color: #000; }
-    .bg-secondary { background: var(--bs-secondary, #6c757d); color: #fff; }
-  </style>
   <div class="stream-accordion-header">
     <div class="drag-handle">&#9776;</div>
-    <div class="thumb" hidden><img alt=""></div>
+    <div class="thumb" hidden><smd-image key-prefix="planmydays_"></smd-image></div>
     <div class="body">
       <div class="row1">
         <button type="button" class="stream-header-main" part="header-main" aria-expanded="false">
@@ -164,6 +147,7 @@ class PmdStreamHeader extends HTMLElement {
   constructor() {
     super();
     this.attachShadow({ mode: 'open' });
+    SmdStyles.adoptStyles(this.shadowRoot, [SmdStyles.hiddenSheet, SmdStyles.btnBadgeSheet, pmdStreamHeaderSheet]);
     this.shadowRoot.appendChild(pmdStreamHeaderTemplate.content.cloneNode(true));
   }
 
@@ -225,12 +209,12 @@ class PmdStreamHeader extends HTMLElement {
     root.querySelector('.stream-header-main').setAttribute('aria-expanded', String(expanded));
 
     const thumb = root.querySelector('.thumb');
-    const img = root.querySelector('.thumb img');
+    const sImg = root.querySelector('.thumb smd-image');
     if (image) {
-      img.src = image;
+      sImg.setAttribute('image', image);
       thumb.hidden = false;
     } else {
-      img.removeAttribute('src');
+      sImg.removeAttribute('image');
       thumb.hidden = true;
     }
 

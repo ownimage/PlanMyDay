@@ -7,11 +7,14 @@
     "test": "playwright test",
     "test:headed": "playwright test --headed",
     "test:ui": "playwright test --ui",
-    "test:debug": "playwright test --debug"
+    "test:debug": "playwright test --debug",
+    "regen:images": "node regen_sample_images.js",
+    "extract:images": "node regen_sample_images.js extract"
   },
   "devDependencies": {
     "@playwright/test": "^1.52.0",
     "monocart-coverage-reports": "^2.12.12",
-    "nodemon": "^3.1.14"
+    "nodemon": "^3.1.14",
+    "sharp": "^0.35.4"
   }
 }

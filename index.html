@@ -59,29 +59,6 @@
     <!-- IMAGES EDITOR -->
     <smd-page id="imagesEditor" class="d-none"></smd-page>
 
-    <!-- IMAGE PICKER MODAL (Bootstrap modal) -->
-    <div id="imagePickerModal" class="modal fade" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
-      <div class="modal-dialog modal-xl modal-dialog-scrollable modal-fullscreen-lg-down">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h3 class="modal-title">Choose Image</h3>
-            <button id="btnImagePickerClose" type="button" class="btn-close" onclick="closeImagePicker()"></button>
-          </div>
-          <div class="modal-body">
-            <div class="mb-3 d-flex gap-2">
-              <input class="form-control image-picker-search" type="search" placeholder="Search images by name..." oninput="filterImagePicker(this.value)">
-              <button id="btnImagePickerClear" class="btn btn-outline-secondary" onclick="clearImagePickerFilter()">Clear</button>
-            </div>
-            <div class="image-picker-list d-flex flex-wrap" style="gap:8px;min-height:120px"></div>
-          </div>
-          <div class="modal-footer">
-            <button id="btnImagePickerNoImage" class="btn btn-secondary" onclick="selectImagePickerItem(null)">No Image</button>
-            <button id="btnImagePickerCancel" class="btn btn-outline-secondary" onclick="closeImagePicker()">Cancel</button>
-          </div>
-        </div>
-      </div>
-    </div>
-
 <!-- SETTINGS PAGE -->
   <smd-page id="settingsPage" class="d-none"></smd-page>
 
@@ -93,6 +70,9 @@
 
   <!-- MINIO IMPORT PAGE -->
   <smd-page id="minioImportPage" class="d-none"></smd-page>
+
+  <!-- IMAGE PICKER PAGE -->
+  <smd-page id="imagePickerPage" class="d-none"></smd-page>
   <template id="settingsTemplate">
       <div class="smd-settings">
 
@@ -435,14 +415,18 @@
   <script src="vendor/sortable.min.js"></script>
 
   <script>
+  document.write('<script src="js/components/styles.js?v=' + BUILD_NUMBER + '"><\/script>');
   document.write('<script src="js/components/smd-button.js?v=' + BUILD_NUMBER + '"><\/script>');
+  document.write('<script src="js/components/smd-image.js?v=' + BUILD_NUMBER + '"><\/script>');
   document.write('<script src="js/components/smd-modal.js?v=' + BUILD_NUMBER + '"><\/script>');
   document.write('<script src="js/components/smd-page.js?v=' + BUILD_NUMBER + '"><\/script>');
   document.write('<script src="js/components/smd-tabs.js?v=' + BUILD_NUMBER + '"><\/script>');
+  document.write('<script src="js/components/smd-image.js?v=' + BUILD_NUMBER + '"><\/script>');
+  document.write('<script src="js/components/smd-image-card.js?v=' + BUILD_NUMBER + '"><\/script>');
+  document.write('<script src="js/components/smd-image-select.js?v=' + BUILD_NUMBER + '"><\/script>');
   document.write('<script src="js/components/pmd-stream-header.js?v=' + BUILD_NUMBER + '"><\/script>');
   document.write('<script src="js/components/pmd-stream-job-card.js?v=' + BUILD_NUMBER + '"><\/script>');
   document.write('<script src="js/components/pmd-job-search-card.js?v=' + BUILD_NUMBER + '"><\/script>');
-  document.write('<script src="js/components/pmd-image-card.js?v=' + BUILD_NUMBER + '"><\/script>');
   document.write('<script src="js/minio.js?v=' + BUILD_NUMBER + '"><\/script>');
   document.write('<script src="js/settings.js?v=' + BUILD_NUMBER + '"><\/script>');
   document.write('<script src="js/app.js?v=' + BUILD_NUMBER + '"><\/script>');

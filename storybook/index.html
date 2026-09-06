@@ -205,16 +205,20 @@
   <main class="sb-main" id="main"></main>
 
   <!-- ============================ COMPONENT SCRIPTS ============================ -->
+  <script src="../js/components/styles.js"></script>
   <script src="../js/components/smd-button.js"></script>
+  <script src="../js/components/smd-image.js"></script>
   <script src="../js/components/smd-modal.js"></script>
   <script src="../js/components/smd-page.js"></script>
   <script src="../js/components/smd-tabs.js"></script>
   <script src="../js/components/smd-qrcode.js"></script>
   <script src="../js/components/smd-buymeacoffee.js"></script>
+  <script src="../js/components/smd-image.js"></script>
+  <script src="../js/components/smd-image-card.js"></script>
+  <script src="../js/components/smd-image-select.js"></script>
   <script src="../js/components/pmd-stream-header.js"></script>
   <script src="../js/components/pmd-stream-job-card.js"></script>
   <script src="../js/components/pmd-job-search-card.js"></script>
-  <script src="../js/components/pmd-image-card.js"></script>
   <script src="../vendor/qrcode.min.js"></script>
 
   <script>
@@ -458,6 +462,58 @@
       }
     });
 
+    // ---- smd-image ----
+    sections.push({
+      id: "smd-image",
+      name: "smd-image",
+      tag: "<smd-image>",
+      desc: "Displays an image from a localStorage images list. Attribute <code>key-prefix</code> sets the storage key prefix (list key = <code>keyPrefix + \"images\"</code>), <code>image</code> is the image name, <code>theme</code> is <code>auto</code>/<code>light</code>/<code>dark</code> for SVG recolouring, <code>size</code> sets the rendered box in px (the component adopts its own sized stylesheet), and <code>alt</code> is passed to the inner <code>&lt;img&gt;</code>. Missing names hide the image. When <code>data</code> is absent it falls back to <code>data&lt;size&gt;</code> (data64/80/100). Re-renders on attribute change; call <code>refresh()</code> after the store changes.",
+      html: () => `
+        <div class="sb-canvas" id="sb-image-canvas" style="min-height:120px">
+          <smd-image id="sb-image" key-prefix="sb_" image="Star" size="80"></smd-image>
+        </div>
+        <div class="sb-controls">
+          <label>Name: <input type="text" id="ctrl-image-name" value="Star"></label>
+          <label>Theme:
+            <select id="ctrl-image-theme">
+              <option value="auto">auto</option>
+              <option value="light">light</option>
+              <option value="dark">dark</option>
+            </select>
+          </label>
+          <label>Size:
+            <select id="ctrl-image-size">
+              <option value="32">32</option>
+              <option value="64">64</option>
+              <option value="80" selected>80</option>
+              <option value="100">100</option>
+              <option value="0">auto</option>
+            </select>
+          </label>
+          <button type="button" class="btn sb-run" id="btn-image-apply">Apply</button>
+        </div>
+        <div class="sb-log" id="log-smd-image">events: none yet</div>
+      `,
+      init: () => {
+        const seed = [
+          { name: "Star", data: "data:image/svg+xml," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 24 24"><path stroke="#111111" stroke-width="2" fill="none" d="M12 2l2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 16.9 6.4 19.2l1.1-6.2L3 8.6l6.2-.9z"/></svg>'), themes: { dark: { line: "#f5c542", fill: "#222", width: "2" }, light: { line: "#8a6d1d", fill: "#fff", width: "2" } } },
+          { name: "Square", data: "data:image/svg+xml," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" stroke="#111111" stroke-width="2" fill="#ffffff"/></svg>'), themes: { dark: { line: "#39cbfb", fill: "#123", width: "3" }, light: { line: "#000", fill: "#fff", width: "2" } } }
+        ];
+        localStorage.setItem("sb_images", JSON.stringify(seed));
+        const img = document.getElementById("sb-image");
+        img.refresh();
+        const apply = () => {
+          img.setAttribute("image", document.getElementById("ctrl-image-name").value || "Star");
+          img.setAttribute("theme", document.getElementById("ctrl-image-theme").value);
+          const px = parseInt(document.getElementById("ctrl-image-size").value, 10) || 0;
+          if (px > 0) img.setAttribute("size", px);
+          else img.removeAttribute("size");
+          log("smd-image", "image=\"" + img.getAttribute("image") + "\" theme=" + img.getAttribute("theme") + " size=" + (img.getAttribute("size") || "auto"));
+        };
+        document.getElementById("btn-image-apply").addEventListener("click", apply);
+      }
+    });
+
     // ---- smd-qrcode ----
     sections.push({
       id: "smd-qrcode",
@@ -614,12 +670,12 @@
       }
     });
 
-    // ---- pmd-image-card ----
+    // ---- smd-image-card ----
     sections.push({
-      id: "pmd-image-card",
-      name: "pmd-image-card",
-      tag: "<pmd-image-card>",
-      desc: "Image list card used by the Images editor. Attributes: <code>image-idx</code>, <code>name</code>, <code>image</code> (data URL), <code>in-use</code>. Set <code>in-use</code> to disable the Delete button. Dispatches <code>pmd-image-delete</code>, <code>pmd-image-duplicate</code>, <code>pmd-image-edit</code>.",
+      id: "smd-image-card",
+      name: "smd-image-card",
+      tag: "<smd-image-card>",
+      desc: "Card for a single entry of a localStorage images list. The image is looked up by NAME via <code>&lt;smd-image&gt;</code> using <code>key-prefix</code> (list key = <code>keyPrefix + \"images\"</code>) + <code>image</code>; <code>title</code> is the label (defaults to the image name), <code>index</code> is echoed in events, and <code>in-use</code> disables Delete. Dispatches <code>smd-image-card-action</code> with <code>{ action: delete|duplicate|edit, index }</code>.",
       html: () => `
         <div class="sb-canvas">
           <div class="sb-stack" id="sb-image-cards"></div>
@@ -627,33 +683,74 @@
         <div class="sb-controls">
           <label><input type="checkbox" id="ctrl-image-inuse"> Mark Delete disabled (in-use)</label>
         </div>
-        <div class="sb-log" id="log-pmd-image-card">events: none yet</div>
+        <div class="sb-log" id="log-smd-image-card">events: none yet</div>
       `,
       init: () => {
+        const seed = [
+          { name: "Calendar", data: "data:image/svg+xml," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" stroke="#111111" stroke-width="2" fill="none"/><path d="M3 9h18M8 3v4M16 3v4" stroke="#111111" stroke-width="2" fill="none"/></svg>'), themes: { dark: { line: "#39cbfb", width: "2" }, light: { line: "#a55", width: "2" } } },
+          { name: "Pie chart", data: "data:image/svg+xml," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" stroke="#111111" stroke-width="2" fill="none"/><path d="M12 3a9 9 0 0 1 9 9H12z" stroke="#111111" stroke-width="2" fill="none"/></svg>'), themes: { dark: { line: "#00bc8c", width: "2" }, light: { line: "#0aa575", width: "2" } } },
+          { name: "Clock", data: "data:image/svg+xml," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" stroke="#111111" stroke-width="2" fill="none"/><path d="M12 7v5l3 3" stroke="#111111" stroke-width="2" fill="none"/></svg>'), themes: { dark: { line: "#375a7f", width: "2" }, light: { line: "#123", width: "2" } } }
+        ];
+        localStorage.setItem("sbic_images", JSON.stringify(seed));
         const host = document.getElementById("sb-image-cards");
         const renderCards = () => {
           const inUse = document.getElementById("ctrl-image-inuse").checked;
-          host.innerHTML = `
+          host.innerHTML = seed.map((img, i) => `
             <div class="sb-frame-wrapper">
-              <div class="sb-label">No image</div>
-              <pmd-image-card image-idx="0" name="Calendar"></pmd-image-card>
-            </div>
-            <div class="sb-frame-wrapper">
-              <div class="sb-label">SVG image</div>
-              <pmd-image-card image-idx="1" name="Pie chart" image="${SVG("#00bc8c")}"></pmd-image-card>
-            </div>
-            <div class="sb-frame-wrapper">
-              <div class="sb-label">In use (delete disabled)</div>
-              <pmd-image-card image-idx="2" name="Clock" image="${SVG("#375a7f")}" ${inUse ? "in-use" : ""}></pmd-image-card>
-            </div>`;
-          host.querySelectorAll("pmd-image-card").forEach((card) => {
-            ["pmd-image-delete", "pmd-image-duplicate", "pmd-image-edit"].forEach(type => {
-              card.addEventListener(type, (e) => log("pmd-image-card", type + " idx=" + e.detail.imageIdx));
-            });
+              <div class="sb-label">${img.name}</div>
+              <smd-image-card key-prefix="sbic_" index="${i}" title="${img.name}" image="${img.name}" ${inUse ? "in-use" : ""}></smd-image-card>
+            </div>`).join("");
+          host.querySelectorAll("smd-image-card").forEach((card) => {
+            card.addEventListener("smd-image-card-action", (e) => log("smd-image-card", e.detail.action + " idx=" + e.detail.index));
           });
         };
         renderCards();
         document.getElementById("ctrl-image-inuse").addEventListener("change", renderCards);
+      }
+    });
+
+    // ---- smd-image-select ----
+    sections.push({
+      id: "smd-image-select",
+      name: "smd-image-select",
+      tag: "<smd-image-select>",
+      desc: "Image thumbnail + name + an Edit button. The image is looked up by NAME via <code>&lt;smd-image&gt;</code> using <code>key-prefix</code> (list key = <code>keyPrefix + \"images\"</code>) + <code>image</code>; <code>label</code> overrides the shown name; <code>disabled</code> disables the Edit button. Clicking Edit dispatches <code>smd-image-select-action</code> (<code>{ action: \"edit\" }</code>).",
+      html: () => `
+        <div class="sb-canvas">
+          <div class="sb-stack" id="sb-image-selects"></div>
+        </div>
+        <div class="sb-controls">
+          <label><input type="checkbox" id="ctrl-image-select-disabled"> Disabled (view mode)</label>
+        </div>
+        <div class="sb-log" id="log-smd-image-select">events: none yet</div>
+      `,
+      init: () => {
+        const seed = [
+          { name: "Calendar", data: "data:image/svg+xml," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="45" height="45" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" stroke="#111111" stroke-width="2" fill="none"/><path d="M3 9h18M8 3v4M16 3v4" stroke="#111111" stroke-width="2" fill="none"/></svg>'), themes: { dark: { line: "#39cbfb", width: "2" }, light: { line: "#a55", width: "2" } } }
+        ];
+        localStorage.setItem("sbis_images", JSON.stringify(seed));
+        const host = document.getElementById("sb-image-selects");
+        const render = () => {
+          const disabled = document.getElementById("ctrl-image-select-disabled").checked;
+          host.innerHTML = `
+            <div class="sb-frame-wrapper">
+              <div class="sb-label">With image</div>
+              <smd-image-select key-prefix="sbis_" image="Calendar" label-id="sb-select-name"></smd-image-select>
+            </div>
+            <div class="sb-frame-wrapper">
+              <div class="sb-label">No image</div>
+              <smd-image-select key-prefix="sbis_" label-id="sb-select-empty"></smd-image-select>
+            </div>
+            <div class="sb-frame-wrapper">
+              <div class="sb-label">Disabled</div>
+              <smd-image-select key-prefix="sbis_" image="Calendar" ${disabled ? "disabled" : ""}></smd-image-select>
+            </div>`;
+          host.querySelectorAll("smd-image-select").forEach((sel) => {
+            sel.addEventListener("smd-image-select-action", (e) => log("smd-image-select", e.detail.action + " -> " + sel.getAttribute("image")));
+          });
+        };
+        render();
+        document.getElementById("ctrl-image-select-disabled").addEventListener("change", render);
       }
     });
 
