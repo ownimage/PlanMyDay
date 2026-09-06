@@ -168,6 +168,7 @@ const PRECACHE_URLS = [
   "js/components/styles.js",
   "js/components/smd-button.js",
   "js/components/smd-image.js",
+  "js/components/smd-modal.js",
   "js/components/smd-image-card.js",
   "js/components/smd-image-select.js",
   "js/components/smd-page.js",
@@ -185,7 +186,14 @@ self.addEventListener("install", event => {
   event.waitUntil(
     caches.open(CACHE).then(cache => cache.addAll(PRECACHE_URLS))
   );
-  self.skipWaiting();
+  // Do NOT skipWaiting() here: activation is user-driven via the SKIP_WAITING
+  // message from the page's "Update available" prompt.
+});
+
+self.addEventListener("message", event => {
+  if (event.data && event.data.type === "SKIP_WAITING") {
+    self.skipWaiting();
+  }
 });
 
 self.addEventListener("activate", event => {
@@ -203,21 +211,25 @@ self.addEventListener("activate", event => {
 self.addEventListener("fetch", event => {
   const req = event.request;
   if (req.method !== "GET") return;
-  if (new URL(req.url).origin !== self.location.origin) {
+  const url = new URL(req.url);
+  if (url.origin !== self.location.origin) {
     // MinIO S3 server or other external host — handled directly by the browser
     return;
   }
+  // Cache by PATHNAME so versioned requests (js/app.js?v=...) hit the same
+  // precached entries as their unversioned forms.
   event.respondWith(
-    caches.open(CACHE).then(cache => {
-      return cache.match(req).then(cached => {
-        const fetchPromise = fetch(req).then(response => {
-          if (response && response.status === 200) {
-            cache.put(req, response.clone());
-          }
-          return response;
-        }).catch(() => cached);
-        return cached || fetchPromise;
+    caches.open(CACHE).then(cache => cache.match(url.pathname, { ignoreSearch: true }).then(cached => {
+      const network = fetch(req).then(response => {
+        if (response && response.status === 200) {
+          cache.put(url.pathname, response.clone());
+        }
+        return response;
+      }).catch(() => {
+        if (req.mode === "navigate") return cache.match("index.html");
+        return cached;
       });
-    })
+      return cached || network;
+    }))
   );
 });

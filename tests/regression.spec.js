@@ -6287,5 +6287,41 @@ test.describe("PlanMyDay - Regression", () => {
       expect(elapsed).toBeLessThan(200);
     });
   });
+
+  // ── Asset cache-busting ───────────────────────────────────────
+  // Every same-origin stylesheet/script load is versioned with
+  // ?v=BUILD_NUMBER so a new build always fetches fresh files.
+
+  test.describe("asset cache-busting", () => {
+
+    test("all stylesheets and same-origin scripts carry ?v=BUILD_NUMBER", async ({ page }) => {
+      await page.goto("/");
+      const build = await page.evaluate(() => (typeof BUILD_NUMBER !== "undefined" ? BUILD_NUMBER : ""));
+      expect(build).not.toBe("");
+      const stamps = await page.evaluate(() => {
+        const v = (u) => { try { return new URL(u, location.href).searchParams.get("v"); } catch (e) { return null; } };
+        const links = Array.from(document.querySelectorAll('link[href]'))
+          .map((l) => l.getAttribute("href"))
+          .filter((h) => h && h.indexOf("://") === -1 && h.charAt(0) !== "//")
+          .map((h) => ({ url: h, v: v(h) }));
+        const scripts = Array.from(document.querySelectorAll('script[src]'))
+          .map((s) => s.getAttribute("src"))
+          .filter((s) => s && s.indexOf("build-number.js") === -1)
+          .map((s) => ({ url: s, v: v(s) }));
+        return { links, scripts };
+      });
+      const bad = [...stamps.links, ...stamps.scripts].filter((x) => x.v !== build);
+      expect(bad).toEqual([]);
+    });
+
+    test("theme swap is cache-busted with the build number", async ({ page }) => {
+      await page.goto("/");
+      const build = await page.evaluate(() => (typeof BUILD_NUMBER !== "undefined" ? BUILD_NUMBER : ""));
+      await page.evaluate(() => applyTheme("quartz"));
+      const themeHref = await page.evaluate(() => document.getElementById("bootstrap-theme-css").getAttribute("href"));
+      expect(new URL(themeHref, "http://x/").searchParams.get("v")).toBe(build);
+      expect(themeHref).toMatch(/css\/themes\/quartz\/bootstrap\.min\.css/);
+    });
+  });
 });
 });
