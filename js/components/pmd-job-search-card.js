@@ -33,7 +33,7 @@ const pmdJobSearchCardSheet = SmdStyles.sheetFor(`
     align-items: center;
     justify-content: center;
   }
-  .thumb img { display: block; max-width: 32px; max-height: 32px; }
+  .thumb smd-image { width: 100%; height: 100%; }
   .title {
     font-weight: 700;
     min-width: 0;
@@ -79,8 +79,8 @@ const pmdJobSearchCardSheet = SmdStyles.sheetFor(`
 const pmdJobSearchCardTemplate = document.createElement('template');
 pmdJobSearchCardTemplate.innerHTML = `
   <div class="row1">
-    <div class="thumb stream-thumb" hidden><img alt=""></div>
-    <div class="thumb job-thumb" hidden><img alt=""></div>
+    <div class="thumb stream-thumb" hidden><smd-image key-prefix="planmydays_"></smd-image></div>
+    <div class="thumb job-thumb" hidden><smd-image key-prefix="planmydays_"></smd-image></div>
     <div class="title">
       <span class="job-title"></span><span class="suffix badge bg-secondary" hidden></span>
     </div>
@@ -157,12 +157,12 @@ class PmdJobSearchCard extends HTMLElement {
 
     const setThumb = (thumbCls, src) => {
       const thumb = root.querySelector(thumbCls);
-      const img = thumb.querySelector('img');
+      const sImg = thumb.querySelector('smd-image');
       if (src) {
-        img.src = src;
+        sImg.setAttribute('image', src);
         thumb.hidden = false;
       } else {
-        img.removeAttribute('src');
+        sImg.removeAttribute('image');
         thumb.hidden = true;
       }
     };

@@ -207,6 +207,7 @@
   <!-- ============================ COMPONENT SCRIPTS ============================ -->
   <script src="../js/components/styles.js"></script>
   <script src="../js/components/smd-button.js"></script>
+  <script src="../js/components/smd-image.js"></script>
   <script src="../js/components/smd-modal.js"></script>
   <script src="../js/components/smd-page.js"></script>
   <script src="../js/components/smd-tabs.js"></script>
@@ -456,6 +457,46 @@
           tabs.setAttribute("bottomline", val ? "true" : "false");
           log("smd-tabs", "bottomline=" + (val ? "true" : "false"));
         });
+      }
+    });
+
+    // ---- smd-image ----
+    sections.push({
+      id: "smd-image",
+      name: "smd-image",
+      tag: "<smd-image>",
+      desc: "Displays an image from a localStorage images list. Attribute <code>key-prefix</code> sets the storage key prefix (list key = <code>keyPrefix + \"images\"</code>), <code>image</code> is the image name, <code>theme</code> is <code>auto</code>/<code>light</code>/<code>dark</code> for SVG recolouring, and <code>alt</code> is passed to the inner <code>&lt;img&gt;</code>. Missing names hide the image. Re-renders on attribute change; call <code>refresh()</code> after the store changes.",
+      html: () => `
+        <div class="sb-canvas" id="sb-image-canvas" style="min-height:120px">
+          <smd-image id="sb-image" key-prefix="sb_" image="Star" style="width:80px;height:80px"></smd-image>
+        </div>
+        <div class="sb-controls">
+          <label>Name: <input type="text" id="ctrl-image-name" value="Star"></label>
+          <label>Theme:
+            <select id="ctrl-image-theme">
+              <option value="auto">auto</option>
+              <option value="light">light</option>
+              <option value="dark">dark</option>
+            </select>
+          </label>
+          <button type="button" class="btn sb-run" id="btn-image-apply">Apply</button>
+        </div>
+        <div class="sb-log" id="log-smd-image">events: none yet</div>
+      `,
+      init: () => {
+        const seed = [
+          { name: "Star", data: "data:image/svg+xml," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 24 24"><path stroke="#111111" stroke-width="2" fill="none" d="M12 2l2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 16.9 6.4 19.2l1.1-6.2L3 8.6l6.2-.9z"/></svg>'), themes: { dark: { line: "#f5c542", fill: "#222", width: "2" }, light: { line: "#8a6d1d", fill: "#fff", width: "2" } } },
+          { name: "Square", data: "data:image/svg+xml," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" stroke="#111111" stroke-width="2" fill="#ffffff"/></svg>'), themes: { dark: { line: "#39cbfb", fill: "#123", width: "3" }, light: { line: "#000", fill: "#fff", width: "2" } } }
+        ];
+        localStorage.setItem("sb_images", JSON.stringify(seed));
+        const img = document.getElementById("sb-image");
+        img.refresh();
+        const apply = () => {
+          img.setAttribute("image", document.getElementById("ctrl-image-name").value || "Star");
+          img.setAttribute("theme", document.getElementById("ctrl-image-theme").value);
+          log("smd-image", "image=\"" + img.getAttribute("image") + "\" theme=" + img.getAttribute("theme"));
+        };
+        document.getElementById("btn-image-apply").addEventListener("click", apply);
       }
     });
 

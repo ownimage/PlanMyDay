@@ -33,7 +33,7 @@ const pmdStreamJobCardSheet = SmdStyles.sheetFor(`
     align-items: center;
     justify-content: center;
   }
-  .thumb img { display: block; max-width: 32px; max-height: 32px; }
+  .thumb smd-image { width: 100%; height: 100%; }
   .title {
     font-weight: 700;
     min-width: 0;
@@ -93,7 +93,7 @@ const pmdStreamJobCardTemplate = document.createElement('template');
 pmdStreamJobCardTemplate.innerHTML = `
   <div class="row1">
     <slot name="drag-handle"></slot>
-    <div class="thumb" hidden><img alt=""></div>
+    <div class="thumb" hidden><smd-image key-prefix="planmydays_"></smd-image></div>
     <div class="title">
       <span class="job-title"></span><span class="suffix badge bg-secondary" hidden></span>
     </div>
@@ -167,12 +167,12 @@ class PmdStreamJobCard extends HTMLElement {
     root.querySelector('.job-title').textContent = title;
 
     const thumb = root.querySelector('.thumb');
-    const img = root.querySelector('.thumb img');
+    const sImg = root.querySelector('.thumb smd-image');
     if (image) {
-      img.src = image;
+      sImg.setAttribute('image', image);
       thumb.hidden = false;
     } else {
-      img.removeAttribute('src');
+      sImg.removeAttribute('image');
       thumb.hidden = true;
     }
 

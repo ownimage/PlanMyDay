@@ -4543,8 +4543,8 @@ test.describe("PlanMyDay - Regression", () => {
         localStorage.setItem("planmydays_completed", "[]");
       }, { svgData: svg, streams: TEST_STREAMS, ds: todayStr });
       await page.reload();
-      await expect(page.locator("#todayCardList img.date-img").first()).toBeVisible();
-      const count = await page.locator("#todayCardList img.date-img").count();
+      await expect(page.locator("#todayCardList smd-image").first().locator("img")).toBeVisible();
+      const count = await page.locator("#todayCardList smd-image").count();
       expect(count).toBeGreaterThanOrEqual(2);
     });
 

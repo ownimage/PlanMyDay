@@ -272,8 +272,8 @@ function renderMain() {
     const isDone = completed.includes(job.id);
     const streams = loadStreams();
     const stream = streams[streamIdx] || {};
-    const streamImageUrl = getImageDataUrl(stream.image);
-    const jobImageUrl = getImageDataUrl(job.image);
+    const streamImageName = stream.image || "";
+    const jobImageName = job.image || "";
     const suffixLabel = getJobSuffix(job);
     const card = document.createElement("div");
     card.className = `card countdown-card mb-2 today-drag-card ${isDone ? "opacity-50" : ""}`;
@@ -289,8 +289,8 @@ function renderMain() {
           </div>
         </div>
         <div class="col-auto d-flex align-items-center gap-1 px-0" style="min-width:68px">
-          <div style="width:32px;height:32px;display:flex;align-items:center;justify-content:center">${streamImageUrl ? `<img src="${streamImageUrl}" class="date-img" style="max-width:32px;max-height:32px">` : ""}</div>
-          <div style="width:32px;height:32px;display:flex;align-items:center;justify-content:center">${jobImageUrl ? `<img src="${jobImageUrl}" class="date-img" style="max-width:32px;max-height:32px">` : ""}</div>
+          <div style="width:32px;height:32px;display:flex;align-items:center;justify-content:center">${streamImageName ? `<smd-image key-prefix="planmydays_" image="${escapeHtml(streamImageName)}" style="max-width:32px;max-height:32px"></smd-image>` : ""}</div>
+          <div style="width:32px;height:32px;display:flex;align-items:center;justify-content:center">${jobImageName ? `<smd-image key-prefix="planmydays_" image="${escapeHtml(jobImageName)}" style="max-width:32px;max-height:32px"></smd-image>` : ""}</div>
         </div>
         <div class="col" style="min-width:0">
           <div class="d-flex align-items-center gap-2 mb-1">
@@ -599,8 +599,8 @@ function buildJobSearchCard(stream, streamIdx, job, jobIdx) {
   set("tab", stream.tab || "progress");
   set("schedule", getScheduleText(job.schedule));
   set("active", job.active !== false ? "true" : "false");
-  set("stream-image", getImageDataUrl(stream.image));
-  set("image", getImageDataUrl(job.image));
+  set("stream-image", stream.image ? stream.image : "");
+  set("image", job.image ? job.image : "");
   set("suffix", (getJobSuffix(job) || "").trim());
   if (job.sleepUntil && job.sleepUntil.trim()) set("extra", "Sleep: " + formatDate(job.sleepUntil));
   else if (job.waitFor && job.waitFor.trim()) set("extra", "Wait: " + job.waitFor.trim());
@@ -701,7 +701,7 @@ function getStreamEditFormHTML(data) {
       <label class="form-label">Image</label>
       <div class="d-flex align-items-center gap-2">
         <div style="width:50px;height:50px;border:1px solid var(--bs-border-color);border-radius:6px;overflow:hidden;display:flex;align-items:center;justify-content:center;flex-shrink:0" id="streamImagePreview">
-          ${getImageDataUrl(data.image) ? `<img src="${getImageDataUrl(data.image)}" class="date-img" style="max-width:50px;max-height:50px">` : `<span class="text-secondary small">none</span>`}
+          <smd-image key-prefix="planmydays_" image="${escapeHtml(data.image || "")}" style="width:100%;height:100%"></smd-image>
         </div>
         <span class="small text-secondary" id="streamImageName">${escapeHtml(data.image || "")}</span>
         <button class="btn btn-primary btn-sm" id="btnStreamImageChoose" onclick="openImagePicker(function(name){ editField('image', name); updateStreamImagePreview(name); })">Edit</button>
@@ -736,7 +736,7 @@ function renderStreamsEditor() {
   var accordionHtml = "";
   sorted.forEach(function(t, displayIdx) {
     var realIdx = streams.indexOf(t);
-    var streamImgUrl = getImageDataUrl(t.image);
+    var streamImageName = t.image || "";
     var jobs = t.jobs || [];
     var collapseId = "streamCollapse_" + realIdx;
     var isExpanded = expandedStreams.indexOf(realIdx) !== -1;
@@ -752,7 +752,7 @@ function renderStreamsEditor() {
       (isExpanded ? 'expanded' : ''),
       (jobs.length === 0 ? 'can-delete' : '')
     ];
-    if (streamImgUrl) headerAttrs.push('image="' + escAttr(streamImgUrl) + '"');
+    if (streamImageName) headerAttrs.push('image="' + escAttr(streamImageName) + '"');
     if (headerJobCounts) headerAttrs.push('jobcounts="' + escAttr(headerJobCounts) + '"');
     var headerHtml = '<pmd-stream-header ' + headerAttrs.filter(Boolean).join(" ") + '></pmd-stream-header>';
 
@@ -985,7 +985,7 @@ function sortJobsByRules(jobs) {
 function renderJobsInAccordion(stream, jobs, streamIdx) {
   return jobs.map(function(j, realIdx) {
     var scheduleText = getScheduleText(j.schedule);
-    var jobImgUrl = getImageDataUrl(j.image);
+    var jobImageName = j.image || "";
     var hasSleep = j.sleepUntil && j.sleepUntil.trim();
     var hasWait = j.waitFor && j.waitFor.trim();
     var suffix = (getJobSuffix(j) || "").trim();
@@ -999,7 +999,7 @@ function renderJobsInAccordion(stream, jobs, streamIdx) {
       'schedule="' + escAttr(scheduleText) + '"',
       'active="' + (j.active !== false ? "true" : "false") + '"'
     ];
-    if (jobImgUrl) attrs.push('image="' + escAttr(jobImgUrl) + '"');
+    if (jobImageName) attrs.push('image="' + escAttr(jobImageName) + '"');
     if (j.time && j.time.trim()) attrs.push('time="' + escAttr(j.time.trim()) + '"');
     if (suffix) attrs.push('suffix="' + escAttr(suffix) + '"');
     if (extra) attrs.push('extra="' + escAttr(extra) + '"');
@@ -1033,38 +1033,40 @@ function updateStreamImagePreview(name) {
   var preview = $id("streamImagePreview");
   var nameEl = $id("streamImageName");
   if (!preview) return;
-  var url = getImageDataUrl(name);
-  if (url) {
-    preview.innerHTML = '<img src="' + url + '" class="date-img" style="max-width:50px;max-height:50px">';
-    if (nameEl) nameEl.textContent = name;
-  } else {
-    preview.innerHTML = '<span class="text-secondary small">none</span>';
-    if (nameEl) nameEl.textContent = "";
+  var sim = preview.querySelector("smd-image");
+  if (sim) {
+    if (name) sim.setAttribute("image", name);
+    else sim.removeAttribute("image");
   }
+  if (nameEl) nameEl.textContent = name;
 }
 function updateJobImagePreview(name) {
   var preview = $id("jobImagePreview");
   var nameEl = $id("jobImageName");
   var removeBtn = $id("jobImageRemoveBtn");
   if (!preview) return;
-  var url = getImageDataUrl(name);
-  if (url) {
-    preview.innerHTML = '<img src="' + url + '" class="date-img" style="max-width:45px;max-height:45px">';
-    if (nameEl) nameEl.textContent = name;
-    if (removeBtn) removeBtn.classList.remove("d-none");
-  } else {
-    preview.innerHTML = '<span class="text-secondary small">none</span>';
-    if (nameEl) nameEl.textContent = "";
-    if (removeBtn) removeBtn.classList.add("d-none");
+  var sim = preview.querySelector("smd-image");
+  if (sim) {
+    if (name) sim.setAttribute("image", name);
+    else sim.removeAttribute("image");
+  }
+  if (nameEl) nameEl.textContent = name;
+  if (removeBtn) {
+    if (name) removeBtn.classList.remove("d-none");
+    else removeBtn.classList.add("d-none");
   }
 }
 function updateJobStreamPreview() {
   var streams = loadStreams();
   var stream = streams[jobsTargetStreamIndex >= 0 ? jobsTargetStreamIndex : jobsStreamIndex];
-  var url = getImageDataUrl(stream && stream.image);
+  var sName = (stream && stream.image) ? stream.image : "";
   var btnIcon = $id("jobStreamBtnIcon");
   if (btnIcon) {
-    btnIcon.innerHTML = url ? '<img src="' + url + '" style="max-width:24px;max-height:24px">' : '<span style="width:24px;height:24px;display:inline-block"></span>';
+    var sim = btnIcon.querySelector("smd-image");
+    if (sim) {
+      if (sName) sim.setAttribute("image", sName);
+      else sim.removeAttribute("image");
+    }
   }
   var btnText = $id("jobStreamBtnText");
   if (btnText) {
@@ -1661,7 +1663,6 @@ function getJobEditSections(data, readOnly) {
 function getJobGeneralTabHTML(data, readOnly) {
   const streams = loadStreams();
   const currentStream = streams[jobsTargetStreamIndex >= 0 ? jobsTargetStreamIndex : jobsStreamIndex] || {};
-  const streamImgUrl = getImageDataUrl(currentStream.image);
   const disabled = readOnly ? "disabled" : "";
   return `
     <div class="row mb-2 mt-2">
@@ -1670,18 +1671,17 @@ function getJobGeneralTabHTML(data, readOnly) {
         <div class="dropdown mt-1" id="jobStreamDropdown" style="flex-grow:1">
           <button class="btn btn-outline-secondary dropdown-toggle w-100 d-flex align-items-center gap-2 h-100" type="button" id="jobStreamDropdownBtn" ${disabled} style="text-align:left">
             <span id="jobStreamBtnIcon" style="width:45px;height:45px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;border:1px solid var(--bs-border-color);border-radius:6px">
-              ${streamImgUrl ? `<img src="${streamImgUrl}" style="max-width:45px;max-height:45px">` : `<span style="width:45px;height:45px;display:inline-block"></span>`}
+              <smd-image key-prefix="planmydays_" image="${escapeHtml(currentStream.image || "")}" style="width:100%;height:100%"></smd-image>
             </span>
             <span id="jobStreamBtnText" class="flex-grow-1">${escapeHtml(currentStream.title || "")}</span>
           </button>
           <ul class="dropdown-menu w-100" id="jobStreamDropdownMenu">
             ${streams.map((s, i) => {
-              const sImg = getImageDataUrl(s.image);
               return `
                 <li>
                   <a class="dropdown-item d-flex align-items-center gap-2 ${i === (jobsTargetStreamIndex >= 0 ? jobsTargetStreamIndex : jobsStreamIndex) ? "active" : ""}" href="#" data-stream-idx="${i}" onclick="event.preventDefault();jobChangeStream(${i})">
                     <span style="width:45px;height:45px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;border:1px solid var(--bs-border-color);border-radius:6px">
-                      ${sImg ? `<img src="${sImg}" style="max-width:45px;max-height:45px">` : `<span style="width:45px;height:45px;display:inline-block"></span>`}
+                      <smd-image key-prefix="planmydays_" image="${escapeHtml(s.image || "")}" style="width:100%;height:100%"></smd-image>
                     </span>
                     ${escapeHtml(s.title)}
                   </a>
@@ -1695,7 +1695,7 @@ function getJobGeneralTabHTML(data, readOnly) {
         <label class="form-label mb-0">Image</label>
         <div class="d-flex align-items-center gap-2 mt-1" style="flex-grow:1">
           <div style="width:45px;height:45px;border:1px solid var(--bs-border-color);border-radius:6px;overflow:hidden;display:flex;align-items:center;justify-content:center;flex-shrink:0" id="jobImagePreview">
-            ${getImageDataUrl(data.image) ? `<img src="${getImageDataUrl(data.image)}" class="date-img" style="max-width:45px;max-height:45px">` : `<span class="text-secondary small">none</span>`}
+            <smd-image key-prefix="planmydays_" image="${escapeHtml(data.image || "")}" style="width:100%;height:100%"></smd-image>
           </div>
           <div>
             <div id="jobImageName">${escapeHtml(data.image || "")}</div>

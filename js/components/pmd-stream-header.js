@@ -36,7 +36,7 @@ const pmdStreamHeaderSheet = SmdStyles.sheetFor(`
     align-items: center;
     justify-content: center;
   }
-  .thumb img { display: block; max-width: 40px; max-height: 40px; }
+  .thumb smd-image { width: 100%; height: 100%; }
   .body {
     display: flex;
     flex-direction: column;
@@ -118,7 +118,7 @@ const pmdStreamHeaderTemplate = document.createElement('template');
 pmdStreamHeaderTemplate.innerHTML = `
   <div class="stream-accordion-header">
     <div class="drag-handle">&#9776;</div>
-    <div class="thumb" hidden><img alt=""></div>
+    <div class="thumb" hidden><smd-image key-prefix="planmydays_"></smd-image></div>
     <div class="body">
       <div class="row1">
         <button type="button" class="stream-header-main" part="header-main" aria-expanded="false">
@@ -209,12 +209,12 @@ class PmdStreamHeader extends HTMLElement {
     root.querySelector('.stream-header-main').setAttribute('aria-expanded', String(expanded));
 
     const thumb = root.querySelector('.thumb');
-    const img = root.querySelector('.thumb img');
+    const sImg = root.querySelector('.thumb smd-image');
     if (image) {
-      img.src = image;
+      sImg.setAttribute('image', image);
       thumb.hidden = false;
     } else {
-      img.removeAttribute('src');
+      sImg.removeAttribute('image');
       thumb.hidden = true;
     }
 
