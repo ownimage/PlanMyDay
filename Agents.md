@@ -1,9 +1,10 @@
-Ask questions if anything is not clear
-Ask questions if there are implementation options
-When running playwright use the command '.\node_modules\.bin\playwright.cmd' to make sure the correct version loads. 
-Please capture all the output needed when running a test the first time so that you do not need to rerun the test.
-When running the regression tests run them in 30 batches, and use regression.spec.js and touch.spec.js
-After fixing issues with the regression tests apply them to screenshots.spec.js and validate them using one theme only.
+1: Ask questions if anything is not clear
+2: Ask questions if there are implementation options
+3: When running playwright use the command '.\node_modules\.bin\playwright.cmd' to make sure the correct version loads. 
+4: Please capture all the output needed when running a test the first time so that you do not need to rerun the test.
+5: When running the regression tests run them in 30 batches, and use regression.spec.js and touch.spec.js
+6: After fixing issues with the regression tests apply them to screenshots.spec.js and validate them using one theme only.
+7: Fail-fast test iterations: after a code/test change, DON'T run a whole batch at once — run only the first 2-3 affected tests first (`--grep "a|b" --workers=2 --retries=0`) to debug on a small surface; grow the batch only once those pass. The config sets `retries: 1`, so pass `--retries=0` while iterating (otherwise failures take twice as long).
 
 ## Self-improving playbook
 At the START of every session, read this file fully and apply all rules.
@@ -36,6 +37,7 @@ Techniques / gotchas:
 - To inspect computed styles/DOM, drop a temp `tests/_probe.spec.js` that writes JSON via `require("fs").writeFileSync(path.join(__dirname, "_probe.out.json"), ...)`, run it with `--reporter=line`, `Get-Content` the JSON, then delete both files. (test `console.log` is hidden by the list reporter).
 - `page.evaluate` can't see inside shadow roots: query `document.getElementById("<pageId>").shadowRoot` first (e.g. `#streamsEditor`, `#jobEditPage`, `#smdConfirmModal`). Playwright locators pierce automatically.
 - smd-button disabled/`.disabled` assertions must target the inner native button: `#id button`, not the host element.
+- Playwright `toHaveText` on an `smd-button` HOST reports the slot fallback text too (e.g. `"Edit\n Button"`), so exact-text assertions fail. Use `toContainText("Edit")` or a `getByRole("button", { name: "Edit" })` locator instead.
 - Grep on minified vendor files breaks the tool (giant matched lines) — scope searches to `js/**`/`tests/**`.
 
 ## Session log
@@ -53,6 +55,10 @@ Techniques / gotchas:
 - `<smd-image>` now also re-renders on a `data-bs-theme`/`data-theme` mutation of `<html>` (MutationObserver in connectedCallback) so mounted images re-theme during screenshot theme sweeps.
 - The app now uses `<smd-image key-prefix="planmydays_">` everywhere it shows a job or stream image: main view today cards (stream+job thumbs), `pmd-stream-header`/`pmd-stream-job-card`/`pmd-job-search-card` thumbs (their `image`/`stream-image` attributes now carry NAMES, not data URLs, and they render `<smd-image>` internally), the job-edit stream dropdown + image previews, the stream-edit preview, and `updateJobImagePreview`/`updateJobStreamPreview`/`updateStreamImagePreview` (set the `smd-image` `image` attribute instead of innerHTML). The `#todayCardList img.date-img` regression test now targets `#todayCardList smd-image`. Added a storybook `smd-image` section (seeds a neutral `sb_images` store, name + theme controls).
 - Converted `pmd-image-card` → shared `smd-image-card` (`js/components/smd-image-card.js`): shows a card for a localStorage images entry via `<smd-image>` (name-based; attributes `key-prefix`/`image`/`title`/`index`/`in-use`), dispatches a single `smd-image-card-action` event (`{ action: delete|duplicate|edit, index }`). App: `images.js` builds them with `key-prefix="planmydays_"`, and `app.js` listens for `smd-image-card-action` on the images editor. Old `pmd-image-card.js` deleted; script refs + storybook section updated. GOTCHA: `parseInt(attr) || -1` turns index `0` into `-1` (0 is falsy) and `startEditImage(-1)` then throws `JSON.parse(JSON.stringify(undefined))` ("undefined" is not valid JSON) — guard falsy index with `isNaN()`.
+- Added shared `smd-image-select` (`js/components/smd-image-select.js`): image thumbnail (via `smd-image`, name + `key-prefix`), name label, and an Edit `smd-button`. Attributes `key-prefix`/`image`/`label`/`label-id`/`button-id`/`disabled`; emits `smd-image-select-action` `{ action: "edit" }`. Keeps a bordered placeholder box ("none") when no image is selected. App uses it on `jobEditPage` (`#jobImageSelect`, label `#jobImageName`, button `#btnJobImageChange`) and `streamEditPage` (`#streamImageSelect`, label `#streamImageName`, button `#btnStreamImageChoose`); `updateJobImagePreview`/`updateStreamImagePreview` set the component's `image` attribute. GOTCHA: composed events crossing shadow boundaries retarget `e.target` to the OUTERMOST host — a `document`-level listener must use `e.composedPath()` (CALL IT: `e.composedPath()`, not `e.composedPath || []`) to find the originating component.
+- `imagePickerModal` (bootstrap) → `<smd-page id="imagePickerPage">`: `openImagePicker`/`closeImagePicker`/`renderImagePicker` rewritten to drive a page (title "Choose Image", search + Clear, `#imagePickerList`, footer "No Image" + Cancel smd-buttons); picker items render `<smd-image key-prefix="planmydays_">`; `IMAGE_PICKER_STYLES` (+ `JOBS_EDITOR_STYLES`) injected. Modal markup removed from `index.html`; old `#imagePickerModal`/`toHaveClass(/show/)`/`bootstrap.Modal.getInstance(...).hide()` test helpers replaced with `#imagePickerPage` + `open` attribute. Only bootstrap modal left is `imageEditModal`.
+- Test discipline added to AGENTS.md rule 7: after a change run only the first 2-3 affected tests with `--retries=0`, expand once green.
+- `smd-image-select` shows a centred muted "none" placeholder in the thumb box when no image is chosen (hide the empty `smd-image` host entirely so the placeholder is the only flex child). Image picker (`imagePickerPage`) now wraps its grid (needed `.smd-page-body .flex-wrap` — JOBS_EDITOR_STYLES doesn't include it, so items overflowed one row) and its footer order is Cancel (left) then No Image.
 
 ### 2026-09-05
 - Added "Self-improving playbook" section (read at start, dated session log at end).

@@ -699,13 +699,7 @@ function getStreamEditFormHTML(data) {
     </div>
     <div class="mb-2">
       <label class="form-label">Image</label>
-      <div class="d-flex align-items-center gap-2">
-        <div style="width:50px;height:50px;border:1px solid var(--bs-border-color);border-radius:6px;overflow:hidden;display:flex;align-items:center;justify-content:center;flex-shrink:0" id="streamImagePreview">
-          <smd-image key-prefix="planmydays_" image="${escapeHtml(data.image || "")}" style="width:100%;height:100%"></smd-image>
-        </div>
-        <span class="small text-secondary" id="streamImageName">${escapeHtml(data.image || "")}</span>
-        <button class="btn btn-primary btn-sm" id="btnStreamImageChoose" onclick="openImagePicker(function(name){ editField('image', name); updateStreamImagePreview(name); })">Edit</button>
-      </div>
+      <smd-image-select id="streamImageSelect" key-prefix="planmydays_" image="${escapeHtml(data.image || "")}" label-id="streamImageName" button-id="btnStreamImageChoose"></smd-image-select>
     </div>
   `;
 }
@@ -1030,27 +1024,23 @@ function editField(field, value) {
 }
 
 function updateStreamImagePreview(name) {
-  var preview = $id("streamImagePreview");
-  var nameEl = $id("streamImageName");
-  if (!preview) return;
-  var sim = preview.querySelector("smd-image");
-  if (sim) {
-    if (name) sim.setAttribute("image", name);
-    else sim.removeAttribute("image");
+  var sel = $id("streamImageSelect");
+  if (sel) {
+    if (name) sel.setAttribute("image", name);
+    else sel.removeAttribute("image");
   }
+  var nameEl = $id("streamImageName");
   if (nameEl) nameEl.textContent = name;
 }
 function updateJobImagePreview(name) {
-  var preview = $id("jobImagePreview");
-  var nameEl = $id("jobImageName");
-  var removeBtn = $id("jobImageRemoveBtn");
-  if (!preview) return;
-  var sim = preview.querySelector("smd-image");
-  if (sim) {
-    if (name) sim.setAttribute("image", name);
-    else sim.removeAttribute("image");
+  var sel = $id("jobImageSelect");
+  if (sel) {
+    if (name) sel.setAttribute("image", name);
+    else sel.removeAttribute("image");
   }
+  var nameEl = $id("jobImageName");
   if (nameEl) nameEl.textContent = name;
+  var removeBtn = $id("jobImageRemoveBtn");
   if (removeBtn) {
     if (name) removeBtn.classList.remove("d-none");
     else removeBtn.classList.add("d-none");
@@ -1693,16 +1683,8 @@ function getJobGeneralTabHTML(data, readOnly) {
       </div>
       <div class="col-6 d-flex flex-column" style="min-height:61px">
         <label class="form-label mb-0">Image</label>
-        <div class="d-flex align-items-center gap-2 mt-1" style="flex-grow:1">
-          <div style="width:45px;height:45px;border:1px solid var(--bs-border-color);border-radius:6px;overflow:hidden;display:flex;align-items:center;justify-content:center;flex-shrink:0" id="jobImagePreview">
-            <smd-image key-prefix="planmydays_" image="${escapeHtml(data.image || "")}" style="width:100%;height:100%"></smd-image>
-          </div>
-          <div>
-            <div id="jobImageName">${escapeHtml(data.image || "")}</div>
-            <div class="d-flex gap-1 mt-1">
-              <button class="btn btn-primary btn-sm" id="btnJobImageChange" ${disabled} onclick="openImagePicker(function(name){ jobField('image', name); updateJobImagePreview(name); })">Edit</button>
-            </div>
-          </div>
+        <div class="d-flex align-items-center mt-1" style="flex-grow:1">
+          <smd-image-select id="jobImageSelect" key-prefix="planmydays_" image="${escapeHtml(data.image || "")}" label-id="jobImageName" button-id="btnJobImageChange" ${readOnly ? "disabled" : ""}></smd-image-select>
         </div>
       </div>
     </div>
@@ -2910,6 +2892,17 @@ document.addEventListener("DOMContentLoaded", () => {
   if (typeof seedSampleImages === "function") seedSampleImages();
 
   renderMain();
+
+  document.addEventListener("smd-image-select-action", function(e) {
+    const path = e.composedPath ? e.composedPath() : [];
+    const sel = (path && path.find(function(el) { return el && el.tagName === "SMD-IMAGE-SELECT"; })) || null;
+    if (!sel || !sel.id) return;
+    if (sel.id === "streamImageSelect") {
+      openImagePicker(function(name) { editField("image", name); updateStreamImagePreview(name); });
+    } else if (sel.id === "jobImageSelect") {
+      openImagePicker(function(name) { jobField("image", name); updateJobImagePreview(name); });
+    }
+  });
 
   if (typeof updateMinioMenu === "function") updateMinioMenu();
 });

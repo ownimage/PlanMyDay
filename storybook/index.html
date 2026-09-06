@@ -215,6 +215,7 @@
   <script src="../js/components/smd-buymeacoffee.js"></script>
   <script src="../js/components/smd-image.js"></script>
   <script src="../js/components/smd-image-card.js"></script>
+  <script src="../js/components/smd-image-select.js"></script>
   <script src="../js/components/pmd-stream-header.js"></script>
   <script src="../js/components/pmd-stream-job-card.js"></script>
   <script src="../js/components/pmd-job-search-card.js"></script>
@@ -693,6 +694,51 @@
         };
         renderCards();
         document.getElementById("ctrl-image-inuse").addEventListener("change", renderCards);
+      }
+    });
+
+    // ---- smd-image-select ----
+    sections.push({
+      id: "smd-image-select",
+      name: "smd-image-select",
+      tag: "<smd-image-select>",
+      desc: "Image thumbnail + name + an Edit button. The image is looked up by NAME via <code>&lt;smd-image&gt;</code> using <code>key-prefix</code> (list key = <code>keyPrefix + \"images\"</code>) + <code>image</code>; <code>label</code> overrides the shown name; <code>disabled</code> disables the Edit button. Clicking Edit dispatches <code>smd-image-select-action</code> (<code>{ action: \"edit\" }</code>).",
+      html: () => `
+        <div class="sb-canvas">
+          <div class="sb-stack" id="sb-image-selects"></div>
+        </div>
+        <div class="sb-controls">
+          <label><input type="checkbox" id="ctrl-image-select-disabled"> Disabled (view mode)</label>
+        </div>
+        <div class="sb-log" id="log-smd-image-select">events: none yet</div>
+      `,
+      init: () => {
+        const seed = [
+          { name: "Calendar", data: "data:image/svg+xml," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="45" height="45" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" stroke="#111111" stroke-width="2" fill="none"/><path d="M3 9h18M8 3v4M16 3v4" stroke="#111111" stroke-width="2" fill="none"/></svg>'), themes: { dark: { line: "#39cbfb", width: "2" }, light: { line: "#a55", width: "2" } } }
+        ];
+        localStorage.setItem("sbis_images", JSON.stringify(seed));
+        const host = document.getElementById("sb-image-selects");
+        const render = () => {
+          const disabled = document.getElementById("ctrl-image-select-disabled").checked;
+          host.innerHTML = `
+            <div class="sb-frame-wrapper">
+              <div class="sb-label">With image</div>
+              <smd-image-select key-prefix="sbis_" image="Calendar" label-id="sb-select-name"></smd-image-select>
+            </div>
+            <div class="sb-frame-wrapper">
+              <div class="sb-label">No image</div>
+              <smd-image-select key-prefix="sbis_" label-id="sb-select-empty"></smd-image-select>
+            </div>
+            <div class="sb-frame-wrapper">
+              <div class="sb-label">Disabled</div>
+              <smd-image-select key-prefix="sbis_" image="Calendar" ${disabled ? "disabled" : ""}></smd-image-select>
+            </div>`;
+          host.querySelectorAll("smd-image-select").forEach((sel) => {
+            sel.addEventListener("smd-image-select-action", (e) => log("smd-image-select", e.detail.action + " -> " + sel.getAttribute("image")));
+          });
+        };
+        render();
+        document.getElementById("ctrl-image-select-disabled").addEventListener("change", render);
       }
     });
 
