@@ -1594,6 +1594,280 @@ test.describe("PlanMyDay - Regression", () => {
       await expect(page.getByText("No Image")).toBeVisible();
       await expect(page.locator("#imagePickerPage .smd-page-footer smd-button").filter({ hasText: "Cancel" })).toBeVisible();
     });
+
+    test("picker has all six tabs, Local active by default", async ({ page }) => {
+      for (const label of ["Local", "Bootstrap", "Remix", "Font Awesome", "FA Brands", "Material"]) {
+        await expect(page.locator("#imagePickerPage .smd-tab-btn").filter({ hasText: label })).toBeVisible();
+      }
+      await expect(page.locator("#imagePickerPage .smd-tab-btn[active]")).toHaveText(/Local/);
+      await expect(page.locator(".image-picker-item").first()).toBeVisible();
+    });
+
+    test("picker tabs wrap onto multiple lines", async ({ page }) => {
+      await expect(page.locator("#imagePickerPage smd-tabs")).toHaveAttribute("wrap", "");
+      const wrap = await page.locator("#imagePickerPage smd-tabs").first()
+        .evaluate((el) => getComputedStyle(el.shadowRoot.querySelector(".smd-tab-list")).flexWrap);
+      expect(wrap).toBe("wrap");
+      await page.setViewportSize({ width: 360, height: 640 });
+      await page.waitForTimeout(300);
+      const rows = await page.locator("#imagePickerPage .smd-tab-btn").evaluateAll((btns) => {
+        const tops = btns.map((b) => Math.round(b.getBoundingClientRect().top));
+        return new Set(tops).size;
+      });
+      expect(rows).toBeGreaterThan(1);
+    });
+
+    test("bootstrap tab shows all bootstrap icons with the icon font", async ({ page }) => {
+      await page.locator("#imagePickerPage .smd-tab-btn").filter({ hasText: "Bootstrap" }).click();
+      await page.locator("#iconPickerList-bi .icon-picker-item").first().waitFor({ state: "visible", timeout: 10000 });
+      expect(await page.locator("#iconPickerList-bi .icon-picker-item").count()).toBeGreaterThan(500);
+      const fontFamily = await page.locator("#iconPickerList-bi .icon-glyph").first()
+        .evaluate((el) => getComputedStyle(el).fontFamily);
+      expect(fontFamily).toContain("bootstrap-icons");
+      await expect(page.locator("#imagePickerPage .smd-tab-btn[active]")).toHaveText(/Bootstrap/);
+    });
+
+    test("each icon tab renders its grid with the correct icon font", async ({ page }) => {
+      const sets = [
+        { label: "Bootstrap", list: "#iconPickerList-bi", family: "bootstrap-icons" },
+        { label: "Remix", list: "#iconPickerList-ri", family: "remixicon" },
+        { label: "Font Awesome", list: "#iconPickerList-fa", family: "Font Awesome 6 Free" },
+        { label: "FA Brands", list: "#iconPickerList-fab", family: "Font Awesome 6 Brands" },
+        { label: "Material", list: "#iconPickerList-ms", family: "Material Symbols Outlined" }
+      ];
+      for (const set of sets) {
+        await page.locator("#imagePickerPage .smd-tab-btn").filter({ hasText: set.label }).click();
+        await page.locator(`${set.list} .icon-picker-item`).first().waitFor({ state: "visible", timeout: 15000 });
+        const count = await page.locator(`${set.list} .icon-picker-item`).count();
+        expect(count).toBeGreaterThan(300);
+        const family = await page.locator(`${set.list} .icon-glyph`).first()
+          .evaluate((el) => getComputedStyle(el).fontFamily);
+        expect(family).toContain(set.family);
+      }
+    });
+
+    test("bootstrap tab search filters icons and clear restores them", async ({ page }) => {
+      await page.locator("#imagePickerPage .smd-tab-btn").filter({ hasText: "Bootstrap" }).click();
+      await page.locator("#iconPickerList-bi .icon-picker-item").first().waitFor({ state: "visible", timeout: 10000 });
+      const total = await page.locator("#iconPickerList-bi .icon-picker-item").count();
+      await page.locator(".image-picker-search").fill("house");
+      await expect(page.locator("#iconPickerList-bi .icon-picker-item .icon-name").first()).toContainText("house");
+      const filtered = await page.locator("#iconPickerList-bi .icon-picker-item").count();
+      expect(filtered).toBeGreaterThan(0);
+      expect(filtered).toBeLessThan(total);
+      await page.locator("#btnImagePickerClear").click();
+      await expect(page.locator(".image-picker-search")).toHaveValue("");
+      await expect(page.locator("#iconPickerList-bi .icon-picker-item")).toHaveCount(total, { timeout: 10000 });
+    });
+
+    test("selecting an icon returns the set-prefixed name and closes the picker", async ({ page }) => {
+      const sets = [
+        { label: "Bootstrap", list: "#iconPickerList-bi", prefix: "bi" },
+        { label: "Remix", list: "#iconPickerList-ri", prefix: "ri" },
+        { label: "Font Awesome", list: "#iconPickerList-fa", prefix: "fa" },
+        { label: "FA Brands", list: "#iconPickerList-fab", prefix: "fab" },
+        { label: "Material", list: "#iconPickerList-ms", prefix: "ms" }
+      ];
+      for (const set of sets) {
+        await page.locator("#imagePickerPage .smd-tab-btn").filter({ hasText: set.label }).click();
+        await page.locator(`${set.list} .icon-picker-item`).first().waitFor({ state: "visible", timeout: 15000 });
+        const firstItemName = (await page.locator(`${set.list} .icon-picker-item .icon-name`).first().textContent()).trim();
+        await page.locator(`${set.list} .icon-picker-item`).first().click();
+        await page.locator("#imagePickerPage").waitFor({ state: "hidden", timeout: 10000 });
+        await expect(page.locator("#streamImageName")).toHaveText(`${set.prefix}:${firstItemName}`);
+        await page.locator("#btnStreamImageChoose").click();
+        await page.locator("#imagePickerPage").waitFor({ state: "visible" });
+        await page.locator(".image-picker-item").first().waitFor({ state: "visible", timeout: 10000 });
+      }
+    });
+  });
+
+  // ── smd-image rendering ────────────────────────────────────
+
+  test.describe("smd-image rendering", () => {
+
+    test("applies light and dark svg theme overrides to nested elements like the editor preview", async ({ page }) => {
+      await page.goto("/");
+      const nestedSvg = "data:image/svg+xml," + encodeURIComponent('<svg fill="#f7f7f7" stroke="#8f8f8f" xmlns="http://www.w3.org/2000/svg"><path fill="#f7f7f7" stroke="#8f8f8f" d="M0 0h10v10H0z"/></svg>');
+      await page.evaluate((svgData) => {
+        localStorage.setItem("planmydays_images", JSON.stringify([{
+          name: "NestedIcon",
+          data: svgData,
+          themes: {
+            light: { line: "none", fill: "#000000", width: null },
+            dark: { line: "none", fill: "#ffffff", width: null }
+          }
+        }]));
+      }, nestedSvg);
+      await page.reload();
+
+      for (const [theme, wantFill] of [["dark", "#ffffff"], ["light", "#000000"]]) {
+        await page.evaluate((t) => {
+          document.documentElement.setAttribute("data-bs-theme", t);
+          const el = document.createElement("smd-image");
+          el.setAttribute("key-prefix", "planmydays_");
+          el.setAttribute("image", "NestedIcon");
+          el.setAttribute("size", "64");
+          document.body.appendChild(el);
+        }, theme);
+        const src = await page.evaluate(() =>
+          document.querySelector("smd-image[image='NestedIcon']").shadowRoot.querySelector("img").getAttribute("src"));
+        const decoded = decodeURIComponent(src.substring("data:image/svg+xml,".length));
+        expect(decoded).toContain(`<svg fill="${wantFill}"`);
+        expect(decoded).toContain(`<path fill="${wantFill}"`);
+        const editorOut = await page.evaluate(() => decodeURIComponent(getThemedImageDataUrl(loadImages()[0]).substring("data:image/svg+xml,".length)));
+        expect(decoded).toBe(editorOut);
+        await page.evaluate(() => { document.querySelector("smd-image[image='NestedIcon']").remove(); });
+      }
+    });
+
+    test("renders a bi: prefixed name as a bootstrap icon glyph", async ({ page }) => {
+      await page.goto("/");
+      await page.evaluate(() => {
+        const el = document.createElement("smd-image");
+        el.setAttribute("image", "bi:house");
+        el.setAttribute("size", "64");
+        document.body.appendChild(el);
+      });
+      await page.waitForFunction(() => {
+        const el = document.querySelector("smd-image[image='bi:house']");
+        if (!el || !el.shadowRoot) return false;
+        const span = el.shadowRoot.querySelector(".smd-bi");
+        return span && !span.hidden && span.textContent.length > 0;
+      }, null, { timeout: 10000 });
+      const info = await page.evaluate(() => {
+        const el = document.querySelector("smd-image[image='bi:house']");
+        const span = el.shadowRoot.querySelector(".smd-bi");
+        return {
+          glyph: span.textContent,
+          fontFamily: getComputedStyle(span).fontFamily,
+          fontSize: getComputedStyle(span).fontSize,
+          hostW: getComputedStyle(el).width,
+          imgHidden: el.shadowRoot.querySelector("img").hidden
+        };
+      });
+      expect(info.fontFamily).toContain("bootstrap-icons");
+      expect(info.fontSize).toBe("51px");
+      expect(info.hostW).toBe("64px");
+      expect(info.imgHidden).toBeTruthy();
+
+      const expected = await page.evaluate(async () => {
+        const css = await (await fetch("vendor/bootstrap-icons.css?v=" + (typeof BUILD_NUMBER !== "undefined" ? BUILD_NUMBER : 0))).text();
+        const m = css.match(/\.bi-house::before[^}]*content:\s*["']\\([0-9a-fA-F]+)["']/);
+        return m ? String.fromCodePoint(parseInt(m[1], 16)) : "";
+      });
+      expect(info.glyph).toBe(expected);
+    });
+
+    test("renders ri/fa/fab/ms prefixed names as icon glyphs with the right fonts", async ({ page }) => {
+      await page.goto("/");
+      const samples = [
+        { image: "ri:home-4-line", family: "remixicon", weight: "400" },
+        { image: "fa:house", family: "Font Awesome 6 Free", weight: "900" },
+        { image: "fab:github", family: "Font Awesome 6 Brands", weight: "400" },
+        { image: "ms:home", family: "Material Symbols Outlined", weight: "400" }
+      ];
+      for (const sample of samples) {
+        await page.evaluate((img) => {
+          const el = document.createElement("smd-image");
+          el.setAttribute("image", img);
+          el.setAttribute("size", "64");
+          document.body.appendChild(el);
+        }, sample.image);
+        await page.waitForFunction((img) => {
+          const el = document.querySelector(`smd-image[image='${img}']`);
+          if (!el || !el.shadowRoot) return false;
+          const span = el.shadowRoot.querySelector(".smd-bi");
+          return span && !span.hidden && span.textContent.length > 0;
+        }, sample.image, { timeout: 15000 });
+        const info = await page.evaluate((img) => {
+          const el = document.querySelector(`smd-image[image='${img}']`);
+          const span = el.shadowRoot.querySelector(".smd-bi");
+          const cs = getComputedStyle(span);
+          return { text: span.textContent, fontFamily: cs.fontFamily, fontWeight: cs.fontWeight };
+        }, sample.image);
+        expect(info.fontFamily).toContain(sample.family);
+        expect(info.fontWeight).toBe(sample.weight);
+        if (sample.image.startsWith("ms:")) {
+          expect(info.text).toBe("home");
+        } else {
+          expect(info.text.length).toBe(1);
+        }
+      }
+    });
+
+    test("unknown bi: names stay hidden", async ({ page }) => {
+      await page.goto("/");
+      await page.evaluate(() => {
+        const el = document.createElement("smd-image");
+        el.setAttribute("image", "bi:no-such-icon-xyz");
+        document.body.appendChild(el);
+      });
+      await page.waitForFunction(() => {
+        const el = document.querySelector("smd-image[image='bi:no-such-icon-xyz']");
+        return el && el.shadowRoot;
+      });
+      await page.waitForTimeout(800);
+      const hidden = await page.evaluate(() => {
+        const el = document.querySelector("smd-image[image='bi:no-such-icon-xyz']");
+        const span = el.shadowRoot.querySelector(".smd-bi");
+        const img = el.shadowRoot.querySelector("img");
+        return { spanMissing: !span, imgHidden: img ? img.hidden : null };
+      });
+      expect(hidden.spanMissing).toBeTruthy();
+      expect(hidden.imgHidden).toBeTruthy();
+    });
+
+    test("stored images still render when image name is not bi: prefixed", async ({ page }) => {
+      await page.goto("/");
+      await page.evaluate(() => {
+        localStorage.setItem("planmydays_images", JSON.stringify([
+          { name: "Apple", data: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%23ff0000'/%3E%3C/svg%3E" }
+        ]));
+        const el = document.createElement("smd-image");
+        el.setAttribute("key-prefix", "planmydays_");
+        el.setAttribute("image", "Apple");
+        el.setAttribute("size", "32");
+        document.body.appendChild(el);
+      });
+      await page.waitForFunction(() => {
+        const el = document.querySelector("smd-image[image='Apple']");
+        if (!el || !el.shadowRoot) return false;
+        const img = el.shadowRoot.querySelector("img");
+        return img && !img.hidden && img.hasAttribute("src");
+      });
+      const hasBiSpan = await page.evaluate(() => {
+        const el = document.querySelector("smd-image[image='Apple']");
+        return !!el.shadowRoot.querySelector(".smd-bi");
+      });
+      expect(hasBiSpan).toBeFalsy();
+    });
+
+    test("main view renders a bi: job image as an icon glyph", async ({ page }) => {
+      const streams = JSON.parse(JSON.stringify(TEST_STREAMS));
+      streams[0].jobs[0].image = "bi:house";
+      await page.evaluate(({ streams, ds }) => {
+        localStorage.setItem("planmydays_images", "[]");
+        localStorage.setItem("planmydays_streams", JSON.stringify(streams));
+        localStorage.setItem("planmydays_today_order", JSON.stringify(["job_1"]));
+        localStorage.setItem("planmydays_last_gen", ds);
+        localStorage.setItem("planmydays_completed", "[]");
+      }, { streams, ds: todayStr });
+      await page.reload();
+      await page.locator("#todayCardList smd-image[image='bi:house']").waitFor({ state: "attached" });
+      await page.waitForFunction(() => {
+        const el = document.querySelector("#todayCardList smd-image[image='bi:house']");
+        if (!el || !el.shadowRoot) return false;
+        const span = el.shadowRoot.querySelector(".smd-bi");
+        return span && !span.hidden;
+      }, null, { timeout: 10000 });
+      const glyphInfo = await page.locator("#todayCardList smd-image[image='bi:house']").evaluate((el) => {
+        const span = el.shadowRoot.querySelector(".smd-bi");
+        return { glyph: span.textContent, fontFamily: getComputedStyle(span).fontFamily };
+      });
+      expect(glyphInfo.fontFamily).toContain("bootstrap-icons");
+      expect(glyphInfo.glyph.length).toBeGreaterThan(0);
+    });
   });
 
   // ── Dev Mode ───────────────────────────────────────────────

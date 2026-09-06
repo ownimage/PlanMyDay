@@ -25,7 +25,7 @@
     const encoded = value && value.startsWith("#") ? value : value || "none";
     const rx = new RegExp(`\\b${attr}\\s*=\\s*["'][^"']*["']`);
     if (rx.test(decoded)) {
-      return "data:image/svg+xml," + encodeURIComponent(decoded.replace(rx, function (m) {
+      return "data:image/svg+xml," + encodeURIComponent(decoded.replace(new RegExp(rx.source, "g"), function (m) {
         const quote = m.indexOf('"') !== -1 ? '"' : "'";
         return attr + "=" + quote + encoded + quote;
       }));
@@ -41,6 +41,68 @@
     if (overrides.fill != null && overrides.fill !== "") out = applySvgAttr(out, "fill", overrides.fill);
     if (overrides.width != null && overrides.width !== "") out = applySvgAttr(out, "stroke-width", overrides.width);
     return out;
+  }
+
+  const ICON_SETS = {
+    bi: { css: "/vendor/bootstrap-icons.css", family: "bootstrap-icons", mode: "codepoint" },
+    ri: { css: "/vendor/remixicon.css", family: "remixicon", mode: "codepoint" },
+    fa: { json: "/vendor/fontawesome-icons.json", slot: "fa", family: "Font Awesome 6 Free", mode: "codepoint" },
+    fab: { json: "/vendor/fontawesome-icons.json", slot: "fab", family: "Font Awesome 6 Brands", mode: "codepoint" },
+    ms: { json: "/vendor/material-symbols-names.json", family: "Material Symbols Outlined", mode: "ligature" }
+  };
+
+  const iconDataBySet = Object.create(null);
+  const iconLoadPromises = Object.create(null);
+
+  function parseCssGlyphs(cssText, selectorRe) {
+    const map = {};
+    let m;
+    while ((m = selectorRe.exec(cssText))) map[m[1]] = m[2];
+    return map;
+  }
+
+  function loadIconSet(set) {
+    if (iconLoadPromises[set]) return iconLoadPromises[set];
+    const cfg = ICON_SETS[set];
+    const v = typeof global.BUILD_NUMBER !== "undefined" ? global.BUILD_NUMBER : Date.now();
+    const fail = (err) => {
+      iconLoadPromises[set] = null;
+      throw err;
+    };
+    const finish = (names) => {
+      const map = {};
+      names.forEach((n) => { map[n.name] = { hex: n.hex, weight: n.weight }; });
+      iconDataBySet[set] = map;
+      return map;
+    };
+    if (cfg.css) {
+      iconLoadPromises[set] = global.fetch(cfg.css + "?v=" + v)
+        .then((r) => { if (!r.ok) throw new Error("HTTP " + r.status); return r.text(); })
+        .then((txt) => {
+          const glyphs = set === "ri"
+            ? parseCssGlyphs(txt, /\.ri-([a-z0-9][a-z0-9-]*):before\s*\{\s*content:\s*["']\\([0-9a-fA-F]+)["']/g)
+            : parseCssGlyphs(txt, /\.bi-([a-z0-9][a-z0-9-]*)::before\s*\{\s*content:\s*["']\\([0-9a-fA-F]+)["']/g);
+          return finish(Object.keys(glyphs).map((name) => ({ name, hex: glyphs[name] })));
+        })
+        .catch(fail);
+    } else {
+      iconLoadPromises[set] = global.fetch(cfg.json + "?v=" + v)
+        .then((r) => { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+        .then((data) => {
+          if (cfg.slot) {
+            const slot = data[cfg.slot] || {};
+            return finish(Object.keys(slot).map((name) => ({ name, hex: slot[name].h, weight: slot[name].w })));
+          }
+          return finish(data.map((name) => ({ name })));
+        })
+        .catch(fail);
+    }
+    return iconLoadPromises[set];
+  }
+
+  function iconEntry(set, name) {
+    if (!ICON_SETS[set] || !iconDataBySet[set]) return null;
+    return iconDataBySet[set][name] || null;
   }
 
   class SmdImage extends HTMLElement {
@@ -64,6 +126,21 @@
             display: block;
             max-width: 100%;
             max-height: 100%;
+          }
+          .smd-bi {
+            font-family: "bootstrap-icons";
+            font-style: normal;
+            font-weight: normal;
+            font-variant: normal;
+            text-transform: none;
+            line-height: 1;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
           }
         `)
       ]);
@@ -129,16 +206,32 @@
     }
 
     _render() {
-      const img = this.shadowRoot.querySelector("img");
-      if (!img) return;
-      const stored = this._findImage();
-      const alt = this.getAttribute("alt") || "";
+      const name = this.getAttribute("image") || "";
+      const px = this._sizePx();
 
       // Sized renders get a shared, cached `:host` stylesheet (one sheet per px).
-      const px = this._sizePx();
       if (px > 0) {
         SmdStyles.adoptStyles(this.shadowRoot, SmdStyles.sheetFor(":host { width: " + px + "px; height: " + px + "px; }"));
       }
+
+      const colon = name.indexOf(":");
+      if (colon > 0) {
+        const set = name.slice(0, colon);
+        if (ICON_SETS[set]) {
+          this._renderIcon(set, name.slice(colon + 1), px);
+          return;
+        }
+      }
+      this._renderStored(name, px);
+    }
+
+    _renderStored(name, px) {
+      const img = this.shadowRoot.querySelector("img");
+      const span = this.shadowRoot.querySelector(".smd-bi");
+      if (!img) return;
+      if (span) span.hidden = true;
+      const stored = this._findImage();
+      const alt = this.getAttribute("alt") || "";
 
       // Non-SVG images may only carry downscaled thumbnails (data64/80/100) when
       // the full-size `data` has been stripped for size; prefer the thumbnail for
@@ -154,6 +247,41 @@
       img.src = themedSrc(src, theme, overrides);
       img.alt = alt || escapeHtml(this.getAttribute("image") || "");
       img.hidden = false;
+    }
+
+    _renderIcon(set, iconName, px) {
+      const img = this.shadowRoot.querySelector("img");
+      if (img) {
+        img.removeAttribute("src");
+        img.hidden = true;
+      }
+      let span = this.shadowRoot.querySelector(".smd-bi");
+      const cfg = ICON_SETS[set];
+      const entry = iconEntry(set, iconName);
+      const glyph = entry && entry.hex ? String.fromCodePoint(parseInt(entry.hex, 16)) : (iconName || "");
+      const ready = !!iconDataBySet[set];
+      if (!entry || (cfg.mode === "ligature" && !iconName)) {
+        if (span) span.hidden = true;
+        if (!ready) {
+          loadIconSet(set).then(() => {
+            if (this.isConnected && (this.getAttribute("image") || "") === set + ":" + iconName) this._render();
+          }).catch(() => {});
+        }
+        return;
+      }
+      if (!span) {
+        span = document.createElement("span");
+        span.className = "smd-bi";
+        this.shadowRoot.appendChild(span);
+      }
+      span.textContent = glyph;
+      span.style.setProperty("font-family", '"' + cfg.family + '"');
+      if (entry.weight != null) span.style.setProperty("font-weight", entry.weight);
+      else span.style.removeProperty("font-weight");
+      if (cfg.mode === "ligature") span.style.setProperty("white-space", "nowrap");
+      else span.style.removeProperty("white-space");
+      span.style.fontSize = px > 0 ? Math.max(8, Math.round(px * 0.8)) + "px" : "1.5rem";
+      span.hidden = false;
     }
   }
 

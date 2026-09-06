@@ -2,10 +2,14 @@ const smdTabsSheet = SmdStyles.sheetFor(`
   :host { display: block; width: 100%; box-sizing: border-box; }
   .smd-tab-list {
     display: flex;
+    flex-wrap: nowrap;
     gap: 2px;
     padding: 0 4px;
     position: relative;
     z-index: 1;
+  }
+  :host([wrap]) .smd-tab-list {
+    flex-wrap: wrap;
   }
 .smd-tab-btn {
     padding: 0.5rem 1.25rem;
@@ -18,7 +22,6 @@ const smdTabsSheet = SmdStyles.sheetFor(`
     font-size: 0.95rem;
     font-weight: 500;
     transition: background 0.15s, color 0.15s;
-    margin-bottom: -1px;
   }
   .smd-tab-btn:hover:not([active]) {
     background: color-mix(in srgb, var(--smd-secondary, #6c757d) 85%, var(--smd-primary-text, #fff));
@@ -34,7 +37,7 @@ const smdTabsSheet = SmdStyles.sheetFor(`
   }
   .smd-tab-line {
     height: 1px;
-    background: var(--bs-border-color, #444);
+    background: var(--smd-primary, #0d6efd);
     width: 100%;
     box-sizing: border-box;
   }
@@ -70,7 +73,7 @@ class SmdTabs extends HTMLElement {
     }
 
     static get observedAttributes() {
-        return ['bottomline'];
+        return ['bottomline', 'wrap'];
     }
 
     attributeChangedCallback(name, oldValue, newValue) {
@@ -97,6 +100,14 @@ class SmdTabs extends HTMLElement {
 
     set bottomline(val) {
         this.toggleAttribute('bottomline', !!val);
+    }
+
+    get wrap() {
+        return this.hasAttribute('wrap');
+    }
+
+    set wrap(val) {
+        this.toggleAttribute('wrap', !!val);
     }
 
     _render() {
