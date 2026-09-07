@@ -6596,6 +6596,57 @@ test.describe("PlanMyDay - Regression", () => {
       expect(new URL(themeHref, "http://x/").searchParams.get("v")).toBe(build);
       expect(themeHref).toMatch(/css\/themes\/quartz\/bootstrap\.min\.css/);
     });
+
+    test("no console errors when deployed under /PlanMyDay/ (sub-path) during SW precache", async ({ page }) => {
+      test.setTimeout(120000);
+      const consoleErrors = [];
+      const pageErrors = [];
+      const badResponses = [];
+      page.on("console", (msg) => { if (msg.type() === "error") consoleErrors.push(msg.text()); });
+      page.on("pageerror", (err) => pageErrors.push(err.message));
+      page.on("response", (resp) => { if (resp.status() >= 400) badResponses.push(resp.status() + " " + resp.url()); });
+
+      // tests/subpath-server.py serves the app ONLY under /PlanMyDay/ (every
+      // origin-root path 404s), faithfully mimicking ownimage.github.io/PlanMyDay/.
+      await page.goto("http://localhost:8081/PlanMyDay/");
+
+      // The theme <link> must resolve through the derived relative prefix; an
+      // absolute "/css/themes/..." href would 404 here and trip badResponses.
+      const themeHref = await page.evaluate(() => document.getElementById("bootstrap-theme-css").getAttribute("href"));
+      expect(themeHref).toMatch(/^css\/themes\//);
+      expect(themeHref).not.toMatch(/^\/css\//);
+
+      // Wait for the SW to register, install, and finish precaching. The first
+      // worker on a fresh context activates automatically after install (no
+      // existing controller to wait behind), so once the registration reports an
+      // active worker, cache.addAll has completed. If any precache URL 404s, the
+      // cache.addAll rejects, install fails, and the worker never activates.
+      await expect.poll(async () => {
+        return page.evaluate(async () => {
+          const regs = await navigator.serviceWorker.getRegistrations();
+          const r = regs.find((x) => x.scope && x.scope.includes("/PlanMyDay/"));
+          return r && r.active ? r.active.state + "|" + !!navigator.serviceWorker.controller : "pending";
+        });
+      }, { timeout: 60000 }).toBe("activated|true");
+
+      // Confirm the precache actually stored the expected assets under /PlanMyDay/.
+      const cachedUrls = await page.evaluate(async () => {
+        const v = typeof BUILD_NUMBER !== "undefined" ? BUILD_NUMBER : "";
+        const cache = await caches.open("planmydays-" + v);
+        return (await cache.keys()).map((r) => r.url);
+      });
+      expect(cachedUrls.length).toBeGreaterThan(0);
+      expect(cachedUrls).toEqual(expect.arrayContaining([
+        expect.stringContaining("/PlanMyDay/css/themes/darkly/bootstrap.min.css"),
+        expect.stringContaining("/PlanMyDay/js/app.js"),
+        expect.stringContaining("/PlanMyDay/index.html")
+      ]));
+
+      // Any page-level asset load failures surface here.
+      expect(consoleErrors).toEqual([]);
+      expect(pageErrors).toEqual([]);
+      expect(badResponses).toEqual([]);
+    });
   });
 });
 });
