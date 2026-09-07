@@ -29,12 +29,29 @@ const themeConfig = (() => {
   };
 })();
 
+// Relative path prefix to the app root, derived from the theme <link> so it
+// works whether the app lives at the domain root (/css/themes/...) or under a
+// sub-path like /PlanMyDay/ (and /storybook/ uses ../css/themes/...). All
+// app-relative assets (vendor/, manifest, etc.) should resolve through this.
+function smdAppRoot() {
+  const link = document.getElementById("bootstrap-theme-css");
+  if (!link) return "";
+  const rel = link.getAttribute("href") || "";
+  const m = rel.match(/^(.*?)css\/themes\/.*$/);
+  return m ? m[1] : "";
+}
+
 function applyTheme(name) {
   const config = themeConfig[name] || themeConfig.darkly;
   const link = document.getElementById("bootstrap-theme-css");
   if (link) {
     const v = typeof BUILD_NUMBER !== "undefined" ? BUILD_NUMBER : Date.now();
-    link.href = config.css + (config.css.indexOf("?") >= 0 ? "&" : "?") + "v=" + v;
+    // Build the theme URL relative to the page (which may live under a sub-path
+    // like /PlanMyDay/). Reuse the link's existing relative prefix so that both
+    // the app root and /storybook/ resolve css/themes correctly.
+    const rel = link.getAttribute("href") || "";
+    const prefix = rel.replace(/[^/]*\/bootstrap\.min\.css(\?.*)?$/, "");
+    link.href = prefix + name + "/bootstrap.min.css?v=" + v;
   }
   document.documentElement.setAttribute("data-bs-theme", config.bsTheme);
   document.documentElement.setAttribute("data-theme", name);

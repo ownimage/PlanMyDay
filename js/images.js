@@ -637,11 +637,11 @@ let imagePickerSet = null;
 let _imagePickerCloseTimer = null;
 
 const PICKER_ICON_SETS = [
-  { key: "bi", title: "Bootstrap", css: "/vendor/bootstrap-icons.css", family: "bootstrap-icons" },
-  { key: "ri", title: "Remix", css: "/vendor/remixicon.css", family: "remixicon" },
-  { key: "fa", title: "Font Awesome", json: "/vendor/fontawesome-icons.json", slot: "fa", family: "Font Awesome 6 Free" },
-  { key: "fab", title: "FA Brands", json: "/vendor/fontawesome-icons.json", slot: "fab", family: "Font Awesome 6 Brands" },
-  { key: "ms", title: "Material", json: "/vendor/material-symbols-names.json", family: "Material Symbols Outlined", ligature: true }
+  { key: "bi", title: "Bootstrap", css: "vendor/bootstrap-icons.css", family: "bootstrap-icons" },
+  { key: "ri", title: "Remix", css: "vendor/remixicon.css", family: "remixicon" },
+  { key: "fa", title: "Font Awesome", json: "vendor/fontawesome-icons.json", slot: "fa", family: "Font Awesome 6 Free" },
+  { key: "fab", title: "FA Brands", json: "vendor/fontawesome-icons.json", slot: "fab", family: "Font Awesome 6 Brands" },
+  { key: "ms", title: "Material", json: "vendor/material-symbols-names.json", family: "Material Symbols Outlined", ligature: true }
 ];
 const IO_CODEPOINT_RE = {
   bi: /\.bi-([a-z0-9][a-z0-9-]*)::before\s*\{\s*content:\s*["']\\([0-9a-fA-F]+)["']/g,
@@ -680,13 +680,14 @@ function loadPickerIconSet(setCfg) {
   if (_pickerIconData[setCfg.key]) return Promise.resolve(_pickerIconData[setCfg.key]);
   if (!_pickerIconPromises[setCfg.key]) {
     const v = typeof BUILD_NUMBER !== "undefined" ? BUILD_NUMBER : Date.now();
+    const root = typeof smdAppRoot === "function" ? smdAppRoot() : "";
     _pickerIconPromises[setCfg.key] = (setCfg.css
-      ? fetch(setCfg.css + "?v=" + v).then((r) => { if (!r.ok) throw new Error("HTTP " + r.status); return r.text(); })
+      ? fetch(root + setCfg.css + "?v=" + v).then((r) => { if (!r.ok) throw new Error("HTTP " + r.status); return r.text(); })
           .then((txt) => {
             const glyphs = parsePickerCssGlyphs(txt, IO_CODEPOINT_RE[setCfg.key]);
             return Object.keys(glyphs).map((name) => ({ name, hex: glyphs[name] }));
           })
-      : fetch(setCfg.json + "?v=" + v).then((r) => { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+      : fetch(root + setCfg.json + "?v=" + v).then((r) => { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
           .then((data) => {
             if (setCfg.slot) {
               const slot = data[setCfg.slot] || {};
