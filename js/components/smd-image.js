@@ -44,11 +44,11 @@
   }
 
   const ICON_SETS = {
-    bi: { css: "/vendor/bootstrap-icons.css", family: "bootstrap-icons", mode: "codepoint" },
-    ri: { css: "/vendor/remixicon.css", family: "remixicon", mode: "codepoint" },
-    fa: { json: "/vendor/fontawesome-icons.json", slot: "fa", family: "Font Awesome 6 Free", mode: "codepoint" },
-    fab: { json: "/vendor/fontawesome-icons.json", slot: "fab", family: "Font Awesome 6 Brands", mode: "codepoint" },
-    ms: { json: "/vendor/material-symbols-names.json", family: "Material Symbols Outlined", mode: "ligature" }
+    bi: { css: "vendor/bootstrap-icons.css", family: "bootstrap-icons", mode: "codepoint" },
+    ri: { css: "vendor/remixicon.css", family: "remixicon", mode: "codepoint" },
+    fa: { json: "vendor/fontawesome-icons.json", slot: "fa", family: "Font Awesome 6 Free", mode: "codepoint" },
+    fab: { json: "vendor/fontawesome-icons.json", slot: "fab", family: "Font Awesome 6 Brands", mode: "codepoint" },
+    ms: { json: "vendor/material-symbols-names.json", family: "Material Symbols Outlined", mode: "ligature" }
   };
 
   const iconDataBySet = Object.create(null);
@@ -65,6 +65,7 @@
     if (iconLoadPromises[set]) return iconLoadPromises[set];
     const cfg = ICON_SETS[set];
     const v = typeof global.BUILD_NUMBER !== "undefined" ? global.BUILD_NUMBER : Date.now();
+    const root = typeof global.smdAppRoot === "function" ? global.smdAppRoot() : "";
     const fail = (err) => {
       iconLoadPromises[set] = null;
       throw err;
@@ -76,7 +77,7 @@
       return map;
     };
     if (cfg.css) {
-      iconLoadPromises[set] = global.fetch(cfg.css + "?v=" + v)
+      iconLoadPromises[set] = global.fetch(root + cfg.css + "?v=" + v)
         .then((r) => { if (!r.ok) throw new Error("HTTP " + r.status); return r.text(); })
         .then((txt) => {
           const glyphs = set === "ri"
@@ -86,7 +87,7 @@
         })
         .catch(fail);
     } else {
-      iconLoadPromises[set] = global.fetch(cfg.json + "?v=" + v)
+      iconLoadPromises[set] = global.fetch(root + cfg.json + "?v=" + v)
         .then((r) => { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
         .then((data) => {
           if (cfg.slot) {
