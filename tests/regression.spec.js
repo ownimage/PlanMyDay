@@ -6597,6 +6597,41 @@ test.describe("PlanMyDay - Regression", () => {
       expect(themeHref).toMatch(/css\/themes\/quartz\/bootstrap\.min\.css/);
     });
 
+    test("no console errors and no failed loads when icon-font glyphs render (bib/ri/fa/fab/ms)", async ({ page }) => {
+      const consoleErrors = [];
+      const pageErrors = [];
+      const badResponses = [];
+      page.on("console", (msg) => { if (msg.type() === "error") consoleErrors.push(msg.text()); });
+      page.on("pageerror", (err) => pageErrors.push(err.message));
+      page.on("response", (resp) => { if (resp.status() >= 400) badResponses.push(resp.status() + " " + resp.url()); });
+
+      await page.goto("/");
+      // Render one glyph per icon family — each requires its vendored @font-face,
+      // so a wrong/missing font file url (e.g. "/vendor/fonts/..." vs the actual
+      // "ShareMyDays/vendor/fonts/...") surfaces as a 404/console error here.
+      const samples = ["bi:house", "ri:home-4-line", "fa:house", "fab:github", "ms:home"];
+      for (const image of samples) {
+        await page.evaluate((img) => {
+          const el = document.createElement("smd-image");
+          el.setAttribute("image", img);
+          el.setAttribute("size", "64");
+          document.body.appendChild(el);
+        }, image);
+        await page.waitForFunction((img) => {
+          const el = document.querySelector(`smd-image[image='${img}']`);
+          if (!el || !el.shadowRoot) return false;
+          const span = el.shadowRoot.querySelector(".smd-bi");
+          return span && !span.hidden && span.textContent.length > 0;
+        }, image, { timeout: 15000 });
+      }
+      // Give any lazily-fetched font files time to register a 404/fail.
+      await page.waitForTimeout(1500);
+
+      expect(consoleErrors).toEqual([]);
+      expect(pageErrors).toEqual([]);
+      expect(badResponses).toEqual([]);
+    });
+
     test("no console errors when deployed under /PlanMyDay/ (sub-path) during SW precache", async ({ page }) => {
       test.setTimeout(120000);
       const consoleErrors = [];

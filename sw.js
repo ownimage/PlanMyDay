@@ -193,10 +193,11 @@ const PRECACHE_URLS = [
   "ShareMyDays/js/components/smd-tabs.js",
   "js/components/pmd-stream-header.js",
   "js/components/pmd-stream-job-card.js",
-  "js/components/pmd-job-search-card.js",
-"ShareMyDays/js/smd-app.js",
+"js/components/pmd-job-search-card.js",
+  "ShareMyDays/js/smd-app.js",
   "ShareMyDays/js/smd-minio.js",
   "ShareMyDays/js/smd-settings.js",
+  "js/app.js",
   "ShareMyDays/js/smd-images.js"
 ];
 

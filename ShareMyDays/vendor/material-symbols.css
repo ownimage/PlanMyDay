@@ -3,5 +3,5 @@
   font-display: block;
   font-style: normal;
   font-weight: 100 700;
-  src: url("/vendor/fonts/MaterialSymbolsOutlined.woff2") format("woff2");
+  src: url("./fonts/MaterialSymbolsOutlined.woff2") format("woff2");
 }

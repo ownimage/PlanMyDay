@@ -47,3 +47,9 @@ python tests/http-server.py
 Then visit: <http://localhost:8080/storybook/index.html>
 
 The chosen theme is remembered in `localStorage` (`storybook_theme`). Each section shows live demo instances; interactive bits (modal/page open, tab switching, stream-header expand, active toggles, card buttons) emit their normal composed events into the section's event log.
+
+```bash
+cd p:\git
+python -m http.server 9090
+```
+Then open http://localhost:9090/

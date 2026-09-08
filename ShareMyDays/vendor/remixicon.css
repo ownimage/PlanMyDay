@@ -11,8 +11,8 @@
 @font-face {
   font-family: "remixicon";
   font-display: swap;
-  src: url("/vendor/fonts/remixicon.woff2?t=1708865856766") format("woff2"),
-       url("/vendor/fonts/remixicon.woff?t=1708865856766") format("woff");
+  src: url("./fonts/remixicon.woff2?t=1708865856766") format("woff2"),
+       url("./fonts/remixicon.woff?t=1708865856766") format("woff");
 }
 
 [class^="ri-"], [class*=" ri-"] {
