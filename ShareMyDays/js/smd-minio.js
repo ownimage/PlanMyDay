@@ -1,7 +1,7 @@
 // Minio (S3-compatible) client for PlanMyDay
 
 function changeMinioEnabled(enabled) {
-  localStorage.setItem("planmydays_minio_enabled", String(enabled));
+  localStorage.setItem(smdKey("minio_enabled"), String(enabled));
   var fields = $id("minioFields");
   if (fields) {
     var inputs = fields.querySelectorAll("input, button");
@@ -11,15 +11,15 @@ function changeMinioEnabled(enabled) {
 }
 
 function changeMinioServer(value) {
-  localStorage.setItem("planmydays_minio_server", value);
+  localStorage.setItem(smdKey("minio_server"), value);
 }
 
 function changeMinioUsername(value) {
-  localStorage.setItem("planmydays_minio_username", value);
+  localStorage.setItem(smdKey("minio_username"), value);
 }
 
 function changeMinioPassword(value) {
-  localStorage.setItem("planmydays_minio_password", value);
+  localStorage.setItem(smdKey("minio_password"), value);
 }
 
 function setMinioPasswordVisible(show) {
@@ -45,7 +45,7 @@ function hideMinioPassword() {
 }
 
 function changeMinioBucket(value) {
-  localStorage.setItem("planmydays_minio_bucket", value);
+  localStorage.setItem(smdKey("minio_bucket"), value);
 }
 
 function minioFriendlyError(e) {
@@ -70,11 +70,11 @@ function showMinioAlert(message, type) {
 
 function getMinioConfig() {
   return {
-    enabled: localStorage.getItem("planmydays_minio_enabled") === "true",
-    server: (localStorage.getItem("planmydays_minio_server") || "").replace(/\/+$/, ""),
-    username: localStorage.getItem("planmydays_minio_username") || "",
-    password: localStorage.getItem("planmydays_minio_password") || "",
-    bucket: localStorage.getItem("planmydays_minio_bucket") || ""
+    enabled: localStorage.getItem(smdKey("minio_enabled")) === "true",
+    server: (localStorage.getItem(smdKey("minio_server")) || "").replace(/\/+$/, ""),
+    username: localStorage.getItem(smdKey("minio_username")) || "",
+    password: localStorage.getItem(smdKey("minio_password")) || "",
+    bucket: localStorage.getItem(smdKey("minio_bucket")) || ""
   };
 }
 
@@ -355,8 +355,8 @@ function exportToMinio() {
   var data = {
     version: 1,
     exportedAt: new Date().toISOString(),
-    streams: JSON.parse(localStorage.getItem("planmydays_streams") || "[]"),
-    images: JSON.parse(localStorage.getItem("planmydays_images") || "[]")
+    streams: JSON.parse(localStorage.getItem(smdKey("streams")) || "[]"),
+    images: JSON.parse(localStorage.getItem(smdKey("images")) || "[]")
   };
 
   var d = new Date();
@@ -579,8 +579,8 @@ function importMinioFile(bucket, key) {
       return;
     }
 
-    if (data.streams) localStorage.setItem("planmydays_streams", JSON.stringify(data.streams));
-    if (data.images) localStorage.setItem("planmydays_images", JSON.stringify(data.images));
+    if (data.streams) localStorage.setItem(smdKey("streams"), JSON.stringify(data.streams));
+    if (data.images) localStorage.setItem(smdKey("images"), JSON.stringify(data.images));
 
     closeMinioImport();
     showMinioAlert("Imported " + key + " successfully.", "info");
@@ -604,3 +604,42 @@ function bindMinioSettingsTabBehavior() {
     if ((!tab || tab.id !== "minio-tab")) hideMinioPassword();
   });
 }
+
+// Register every minio function as an SmdApp method so apps that extend the base
+// class inherit them. The globals above remain the thin facade.
+Object.assign(SmdApp.prototype, {
+  changeMinioEnabled,
+  changeMinioServer,
+  changeMinioUsername,
+  changeMinioPassword,
+  setMinioPasswordVisible,
+  toggleMinioPassword,
+  hideMinioPassword,
+  changeMinioBucket,
+  minioFriendlyError,
+  showMinioAlert,
+  getMinioConfig,
+  loadMinioSettings,
+  updateMinioMenu,
+  hasSubtleCrypto,
+  sha256,
+  hmacSign,
+  hexFromBytes,
+  sha256Core,
+  hmacSha256Core,
+  getSignatureKey,
+  bufToHex,
+  minioRequest,
+  minioListBuckets,
+  minioListObjects,
+  minioGetObject,
+  minioPutObject,
+  exportToMinio,
+  importFromMinio,
+  openMinioImportPage,
+  closeMinioImport,
+  loadMinioBuckets,
+  loadMinioBucketFiles,
+  importMinioFile,
+  bindMinioSettingsTabBehavior
+});

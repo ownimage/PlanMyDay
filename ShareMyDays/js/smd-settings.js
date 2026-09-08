@@ -1,5 +1,9 @@
+// Theme engine + generic appearance/shell settings for SmdApp.
+// Every function is registered onto SmdApp.prototype at the bottom AND exposed
+// as a thin global facade so inline onchange handlers keep working.
+
 const themeConfig = (() => {
-  const bw = "/css/themes";
+  const bw = "ShareMyDays/css/themes";
   return {
     cerulean:  { css: `${bw}/cerulean/bootstrap.min.css`,   bsTheme: "light" },
     cosmo:     { css: `${bw}/cosmo/bootstrap.min.css`,      bsTheme: "light" },
@@ -29,10 +33,10 @@ const themeConfig = (() => {
   };
 })();
 
-// Relative path prefix to the app root, derived from the theme <link> so it
-// works whether the app lives at the domain root (/css/themes/...) or under a
-// sub-path like /PlanMyDay/ (and /storybook/ uses ../css/themes/...). All
-// app-relative assets (vendor/, manifest, etc.) should resolve through this.
+// Relative path prefix to the shared-app root, derived from the theme <link> so
+// it works whether the app lives at the domain root, under a sub-path like
+// /PlanMyDay/, or in the storybook (/ShareMyDays/storybook/). All shared-asset
+// loads (vendor/, sampleImages.json, icon sets) should resolve through this.
 function smdAppRoot() {
   const link = document.getElementById("bootstrap-theme-css");
   if (!link) return "";
@@ -42,7 +46,8 @@ function smdAppRoot() {
 }
 
 function applyTheme(name) {
-  const config = themeConfig[name] || themeConfig.darkly;
+  const valid = themeConfig[name] ? name : "darkly";
+  const config = themeConfig[valid] || themeConfig.darkly;
   const link = document.getElementById("bootstrap-theme-css");
   if (link) {
     const v = typeof BUILD_NUMBER !== "undefined" ? BUILD_NUMBER : Date.now();
@@ -51,11 +56,11 @@ function applyTheme(name) {
     // the app root and /storybook/ resolve css/themes correctly.
     const rel = link.getAttribute("href") || "";
     const prefix = rel.replace(/[^/]*\/bootstrap\.min\.css(\?.*)?$/, "");
-    link.href = prefix + name + "/bootstrap.min.css?v=" + v;
+    link.href = prefix + valid + "/bootstrap.min.css?v=" + v;
   }
   document.documentElement.setAttribute("data-bs-theme", config.bsTheme);
   document.documentElement.setAttribute("data-theme", name);
-  localStorage.setItem("planmydays_theme", name);
+  localStorage.setItem(smdKey("theme"), name);
   applySmdVars();
 }
 
@@ -69,27 +74,6 @@ function applySmdVars() {
   root.style.setProperty("--smd-primary-text", "#fff");
 }
 
-// Shadow-aware id lookup. Falls back to searching within shadow roots so
-// settings controls rendered by smd-page/smd-tabs remain reachable by id.
-function $id(id, root) {
-  root = root || document;
-  if (typeof root.getElementById === "function") {
-    const el = root.getElementById(id);
-    if (el) return el;
-  }
-  const base = root === document ? (root.body || root) : root;
-  if (!base) return null;
-  const walker = document.createTreeWalker(base, NodeFilter.SHOW_ELEMENT);
-  let node;
-  while ((node = walker.nextNode())) {
-    if (node.shadowRoot) {
-      const found = $id(id, node.shadowRoot);
-      if (found) return found;
-    }
-  }
-  return null;
-}
-
 function changeTheme(name) {
   applyTheme(name);
   if (typeof renderMain === "function") renderMain();
@@ -101,7 +85,7 @@ function changeTheme(name) {
 
 // FONT SIZE
 function changeFontSize(value) {
-  localStorage.setItem("planmydays_fontSize", value);
+  localStorage.setItem(smdKey("fontSize"), value);
   document.body.classList.remove("font-size-xsmall", "font-size-small", "font-size-normal", "font-size-large", "font-size-xlarge", "font-size-jumbo");
   if (value !== "normal") {
     document.body.classList.add("font-size-" + value);
@@ -110,14 +94,14 @@ function changeFontSize(value) {
 
 // ICON SIZE
 function changeIconSize(value) {
-  localStorage.setItem("planmydays_iconSize", value);
+  localStorage.setItem(smdKey("iconSize"), value);
   document.body.classList.remove("icon-size-small", "icon-size-medium", "icon-size-large");
   document.body.classList.add("icon-size-" + value);
 }
 
 // TILE DENSITY
 function changeDensity(value) {
-  localStorage.setItem("planmydays_density", value);
+  localStorage.setItem(smdKey("density"), value);
   document.body.classList.remove("compact", "density-normal");
   if (value !== "normal") {
     document.body.classList.add(value);
@@ -126,7 +110,7 @@ function changeDensity(value) {
 
 // DRAG SIZE
 function changeDragSize(value) {
-  localStorage.setItem("planmydays_dragSize", value);
+  localStorage.setItem(smdKey("dragSize"), value);
   document.body.classList.remove("drag-size-normal", "drag-size-large");
   document.body.classList.add("drag-size-" + value);
 }
@@ -141,58 +125,8 @@ function applySlideDuration(ms) {
 }
 
 function changeSlideDuration(value) {
-  localStorage.setItem("planmydays_slideDuration", value);
+  localStorage.setItem(smdKey("slideDuration"), value);
   applySlideDuration(value);
-}
-
-function changeSplitList(enabled) {
-  localStorage.setItem("planmydays_splitList", enabled);
-}
-
-function changeDevToday(value) {
-  localStorage.setItem("devToday", value);
-  if (typeof renderMain === "function") renderMain();
-}
-
-function changeDevLastGen(value) {
-  localStorage.setItem("devLastGen", value);
-}
-
-function changeHideDone(enabled) {
-  localStorage.setItem("planmydays_hideDone", enabled);
-}
-
-function changeSuffixStart(value) {
-  localStorage.setItem("planmydays_suffixStart", value);
-  if (typeof renderMain === "function") renderMain();
-}
-
-function changeJan1(value) {
-  localStorage.setItem("planmydays_jan1", value);
-  if (typeof renderMain === "function") renderMain();
-}
-
-function changeMonday(value) {
-  localStorage.setItem("planmydays_monday", value);
-  if (typeof renderMain === "function") renderMain();
-}
-
-function changeStartWeek(value) {
-  localStorage.setItem("planmydays_startWeek", value);
-}
-
-function changeShowDanger(enabled) {
-  localStorage.setItem("planmydays_showDanger", enabled);
-  const dangerIds = ["clearAllDataRow", "refreshAppRow", "regenerateTilesRow", "sortJobsInStreamsRow", "uploadStandardImagesRow"];
-  if (isDevMode) dangerIds.push("devTodayRow", "devLastGenRow");
-  dangerIds.forEach(id => {
-    const el = $id(id);
-    if (el) el.classList.toggle("d-none", !enabled);
-  });
-}
-
-function changeSkipAdhocConfirm(enabled) {
-  localStorage.setItem("planmydays_skipAdhocConfirm", enabled);
 }
 
 // AUTO-HIDE MENU
@@ -218,7 +152,7 @@ function hideNav() {
 
 function resetAutoHideTimer() {
   if (autoHideCooldown) return;
-  const enabled = localStorage.getItem("planmydays_autoHideMenu") === "true";
+  const enabled = localStorage.getItem(smdKey("autoHideMenu")) === "true";
   if (!enabled) return;
   showNav();
   clearTimeout(autoHideTimer);
@@ -249,7 +183,7 @@ function unbindAutoHideEvents() {
 }
 
 function changeAutoHideMenu(enabled) {
-  localStorage.setItem("planmydays_autoHideMenu", enabled);
+  localStorage.setItem(smdKey("autoHideMenu"), enabled);
   document.body.classList.toggle("auto-hide-menu", enabled);
   if (enabled) {
     bindAutoHideEvents();
@@ -271,32 +205,56 @@ function updateScreenResolution() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-  const savedFontSize = localStorage.getItem("planmydays_fontSize") || "xlarge";
+  const savedFontSize = localStorage.getItem(smdKey("fontSize")) || "xlarge";
   if (savedFontSize !== "normal") {
     document.body.classList.add("font-size-" + savedFontSize);
   }
 
-  const savedIconSize = localStorage.getItem("planmydays_iconSize") || "large";
+  const savedIconSize = localStorage.getItem(smdKey("iconSize")) || "large";
   document.body.classList.add("icon-size-" + savedIconSize);
 
-  const savedDensity = localStorage.getItem("planmydays_density") || "normal";
+  const savedDensity = localStorage.getItem(smdKey("density")) || "normal";
   if (savedDensity !== "normal") {
     document.body.classList.add(savedDensity);
   }
 
-  const savedDragSize = localStorage.getItem("planmydays_dragSize") || "large";
+  const savedDragSize = localStorage.getItem(smdKey("dragSize")) || "large";
   document.body.classList.add("drag-size-" + savedDragSize);
 
-  const savedSlideDuration = localStorage.getItem("planmydays_slideDuration") || "0";
+  const savedSlideDuration = localStorage.getItem(smdKey("slideDuration")) || "0";
   applySlideDuration(savedSlideDuration);
 
   updateScreenResolution();
   window.addEventListener("resize", updateScreenResolution);
 
-  const autoHide = localStorage.getItem("planmydays_autoHideMenu") === "true";
+  const autoHide = localStorage.getItem(smdKey("autoHideMenu")) === "true";
   if (autoHide) {
     document.body.classList.add("auto-hide-menu");
     bindAutoHideEvents();
     resetAutoHideTimer();
   }
+});
+
+// Register every shared setting as an SmdApp method (instance API for apps that
+// extend SmdApp). The globals above remain the thin facade used by the app's
+// inline onchange handlers and the storybook.
+Object.assign(SmdApp.prototype, {
+  themeConfig,
+  smdAppRoot,
+  applyTheme,
+  applySmdVars,
+  changeTheme,
+  changeFontSize,
+  changeIconSize,
+  changeDensity,
+  changeDragSize,
+  applySlideDuration,
+  changeSlideDuration,
+  showNav,
+  hideNav,
+  resetAutoHideTimer,
+  bindAutoHideEvents,
+  unbindAutoHideEvents,
+  changeAutoHideMenu,
+  updateScreenResolution
 });

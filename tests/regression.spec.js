@@ -1752,7 +1752,7 @@ test.describe("PlanMyDay - Regression", () => {
       expect(info.imgHidden).toBeTruthy();
 
       const expected = await page.evaluate(async () => {
-        const css = await (await fetch("vendor/bootstrap-icons.css?v=" + (typeof BUILD_NUMBER !== "undefined" ? BUILD_NUMBER : 0))).text();
+        const css = await (await fetch("ShareMyDays/vendor/bootstrap-icons.css?v=" + (typeof BUILD_NUMBER !== "undefined" ? BUILD_NUMBER : 0))).text();
         const m = css.match(/\.bi-house::before[^}]*content:\s*["']\\([0-9a-fA-F]+)["']/);
         return m ? String.fromCodePoint(parseInt(m[1], 16)) : "";
       });
@@ -5136,7 +5136,7 @@ test.describe("PlanMyDay - Regression", () => {
       test.setTimeout(60000);
       await page.evaluate(async () => {
         // seed one name that will collide after upload
-        const res = await fetch("sampleImages.json");
+        const res = await fetch("ShareMyDays/sampleImages.json");
         const data = await res.json();
         if (data.images && data.images[0]) {
           localStorage.setItem("planmydays_images", JSON.stringify([data.images[0]]));
@@ -5154,7 +5154,7 @@ test.describe("PlanMyDay - Regression", () => {
     test("upload summary modal shows counts", async ({ page }) => {
       test.setTimeout(60000);
       await page.evaluate(async () => {
-        const res = await fetch("sampleImages.json");
+        const res = await fetch("ShareMyDays/sampleImages.json");
         const data = await res.json();
         if (data.images && data.images[0]) {
           localStorage.setItem("planmydays_images", JSON.stringify([data.images[0]]));
@@ -5162,7 +5162,7 @@ test.describe("PlanMyDay - Regression", () => {
       });
       await page.evaluate(() => uploadStandardImages());
       await page.locator("#smdConfirmModal").waitFor({ state: "visible", timeout: 15000 });
-      const total = await page.evaluate(async () => (await (await fetch("sampleImages.json")).json()).images.length);
+      const total = await page.evaluate(async () => (await (await fetch("ShareMyDays/sampleImages.json")).json()).images.length);
       await expect(page.locator("#smdConfirmModal")).toContainText(`${total} images uploaded`);
       await expect(page.locator("#smdConfirmModal")).toContainText(`${total - 1} added`);
       await expect(page.locator("#smdConfirmModal")).toContainText("1 duplicate ignored");
@@ -6454,7 +6454,7 @@ test.describe("PlanMyDay - Regression", () => {
     });
 
     test("smd-modal footer button closes the modal then fires smd-modal-action; close:false keeps it open", async ({ page }) => {
-      await page.addScriptTag({ url: "/js/components/smd-modal.js" });
+      await page.addScriptTag({ url: "/ShareMyDays/js/components/smd-modal.js" });
       await page.evaluate(() => {
         window.__modalActions = [];
         const m = document.createElement("smd-modal");
@@ -6613,7 +6613,7 @@ test.describe("PlanMyDay - Regression", () => {
       // The theme <link> must resolve through the derived relative prefix; an
       // absolute "/css/themes/..." href would 404 here and trip badResponses.
       const themeHref = await page.evaluate(() => document.getElementById("bootstrap-theme-css").getAttribute("href"));
-      expect(themeHref).toMatch(/^css\/themes\//);
+      expect(themeHref).toMatch(/^ShareMyDays\/css\/themes\//);
       expect(themeHref).not.toMatch(/^\/css\//);
 
       // Wait for the SW to register, install, and finish precaching. The first
@@ -6637,7 +6637,7 @@ test.describe("PlanMyDay - Regression", () => {
       });
       expect(cachedUrls.length).toBeGreaterThan(0);
       expect(cachedUrls).toEqual(expect.arrayContaining([
-        expect.stringContaining("/PlanMyDay/css/themes/darkly/bootstrap.min.css"),
+        expect.stringContaining("/PlanMyDay/ShareMyDays/css/themes/darkly/bootstrap.min.css"),
         expect.stringContaining("/PlanMyDay/js/app.js"),
         expect.stringContaining("/PlanMyDay/index.html")
       ]));

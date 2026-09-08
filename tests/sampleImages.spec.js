@@ -2,7 +2,7 @@ const { test, expect } = require("@playwright/test");
 const path = require("path");
 const fs = require("fs");
 
-const sampleImagesData = require("../sampleImages.json");
+const sampleImagesData = require("../ShareMyDays/sampleImages.json");
 
 const SCREENSHOT_DIR = path.resolve(__dirname, "..", "screenshots");
 
