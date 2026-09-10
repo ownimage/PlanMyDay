@@ -1,5 +1,8 @@
 # PlanMyDay
 
+This project is no longer in active development.
+It has been moved to MyApps/PlanMyDay
+
 A static PWA for daily task planning.
 
 ## Development
