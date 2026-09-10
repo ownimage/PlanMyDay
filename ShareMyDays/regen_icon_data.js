@@ -1,9 +1,5 @@
 // Generates compact icon metadata for the vendored icon libraries:
 //   - vendor/fontawesome-icons.json   { fa: {name:{h,w}}, fab: {name:{h,w}} }
-//   - vendor/material-symbols-names.json
-// Sources (network, fetched at regen time only):
-//   - @fortawesome/fontawesome-free metadata/icon-families.json (name -> styles)
-//   - material-symbols package index.d.ts (the MaterialSymbols name array)
 // The codepoints themselves come from the already-vendored
 // vendor/fontawesome/css/fontawesome.min.css (single-colon :before content rules).
 const fs = require("fs");
@@ -103,16 +99,6 @@ async function main() {
   console.log("fa names:", Object.keys(fa).length, " fab names:", Object.keys(fab).length);
   const w400 = Object.keys(fa).filter((n) => fa[n].w === 400);
   console.log("fa regular-only (w:400):", w400.length, w400.slice(0, 12));
-
-  const ts = await get(
-    "https://cdn.jsdelivr.net/npm/material-symbols@0.47.1/index.d.ts"
-  );
-  const names = [...ts.matchAll(/\n\s*"([a-z0-9][a-z0-9_\-]*)",?/g)].map((m) => m[1]);
-  fs.writeFileSync(
-    "vendor/material-symbols-names.json",
-    JSON.stringify(names) + "\n"
-  );
-  console.log("material symbol names:", names.length, " sample:", names.slice(0, 5));
 }
 
 main().catch((e) => {

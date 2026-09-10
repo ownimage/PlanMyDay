@@ -638,14 +638,11 @@ let _imagePickerCloseTimer = null;
 
 const PICKER_ICON_SETS = [
   { key: "bi", title: "Bootstrap", css: "vendor/bootstrap-icons.css", family: "bootstrap-icons" },
-  { key: "ri", title: "Remix", css: "vendor/remixicon.css", family: "remixicon" },
   { key: "fa", title: "Font Awesome", json: "vendor/fontawesome-icons.json", slot: "fa", family: "Font Awesome 6 Free" },
-  { key: "fab", title: "FA Brands", json: "vendor/fontawesome-icons.json", slot: "fab", family: "Font Awesome 6 Brands" },
-  { key: "ms", title: "Material", json: "vendor/material-symbols-names.json", family: "Material Symbols Outlined", ligature: true }
+  { key: "fab", title: "FA Brands", json: "vendor/fontawesome-icons.json", slot: "fab", family: "Font Awesome 6 Brands" }
 ];
 const IO_CODEPOINT_RE = {
-  bi: /\.bi-([a-z0-9][a-z0-9-]*)::before\s*\{\s*content:\s*["']\\([0-9a-fA-F]+)["']/g,
-  ri: /\.ri-([a-z0-9][a-z0-9-]*):before\s*\{\s*content:\s*["']\\([0-9a-fA-F]+)["']/g
+  bi: /\.bi-([a-z0-9][a-z0-9-]*)::before\s*\{\s*content:\s*["']\\([0-9a-fA-F]+)["']/g
 };
 const _pickerIconData = Object.create(null);
 const _pickerIconPromises = Object.create(null);
@@ -679,7 +676,7 @@ function parsePickerCssGlyphs(cssText, selectorRe) {
 function loadPickerIconSet(setCfg) {
   if (_pickerIconData[setCfg.key]) return Promise.resolve(_pickerIconData[setCfg.key]);
   if (!_pickerIconPromises[setCfg.key]) {
-    const v = typeof BUILD_NUMBER !== "undefined" ? BUILD_NUMBER : Date.now();
+    const v = typeof SHARED_BUILD_NUMBER !== "undefined" ? SHARED_BUILD_NUMBER : (typeof BUILD_NUMBER !== "undefined" ? BUILD_NUMBER : Date.now());
     const root = typeof smdAppRoot === "function" ? smdAppRoot() : "";
     _pickerIconPromises[setCfg.key] = (setCfg.css
       ? fetch(root + setCfg.css + "?v=" + v).then((r) => { if (!r.ok) throw new Error("HTTP " + r.status); return r.text(); })
@@ -850,13 +847,12 @@ function renderPickerList() {
     item.className = "icon-picker-item text-center";
     item.style.cssText = "width:95px;cursor:pointer;border:2px solid transparent;border-radius:8px;padding:6px;transition:border-color 0.15s";
     const entry = data.byName[n] || {};
-    const glyph = cfg.ligature ? n : (entry.hex ? String.fromCodePoint(parseInt(entry.hex, 16)) : "");
+    const glyph = entry.hex ? String.fromCodePoint(parseInt(entry.hex, 16)) : "";
     const span = document.createElement("span");
     span.className = "icon-glyph";
     span.textContent = glyph;
     span.style.setProperty("font-family", '"' + cfg.family + '"');
     if (entry.weight != null) span.style.setProperty("font-weight", entry.weight);
-    if (cfg.ligature) span.style.setProperty("white-space", "nowrap");
     const label = document.createElement("div");
     label.className = "icon-name";
     label.textContent = n;
@@ -889,7 +885,7 @@ function clearImagePickerFilter() {
 function seedSampleImages() {
   if (localStorage.getItem(smdKey("images"))) return;
   const root = typeof smdAppRoot === "function" ? smdAppRoot() : "";
-  fetch(root + "sampleImages.json?v=" + (typeof BUILD_NUMBER !== "undefined" ? BUILD_NUMBER : Date.now()))
+  fetch(root + "sampleImages.json?v=" + (typeof SHARED_BUILD_NUMBER !== "undefined" ? SHARED_BUILD_NUMBER : (typeof BUILD_NUMBER !== "undefined" ? BUILD_NUMBER : Date.now())))
     .then(res => res.json())
     .then(data => {
       if (data && data.images) {
@@ -921,7 +917,7 @@ function hideUploadDialog() {
 function uploadStandardImages() {
   showUploadDialog();
   const root = typeof smdAppRoot === "function" ? smdAppRoot() : "";
-  fetch(root + "sampleImages.json?v=" + (typeof BUILD_NUMBER !== "undefined" ? BUILD_NUMBER : Date.now()))
+  fetch(root + "sampleImages.json?v=" + (typeof SHARED_BUILD_NUMBER !== "undefined" ? SHARED_BUILD_NUMBER : (typeof BUILD_NUMBER !== "undefined" ? BUILD_NUMBER : Date.now())))
     .then(res => res.json())
     .then(data => {
       if (!data || !data.images) return;

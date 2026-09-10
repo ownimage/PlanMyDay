@@ -1,6 +1,6 @@
 ### Run only the regression tests
 ```bash
-.\node_modules\.bin\playwright.cmd test tests/regression.spec.js  tests/touch.spec.js --retries=0
+.\node_modules\.bin\playwright.cmd test tests/regression.spec.js  tests/touch.spec.js tests/screenshots.spec.js  --retries=0
 ```
 ```bash
 .\node_modules\.bin\playwright.cmd test --last-failed

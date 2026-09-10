@@ -16,12 +16,10 @@
   <link rel="stylesheet" href="ShareMyDays/css/styles.css">
   <link rel="stylesheet" href="css/styles.css">
   <link rel="stylesheet" href="ShareMyDays/vendor/bootstrap-icons.css">
-  <link rel="stylesheet" href="ShareMyDays/vendor/remixicon.css">
   <link rel="stylesheet" href="ShareMyDays/vendor/fontawesome/css/fontawesome.min.css">
   <link rel="stylesheet" href="ShareMyDays/vendor/fontawesome/css/solid.min.css">
   <link rel="stylesheet" href="ShareMyDays/vendor/fontawesome/css/regular.min.css">
   <link rel="stylesheet" href="ShareMyDays/vendor/fontawesome/css/brands.min.css">
-  <link rel="stylesheet" href="ShareMyDays/vendor/material-symbols.css">
   <script src="js/build-number.js"></script>
   <script>
     // Cache-bust every same-origin link (stylesheet/manifest/icon) with the
@@ -141,33 +139,7 @@
           <div class="row mb-3 align-items-center col-md-8 mt-3">
             <div class="col-4 text-end"><label class="form-label mb-0">Theme</label></div>
             <div class="col-8">
-              <select id="themeSelector" class="form-select" onchange="changeTheme(this.value)">
-                <option value="cerulean">Cerulean (light)</option>
-                <option value="cosmo">Cosmo (light)</option>
-                <option value="cyborg">Cyborg (dark)</option>
-                <option value="darkly" selected>Darkly (dark)</option>
-                <option value="flatly">Flatly (light)</option>
-                <option value="journal">Journal (light)</option>
-                <option value="litera">Litera (light)</option>
-                <option value="lumen">Lumen (light)</option>
-                <option value="lux">Lux (light)</option>
-                <option value="materia">Materia (light)</option>
-                <option value="minty">Minty (light)</option>
-                <option value="morph">Morph (light)</option>
-                <option value="pulse">Pulse (light)</option>
-                <option value="quartz">Quartz (light)</option>
-                <option value="sandstone">Sandstone (light)</option>
-                <option value="simplex">Simplex (light)</option>
-                <option value="sketchy">Sketchy (light)</option>
-                <option value="slate">Slate (dark)</option>
-                <option value="solar">Solar (dark)</option>
-                <option value="spacelab">Spacelab (light)</option>
-                <option value="superhero">Superhero (dark)</option>
-                <option value="united">United (light)</option>
-                <option value="vapor">Vapor (dark)</option>
-                <option value="yeti">Yeti (light)</option>
-                <option value="zephyr">Zephyr (light)</option>
-              </select>
+              <smd-theme id="themeSelector"></smd-theme>
             </div>
           </div>
 
@@ -404,7 +376,7 @@
           <div class="row mb-4 align-items-center col-md-8 icons-credit">
             <div class="col-4 text-end"></div>
             <div class="col-8">
-              <span class="text-secondary">Font Awesome icons by <a href="https://fontawesome.com" target="_blank" rel="noopener">Fonticons, Inc.</a> (CC BY 4.0)</span>
+              <smd-fontawesome-credit></smd-fontawesome-credit>
             </div>
           </div>
 
@@ -451,6 +423,9 @@
   document.write('<script src="ShareMyDays/js/components/smd-tabs.js?v=' + BUILD_NUMBER + '"><\/script>');
   document.write('<script src="ShareMyDays/js/components/smd-image-card.js?v=' + BUILD_NUMBER + '"><\/script>');
   document.write('<script src="ShareMyDays/js/components/smd-image-select.js?v=' + BUILD_NUMBER + '"><\/script>');
+  document.write('<script src="ShareMyDays/js/components/smd-image-picker.js?v=' + BUILD_NUMBER + '"><\/script>');
+  document.write('<script src="ShareMyDays/js/components/smd-theme.js?v=' + BUILD_NUMBER + '"><\/script>');
+  document.write('<script src="ShareMyDays/js/components/smd-fontawesome-credit.js?v=' + BUILD_NUMBER + '"><\/script>');
   document.write('<script src="js/components/pmd-stream-header.js?v=' + BUILD_NUMBER + '"><\/script>');
   document.write('<script src="js/components/pmd-stream-job-card.js?v=' + BUILD_NUMBER + '"><\/script>');
   document.write('<script src="js/components/pmd-job-search-card.js?v=' + BUILD_NUMBER + '"><\/script>');

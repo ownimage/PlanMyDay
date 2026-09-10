@@ -2,7 +2,7 @@
 2: Ask questions if there are implementation options
 3: When running playwright use the command '.\node_modules\.bin\playwright.cmd' to make sure the correct version loads. 
 4: Please capture all the output needed when running a test the first time so that you do not need to rerun the test.
-5: When running the regression tests run them in 30 batches, and use regression.spec.js and touch.spec.js
+5: When running the regression tests use playwright `--shards=30` (with regression.spec.js and touch.spec.js): launch each shard as `--shard=$i/30` so EVERY shard runs in parallel and gives full visibility into failures at once — do NOT loop them 1..30 sequentially (that hides cross-shard failures and needs a bespoke loop). Fix a failure in one shard everywhere before continuing.
 6: After fixing issues with the regression tests apply them to screenshots.spec.js and validate them using one theme only.
 7: Fail-fast test iterations: after a code/test change, DON'T run a whole batch at once — run only the first 2-3 affected tests first (`--grep "a|b" --workers=2 --retries=0`) to debug on a small surface; grow the batch only once those pass. The config sets `retries: 1`, so pass `--retries=0` while iterating (otherwise failures take twice as long).
 
@@ -44,6 +44,35 @@ Techniques / gotchas:
 
 ## Session log
 
+### 2026-09-09
+- Syxced TestShareMyDays/ShareMyDays → PlanMyDay/ShareMyDays (delete-first so the
+  removed files · remixicon.*, material-symbols.*, material-symbols-names.json ·
+  really disappeared). Adopted the new shared components:
+  - **smd-theme**: settings Display tab `<select id="themeSelector">` → `<smd-theme
+    id="themeSelector">`. `openSettings` restores via `setAttribute("theme", ...)`,
+    and a `smd-theme-change` listener calls `changeTheme`. Regression test uses
+    `#themeSelector select`.
+  - **smd-fontawesome-credit**: settings footer inline FA credit span → component.
+    New regression test asserts the credit text lives in the page's shadow root.
+  - **smd-image-picker**: replaced the tab-based `openImagePicker()` flow. The
+    `smd-image-select-action` handler now hosts `<smd-image-picker key-prefix=
+    "planmydays_">` on `#imagePickerPage` (`__openImagePicker`/`__finishImagePick`).
+    Selection closes the page via `smd-image-picker-select`; `__finishImagePick`
+    adds `d-none` (Playwright counts an off-canvas page as VISIBLE — hide() alone
+    is not enough). Icon tabs are now Local/Bootstrap/Font Awesome/FA Brands
+    (Remix+Material gone); regression picker tests rewritten to the component's
+    `.tab-btn`/`.item`/`.glyph`/`.label`/`input[type=search]`/`.clear` internals.
+  - `smd-image`/`smd-images`/picker drop `ri:`/`ms:`; `regen_icon_data.js` no
+    longer emits material-symbols-names.json; storybook drops the two css links.
+  - Shared build-number: PlanMyDay keeps its OWN single `BUILD_NUMBER` (does NOT
+    load `ShareMyDays/js/build-number.js`), so all cache-busting stays on the app
+    number and the `?v=BUILD_NUMBER` regression tests still pass.
+- Verified: 409 regression + 3 touch pass (30 `--shard`s), settings screenshots
+  5 pass, sampleImages + example 4 pass. **gotcha**: 30 shards × default 16
+  workers on ONE python server overflows it (`ERR_CONNECTION_REFUSED` lines in
+  later shards) — parallel-launch shards with `--workers=1` in small waves to get
+  a clean picture. `tests/http-server.py` backlog raised to 512 to help.
+
 ### 2026-09-08 (2)
 - While debugging the sub-path SW-precache test ("no console errors when deployed under /PlanMyDay/"), a failure diff showed only the first ~10 cached URLs with `…` (Playwright pretty-format truncation). Spent a round-trip trying to read the full list from the error-context.md before realising the array is truncated by the reporter and it is a PROBE JOB to dump it fully. Lesson captured under "Techniques / gotchas": a truncated received/expected list is never readable from failure output — always `writeFileSync` the full array from a `_probe.spec.js` and `Get-Content` it. No config exists to raise Playwright's limit.
 - Also confirmed: `manifest.json` 404s under the JetBrains PyCharm built-in preview server (port 63342, serves the repo as `/PlanMyDay/`) are a PyCharm preview-server quirk, NOT an app bug — the app's own `tests/subpath-server.py` (8081) and a plain static server both serve `/PlanMyDay/manifest.json` (incl. `?v=` stamped) with 200. User agreed to leave it.
@@ -81,6 +110,10 @@ Techniques / gotchas:
 - Bumped `BUILD_NUMBER` → `202609070000` (must be bumped to ship, else stale SW/cache).
 
 ### 2026-09-06
+- NOTE (2026-09-09): the Remix/Material icon sets described below were REMOVED
+  from the shared library — the picker is Local/Bootstrap/Font Awesome/FA Brands,
+  `material-symbols-names.json` is no longer generated, and the "six tabs"
+  text is historical.
 - smd-tabs gained a `wrap` attribute: `:host([wrap]) .smd-tab-list { flex-wrap: wrap; }` (base rule is now explicit `flex-wrap: nowrap`). The image picker sets `tabsEl.wrap = true` so its 6 tabs flow onto multiple lines; the old picker-local `.smd-tab-list { flex-wrap: wrap }` style hack was removed. Storybook smd-tabs section gained a "Wrap tabs" checkbox. Regression test asserts the picker tabs wrap (narrow 360px viewport → buttons span >1 row).
 - Image picker now has SIX tabs: `Local | Bootstrap | Remix | Font Awesome | FA Brands | Material`. Reserved name prefixes stored on job/stream.image: `bi:`/`ri:`/`fa:` (solid+regular combined)/`fab:` (brands)/`ms:` (Material Symbols). Vendored locally with `?v=` cache-busting + `sw.js` precache: Remix Icon **4.2.0** (Apache-2.0 — NOT 4.9.x, which switched to a custom "Remix Icon License v1.0"), Font Awesome Free **6.5.2** (`vendor/fontawesome/{css,webfonts}`), Material Symbols Outlined variable font (Fontsource `wght` slice, 648KB — heavy, accepted) + a tiny `vendor/material-symbols.css`. FA icons are CC BY 4.0 → added a "Font Awesome icons by Fonticons, Inc. (CC BY 4.0)" credit in the Settings footer. `BUILD_NUMBER` → `202609062100`.
 - Generated metadata via `regen_icon_data.js` (npm `regen:icons`): `vendor/fontawesome-icons.json` (`{fa:{name:{h,w}},fab:{...}}`) from FA's `fontawesome.min.css` content rules + `metadata/icon-families.json` (name→style), and `vendor/material-symbols-names.json` (from the `material-symbols` npm `index.d.ts` name array). FA parsing GOTCHA: all solid/regular content rules live in `fontawesome.min.css` (single-colon `:before`, comma-grouped aliases — expand selectors); the per-style `solid/regular.min.css` only carry @font-face + weight classes; brands glyphs live in `brands.min.css`. Solid/regular SHARE codepoints — font-weight (900 vs 400) selects the font file, so FA rendering must set per-name weight or glyphs tofu.

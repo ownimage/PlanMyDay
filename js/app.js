@@ -2602,7 +2602,7 @@ function openSettings() {
 
   const savedTheme = localStorage.getItem(smdKey("theme")) || "darkly";
   const themeSel = $id("themeSelector");
-  if (themeSel) themeSel.value = savedTheme;
+  if (themeSel) themeSel.setAttribute("theme", savedTheme);
   const savedFontSize = localStorage.getItem(smdKey("fontSize")) || "xlarge";
   const fontSizeSel = $id("fontSizeSelector");
   if (fontSizeSel) fontSizeSel.value = savedFontSize;
@@ -2905,14 +2905,63 @@ document.addEventListener("DOMContentLoaded", () => {
 
   renderMain();
 
+  // The settings Display tab uses the shared <smd-theme> component; apply the
+  // chosen theme when it fires smd-theme-change.
+  document.addEventListener("smd-theme-change", function(e) {
+    const theme = e.detail && e.detail.theme;
+    if (theme && typeof changeTheme === "function") changeTheme(theme);
+  });
+
+  // smd-image-select "Edit" buttons open the SHARED image picker on
+  // #imagePickerPage. Selection/no-image/cancel resolve the callback.
+  let pickerCallback = null;
+  let pickerHost = null;
+  window.__openImagePicker = function(callback) {
+    pickerCallback = callback || null;
+    pickerHost = document.getElementById("imagePickerPage");
+    if (!pickerHost) return;
+    pickerHost.title = "Choose Image";
+    pickerHost.content = '<smd-image-picker id="pickerHost" key-prefix="planmydays_"></smd-image-picker>';
+    pickerHost.buttons = [
+      { text: "Cancel", variant: "secondary", action: "cancel" },
+      { text: "No Image", variant: "secondary", action: "no-image" }
+    ];
+    if (!pickerHost.__pickerBound) {
+      pickerHost.__pickerBound = true;
+      pickerHost.addEventListener("smd-page-action", function(e) {
+        const action = e.detail && (typeof e.detail === "string" ? e.detail : e.detail.action);
+        if (action === "cancel" || action === "no-image") window.__finishImagePick(null);
+      });
+    }
+    pickerHost.classList.remove("d-none");
+    pickerHost.show();
+  };
+  window.__finishImagePick = function(name) {
+    if (pickerCallback) {
+      const cb = pickerCallback;
+      pickerCallback = null;
+      cb(name);
+    }
+    if (pickerHost) {
+      pickerHost.hide();
+      // The page slides off-screen on hide(), but Playwright counts an off-canvas
+      // element as visible. Add d-none (immediately for tests; after slide for UI).
+      const ms = pickerHost.slideDuration || 0;
+      setTimeout(function() { pickerHost.classList.add("d-none"); }, ms > 0 ? ms + 50 : 0);
+    }
+  };
+  document.addEventListener("smd-image-picker-select", function(e) {
+    window.__finishImagePick(e.detail ? e.detail.name : null);
+  });
+
   document.addEventListener("smd-image-select-action", function(e) {
     const path = e.composedPath ? e.composedPath() : [];
     const sel = (path && path.find(function(el) { return el && el.tagName === "SMD-IMAGE-SELECT"; })) || null;
     if (!sel || !sel.id) return;
     if (sel.id === "streamImageSelect") {
-      openImagePicker(function(name) { editField("image", name); updateStreamImagePreview(name); });
+      window.__openImagePicker(function(name) { editField("image", name); updateStreamImagePreview(name); });
     } else if (sel.id === "jobImageSelect") {
-      openImagePicker(function(name) { jobField("image", name); updateJobImagePreview(name); });
+      window.__openImagePicker(function(name) { jobField("image", name); updateJobImagePreview(name); });
     }
   });
 
