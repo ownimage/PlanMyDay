@@ -50,7 +50,7 @@ function applyTheme(name) {
   const config = themeConfig[valid] || themeConfig.darkly;
   const link = document.getElementById("bootstrap-theme-css");
   if (link) {
-    const v = typeof SHARED_BUILD_NUMBER !== "undefined" ? SHARED_BUILD_NUMBER : (typeof BUILD_NUMBER !== "undefined" ? BUILD_NUMBER : Date.now());
+    const v = typeof BUILD_NUMBER !== "undefined" ? BUILD_NUMBER : Date.now();
     // Build the theme URL relative to the page (which may live under a sub-path
     // like /PlanMyDay/). Reuse the link's existing relative prefix so that both
     // the app root and /storybook/ resolve css/themes correctly.

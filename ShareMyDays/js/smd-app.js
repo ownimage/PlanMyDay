@@ -21,11 +21,12 @@
 //   settingsSections / settingsFooterHtml — settings page tabs (+ footer)
 //
 // BOOT / LAZY LOADING
-//   The consumer's index.html only needs ONE script tag (js/app.js). boots()
+//   The consumer's index.html only needs ONE script tag (js/app.js). boot()
 //   injects the declared stylesheet <link>s and <script> tags (styles.js first,
 //   then services, components, app scripts) lazily + asynchronously, so an app
-//   only ever fetches the pieces it declares. Two build numbers are honoured:
-//   APP_BUILD_NUMBER for app files, SHARED_BUILD_NUMBER for ShareMyDays/ files.
+//   only ever fetches the pieces it declares. ONE build number is honoured:
+//   BUILD_NUMBER comes from ShareMyDays/js/build-number.js and cache-busts
+//   every asset (app + shared alike).
 
 "use strict";
 
@@ -153,15 +154,12 @@ class SmdApp {
   key(name) { return smdKey(name); }
 
   // ---------------------------------------------------------------------------
-  // Asset loading (lazy, ordered, cache-busted with two build numbers)
+  // Asset loading (lazy, ordered, cache-busted with the single build number)
   // ---------------------------------------------------------------------------
 
-  // Build the cache-busting query for a URL: shared assets use
-  // SHARED_BUILD_NUMBER, everything else uses APP_BUILD_NUMBER.
+  // Build the cache-busting query for a URL using the one BUILD_NUMBER global.
   buildNumberFor(url) {
-    const v = (url.indexOf("ShareMyDays/") === -1
-      ? (typeof APP_BUILD_NUMBER !== "undefined" ? APP_BUILD_NUMBER : (typeof BUILD_NUMBER !== "undefined" ? BUILD_NUMBER : ""))
-      : (typeof SHARED_BUILD_NUMBER !== "undefined" ? SHARED_BUILD_NUMBER : (typeof BUILD_NUMBER !== "undefined" ? BUILD_NUMBER : "")));
+    const v = typeof BUILD_NUMBER !== "undefined" ? BUILD_NUMBER : "";
     if (!v) return url;
     return url + (url.indexOf("?") >= 0 ? "&" : "?") + "v=" + v;
   }
@@ -239,7 +237,7 @@ class SmdApp {
     if (this._booted) return Promise.resolve();
     this._booted = true;
     return Promise.resolve()
-      .then(() => this.loadScriptsOrdered(["ShareMyDays/js/build-number.js", "js/build-number.js"]))
+      .then(() => this.loadScriptsOrdered(["ShareMyDays/js/build-number.js"]))
       .then(() => this.loadStyles())
       .then(() => this.loadComponents())
       .then(() => this.loadServices())

@@ -676,7 +676,7 @@ function parsePickerCssGlyphs(cssText, selectorRe) {
 function loadPickerIconSet(setCfg) {
   if (_pickerIconData[setCfg.key]) return Promise.resolve(_pickerIconData[setCfg.key]);
   if (!_pickerIconPromises[setCfg.key]) {
-    const v = typeof SHARED_BUILD_NUMBER !== "undefined" ? SHARED_BUILD_NUMBER : (typeof BUILD_NUMBER !== "undefined" ? BUILD_NUMBER : Date.now());
+    const v = typeof BUILD_NUMBER !== "undefined" ? BUILD_NUMBER : Date.now();
     const root = typeof smdAppRoot === "function" ? smdAppRoot() : "";
     _pickerIconPromises[setCfg.key] = (setCfg.css
       ? fetch(root + setCfg.css + "?v=" + v).then((r) => { if (!r.ok) throw new Error("HTTP " + r.status); return r.text(); })
@@ -885,7 +885,7 @@ function clearImagePickerFilter() {
 function seedSampleImages() {
   if (localStorage.getItem(smdKey("images"))) return;
   const root = typeof smdAppRoot === "function" ? smdAppRoot() : "";
-  fetch(root + "sampleImages.json?v=" + (typeof SHARED_BUILD_NUMBER !== "undefined" ? SHARED_BUILD_NUMBER : (typeof BUILD_NUMBER !== "undefined" ? BUILD_NUMBER : Date.now())))
+  fetch(root + "sampleImages.json?v=" + (typeof BUILD_NUMBER !== "undefined" ? BUILD_NUMBER : Date.now()))
     .then(res => res.json())
     .then(data => {
       if (data && data.images) {
@@ -917,7 +917,7 @@ function hideUploadDialog() {
 function uploadStandardImages() {
   showUploadDialog();
   const root = typeof smdAppRoot === "function" ? smdAppRoot() : "";
-  fetch(root + "sampleImages.json?v=" + (typeof SHARED_BUILD_NUMBER !== "undefined" ? SHARED_BUILD_NUMBER : (typeof BUILD_NUMBER !== "undefined" ? BUILD_NUMBER : Date.now())))
+  fetch(root + "sampleImages.json?v=" + (typeof BUILD_NUMBER !== "undefined" ? BUILD_NUMBER : Date.now()))
     .then(res => res.json())
     .then(data => {
       if (!data || !data.images) return;

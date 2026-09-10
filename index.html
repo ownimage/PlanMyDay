@@ -20,7 +20,7 @@
   <link rel="stylesheet" href="ShareMyDays/vendor/fontawesome/css/solid.min.css">
   <link rel="stylesheet" href="ShareMyDays/vendor/fontawesome/css/regular.min.css">
   <link rel="stylesheet" href="ShareMyDays/vendor/fontawesome/css/brands.min.css">
-  <script src="js/build-number.js"></script>
+  <script src="ShareMyDays/js/build-number.js"></script>
   <script>
     // Cache-bust every same-origin link (stylesheet/manifest/icon) with the
     // build number so a new build always fetches fresh assets.
@@ -373,14 +373,9 @@
             </div>
           </div>
 
-          <div class="row mb-4 align-items-center col-md-8 icons-credit">
-            <div class="col-4 text-end"></div>
-            <div class="col-8">
-              <smd-fontawesome-credit></smd-fontawesome-credit>
-            </div>
-          </div>
-
           <div class="mt-5 small build-number">Build <span id="buildNumber"></span></div>
+
+          <smd-fontawesome-credit class="mt-2"></smd-fontawesome-credit>
         </div>
       </div>
     </template>

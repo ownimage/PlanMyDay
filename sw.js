@@ -1,4 +1,4 @@
-importScripts("js/build-number.js");
+importScripts("ShareMyDays/js/build-number.js");
 
 const CACHE = "planmydays-" + BUILD_NUMBER;
 
@@ -176,7 +176,6 @@ const PRECACHE_URLS = [
   "ShareMyDays/css/fonts/XRXV3I6Li01BKofIO-aBXso.woff2",
   "ShareMyDays/css/fonts/XRXV3I6Li01BKofIOOaBXso.woff2",
   "ShareMyDays/css/fonts/XRXV3I6Li01BKofIOuaBXso.woff2",
-  "js/build-number.js",
   "ShareMyDays/js/build-number.js",
   "ShareMyDays/js/components/styles.js",
   "ShareMyDays/js/components/smd-button.js",

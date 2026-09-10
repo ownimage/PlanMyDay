@@ -62,7 +62,7 @@
   function loadIconSet(set) {
     if (iconLoadPromises[set]) return iconLoadPromises[set];
     const cfg = ICON_SETS[set];
-    const v = typeof global.SHARED_BUILD_NUMBER !== "undefined" ? global.SHARED_BUILD_NUMBER : (typeof global.BUILD_NUMBER !== "undefined" ? global.BUILD_NUMBER : Date.now());
+    const v = typeof global.BUILD_NUMBER !== "undefined" ? global.BUILD_NUMBER : Date.now();
     const root = typeof global.smdAppRoot === "function" ? global.smdAppRoot() : "";
     const fail = (err) => {
       iconLoadPromises[set] = null;

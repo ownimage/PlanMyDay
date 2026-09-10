@@ -54,7 +54,7 @@
   function loadIconSet(cfg) {
     if (loadedIcons[cfg.key]) return Promise.resolve(loadedIcons[cfg.key]);
     if (!loadingIcons[cfg.key]) {
-      const v = typeof global.SHARED_BUILD_NUMBER !== "undefined" ? global.SHARED_BUILD_NUMBER : (typeof global.BUILD_NUMBER !== "undefined" ? global.BUILD_NUMBER : Date.now());
+      const v = typeof global.BUILD_NUMBER !== "undefined" ? global.BUILD_NUMBER : Date.now();
       const root = smdRoot();
       loadingIcons[cfg.key] = (cfg.css
         ? global.fetch(root + cfg.css + "?v=" + v).then((r) => { if (!r.ok) throw new Error("HTTP " + r.status); return r.text(); })
