@@ -4,4 +4,4 @@
 // the BUILD_NUMBER global. It lives in the ShareMyDays folder so it travels
 // with the library when synced to a consumer app.
 const BUILD_NUMBER = "202609101000";
-window.BUILD_NUMBER = BUILD_NUMBER;
+if (typeof window !== "undefined") window.BUILD_NUMBER = BUILD_NUMBER;
