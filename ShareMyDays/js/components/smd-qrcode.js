@@ -1,4 +1,10 @@
-const QR_CODE_CDN = '/vendor/qrcode.min.js';
+// Resolve the QR library relative to THIS component file so it works whether the
+// shared library is served at /ShareMyDays/ or under a sub-path.
+const QR_CODE_CDN = (function () {
+  const src = document.currentScript && document.currentScript.src;
+  if (src) return new URL('../../vendor/qrcode.min.js', src).href;
+  return 'vendor/qrcode.min.js';
+})();
 
 let qrLibLoaded = false;
 

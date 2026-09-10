@@ -2,7 +2,7 @@ const { test, expect } = require("@playwright/test");
 const path = require("path");
 const fs = require("fs");
 
-const sampleImagesData = require("../sampleImages.json");
+const sampleImagesData = require("../ShareMyDays/sampleImages.json");
 
 const TEST_STREAMS = [
   {
@@ -128,7 +128,7 @@ function futureDateStr(daysFromNow) {
 
 const SCREENSHOT_DIR = path.resolve(__dirname, "..", "screenshots");
 
-const bw = "css/themes";
+const bw = "ShareMyDays/css/themes";
 const THEME_CONFIG = {
   cerulean:  { css: `${bw}/cerulean/bootstrap.min.css`,   bsTheme: "light" },
   cosmo:     { css: `${bw}/cosmo/bootstrap.min.css`,      bsTheme: "light" },

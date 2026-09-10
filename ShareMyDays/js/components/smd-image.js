@@ -45,10 +45,8 @@
 
   const ICON_SETS = {
     bi: { css: "vendor/bootstrap-icons.css", family: "bootstrap-icons", mode: "codepoint" },
-    ri: { css: "vendor/remixicon.css", family: "remixicon", mode: "codepoint" },
     fa: { json: "vendor/fontawesome-icons.json", slot: "fa", family: "Font Awesome 6 Free", mode: "codepoint" },
-    fab: { json: "vendor/fontawesome-icons.json", slot: "fab", family: "Font Awesome 6 Brands", mode: "codepoint" },
-    ms: { json: "vendor/material-symbols-names.json", family: "Material Symbols Outlined", mode: "ligature" }
+    fab: { json: "vendor/fontawesome-icons.json", slot: "fab", family: "Font Awesome 6 Brands", mode: "codepoint" }
   };
 
   const iconDataBySet = Object.create(null);
@@ -80,9 +78,7 @@
       iconLoadPromises[set] = global.fetch(root + cfg.css + "?v=" + v)
         .then((r) => { if (!r.ok) throw new Error("HTTP " + r.status); return r.text(); })
         .then((txt) => {
-          const glyphs = set === "ri"
-            ? parseCssGlyphs(txt, /\.ri-([a-z0-9][a-z0-9-]*):before\s*\{\s*content:\s*["']\\([0-9a-fA-F]+)["']/g)
-            : parseCssGlyphs(txt, /\.bi-([a-z0-9][a-z0-9-]*)::before\s*\{\s*content:\s*["']\\([0-9a-fA-F]+)["']/g);
+          const glyphs = parseCssGlyphs(txt, /\.bi-([a-z0-9][a-z0-9-]*)::before\s*\{\s*content:\s*["']\\([0-9a-fA-F]+)["']/g);
           return finish(Object.keys(glyphs).map((name) => ({ name, hex: glyphs[name] })));
         })
         .catch(fail);
@@ -261,7 +257,7 @@
       const entry = iconEntry(set, iconName);
       const glyph = entry && entry.hex ? String.fromCodePoint(parseInt(entry.hex, 16)) : (iconName || "");
       const ready = !!iconDataBySet[set];
-      if (!entry || (cfg.mode === "ligature" && !iconName)) {
+      if (!entry || !cfg) {
         if (span) span.hidden = true;
         if (!ready) {
           loadIconSet(set).then(() => {
@@ -279,8 +275,7 @@
       span.style.setProperty("font-family", '"' + cfg.family + '"');
       if (entry.weight != null) span.style.setProperty("font-weight", entry.weight);
       else span.style.removeProperty("font-weight");
-      if (cfg.mode === "ligature") span.style.setProperty("white-space", "nowrap");
-      else span.style.removeProperty("white-space");
+      span.style.removeProperty("white-space");
       span.style.fontSize = px > 0 ? Math.max(8, Math.round(px * 0.8)) + "px" : "1.5rem";
       span.hidden = false;
     }

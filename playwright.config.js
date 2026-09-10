@@ -28,9 +28,16 @@ module.exports = defineConfig({
       use: { ...devices["iPhone 12 Pro"] },
     },
   ],
-  webServer: {
-    command: 'python tests/http-server.py',
-    url: "http://localhost:8080",
-    reuseExistingServer: !process.env.CI,
-  },
+  webServer: [
+    {
+      command: 'python tests/http-server.py',
+      url: "http://localhost:8080",
+      reuseExistingServer: !process.env.CI,
+    },
+    {
+      command: 'python tests/subpath-server.py',
+      url: "http://localhost:8081/PlanMyDay/",
+      reuseExistingServer: !process.env.CI,
+    },
+  ],
 });

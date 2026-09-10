@@ -1,5 +1,29 @@
 // DEV MODE
 window.isDevMode = new URLSearchParams(window.location.search).get("dev") === "true";
+
+// PlanMyDayApp — the Plan My Day app, extending the shared SmdApp base class.
+// Configuring the storage prefix here means every shared service (theme engine,
+// images store, minio backup) reads/writes "planmydays_*" keys via SmdConfig.
+class PlanMyDayApp extends SmdApp {
+  constructor() {
+    super({
+      storagePrefix: "planmydays_",
+      themeDefault: "darkly",
+      appName: "Plan My Day"
+    });
+    this.renderMain = renderMain;
+    this.renderStreamsEditor = renderStreamsEditor;
+    this.renderImagesEditor = renderImagesEditor;
+    this.renderSearchJobs = renderSearchJobs;
+    this.openSettings = openSettings;
+    this.closeSettings = closeSettings;
+    this.openStreamsEditor = openStreamsEditor;
+    this.closeStreamsEditor = closeStreamsEditor;
+    this.openSearchJobs = openSearchJobs;
+    this.closeSearchJobs = closeSearchJobs;
+  }
+}
+
 function getTodayDate() {
   const dev = localStorage.getItem("devToday");
   return dev ? new Date(dev + "T00:00:00") : new Date();
@@ -13,12 +37,12 @@ function getStoredLastGen() {
     const dev = localStorage.getItem("devLastGen");
     if (dev) return dev;
   }
-  return localStorage.getItem("planmydays_last_gen");
+  return localStorage.getItem(smdKey("last_gen"));
 }
 
 // STORAGE HELPERS
 function loadStreams() {
-  const streams = JSON.parse(localStorage.getItem("planmydays_streams") || "[]");
+  const streams = JSON.parse(localStorage.getItem(smdKey("streams")) || "[]");
   let nextId = Date.now();
   let changed = false;
   streams.forEach(t => {
@@ -30,82 +54,25 @@ function loadStreams() {
   return streams;
 }
 function saveStreams(streams) {
-  localStorage.setItem("planmydays_streams", JSON.stringify(streams));
-}
-
-function updateNavState() {
-  const nav = document.getElementById("mainNav");
-  if (nav) nav.classList.toggle("nav-inactive", false);
-}
-
-function escapeHtml(str) {
-  if (!str && str !== 0) return "";
-  return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-}
-
-function escAttr(str) {
-  return escapeHtml(str).replace(/"/g, "&quot;");
-}
-
-// MODAL HELPERS
-// Bootstrap ignores hide() while a modal's show transition is running, so track the
-// fully-shown state and defer hide() until the "shown" event fires when necessary.
-document.addEventListener("shown.bs.modal", function(e) { e.target.dataset.bsShown = "true"; });
-document.addEventListener("hidden.bs.modal", function(e) { e.target.dataset.bsShown = "false"; });
-function safeHideModal(modalId) {
-  const el = document.getElementById(modalId);
-  if (!el) return;
-  const hide = () => bootstrap.Modal.getOrCreateInstance(el).hide();
-  if (el.dataset.bsShown === "true") hide();
-  else el.addEventListener("shown.bs.modal", hide, { once: true });
-}
-
-function showInfoConfirm(message) {
-  showSmdModal({
-    title: "Sample images loaded",
-    content: escapeHtml(message).replace(/\n/g, "<br>"),
-    buttons: [
-      { text: "OK", variant: "primary", action: "ok" }
-    ]
-  });
-}
-
-let _smdModalHost = null;
-function showSmdModal(options) {
-  if (!_smdModalHost) {
-    _smdModalHost = document.createElement("smd-modal");
-    _smdModalHost.id = "smdConfirmModal";
-    document.body.appendChild(_smdModalHost);
-  }
-  const modal = _smdModalHost;
-  modal.title = options.title || "";
-  modal.content = options.content || "";
-  modal.buttons = options.buttons || [{ text: "OK", variant: "primary", action: "ok" }];
-  const onAction = options.onAction;
-  const handler = function(e) {
-    modal.removeEventListener("smd-modal-action", handler);
-    if (onAction) onAction(e.detail);
-  };
-  modal.addEventListener("smd-modal-action", handler);
-  modal.show();
+  localStorage.setItem(smdKey("streams"), JSON.stringify(streams));
 }
 
 // JOB COMPLETION STORAGE
 function loadCompletedJobs() {
-  const data = localStorage.getItem("planmydays_completed");
+  const data = localStorage.getItem(smdKey("completed"));
   return data ? JSON.parse(data) : [];
 }
 function saveCompletedJobs(ids) {
-  localStorage.setItem("planmydays_completed", JSON.stringify(ids));
+  localStorage.setItem(smdKey("completed"), JSON.stringify(ids));
 }
 
 // TODAY PAGE ORDER
 function loadTodayOrder() {
-  const data = localStorage.getItem("planmydays_today_order");
+  const data = localStorage.getItem(smdKey("today_order"));
   return data ? JSON.parse(data) : null;
 }
 function saveTodayOrder(order) {
-  localStorage.setItem("planmydays_today_order", JSON.stringify(order));
+  localStorage.setItem(smdKey("today_order"), JSON.stringify(order));
 }
 
 // MAIN PAGE RENDER
@@ -143,7 +110,7 @@ function ensureTodayList() {
     const order = addScheduleJobsToOrder([]);
     saveTodayOrder(order);
     saveCompletedJobs([]);
-    localStorage.setItem("planmydays_last_gen", today);
+    localStorage.setItem(smdKey("last_gen"), today);
     return;
   }
 
@@ -153,7 +120,7 @@ function ensureTodayList() {
   const merged = addScheduleJobsToOrder(carried);
   saveTodayOrder(merged);
   saveCompletedJobs([]);
-  localStorage.setItem("planmydays_last_gen", today);
+  localStorage.setItem(smdKey("last_gen"), today);
 }
 
 function renderMain() {
@@ -200,7 +167,7 @@ function renderMain() {
   todayOrder.forEach((id, i) => { orderMap[id] = i; });
   allJobs.sort((a, b) => (orderMap[a.job.id] !== undefined ? orderMap[a.job.id] : 999) - (orderMap[b.job.id] !== undefined ? orderMap[b.job.id] : 999));
 
-  if (localStorage.getItem("planmydays_hideDone") === "true") {
+  if (localStorage.getItem(smdKey("hideDone")) === "true") {
     const filtered = allJobs.filter(({ job }) => !completed.includes(job.id));
     if (filtered.length === 0 && allJobs.length > 0) {
       const msg = document.createElement("p");
@@ -213,7 +180,7 @@ function renderMain() {
     allJobs.length = 0; allJobs.push(...filtered);
   }
 
-  const splitList = localStorage.getItem("planmydays_splitList") === "true";
+  const splitList = localStorage.getItem(smdKey("splitList")) === "true";
   const tab = container.dataset.todayTab || "progress";
   let matchingStreams = null;
 
@@ -320,7 +287,7 @@ function renderMain() {
         const streams = loadStreams();
         const stream = streams[streamIdx];
         if (stream && stream.title === "Ad Hoc") {
-          const skipConfirm = localStorage.getItem("planmydays_skipAdhocConfirm") === "true";
+          const skipConfirm = localStorage.getItem(smdKey("skipAdhocConfirm")) === "true";
           if (!skipConfirm) {
             const job = (stream.jobs || []).find(j => j.id === jobId);
             const cbRef = this;
@@ -1890,7 +1857,7 @@ function initJobSleepUntilPicker(readOnly) {
     allowInput: false,
     monthSelectorType: "dropdown",
     disableMobile: true,
-    locale: { firstDayOfWeek: parseInt(localStorage.getItem("planmydays_startWeek") || "1", 10) },
+    locale: { firstDayOfWeek: parseInt(localStorage.getItem(smdKey("startWeek")) || "1", 10) },
     onChange: function(selectedDates, dateStr) {
       jobField("sleepUntil", dateStr);
       updateSleepUntilClearBtn();
@@ -2098,7 +2065,7 @@ function getJobSuffix(job) {
 
   if (dayType === "dayOfWeek") {
     dayNum = today.getDay();
-    const mondaySetting = localStorage.getItem("planmydays_monday") || "1";
+    const mondaySetting = localStorage.getItem(smdKey("monday")) || "1";
     if (mondaySetting === "1") {
       dayNum = dayNum === 0 ? 7 : dayNum;
     } else {
@@ -2109,7 +2076,7 @@ function getJobSuffix(job) {
   } else {
     const startOfYear = new Date(today.getFullYear(), 0, 0);
     dayNum = Math.floor((today - startOfYear) / 86400000);
-    const jan1Setting = localStorage.getItem("planmydays_jan1") || "0";
+    const jan1Setting = localStorage.getItem(smdKey("jan1")) || "0";
     if (jan1Setting === "0") {
       dayNum -= 1;
     }
@@ -2122,7 +2089,7 @@ function getJobSuffix(job) {
     }
   }
 
-  const suffixStart = localStorage.getItem("planmydays_suffixStart") || "0";
+  const suffixStart = localStorage.getItem(smdKey("suffixStart")) || "0";
   if (suffixStart === "1") dayNum += 1;
 
   return ` (${dayNum})`;
@@ -2132,6 +2099,57 @@ function getJobSuffix(job) {
 let _settingsSections = null;
 let _settingsFooterHtml = null;
 let _settingsCloseTimer = null;
+
+// PMD-specific settings (kept out of the shared smd-settings.js library).
+function changeSplitList(enabled) {
+  localStorage.setItem(smdKey("splitList"), enabled);
+}
+
+function changeDevToday(value) {
+  localStorage.setItem("devToday", value);
+  if (typeof renderMain === "function") renderMain();
+}
+
+function changeDevLastGen(value) {
+  localStorage.setItem("devLastGen", value);
+}
+
+function changeHideDone(enabled) {
+  localStorage.setItem(smdKey("hideDone"), enabled);
+}
+
+function changeSuffixStart(value) {
+  localStorage.setItem(smdKey("suffixStart"), value);
+  if (typeof renderMain === "function") renderMain();
+}
+
+function changeJan1(value) {
+  localStorage.setItem(smdKey("jan1"), value);
+  if (typeof renderMain === "function") renderMain();
+}
+
+function changeMonday(value) {
+  localStorage.setItem(smdKey("monday"), value);
+  if (typeof renderMain === "function") renderMain();
+}
+
+function changeStartWeek(value) {
+  localStorage.setItem(smdKey("startWeek"), value);
+}
+
+function changeShowDanger(enabled) {
+  localStorage.setItem(smdKey("showDanger"), enabled);
+  const dangerIds = ["clearAllDataRow", "refreshAppRow", "regenerateTilesRow", "sortJobsInStreamsRow", "uploadStandardImagesRow"];
+  if (isDevMode) dangerIds.push("devTodayRow", "devLastGenRow");
+  dangerIds.forEach(id => {
+    const el = $id(id);
+    if (el) el.classList.toggle("d-none", !enabled);
+  });
+}
+
+function changeSkipAdhocConfirm(enabled) {
+  localStorage.setItem(smdKey("skipAdhocConfirm"), enabled);
+}
 
 function getSettingsSections() {
   if (_settingsSections) return { sections: _settingsSections, footerHtml: _settingsFooterHtml };
@@ -2549,12 +2567,6 @@ function injectJobEditStyles() {
   }
 }
 
-function injectStyleInto(root, css) {
-  if (!root) return;
-  css = css || SETTINGS_STYLES;
-  SmdStyles.adoptStyles(root, css);
-}
-
 function buildSettingsContent() {
   const settingsPage = document.getElementById("settingsPage");
   if (!settingsPage) return;
@@ -2588,37 +2600,37 @@ function openSettings() {
   settingsPage.show();
   if (typeof bindMinioSettingsTabBehavior === "function") bindMinioSettingsTabBehavior();
 
-  const savedTheme = localStorage.getItem("planmydays_theme") || "darkly";
+  const savedTheme = localStorage.getItem(smdKey("theme")) || "darkly";
   const themeSel = $id("themeSelector");
-  if (themeSel) themeSel.value = savedTheme;
-  const savedFontSize = localStorage.getItem("planmydays_fontSize") || "xlarge";
+  if (themeSel) themeSel.setAttribute("theme", savedTheme);
+  const savedFontSize = localStorage.getItem(smdKey("fontSize")) || "xlarge";
   const fontSizeSel = $id("fontSizeSelector");
   if (fontSizeSel) fontSizeSel.value = savedFontSize;
-  const splitList = localStorage.getItem("planmydays_splitList") === "true";
+  const splitList = localStorage.getItem(smdKey("splitList")) === "true";
   const splitListCb = $id("splitList");
   if (splitListCb) splitListCb.checked = splitList;
-  const autoHide = localStorage.getItem("planmydays_autoHideMenu") === "true";
+  const autoHide = localStorage.getItem(smdKey("autoHideMenu")) === "true";
   const autoHideCb = $id("autoHideMenu");
   if (autoHideCb) autoHideCb.checked = autoHide;
-  const hideDone = localStorage.getItem("planmydays_hideDone") === "true";
+  const hideDone = localStorage.getItem(smdKey("hideDone")) === "true";
   const hideDoneCb = $id("hideDone");
   if (hideDoneCb) hideDoneCb.checked = hideDone;
-  const suffixStart = localStorage.getItem("planmydays_suffixStart") || "0";
+  const suffixStart = localStorage.getItem(smdKey("suffixStart")) || "0";
   const suffixStartSel = $id("suffixStartSelector");
   if (suffixStartSel) suffixStartSel.value = suffixStart;
-  const jan1 = localStorage.getItem("planmydays_jan1") || "1";
+  const jan1 = localStorage.getItem(smdKey("jan1")) || "1";
   const jan1Sel = $id("jan1Selector");
   if (jan1Sel) jan1Sel.value = jan1;
-  const monday = localStorage.getItem("planmydays_monday") || "1";
+  const monday = localStorage.getItem(smdKey("monday")) || "1";
   const mondaySel = $id("mondaySelector");
   if (mondaySel) mondaySel.value = monday;
-  const startWeek = localStorage.getItem("planmydays_startWeek") || "1";
+  const startWeek = localStorage.getItem(smdKey("startWeek")) || "1";
   const startWeekSel = $id("startWeekSelector");
   if (startWeekSel) startWeekSel.value = startWeek;
-  const showDanger = localStorage.getItem("planmydays_showDanger") === "true";
+  const showDanger = localStorage.getItem(smdKey("showDanger")) === "true";
   const showDangerCb = $id("showDanger");
   if (showDangerCb) showDangerCb.checked = showDanger;
-  const skipAdhoc = localStorage.getItem("planmydays_skipAdhocConfirm") === "true";
+  const skipAdhoc = localStorage.getItem(smdKey("skipAdhocConfirm")) === "true";
   const skipAdhocCb = $id("skipAdhocConfirm");
   if (skipAdhocCb) skipAdhocCb.checked = skipAdhoc;
   const dangerIds = ["clearAllDataRow", "refreshAppRow", "regenerateTilesRow", "sortJobsInStreamsRow", "uploadStandardImagesRow"];
@@ -2661,16 +2673,16 @@ function openSettings() {
     });
   }
 
-  const savedIconSize = localStorage.getItem("planmydays_iconSize") || "large";
+  const savedIconSize = localStorage.getItem(smdKey("iconSize")) || "large";
   const iconSel = $id("iconSizeSelector");
   if (iconSel) iconSel.value = savedIconSize;
-  const savedDensity = localStorage.getItem("planmydays_density") || "normal";
+  const savedDensity = localStorage.getItem(smdKey("density")) || "normal";
   const densitySel = $id("densitySelector");
   if (densitySel) densitySel.value = savedDensity;
-  const savedDragSize = localStorage.getItem("planmydays_dragSize") || "large";
+  const savedDragSize = localStorage.getItem(smdKey("dragSize")) || "large";
   const dragSizeSel = $id("dragSizeSelector");
   if (dragSizeSel) dragSizeSel.value = savedDragSize;
-  const savedSlideDuration = localStorage.getItem("planmydays_slideDuration") || "0";
+  const savedSlideDuration = localStorage.getItem(smdKey("slideDuration")) || "0";
   const slideSel = $id("slideDurationSelector");
   if (slideSel) slideSel.value = savedSlideDuration;
 
@@ -2705,7 +2717,7 @@ function regenerateTiles() {
   const merged = addScheduleJobsToOrder([]);
   saveTodayOrder(merged);
   saveCompletedJobs([]);
-  localStorage.setItem("planmydays_last_gen", getTodayStr());
+  localStorage.setItem(smdKey("last_gen"), getTodayStr());
   closeSettings();
   renderMain();
 }
@@ -2745,8 +2757,8 @@ function exportData() {
   const data = {
     version: 1,
     exportedAt: new Date().toISOString(),
-    streams: JSON.parse(localStorage.getItem("planmydays_streams") || "[]"),
-    images: JSON.parse(localStorage.getItem("planmydays_images") || "[]")
+    streams: JSON.parse(localStorage.getItem(smdKey("streams")) || "[]"),
+    images: JSON.parse(localStorage.getItem(smdKey("images")) || "[]")
   };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
@@ -2774,8 +2786,8 @@ function importData() {
           alert("Invalid backup file: missing streams or images data.");
           return;
         }
-        if (data.streams) localStorage.setItem("planmydays_streams", JSON.stringify(data.streams));
-        if (data.images) localStorage.setItem("planmydays_images", JSON.stringify(data.images));
+        if (data.streams) localStorage.setItem(smdKey("streams"), JSON.stringify(data.streams));
+        if (data.images) localStorage.setItem(smdKey("images"), JSON.stringify(data.images));
         regenerateTiles();
       } catch (err) {
         alert("Invalid JSON file.");
@@ -2887,20 +2899,69 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  const savedTheme = localStorage.getItem("planmydays_theme") || "darkly";
+  const savedTheme = localStorage.getItem(smdKey("theme")) || "darkly";
   applyTheme(savedTheme);
   if (typeof seedSampleImages === "function") seedSampleImages();
 
   renderMain();
+
+  // The settings Display tab uses the shared <smd-theme> component; apply the
+  // chosen theme when it fires smd-theme-change.
+  document.addEventListener("smd-theme-change", function(e) {
+    const theme = e.detail && e.detail.theme;
+    if (theme && typeof changeTheme === "function") changeTheme(theme);
+  });
+
+  // smd-image-select "Edit" buttons open the SHARED image picker on
+  // #imagePickerPage. Selection/no-image/cancel resolve the callback.
+  let pickerCallback = null;
+  let pickerHost = null;
+  window.__openImagePicker = function(callback) {
+    pickerCallback = callback || null;
+    pickerHost = document.getElementById("imagePickerPage");
+    if (!pickerHost) return;
+    pickerHost.title = "Choose Image";
+    pickerHost.content = '<smd-image-picker id="pickerHost" key-prefix="planmydays_"></smd-image-picker>';
+    pickerHost.buttons = [
+      { text: "Cancel", variant: "secondary", action: "cancel" },
+      { text: "No Image", variant: "secondary", action: "no-image" }
+    ];
+    if (!pickerHost.__pickerBound) {
+      pickerHost.__pickerBound = true;
+      pickerHost.addEventListener("smd-page-action", function(e) {
+        const action = e.detail && (typeof e.detail === "string" ? e.detail : e.detail.action);
+        if (action === "cancel" || action === "no-image") window.__finishImagePick(null);
+      });
+    }
+    pickerHost.classList.remove("d-none");
+    pickerHost.show();
+  };
+  window.__finishImagePick = function(name) {
+    if (pickerCallback) {
+      const cb = pickerCallback;
+      pickerCallback = null;
+      cb(name);
+    }
+    if (pickerHost) {
+      pickerHost.hide();
+      // The page slides off-screen on hide(), but Playwright counts an off-canvas
+      // element as visible. Add d-none (immediately for tests; after slide for UI).
+      const ms = pickerHost.slideDuration || 0;
+      setTimeout(function() { pickerHost.classList.add("d-none"); }, ms > 0 ? ms + 50 : 0);
+    }
+  };
+  document.addEventListener("smd-image-picker-select", function(e) {
+    window.__finishImagePick(e.detail ? e.detail.name : null);
+  });
 
   document.addEventListener("smd-image-select-action", function(e) {
     const path = e.composedPath ? e.composedPath() : [];
     const sel = (path && path.find(function(el) { return el && el.tagName === "SMD-IMAGE-SELECT"; })) || null;
     if (!sel || !sel.id) return;
     if (sel.id === "streamImageSelect") {
-      openImagePicker(function(name) { editField("image", name); updateStreamImagePreview(name); });
+      window.__openImagePicker(function(name) { editField("image", name); updateStreamImagePreview(name); });
     } else if (sel.id === "jobImageSelect") {
-      openImagePicker(function(name) { jobField("image", name); updateJobImagePreview(name); });
+      window.__openImagePicker(function(name) { jobField("image", name); updateJobImagePreview(name); });
     }
   });
 

@@ -1578,16 +1578,16 @@ test.describe("PlanMyDay - Regression", () => {
     });
 
     test("search filters picker items", async ({ page }) => {
-      await page.locator(".image-picker-item").first().waitFor({ state: "visible" });
-      await page.locator(".image-picker-search").fill("PickTest");
+      await page.locator("#imagePickerPage smd-image-picker .item").first().waitFor({ state: "visible" });
+      await page.locator("#imagePickerPage smd-image-picker input[type=search]").fill("PickTest");
       await expect(page.getByText("PickTest")).toBeVisible();
       await expect(page.getByText("Another")).not.toBeVisible();
     });
 
     test("clear button resets picker search", async ({ page }) => {
-      await page.locator(".image-picker-search").fill("PickTest");
-      await page.locator("#btnImagePickerClear").click();
-      await expect(page.locator(".image-picker-search")).toHaveValue("");
+      await page.locator("#imagePickerPage smd-image-picker input[type=search]").fill("PickTest");
+      await page.locator("#imagePickerPage smd-image-picker .clear").click();
+      await expect(page.locator("#imagePickerPage smd-image-picker input[type=search]")).toHaveValue("");
     });
 
     test("no image and cancel buttons exist", async ({ page }) => {
@@ -1595,22 +1595,20 @@ test.describe("PlanMyDay - Regression", () => {
       await expect(page.locator("#imagePickerPage .smd-page-footer smd-button").filter({ hasText: "Cancel" })).toBeVisible();
     });
 
-    test("picker has all six tabs, Local active by default", async ({ page }) => {
-      for (const label of ["Local", "Bootstrap", "Remix", "Font Awesome", "FA Brands", "Material"]) {
-        await expect(page.locator("#imagePickerPage .smd-tab-btn").filter({ hasText: label })).toBeVisible();
+    test("picker has its icon tabs, Local active by default", async ({ page }) => {
+      for (const label of ["Local", "Bootstrap", "Font Awesome", "FA Brands"]) {
+        await expect(page.locator("#imagePickerPage smd-image-picker .tab-btn").filter({ hasText: label })).toBeVisible();
       }
-      await expect(page.locator("#imagePickerPage .smd-tab-btn[active]")).toHaveText(/Local/);
-      await expect(page.locator(".image-picker-item").first()).toBeVisible();
+      await expect(page.locator("#imagePickerPage smd-image-picker .tab-btn[active]")).toHaveText(/Local/);
+      await expect(page.locator("#imagePickerPage smd-image-picker .item").first()).toBeVisible();
     });
 
     test("picker tabs wrap onto multiple lines", async ({ page }) => {
-      await expect(page.locator("#imagePickerPage smd-tabs")).toHaveAttribute("wrap", "");
-      const wrap = await page.locator("#imagePickerPage smd-tabs").first()
-        .evaluate((el) => getComputedStyle(el.shadowRoot.querySelector(".smd-tab-list")).flexWrap);
+      const wrap = await page.locator("#imagePickerPage smd-image-picker").evaluate((el) => getComputedStyle(el.shadowRoot.querySelector(".tabs")).flexWrap);
       expect(wrap).toBe("wrap");
       await page.setViewportSize({ width: 360, height: 640 });
       await page.waitForTimeout(300);
-      const rows = await page.locator("#imagePickerPage .smd-tab-btn").evaluateAll((btns) => {
+      const rows = await page.locator("#imagePickerPage smd-image-picker .tab-btn").evaluateAll((btns) => {
         const tops = btns.map((b) => Math.round(b.getBoundingClientRect().top));
         return new Set(tops).size;
       });
@@ -1618,66 +1616,62 @@ test.describe("PlanMyDay - Regression", () => {
     });
 
     test("bootstrap tab shows all bootstrap icons with the icon font", async ({ page }) => {
-      await page.locator("#imagePickerPage .smd-tab-btn").filter({ hasText: "Bootstrap" }).click();
-      await page.locator("#iconPickerList-bi .icon-picker-item").first().waitFor({ state: "visible", timeout: 10000 });
-      expect(await page.locator("#iconPickerList-bi .icon-picker-item").count()).toBeGreaterThan(500);
-      const fontFamily = await page.locator("#iconPickerList-bi .icon-glyph").first()
+      await page.locator("#imagePickerPage smd-image-picker .tab-btn").filter({ hasText: "Bootstrap" }).click();
+      await page.locator("#imagePickerPage smd-image-picker .item").first().waitFor({ state: "visible", timeout: 10000 });
+      expect(await page.locator("#imagePickerPage smd-image-picker .item").count()).toBeGreaterThan(500);
+      const fontFamily = await page.locator("#imagePickerPage smd-image-picker .glyph").first()
         .evaluate((el) => getComputedStyle(el).fontFamily);
       expect(fontFamily).toContain("bootstrap-icons");
-      await expect(page.locator("#imagePickerPage .smd-tab-btn[active]")).toHaveText(/Bootstrap/);
+      await expect(page.locator("#imagePickerPage smd-image-picker .tab-btn[active]")).toHaveText(/Bootstrap/);
     });
 
     test("each icon tab renders its grid with the correct icon font", async ({ page }) => {
       const sets = [
-        { label: "Bootstrap", list: "#iconPickerList-bi", family: "bootstrap-icons" },
-        { label: "Remix", list: "#iconPickerList-ri", family: "remixicon" },
-        { label: "Font Awesome", list: "#iconPickerList-fa", family: "Font Awesome 6 Free" },
-        { label: "FA Brands", list: "#iconPickerList-fab", family: "Font Awesome 6 Brands" },
-        { label: "Material", list: "#iconPickerList-ms", family: "Material Symbols Outlined" }
+        { label: "Bootstrap", family: "bootstrap-icons" },
+        { label: "Font Awesome", family: "Font Awesome 6 Free" },
+        { label: "FA Brands", family: "Font Awesome 6 Brands" }
       ];
       for (const set of sets) {
-        await page.locator("#imagePickerPage .smd-tab-btn").filter({ hasText: set.label }).click();
-        await page.locator(`${set.list} .icon-picker-item`).first().waitFor({ state: "visible", timeout: 15000 });
-        const count = await page.locator(`${set.list} .icon-picker-item`).count();
+        await page.locator("#imagePickerPage smd-image-picker .tab-btn").filter({ hasText: set.label }).click();
+        await page.locator("#imagePickerPage smd-image-picker .item").first().waitFor({ state: "visible", timeout: 15000 });
+        const count = await page.locator("#imagePickerPage smd-image-picker .item").count();
         expect(count).toBeGreaterThan(300);
-        const family = await page.locator(`${set.list} .icon-glyph`).first()
+        const family = await page.locator("#imagePickerPage smd-image-picker .glyph").first()
           .evaluate((el) => getComputedStyle(el).fontFamily);
         expect(family).toContain(set.family);
       }
     });
 
     test("bootstrap tab search filters icons and clear restores them", async ({ page }) => {
-      await page.locator("#imagePickerPage .smd-tab-btn").filter({ hasText: "Bootstrap" }).click();
-      await page.locator("#iconPickerList-bi .icon-picker-item").first().waitFor({ state: "visible", timeout: 10000 });
-      const total = await page.locator("#iconPickerList-bi .icon-picker-item").count();
-      await page.locator(".image-picker-search").fill("house");
-      await expect(page.locator("#iconPickerList-bi .icon-picker-item .icon-name").first()).toContainText("house");
-      const filtered = await page.locator("#iconPickerList-bi .icon-picker-item").count();
+      await page.locator("#imagePickerPage smd-image-picker .tab-btn").filter({ hasText: "Bootstrap" }).click();
+      await page.locator("#imagePickerPage smd-image-picker .item").first().waitFor({ state: "visible", timeout: 10000 });
+      const total = await page.locator("#imagePickerPage smd-image-picker .item").count();
+      await page.locator("#imagePickerPage smd-image-picker input[type=search]").fill("house");
+      await expect(page.locator("#imagePickerPage smd-image-picker .label").first()).toContainText("house");
+      const filtered = await page.locator("#imagePickerPage smd-image-picker .item").count();
       expect(filtered).toBeGreaterThan(0);
       expect(filtered).toBeLessThan(total);
-      await page.locator("#btnImagePickerClear").click();
-      await expect(page.locator(".image-picker-search")).toHaveValue("");
-      await expect(page.locator("#iconPickerList-bi .icon-picker-item")).toHaveCount(total, { timeout: 10000 });
+      await page.locator("#imagePickerPage smd-image-picker .clear").click();
+      await expect(page.locator("#imagePickerPage smd-image-picker input[type=search]")).toHaveValue("");
+      await expect(page.locator("#imagePickerPage smd-image-picker .item")).toHaveCount(total, { timeout: 10000 });
     });
 
     test("selecting an icon returns the set-prefixed name and closes the picker", async ({ page }) => {
       const sets = [
-        { label: "Bootstrap", list: "#iconPickerList-bi", prefix: "bi" },
-        { label: "Remix", list: "#iconPickerList-ri", prefix: "ri" },
-        { label: "Font Awesome", list: "#iconPickerList-fa", prefix: "fa" },
-        { label: "FA Brands", list: "#iconPickerList-fab", prefix: "fab" },
-        { label: "Material", list: "#iconPickerList-ms", prefix: "ms" }
+        { label: "Bootstrap", prefix: "bi" },
+        { label: "Font Awesome", prefix: "fa" },
+        { label: "FA Brands", prefix: "fab" }
       ];
       for (const set of sets) {
-        await page.locator("#imagePickerPage .smd-tab-btn").filter({ hasText: set.label }).click();
-        await page.locator(`${set.list} .icon-picker-item`).first().waitFor({ state: "visible", timeout: 15000 });
-        const firstItemName = (await page.locator(`${set.list} .icon-picker-item .icon-name`).first().textContent()).trim();
-        await page.locator(`${set.list} .icon-picker-item`).first().click();
+        await page.locator("#imagePickerPage smd-image-picker .tab-btn").filter({ hasText: set.label }).click();
+        await page.locator("#imagePickerPage smd-image-picker .item").first().waitFor({ state: "visible", timeout: 15000 });
+        const firstItemName = (await page.locator("#imagePickerPage smd-image-picker .label").first().textContent()).trim();
+        await page.locator("#imagePickerPage smd-image-picker .item").first().click();
         await page.locator("#imagePickerPage").waitFor({ state: "hidden", timeout: 10000 });
         await expect(page.locator("#streamImageName")).toHaveText(`${set.prefix}:${firstItemName}`);
         await page.locator("#btnStreamImageChoose").click();
         await page.locator("#imagePickerPage").waitFor({ state: "visible" });
-        await page.locator(".image-picker-item").first().waitFor({ state: "visible", timeout: 10000 });
+        await page.locator("#imagePickerPage smd-image-picker .item").first().waitFor({ state: "visible", timeout: 10000 });
       }
     });
   });
@@ -1752,20 +1746,18 @@ test.describe("PlanMyDay - Regression", () => {
       expect(info.imgHidden).toBeTruthy();
 
       const expected = await page.evaluate(async () => {
-        const css = await (await fetch("vendor/bootstrap-icons.css?v=" + (typeof BUILD_NUMBER !== "undefined" ? BUILD_NUMBER : 0))).text();
+        const css = await (await fetch("ShareMyDays/vendor/bootstrap-icons.css?v=" + (typeof BUILD_NUMBER !== "undefined" ? BUILD_NUMBER : 0))).text();
         const m = css.match(/\.bi-house::before[^}]*content:\s*["']\\([0-9a-fA-F]+)["']/);
         return m ? String.fromCodePoint(parseInt(m[1], 16)) : "";
       });
       expect(info.glyph).toBe(expected);
     });
 
-    test("renders ri/fa/fab/ms prefixed names as icon glyphs with the right fonts", async ({ page }) => {
+    test("renders fa/fab prefixed names as icon glyphs with the right fonts", async ({ page }) => {
       await page.goto("/");
       const samples = [
-        { image: "ri:home-4-line", family: "remixicon", weight: "400" },
         { image: "fa:house", family: "Font Awesome 6 Free", weight: "900" },
-        { image: "fab:github", family: "Font Awesome 6 Brands", weight: "400" },
-        { image: "ms:home", family: "Material Symbols Outlined", weight: "400" }
+        { image: "fab:github", family: "Font Awesome 6 Brands", weight: "400" }
       ];
       for (const sample of samples) {
         await page.evaluate((img) => {
@@ -1788,11 +1780,7 @@ test.describe("PlanMyDay - Regression", () => {
         }, sample.image);
         expect(info.fontFamily).toContain(sample.family);
         expect(info.fontWeight).toBe(sample.weight);
-        if (sample.image.startsWith("ms:")) {
-          expect(info.text).toBe("home");
-        } else {
-          expect(info.text.length).toBe(1);
-        }
+        expect(info.text.length).toBe(1);
       }
     });
 
@@ -2273,7 +2261,7 @@ test.describe("PlanMyDay - Regression", () => {
 
     test("theme selector changes theme", async ({ page }) => {
       await page.locator("#appearance-tab").click();
-      await page.locator("#themeSelector").selectOption("solar");
+      await page.locator("#themeSelector select").selectOption("solar");
       const val = await page.evaluate(() => localStorage.getItem("planmydays_theme"));
       expect(val).toBe("solar");
     });
@@ -2289,6 +2277,20 @@ test.describe("PlanMyDay - Regression", () => {
         return link ? link.getAttribute("href") : "";
       });
       expect(linkHref).toContain("darkly");
+    });
+
+    test("settings footer shows the Font Awesome credit", async ({ page }) => {
+      await page.locator("#settingsPage:not(.d-none)").waitFor({ state: "visible" });
+      await page.evaluate(() => {
+        const root = document.getElementById("settingsPage");
+        const inner = root && root.shadowRoot && root.shadowRoot.querySelector("smd-fontawesome-credit");
+        const text = inner && inner.shadowRoot ? inner.shadowRoot.textContent : "";
+        window.__faCredit = text;
+      });
+      const text = await page.evaluate(() => window.__faCredit || "");
+      expect(text).toContain("Font Awesome icons by");
+      expect(text).toContain("Fonticons, Inc.");
+      expect(text).toContain("CC BY 4.0");
     });
 
     test("font size normal removes size class", async ({ page }) => {
@@ -2710,8 +2712,8 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#jobEditPage").waitFor({ state: "visible" });
       await page.locator("#btnJobImageChange").click();
       await page.locator("#imagePickerPage").waitFor({ state: "visible" });
-      await page.locator(".image-picker-item").first().waitFor({ state: "visible", timeout: 10000 });
-      await page.locator(".image-picker-item").first().click();
+      await page.locator("#imagePickerPage smd-image-picker .item").first().waitFor({ state: "visible", timeout: 10000 });
+      await page.locator("#imagePickerPage smd-image-picker .item").first().click();
       await page.locator("#imagePickerPage").waitFor({ state: "hidden", timeout: 10000 });
       await expect(page.locator("#jobImageName")).toHaveText("TestImg");
     });
@@ -3103,9 +3105,9 @@ test.describe("PlanMyDay - Regression", () => {
     });
 
     test("selecting image sets name in stream editor", async ({ page }) => {
-      await page.locator(".image-picker-item").first().waitFor({ state: "visible" });
+      await page.locator("#imagePickerPage smd-image-picker .item").first().waitFor({ state: "visible" });
       await expect(page.locator("#imagePickerPage")).toHaveAttribute("open", "");
-      await page.locator(".image-picker-item").first().dispatchEvent("click");
+      await page.locator("#imagePickerPage smd-image-picker .item").first().dispatchEvent("click");
       await expect
         .poll(() => page.evaluate(() => (editBuffer && editBuffer.image) || ""), { timeout: 5000 })
         .toBe("PickMe");
@@ -3119,19 +3121,19 @@ test.describe("PlanMyDay - Regression", () => {
     });
 
     test("search filters picker items", async ({ page }) => {
-      await page.locator(".image-picker-item").first().waitFor({ state: "visible" });
-      await page.locator(".image-picker-search").fill("PickMeToo");
-      await page.locator(".image-picker-item:has-text('PickMeToo')").waitFor({ state: "visible" });
-      await expect(page.locator(".image-picker-item").filter({ hasText: /^PickMeToo$/ })).toBeVisible();
-      await expect(page.locator(".image-picker-item").filter({ hasText: /^PickMe$/ })).not.toBeVisible();
+      await page.locator("#imagePickerPage smd-image-picker .item").first().waitFor({ state: "visible" });
+      await page.locator("#imagePickerPage smd-image-picker input[type=search]").fill("PickMeToo");
+      await page.locator("#imagePickerPage smd-image-picker .label:has-text('PickMeToo')").waitFor({ state: "visible" });
+      await expect(page.locator("#imagePickerPage smd-image-picker .label").filter({ hasText: /^PickMeToo$/ })).toBeVisible();
+      await expect(page.locator("#imagePickerPage smd-image-picker .label").filter({ hasText: /^PickMe$/ })).not.toBeVisible();
     });
 
     test("clear button resets picker search", async ({ page }) => {
       test.setTimeout(30000);
-      await page.locator(".image-picker-search").fill("PickMeToo");
-      await page.locator(".image-picker-item:has-text('PickMeToo')").waitFor({ state: "visible" });
-      await page.locator("#imagePickerPage button:has-text('Clear')").click();
-      await expect(page.locator(".image-picker-item").filter({ hasText: /^PickMe$/ })).toBeVisible();
+      await page.locator("#imagePickerPage smd-image-picker input[type=search]").fill("PickMeToo");
+      await page.locator("#imagePickerPage smd-image-picker .label:has-text('PickMeToo')").waitFor({ state: "visible" });
+      await page.locator("#imagePickerPage smd-image-picker .clear").click();
+      await expect(page.locator("#imagePickerPage smd-image-picker .label").filter({ hasText: /^PickMe$/ })).toBeVisible();
     });
 
     test("closing picker with cancel button", async ({ page }) => {
@@ -3386,7 +3388,7 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#streamEditorList .btn-primary").filter({ hasText: "Edit" }).first().click();
       await page.locator("#btnStreamImageChoose").click();
       await page.locator("#imagePickerPage").waitFor({ state: "visible" });
-      await page.locator(".image-picker-search").fill("ZZZZNOTHING");
+      await page.locator("#imagePickerPage smd-image-picker input[type=search]").fill("ZZZZNOTHING");
       await expect(page.getByText("No images match your search.")).toBeVisible();
     });
   });
@@ -4333,10 +4335,10 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#btnJobImageChange").click();
       await page.locator("#imagePickerPage").waitFor({ state: "visible" });
       await expect(page.locator("#imagePickerPage")).toBeVisible();
-      await page.locator(".image-picker-item").first().waitFor({ state: "visible" });
+      await page.locator("#imagePickerPage smd-image-picker .item").first().waitFor({ state: "visible" });
       // guard against the click landing while the picker is still mid-transition
       await expect(page.locator("#imagePickerPage")).toHaveAttribute("open", "");
-      await page.locator(".image-picker-item").first().dispatchEvent("click");
+      await page.locator("#imagePickerPage smd-image-picker .item").first().dispatchEvent("click");
       // selection writes back to the buffer; wait for it instead of a fixed sleep
       await expect
         .poll(() => page.evaluate(() => (jobsBuffer && jobsBuffer.image) || ""), { timeout: 5000 })
@@ -4370,10 +4372,10 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#btnJobImageChange").click();
       await page.locator("#imagePickerPage").waitFor({ state: "visible" });
       await expect(page.locator("#imagePickerPage")).toBeVisible();
-      await page.locator(".image-picker-item").first().waitFor({ state: "visible" });
+      await page.locator("#imagePickerPage smd-image-picker .item").first().waitFor({ state: "visible" });
       // guard against the click landing while the picker is still mid-transition
       await expect(page.locator("#imagePickerPage")).toHaveAttribute("open", "");
-      await page.locator(".image-picker-item").first().dispatchEvent("click");
+      await page.locator("#imagePickerPage smd-image-picker .item").first().dispatchEvent("click");
       // selection writes back to the buffer; wait for it instead of a fixed sleep
       await expect
         .poll(() => page.evaluate(() => (jobsBuffer && jobsBuffer.image) || ""), { timeout: 5000 })
@@ -4401,10 +4403,10 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#btnJobImageChange").click();
       await page.locator("#imagePickerPage").waitFor({ state: "visible" });
       await expect(page.locator("#imagePickerPage")).toHaveAttribute("open", "");
-      await page.locator(".image-picker-search").fill("Banana");
-      const banana = page.locator(".image-picker-item").filter({ hasText: "Banana" });
+      await page.locator("#imagePickerPage smd-image-picker input[type=search]").fill("Banana");
+      const banana = page.locator("#imagePickerPage smd-image-picker .label").filter({ hasText: "Banana" });
       await banana.waitFor({ state: "visible" });
-      const apple = page.locator(".image-picker-item").filter({ hasText: "Apple" });
+      const apple = page.locator("#imagePickerPage smd-image-picker .label").filter({ hasText: "Apple" });
       await expect(apple).not.toBeVisible();
     });
   });
@@ -4426,10 +4428,10 @@ test.describe("PlanMyDay - Regression", () => {
       await page.locator("#btnJobImageChange").click();
       await page.locator("#imagePickerPage").waitFor({ state: "visible" });
       await expect(page.locator("#imagePickerPage")).toBeVisible();
-      await page.locator(".image-picker-item").first().waitFor({ state: "visible" });
+      await page.locator("#imagePickerPage smd-image-picker .item").first().waitFor({ state: "visible" });
       // guard against the click landing while the picker is still mid-transition
       await expect(page.locator("#imagePickerPage")).toHaveAttribute("open", "");
-      await page.locator(".image-picker-item").first().dispatchEvent("click");
+      await page.locator("#imagePickerPage smd-image-picker .item").first().dispatchEvent("click");
       // selection writes back to the buffer; wait for it instead of a fixed sleep
       await expect
         .poll(() => page.evaluate(() => (jobsBuffer && jobsBuffer.image) || ""), { timeout: 5000 })
@@ -5136,7 +5138,7 @@ test.describe("PlanMyDay - Regression", () => {
       test.setTimeout(60000);
       await page.evaluate(async () => {
         // seed one name that will collide after upload
-        const res = await fetch("sampleImages.json");
+        const res = await fetch("ShareMyDays/sampleImages.json");
         const data = await res.json();
         if (data.images && data.images[0]) {
           localStorage.setItem("planmydays_images", JSON.stringify([data.images[0]]));
@@ -5154,7 +5156,7 @@ test.describe("PlanMyDay - Regression", () => {
     test("upload summary modal shows counts", async ({ page }) => {
       test.setTimeout(60000);
       await page.evaluate(async () => {
-        const res = await fetch("sampleImages.json");
+        const res = await fetch("ShareMyDays/sampleImages.json");
         const data = await res.json();
         if (data.images && data.images[0]) {
           localStorage.setItem("planmydays_images", JSON.stringify([data.images[0]]));
@@ -5162,7 +5164,7 @@ test.describe("PlanMyDay - Regression", () => {
       });
       await page.evaluate(() => uploadStandardImages());
       await page.locator("#smdConfirmModal").waitFor({ state: "visible", timeout: 15000 });
-      const total = await page.evaluate(async () => (await (await fetch("sampleImages.json")).json()).images.length);
+      const total = await page.evaluate(async () => (await (await fetch("ShareMyDays/sampleImages.json")).json()).images.length);
       await expect(page.locator("#smdConfirmModal")).toContainText(`${total} images uploaded`);
       await expect(page.locator("#smdConfirmModal")).toContainText(`${total - 1} added`);
       await expect(page.locator("#smdConfirmModal")).toContainText("1 duplicate ignored");
@@ -6454,7 +6456,7 @@ test.describe("PlanMyDay - Regression", () => {
     });
 
     test("smd-modal footer button closes the modal then fires smd-modal-action; close:false keeps it open", async ({ page }) => {
-      await page.addScriptTag({ url: "/js/components/smd-modal.js" });
+      await page.addScriptTag({ url: "/ShareMyDays/js/components/smd-modal.js" });
       await page.evaluate(() => {
         window.__modalActions = [];
         const m = document.createElement("smd-modal");
@@ -6595,6 +6597,92 @@ test.describe("PlanMyDay - Regression", () => {
       const themeHref = await page.evaluate(() => document.getElementById("bootstrap-theme-css").getAttribute("href"));
       expect(new URL(themeHref, "http://x/").searchParams.get("v")).toBe(build);
       expect(themeHref).toMatch(/css\/themes\/quartz\/bootstrap\.min\.css/);
+    });
+
+    test("no console errors and no failed loads when icon-font glyphs render (bi/fa/fab)", async ({ page }) => {
+      const consoleErrors = [];
+      const pageErrors = [];
+      const badResponses = [];
+      page.on("console", (msg) => { if (msg.type() === "error") consoleErrors.push(msg.text()); });
+      page.on("pageerror", (err) => pageErrors.push(err.message));
+      page.on("response", (resp) => { if (resp.status() >= 400) badResponses.push(resp.status() + " " + resp.url()); });
+
+      await page.goto("/");
+      // Render one glyph per icon family — each requires its vendored @font-face,
+      // so a wrong/missing font file url (e.g. "/vendor/fonts/..." vs the actual
+      // "ShareMyDays/vendor/fonts/...") surfaces as a 404/console error here.
+      const samples = ["bi:house", "fa:house", "fab:github"];
+      for (const image of samples) {
+        await page.evaluate((img) => {
+          const el = document.createElement("smd-image");
+          el.setAttribute("image", img);
+          el.setAttribute("size", "64");
+          document.body.appendChild(el);
+        }, image);
+        await page.waitForFunction((img) => {
+          const el = document.querySelector(`smd-image[image='${img}']`);
+          if (!el || !el.shadowRoot) return false;
+          const span = el.shadowRoot.querySelector(".smd-bi");
+          return span && !span.hidden && span.textContent.length > 0;
+        }, image, { timeout: 15000 });
+      }
+      // Give any lazily-fetched font files time to register a 404/fail.
+      await page.waitForTimeout(1500);
+
+      expect(consoleErrors).toEqual([]);
+      expect(pageErrors).toEqual([]);
+      expect(badResponses).toEqual([]);
+    });
+
+    test("no console errors when deployed under /PlanMyDay/ (sub-path) during SW precache", async ({ page }) => {
+      test.setTimeout(120000);
+      const consoleErrors = [];
+      const pageErrors = [];
+      const badResponses = [];
+      page.on("console", (msg) => { if (msg.type() === "error") consoleErrors.push(msg.text()); });
+      page.on("pageerror", (err) => pageErrors.push(err.message));
+      page.on("response", (resp) => { if (resp.status() >= 400) badResponses.push(resp.status() + " " + resp.url()); });
+
+      // tests/subpath-server.py serves the app ONLY under /PlanMyDay/ (every
+      // origin-root path 404s), faithfully mimicking ownimage.github.io/PlanMyDay/.
+      await page.goto("http://localhost:8081/PlanMyDay/");
+
+      // The theme <link> must resolve through the derived relative prefix; an
+      // absolute "/css/themes/..." href would 404 here and trip badResponses.
+      const themeHref = await page.evaluate(() => document.getElementById("bootstrap-theme-css").getAttribute("href"));
+      expect(themeHref).toMatch(/^ShareMyDays\/css\/themes\//);
+      expect(themeHref).not.toMatch(/^\/css\//);
+
+      // Wait for the SW to register, install, and finish precaching. The first
+      // worker on a fresh context activates automatically after install (no
+      // existing controller to wait behind), so once the registration reports an
+      // active worker, cache.addAll has completed. If any precache URL 404s, the
+      // cache.addAll rejects, install fails, and the worker never activates.
+      await expect.poll(async () => {
+        return page.evaluate(async () => {
+          const regs = await navigator.serviceWorker.getRegistrations();
+          const r = regs.find((x) => x.scope && x.scope.includes("/PlanMyDay/"));
+          return r && r.active ? r.active.state + "|" + !!navigator.serviceWorker.controller : "pending";
+        });
+      }, { timeout: 60000 }).toBe("activated|true");
+
+      // Confirm the precache actually stored the expected assets under /PlanMyDay/.
+      const cachedUrls = await page.evaluate(async () => {
+        const v = typeof BUILD_NUMBER !== "undefined" ? BUILD_NUMBER : "";
+        const cache = await caches.open("planmydays-" + v);
+        return (await cache.keys()).map((r) => r.url);
+      });
+      expect(cachedUrls.length).toBeGreaterThan(0);
+      expect(cachedUrls).toEqual(expect.arrayContaining([
+        expect.stringContaining("/PlanMyDay/ShareMyDays/css/themes/darkly/bootstrap.min.css"),
+        expect.stringContaining("/PlanMyDay/js/app.js"),
+        expect.stringContaining("/PlanMyDay/index.html")
+      ]));
+
+      // Any page-level asset load failures surface here.
+      expect(consoleErrors).toEqual([]);
+      expect(pageErrors).toEqual([]);
+      expect(badResponses).toEqual([]);
     });
   });
 });

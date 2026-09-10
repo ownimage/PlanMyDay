@@ -6,12 +6,10 @@
   <title>PlanMyDay - Component Storybook</title>
   <link id="bootstrap-theme-css" href="../css/themes/darkly/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="../vendor/bootstrap-icons.css">
-  <link rel="stylesheet" href="../vendor/remixicon.css">
   <link rel="stylesheet" href="../vendor/fontawesome/css/fontawesome.min.css">
   <link rel="stylesheet" href="../vendor/fontawesome/css/solid.min.css">
   <link rel="stylesheet" href="../vendor/fontawesome/css/regular.min.css">
   <link rel="stylesheet" href="../vendor/fontawesome/css/brands.min.css">
-  <link rel="stylesheet" href="../vendor/material-symbols.css">
   <style>
     :root {
       --sb-bg: var(--bs-body-bg, #222);
@@ -220,15 +218,17 @@
   <script src="../js/components/smd-tabs.js"></script>
   <script src="../js/components/smd-qrcode.js"></script>
   <script src="../js/components/smd-buymeacoffee.js"></script>
+  <script src="../js/components/smd-fontawesome-credit.js"></script>
   <script src="../js/components/smd-image.js"></script>
   <script src="../js/components/smd-image-card.js"></script>
   <script src="../js/components/smd-image-select.js"></script>
-  <script src="../js/components/pmd-stream-header.js"></script>
-  <script src="../js/components/pmd-stream-job-card.js"></script>
-  <script src="../js/components/pmd-job-search-card.js"></script>
+  <script src="../../js/components/pmd-stream-header.js"></script>
+  <script src="../../js/components/pmd-stream-job-card.js"></script>
+  <script src="../../js/components/pmd-job-search-card.js"></script>
   <script src="../vendor/qrcode.min.js"></script>
   <script src="../js/build-number.js"></script>
-  <script src="../js/settings.js"></script>
+  <script src="../js/smd-app.js"></script>
+  <script src="../js/smd-settings.js"></script>
 
   <script>
     // ---- Theme selector: uses the SAME themeConfig + applyTheme as the app ----
@@ -454,7 +454,7 @@
       id: "smd-image",
       name: "smd-image",
       tag: "<smd-image>",
-      desc: "Displays an image from a localStorage images list. Attribute <code>key-prefix</code> sets the storage key prefix (list key = <code>keyPrefix + \"images\"</code>), <code>image</code> is the image name, <code>theme</code> is <code>auto</code>/<code>light</code>/<code>dark</code> for SVG recolouring, <code>size</code> sets the rendered box in px (the component adopts its own sized stylesheet), and <code>alt</code> is passed to the inner <code>&lt;img&gt;</code>. Missing names hide the image. When <code>data</code> is absent it falls back to <code>data&lt;size&gt;</code> (data64/80/100). An <code>image</code> of <code>bi:&lt;name&gt;</code> (Bootstrap), <code>ri:&lt;name&gt;</code> (Remix), <code>fa:&lt;name&gt;</code> (Font Awesome), <code>fab:&lt;name&gt;</code> (FA Brands) or <code>ms:&lt;name&gt;</code> (Material Symbols) renders that set's icon glyph (require the matching vendor css <code>&lt;link&gt;</code>s). Re-renders on attribute change; call <code>refresh()</code> after the store changes.",
+      desc: "Displays an image from a localStorage images list. Attribute <code>key-prefix</code> sets the storage key prefix (list key = <code>keyPrefix + \"images\"</code>), <code>image</code> is the image name, <code>theme</code> is <code>auto</code>/<code>light</code>/<code>dark</code> for SVG recolouring, <code>size</code> sets the rendered box in px (the component adopts its own sized stylesheet), and <code>alt</code> is passed to the inner <code>&lt;img&gt;</code>. Missing names hide the image. When <code>data</code> is absent it falls back to <code>data&lt;size&gt;</code> (data64/80/100). An <code>image</code> of <code>bi:&lt;name&gt;</code> (Bootstrap), <code>fa:&lt;name&gt;</code> (Font Awesome) or <code>fab:&lt;name&gt;</code> (FA Brands) renders that set's icon glyph (require the matching vendor css <code>&lt;link&gt;</code>s). Re-renders on attribute change; call <code>refresh()</code> after the store changes.",
       html: () => `
         <div class="sb-canvas" id="sb-image-canvas" style="min-height:120px">
           <smd-image id="sb-image" key-prefix="sb_" image="Star" size="80"></smd-image>
@@ -551,6 +551,21 @@
           log("smd-buymeacoffee", "height=" + h);
         });
       }
+    });
+
+    // ---- smd-fontawesome-credit ----
+    sections.push({
+      id: "smd-fontawesome-credit",
+      name: "smd-fontawesome-credit",
+      tag: "<smd-fontawesome-credit>",
+      desc: "The Font Awesome attribution line (icons licensed CC BY 4.0 require credit to Fonticons, Inc.). Shown in the settings footer beneath the build number. No attributes.",
+      html: () => `
+        <div class="sb-canvas">
+          <smd-fontawesome-credit></smd-fontawesome-credit>
+        </div>
+        <div class="sb-log" id="log-smd-fontawesome-credit">events: none</div>
+      `,
+      init: () => {}
     });
 
     // ---- pmd-stream-header ----

@@ -2,7 +2,7 @@
 2: Ask questions if there are implementation options
 3: When running playwright use the command '.\node_modules\.bin\playwright.cmd' to make sure the correct version loads. 
 4: Please capture all the output needed when running a test the first time so that you do not need to rerun the test.
-5: When running the regression tests run them in 30 batches, and use regression.spec.js and touch.spec.js
+5: When running the regression tests use playwright `--shards=30` (with regression.spec.js and touch.spec.js): launch each shard as `--shard=$i/30` so EVERY shard runs in parallel and gives full visibility into failures at once — do NOT loop them 1..30 sequentially (that hides cross-shard failures and needs a bespoke loop). Fix a failure in one shard everywhere before continuing.
 6: After fixing issues with the regression tests apply them to screenshots.spec.js and validate them using one theme only.
 7: Fail-fast test iterations: after a code/test change, DON'T run a whole batch at once — run only the first 2-3 affected tests first (`--grep "a|b" --workers=2 --retries=0`) to debug on a small surface; grow the batch only once those pass. The config sets `retries: 1`, so pass `--retries=0` while iterating (otherwise failures take twice as long).
 
@@ -35,6 +35,7 @@ Architecture:
 
 Techniques / gotchas:
 - To inspect computed styles/DOM, drop a temp `tests/_probe.spec.js` that writes JSON via `require("fs").writeFileSync(path.join(__dirname, "_probe.out.json"), ...)`, run it with `--reporter=line`, `Get-Content` the JSON, then delete both files. (test `console.log` is hidden by the list reporter).
+- **Playwright TRUNCATES large received/expected values in failure output** (`pretty-format` prints `…` and folds long arrays, e.g. a `expect(cachedUrls).toEqual(expect.arrayContaining([...]))` diff shows only the first ~10 cache URLs). There is NO config to raise the limit. When a failure depends on a full array/object (URL lists, cache keys, response lists), DON'T read it from the error message — extend/replace the probe (`_probe.spec.js`) to `writeFileSync` the ENTIRE array and `Get-Content` that file. "The received list is truncated" is always a probe job, never a reason to rerun the test for inspection.
 - `page.evaluate` can't see inside shadow roots: query `document.getElementById("<pageId>").shadowRoot` first (e.g. `#streamsEditor`, `#jobEditPage`, `#smdConfirmModal`). Playwright locators pierce automatically.
 - smd-button disabled/`.disabled` assertions must target the inner native button: `#id button`, not the host element.
 - Playwright `toHaveText` on an `smd-button` HOST reports the slot fallback text too (e.g. `"Edit\n Button"`), so exact-text assertions fail. Use `toContainText("Edit")` or a `getByRole("button", { name: "Edit" })` locator instead.
@@ -42,6 +43,63 @@ Techniques / gotchas:
 - Line endings: this repo stores text files with LF (`core.autocrlf=input`, `core.eol=lf`; no `.gitattributes`). NEVER write CRLF into a file — git will flag every line as changed (whole-file diff) and warn "CRLF will be replaced by LF the next time Git touches it". Do not round-trip files through PowerShell pipe/Get-Content/Set-Content joins; the Edit/Write/Read tools and Node preserve line endings — if you must convert use node with explicit `\n`, NEVER shell-piped measurements of `git show` (PowerShell pipeline re-encodes — it once reported 914 CRLF for a file whose raw blob via `git cat-file` was entirely LF). Verify with `git cat-file blob HEAD:<file>` + `git diff --stat` so only real edits show.
 
 ## Session log
+
+### 2026-09-09
+- Syxced TestShareMyDays/ShareMyDays → PlanMyDay/ShareMyDays (delete-first so the
+  removed files · remixicon.*, material-symbols.*, material-symbols-names.json ·
+  really disappeared). Adopted the new shared components:
+  - **smd-theme**: settings Display tab `<select id="themeSelector">` → `<smd-theme
+    id="themeSelector">`. `openSettings` restores via `setAttribute("theme", ...)`,
+    and a `smd-theme-change` listener calls `changeTheme`. Regression test uses
+    `#themeSelector select`.
+  - **smd-fontawesome-credit**: settings footer inline FA credit span → component.
+    New regression test asserts the credit text lives in the page's shadow root.
+  - **smd-image-picker**: replaced the tab-based `openImagePicker()` flow. The
+    `smd-image-select-action` handler now hosts `<smd-image-picker key-prefix=
+    "planmydays_">` on `#imagePickerPage` (`__openImagePicker`/`__finishImagePick`).
+    Selection closes the page via `smd-image-picker-select`; `__finishImagePick`
+    adds `d-none` (Playwright counts an off-canvas page as VISIBLE — hide() alone
+    is not enough). Icon tabs are now Local/Bootstrap/Font Awesome/FA Brands
+    (Remix+Material gone); regression picker tests rewritten to the component's
+    `.tab-btn`/`.item`/`.glyph`/`.label`/`input[type=search]`/`.clear` internals.
+  - `smd-image`/`smd-images`/picker drop `ri:`/`ms:`; `regen_icon_data.js` no
+    longer emits material-symbols-names.json; storybook drops the two css links.
+  - Shared build-number: PlanMyDay keeps its OWN single `BUILD_NUMBER` (does NOT
+    load `ShareMyDays/js/build-number.js`), so all cache-busting stays on the app
+    number and the `?v=BUILD_NUMBER` regression tests still pass.
+- Verified: 409 regression + 3 touch pass (30 `--shard`s), settings screenshots
+  5 pass, sampleImages + example 4 pass. **gotcha**: 30 shards × default 16
+  workers on ONE python server overflows it (`ERR_CONNECTION_REFUSED` lines in
+  later shards) — parallel-launch shards with `--workers=1` in small waves to get
+  a clean picture. `tests/http-server.py` backlog raised to 512 to help.
+
+### 2026-09-08 (2)
+- While debugging the sub-path SW-precache test ("no console errors when deployed under /PlanMyDay/"), a failure diff showed only the first ~10 cached URLs with `…` (Playwright pretty-format truncation). Spent a round-trip trying to read the full list from the error-context.md before realising the array is truncated by the reporter and it is a PROBE JOB to dump it fully. Lesson captured under "Techniques / gotchas": a truncated received/expected list is never readable from failure output — always `writeFileSync` the full array from a `_probe.spec.js` and `Get-Content` it. No config exists to raise Playwright's limit.
+- Also confirmed: `manifest.json` 404s under the JetBrains PyCharm built-in preview server (port 63342, serves the repo as `/PlanMyDay/`) are a PyCharm preview-server quirk, NOT an app bug — the app's own `tests/subpath-server.py` (8081) and a plain static server both serve `/PlanMyDay/manifest.json` (incl. `?v=` stamped) with 200. User agreed to leave it.
+
+### 2026-09-08
+- Started the ShareMyDays library extraction (Phase A + B done during this session):
+  - **Phase A (filesystem)**: `git mv`'d all shared assets into a new top-level `ShareMyDays/` folder (future library repo): `js/components/{styles,smd-*}.js`, `js/settings.js`→`js/smd-settings.js`, `js/images.js`→`js/smd-images.js`, `js/minio.js`→`js/smd-minio.js`, `vendor/`, `css/themes/`, `css/fonts/`, `css/styles.css` (shared half), `sampleImages{,.json}`, `regen_*.js`, `storybook/`. App keeps `js/app.js`, `js/build-number.js`, `js/components/pmd-*.js`, `css/styles.css` (app-specific half), `sw.js`, `index.html`, `manifest.json`, tests.
+  - `css/styles.css` was SPLIT: shared rules (flatpickr, quartz `.modal-content`/`.dropdown-menu` overrides, `.btn-outline-secondary`, drag-handle base, editor-btn, `#mainNav` auto-hide) → `ShareMyDays/css/styles.css`; app-specific (countdown cards, font-size/icon-size/compact/drag-size, stream accordions, task-note) → `css/styles.css`.
+  - **Phase B (class)**: added `ShareMyDays/js/smd-app.js` defining `SmdConfig` (`storagePrefix`/`themeDefault`/`appName`), `smdKey(name)` (prefix-parameterised storage keys), generic globals (`$id`, `escapeHtml`, `escAttr`, `showSmdModal`, `showInfoConfirm`, `safeHideModal`, `updateNavState`, `injectStyleInto`) and `class SmdApp` (constructor mutates `SmdConfig`, `key()`, `renderMenu()`, `buildSettingsContent()`). The three service files append `Object.assign(SmdApp.prototype, {...})` so any app subclass inherits them; the global function names remain as a thin facade so inline `onclick`/`onchange` handlers and the storybook keep working.
+  - `js/app.js` now declares `class PlanMyDayApp extends SmdApp { constructor() { super({storagePrefix:"planmydays_", themeDefault:"darkly", appName:"Plan My Day"}); ... } }`. All `planmydays_*` localStorage keys in app.js were rewritten to `smdKey(...)` via a node script (no behavior change; default prefix keeps existing data). PMD-specific settings handlers (`changeSplitList/HideDone/SkipAdhoc/SuffixStart/Jan1/Monday/StartWeek/ShowDanger`, dev today/lastGen) MOVE from smd-settings.js → app.js per the decision to keep the library generic.
+  - STORAGE PREFIX GOTCHA: `devToday`/`devLastGen` are intentionally UNPREFIXED in the original app — kept them hard-coded `"devToday"`/`"devLastGen"` in `changeDevToday`/`changeDevLastGen` to avoid changing dev-mode keys that openSettings writes/reads with the raw key. Everything else went through `smdKey()`.
+  - `index.html` loads `ShareMyDays/js/smd-app.js` FIRST (before smd-minio/smd-settings/smd-images) because the service files reference `SmdApp`/`SmdConfig` at parse time; sw.js precache got `ShareMyDays/js/smd-app.js` added.
+  - Storybook now loads `../js/smd-app.js` before `../js/smd-settings.js` (needs `SmdApp` global). Fixed its `smd-qrcode.js`/`smd-buymeacoffee.js` absolute `/vendor/...` paths → resolve from `document.currentScript` (`../../vendor/...` under ShareMyDays).
+  - Verified: 411 regression pass, touch 3 pass, screenshots subset pass, storybook loads with zero console errors.
+- **Bug found while verifying**: `material-symbols.css` and `remixicon.css` bundled `@font-face` src as ABSOLUTE `url("/vendor/fonts/...")`, which breaks after moving `vendor/` under `ShareMyDays/` (404s at the app root and under `/PlanMyDay/`). Fixed both to RELATIVE `url("./fonts/...")` so they resolve wherever the css file lives. `bootstrap-icons.css` (`./fonts/...`) and fontawesome (`../webfonts/...`) were already relative. NOTE the font is only fetched when a glyph is actually rendered, which is why plain page-load tests missed it.
+- **Added regression test**: "no console errors and no failed loads when icon-font glyphs render (bib/ri/fa/fab/ms)" in the `asset cache-busting` describe — renders one `smd-image` per icon family (forcing the vendored @font-face fetches) and asserts ZERO console errors / page errors / `>=400` responses. Verified it FAILS with the old absolute font path and passes now.
+- **Found + fixed pre-existing sw.js bug**: `js/app.js` was MISSING from `sw.js` PRECACHE_URLS (present at `fa50dc5`/`849ddbd`, lost later) — the sub-path test "no console errors when deployed under /PlanMyDay/" asserts `/PlanMyDay/js/app.js` is precached and was only passing via a race (the runtime fetch-handler lazily `cache.put`s app.js). Added it back so first-install offline always has the app entrypoint. Confirmed the test now passes deterministically.
+- Lessons:
+  - When a regression test asserts cached/precached asset lists, don't rely on runtime `cache.put` to backfill — the precache list must be complete and is the source of truth.
+  - Counters: `rg` is unavailable (use Grep tool); searching minified vendor files breaks the Grep tool — scope to `js/**`/`tests/**`.
+
+### 2026-09-07 (2)
+- Added regression test "no console errors when deployed under /PlanMyDay/ (sub-path) during SW precache" to `asset cache-busting` describe. It navigates to a NEW `tests/subpath-server.py` (port 8081) that serves the app ONLY under `/PlanMyDay/` (every origin-root path 404s), faithfully mimicking `ownimage.github.io/PlanMyDay/` where root `/css/...` does not exist. Test asserts: theme `<link>` href is relative (`^css\/themes\/`, not `^\/css\/`), the SW activates at scope `/PlanMyDay/` and precaches >0 URLs including theme css + app.js + index.html, all under `/PlanMyDay/`, with ZERO console errors / page errors / >=400 responses. Verified it FAILS when `applyTheme` reverts to the absolute `/css/themes/...` path, and passes with the relative-prefix fix. Added the server to `playwright.config.js` `webServer` array (now two entries: 8080 app + 8081 sub-path-only).
+- GOTCHAS learned:
+  - `navigator.serviceWorker.ready` TIMED OUT in the regression suite even though the SW activated fine — the shared `beforeEach` (`goto /` + reload) consumes most of the 30s test budget and the ~10s SW first-install precache pushes it over. Fix: bump `test.setTimeout(120000)` and poll with `expect.poll` for `reg.active.state === "activated"` + `!!controller` instead of awaiting `ready`.
+  - `requestfailed` does NOT fire for HTTP 404s (only network-level failures) — capture `response` events with `status() >= 400` instead.
+  - `http-server.py` (port 8080) ALSO serving `/PlanMyDay/` would have masked the bug (absolute `/css/themes/...` would still resolve to the root mount) — the test server must 404 origin-root asset paths to reproduce the real GitHub Pages failure.
 
 ### 2026-09-07
 - Fixed sub-path (e.g. GitHub Pages `ownimage.github.io/PlanMyDay/`) deployment breakage introduced by PWA changes: `js/settings.js` `applyTheme` hardcoded the theme path as ABSOLUTE `/css/themes/<name>/bootstrap.min.css`, which under a sub-path resolves to the domain root → 404. Fix: `applyTheme` now derives the theme URL's prefix from the `#bootstrap-theme-css` `<link>`'s existing relative `href` (`rel.replace(/[^/]*\/bootstrap\.min\.css(\?.*)?$/, "")`), yielding `css/themes/<name>/...` at the app root and `../css/themes/<name>/...` in `/storybook/`. Both resolve correctly under any sub-path. Verified: "theme swap is cache-busted" regression test passes.
@@ -52,6 +110,10 @@ Techniques / gotchas:
 - Bumped `BUILD_NUMBER` → `202609070000` (must be bumped to ship, else stale SW/cache).
 
 ### 2026-09-06
+- NOTE (2026-09-09): the Remix/Material icon sets described below were REMOVED
+  from the shared library — the picker is Local/Bootstrap/Font Awesome/FA Brands,
+  `material-symbols-names.json` is no longer generated, and the "six tabs"
+  text is historical.
 - smd-tabs gained a `wrap` attribute: `:host([wrap]) .smd-tab-list { flex-wrap: wrap; }` (base rule is now explicit `flex-wrap: nowrap`). The image picker sets `tabsEl.wrap = true` so its 6 tabs flow onto multiple lines; the old picker-local `.smd-tab-list { flex-wrap: wrap }` style hack was removed. Storybook smd-tabs section gained a "Wrap tabs" checkbox. Regression test asserts the picker tabs wrap (narrow 360px viewport → buttons span >1 row).
 - Image picker now has SIX tabs: `Local | Bootstrap | Remix | Font Awesome | FA Brands | Material`. Reserved name prefixes stored on job/stream.image: `bi:`/`ri:`/`fa:` (solid+regular combined)/`fab:` (brands)/`ms:` (Material Symbols). Vendored locally with `?v=` cache-busting + `sw.js` precache: Remix Icon **4.2.0** (Apache-2.0 — NOT 4.9.x, which switched to a custom "Remix Icon License v1.0"), Font Awesome Free **6.5.2** (`vendor/fontawesome/{css,webfonts}`), Material Symbols Outlined variable font (Fontsource `wght` slice, 648KB — heavy, accepted) + a tiny `vendor/material-symbols.css`. FA icons are CC BY 4.0 → added a "Font Awesome icons by Fonticons, Inc. (CC BY 4.0)" credit in the Settings footer. `BUILD_NUMBER` → `202609062100`.
 - Generated metadata via `regen_icon_data.js` (npm `regen:icons`): `vendor/fontawesome-icons.json` (`{fa:{name:{h,w}},fab:{...}}`) from FA's `fontawesome.min.css` content rules + `metadata/icon-families.json` (name→style), and `vendor/material-symbols-names.json` (from the `material-symbols` npm `index.d.ts` name array). FA parsing GOTCHA: all solid/regular content rules live in `fontawesome.min.css` (single-colon `:before`, comma-grouped aliases — expand selectors); the per-style `solid/regular.min.css` only carry @font-face + weight classes; brands glyphs live in `brands.min.css`. Solid/regular SHARE codepoints — font-weight (900 vs 400) selects the font file, so FA rendering must set per-name weight or glyphs tofu.

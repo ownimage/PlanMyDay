@@ -9,11 +9,11 @@ const IMAGES_PAGE_SIZE = 30;
 const MAX_RASTER_DIM = 1024;
 
 function loadImages() {
-  return JSON.parse(localStorage.getItem("planmydays_images") || "[]");
+  return JSON.parse(localStorage.getItem(smdKey("images")) || "[]");
 }
 
 function saveImages(images) {
-  localStorage.setItem("planmydays_images", JSON.stringify(images));
+  localStorage.setItem(smdKey("images"), JSON.stringify(images));
 }
 
 function getImageColors(dataUrl) {
@@ -259,7 +259,7 @@ function renderImagesEditor() {
     card.setAttribute("index", images.indexOf(img));
     card.setAttribute("title", img.name);
     card.setAttribute("image", img.name);
-    card.setAttribute("key-prefix", "planmydays_");
+    card.setAttribute("key-prefix", SmdConfig.storagePrefix);
     if (inUse) card.setAttribute("in-use", "");
     listEl.appendChild(card);
   });
@@ -638,14 +638,11 @@ let _imagePickerCloseTimer = null;
 
 const PICKER_ICON_SETS = [
   { key: "bi", title: "Bootstrap", css: "vendor/bootstrap-icons.css", family: "bootstrap-icons" },
-  { key: "ri", title: "Remix", css: "vendor/remixicon.css", family: "remixicon" },
   { key: "fa", title: "Font Awesome", json: "vendor/fontawesome-icons.json", slot: "fa", family: "Font Awesome 6 Free" },
-  { key: "fab", title: "FA Brands", json: "vendor/fontawesome-icons.json", slot: "fab", family: "Font Awesome 6 Brands" },
-  { key: "ms", title: "Material", json: "vendor/material-symbols-names.json", family: "Material Symbols Outlined", ligature: true }
+  { key: "fab", title: "FA Brands", json: "vendor/fontawesome-icons.json", slot: "fab", family: "Font Awesome 6 Brands" }
 ];
 const IO_CODEPOINT_RE = {
-  bi: /\.bi-([a-z0-9][a-z0-9-]*)::before\s*\{\s*content:\s*["']\\([0-9a-fA-F]+)["']/g,
-  ri: /\.ri-([a-z0-9][a-z0-9-]*):before\s*\{\s*content:\s*["']\\([0-9a-fA-F]+)["']/g
+  bi: /\.bi-([a-z0-9][a-z0-9-]*)::before\s*\{\s*content:\s*["']\\([0-9a-fA-F]+)["']/g
 };
 const _pickerIconData = Object.create(null);
 const _pickerIconPromises = Object.create(null);
@@ -809,7 +806,7 @@ function renderImagePicker() {
     const item = document.createElement("div");
     item.className = "image-picker-item text-center";
     item.style.cssText = "width:95px;cursor:pointer;border:2px solid transparent;border-radius:8px;padding:6px;transition:border-color 0.15s";
-    item.innerHTML = `<smd-image key-prefix="planmydays_" image="${escapeHtml(img.name)}" title="${escapeHtml(img.name)}" size="64"></smd-image><div style="font-size:0.75rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:4px">${escapeHtml(img.name)}</div>`;
+    item.innerHTML = `<smd-image key-prefix="${SmdConfig.storagePrefix}" image="${escapeHtml(img.name)}" title="${escapeHtml(img.name)}" size="64"></smd-image><div style="font-size:0.75rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:4px">${escapeHtml(img.name)}</div>`;
     item.onclick = () => { selectImagePickerItem(img.name); };
     item.onmouseenter = () => { item.style.borderColor = "var(--bs-primary)"; };
     item.onmouseleave = () => { item.style.borderColor = "transparent"; };
@@ -850,13 +847,12 @@ function renderPickerList() {
     item.className = "icon-picker-item text-center";
     item.style.cssText = "width:95px;cursor:pointer;border:2px solid transparent;border-radius:8px;padding:6px;transition:border-color 0.15s";
     const entry = data.byName[n] || {};
-    const glyph = cfg.ligature ? n : (entry.hex ? String.fromCodePoint(parseInt(entry.hex, 16)) : "");
+    const glyph = entry.hex ? String.fromCodePoint(parseInt(entry.hex, 16)) : "";
     const span = document.createElement("span");
     span.className = "icon-glyph";
     span.textContent = glyph;
     span.style.setProperty("font-family", '"' + cfg.family + '"');
     if (entry.weight != null) span.style.setProperty("font-weight", entry.weight);
-    if (cfg.ligature) span.style.setProperty("white-space", "nowrap");
     const label = document.createElement("div");
     label.className = "icon-name";
     label.textContent = n;
@@ -887,8 +883,9 @@ function clearImagePickerFilter() {
 }
 
 function seedSampleImages() {
-  if (localStorage.getItem("planmydays_images")) return;
-  fetch("sampleImages.json?v=" + (typeof BUILD_NUMBER !== "undefined" ? BUILD_NUMBER : Date.now()))
+  if (localStorage.getItem(smdKey("images"))) return;
+  const root = typeof smdAppRoot === "function" ? smdAppRoot() : "";
+  fetch(root + "sampleImages.json?v=" + (typeof BUILD_NUMBER !== "undefined" ? BUILD_NUMBER : Date.now()))
     .then(res => res.json())
     .then(data => {
       if (data && data.images) {
@@ -919,7 +916,8 @@ function hideUploadDialog() {
 
 function uploadStandardImages() {
   showUploadDialog();
-  fetch("sampleImages.json?v=" + (typeof BUILD_NUMBER !== "undefined" ? BUILD_NUMBER : Date.now()))
+  const root = typeof smdAppRoot === "function" ? smdAppRoot() : "";
+  fetch(root + "sampleImages.json?v=" + (typeof BUILD_NUMBER !== "undefined" ? BUILD_NUMBER : Date.now()))
     .then(res => res.json())
     .then(data => {
       if (!data || !data.images) return;
@@ -944,3 +942,61 @@ function uploadStandardImages() {
     .catch(() => {})
     .finally(() => hideUploadDialog());
 }
+
+// Register every images/editor function as an SmdApp method so apps that extend
+// the base class inherit them. The globals above remain the thin facade.
+Object.assign(SmdApp.prototype, {
+  loadImages,
+  saveImages,
+  getImageColors,
+  updateSvgColor,
+  isSvgDataUrl,
+  isDarkTheme,
+  getThemeKey,
+  themeKey,
+  getThemeOverride,
+  ensureThemeOverride,
+  getThemedImageDataUrl,
+  applySvgAttr,
+  updateEditPreview,
+  buildThemeSection,
+  renderImagesEditor,
+  clearImageNameSearch,
+  setImageNameSearch,
+  startEditImage,
+  duplicateImage,
+  editImageField,
+  editImageColor,
+  editImageFillNone,
+  editImageStrokeNone,
+  editImageStrokeWidth,
+  normalizeSvgForEditing,
+  openImageUpload,
+  isSvgFile,
+  processRasterUpload,
+  addNewImage,
+  checkDuplicateName,
+  doneImageEdit,
+  cancelImageEdit,
+  confirmDeleteImage,
+  deleteImage,
+  openImagesEditor,
+  closeImagesEditor,
+  getImageByName,
+  isImageInUse,
+  getImageDataUrl,
+  parsePickerCssGlyphs,
+  loadPickerIconSet,
+  openImagePicker,
+  closeImagePicker,
+  injectPickerStyles,
+  renderImagePicker,
+  renderPickerList,
+  selectImagePickerItem,
+  filterImagePicker,
+  clearImagePickerFilter,
+  seedSampleImages,
+  showUploadDialog,
+  hideUploadDialog,
+  uploadStandardImages
+});
